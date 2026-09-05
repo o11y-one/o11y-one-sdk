@@ -1,0 +1,44 @@
+# Toolchain for the o11y-one-sdk monorepo.
+#
+# mise is the only orchestrator boundary: it pins every language runtime and the
+# one task runner (just). There is no JS meta-build-system here (no Turborepo /
+# Nx / moon) — each package is built by its own ecosystem's native tool
+# (pnpm, uv, go) and `just` sequences them.
+#
+# Every version below is exact (no ranges, no "latest"). CI and laptops resolve
+# to the same bytes. Bump deliberately, in one commit, alongside the lockfiles.
+
+[tools]
+# --- TypeScript ---------------------------------------------------------
+node = "26.8.1"
+# pnpm is held on the 11.x line to match o11y-web (which pins pnpm@11.5.1).
+# The supply-chain knobs this repo relies on — allowBuilds, minimumReleaseAge,
+# trustPolicy in pnpm-workspace.yaml — are pnpm 11 spellings. Move both repos
+# together, not this one alone. (pnpm 12.3.2 is current stable as of the pin
+# date; adopting it is a deliberate cross-repo migration, not a bump.)
+pnpm = "11.24.0"
+
+# --- Python -------------------------------------------------------------
+python = "3.14.7"
+uv = "0.12.9"
+
+# --- Go -----------------------------------------------------------------
+go = "1.27.1"
+
+# --- Protobuf -----------------------------------------------------------
+# Codegen plugins are NOT installed locally: buf.gen.yaml uses BSR remote
+# plugins, pinned to exact versions there. buf itself is the only local binary
+# in the generation path.
+buf = "1.72.0"
+
+# --- Task runner --------------------------------------------------------
+just = "1.58.0"
+
+[settings]
+# Never silently substitute a version other than the one pinned above.
+experimental = false
+idiomatic_version_file_enable_tools = []
+
+[env]
+# Keep pnpm from reaching for a Corepack-managed copy of itself; mise owns it.
+COREPACK_ENABLE_STRICT = "0"

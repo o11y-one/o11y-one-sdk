@@ -1,0 +1,238 @@
+name: publish
+
+# Tag-triggered. Nothing publishes from a branch, a manual dispatch, or a PR.
+#
+#   git tag v0.1.0 && git push origin v0.1.0
+#
+# One tag publishes all four artifacts at the same version: @o11y-one/api,
+# @o11y-one/sdk, o11y-one-api, o11y-one, plus the signed ci-runner binaries. The
+# four move together because they are generated from one proto snapshot; letting
+# them drift apart would mean a matrix of compatible versions nobody wants to
+# maintain.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions: {}
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  BUF_TOKEN: ""
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Gate. Everything downstream `needs:` this, so a broken tag publishes nothing.
+  # ---------------------------------------------------------------------------
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        with:
+          version: 2026.9.1
+          install: true
+          cache: true
+
+      - id: version
+        name: Derive version from the tag
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "tag '$GITHUB_REF_NAME' is not vMAJOR.MINOR.PATCH[-prerelease]" >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Manifest versions match the tag
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          fail=0
+          check() {
+            if [[ "$2" != "$version" ]]; then
+              echo "$1 declares $2, tag says $version" >&2
+              fail=1
+            fi
+          }
+          check packages/gen-ts/package.json  "$(node -p 'require("./packages/gen-ts/package.json").version')"
+          check packages/sdk-ts/package.json  "$(node -p 'require("./packages/sdk-ts/package.json").version')"
+          check packages/gen-py/pyproject.toml "$(uv version --package o11y-one-api --short)"
+          check packages/sdk-py/pyproject.toml "$(uv version --package o11y-one --short)"
+          exit "$fail"
+
+      - run: pnpm install --frozen-lockfile
+      - run: uv sync --all-packages --locked
+      - name: Generated code is current
+        run: just gen-check
+      - run: just lint
+      - run: just build
+      - run: just test
+
+  # ---------------------------------------------------------------------------
+  # npm, via OIDC trusted publishing.
+  #
+  # There is no NPM_TOKEN in this repository. npm exchanges the job's OIDC token
+  # for a short-lived publish credential, which means: no long-lived secret to
+  # leak, no secret to rotate, and a provenance attestation (--provenance) that
+  # ties the tarball to this workflow file at this commit. Consumers can verify
+  # it with `npm audit signatures`.
+  #
+  # Prerequisite, done once in the npm UI per package: configure trusted
+  # publishing for o11y-one/o11y-one-sdk with workflow `publish.yml` and
+  # environment `release`.
+  # ---------------------------------------------------------------------------
+  publish-npm:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: release # protected: requires a reviewer, restricted to tags
+    permissions:
+      contents: read
+      id-token: write # ONLY here and in the two jobs below. Never in ci.yml.
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        with:
+          version: 2026.9.1
+          install: true
+          cache: true
+
+      - run: pnpm install --frozen-lockfile
+      - run: just build-ts
+
+      # npm, not pnpm, for the publish itself: trusted publishing and
+      # --provenance are npm-CLI features, and npm ships with the pinned Node.
+      # pnpm still owns the workspace and the lockfile.
+      - name: Publish @o11y-one/api
+        working-directory: packages/gen-ts
+        run: npm publish --provenance --access public
+
+      - name: Publish @o11y-one/sdk
+        working-directory: packages/sdk-ts
+        run: npm publish --provenance --access public
+
+  # ---------------------------------------------------------------------------
+  # PyPI, via Trusted Publishers. Same story: no PYPI_TOKEN in this repository.
+  #
+  # Prerequisite, done once per project in the PyPI UI: add a trusted publisher
+  # for owner o11y-one, repository o11y-one-sdk, workflow publish.yml,
+  # environment release.
+  # ---------------------------------------------------------------------------
+  publish-pypi:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: release
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        with:
+          version: 2026.9.1
+          install: true
+          cache: true
+
+      - run: uv sync --all-packages --locked
+      - run: just build-py
+
+      - name: Publish to PyPI
+        run: uv publish --trusted-publishing always dist/*
+
+  # ---------------------------------------------------------------------------
+  # ci-runner binaries: cross-compiled, checksummed, and signed keylessly with
+  # cosign.
+  #
+  # Keyless matters here. The binary is meant to be curl'd into other people's
+  # pipelines, so the interesting question is not "did someone with a key sign
+  # this" but "was this built by this workflow, from this repo, at this tag".
+  # A cosign keyless signature answers exactly that and there is no signing key
+  # to store, rotate, or lose.
+  #
+  # Verify:
+  #   cosign verify-blob o11y-eval-linux-amd64 \
+  #     --bundle o11y-eval-linux-amd64.cosign.bundle \
+  #     --certificate-identity-regexp '^https://github.com/o11y-one/o11y-one-sdk/\.github/workflows/publish\.yml@' \
+  #     --certificate-oidc-issuer https://token.actions.githubusercontent.com
+  # ---------------------------------------------------------------------------
+  release-binaries:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: release
+    permissions:
+      contents: write # to create the GitHub release and upload assets
+      id-token: write # for cosign keyless signing
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        with:
+          version: 2026.9.1
+          install: true
+          cache: true
+
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      - name: Cross-compile
+        working-directory: tools/ci-runner
+        env:
+          CGO_ENABLED: "0"
+          VERSION: ${{ needs.verify.outputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir -p ../../dist-bin
+          # -trimpath and a fixed ldflags string keep the build reproducible:
+          # no absolute paths from the runner leak into the binary.
+          for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64; do
+            goos="${target%/*}"; goarch="${target#*/}"
+            out="../../dist-bin/o11y-eval-${goos}-${goarch}"
+            [[ "$goos" == windows ]] && out="${out}.exe"
+            GOOS="$goos" GOARCH="$goarch" go build -trimpath \
+              -ldflags "-s -w -X main.version=${VERSION}" -o "$out" .
+            echo "built $out"
+          done
+
+      - name: Checksums
+        working-directory: dist-bin
+        run: sha256sum o11y-eval-* > SHA256SUMS
+
+      - name: Sign each binary and the checksum file
+        working-directory: dist-bin
+        run: |
+          set -euo pipefail
+          for f in o11y-eval-* SHA256SUMS; do
+            cosign sign-blob --yes "$f" --bundle "${f}.cosign.bundle"
+          done
+
+      # gh is preinstalled on GitHub-hosted runners. Using it instead of a
+      # third-party release action removes one more supply-chain dependency
+      # from the job that has `contents: write`.
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes \
+            dist-bin/*

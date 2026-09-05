@@ -1,0 +1,152 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Deny by default at the workflow level, then grant the minimum per job. A job
+# with no `permissions:` block of its own inherits this empty set and gets a
+# GITHUB_TOKEN that can do nothing.
+permissions: {}
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Codegen uses BSR remote plugins anonymously. There is deliberately no
+  # BUF_TOKEN secret in this repo: an anonymous generate is rate-limited but
+  # sufficient (one request per plugin per run, five per `just gen`), and a token
+  # would be a credential in CI that buys nothing.
+  BUF_TOKEN: ""
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # The generated code in this repo is committed. This job asserts that what is
+  # committed is exactly what buf produces from the vendored snapshot with the
+  # plugin versions in buf.gen.yaml — i.e. that nobody hand-edited generated
+  # code and nobody bumped a plugin without regenerating.
+  #
+  # LIMITATION, stated plainly: this does NOT verify the vendored .proto files
+  # against o11y-api at PROTO_PIN. o11y-api is private; checking it out here
+  # would mean putting a cross-repo token in this workflow, which is a larger
+  # supply-chain cost than the check is worth. Re-vendoring is a manual, local,
+  # reviewed act (`just sync-proto ../o11y-api`), and the .proto diff is visible
+  # in the PR that moves PROTO_PIN.
+  # ---------------------------------------------------------------------------
+  gen-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        with:
+          version: 2026.9.1
+          install: true
+          cache: true
+
+      - name: PROTO_PIN is a well-formed commit sha
+        run: |
+          pin="$(grep -v '^#' PROTO_PIN | tr -d '[:space:]')"
+          if [[ ! "$pin" =~ ^[0-9a-f]{8,40}$ ]]; then
+            echo "PROTO_PIN does not contain a commit sha: '$pin'" >&2
+            exit 1
+          fi
+          echo "PROTO_PIN=$pin"
+
+      - name: The vendored snapshot compiles
+        run: buf build -o /dev/null
+
+      - name: Every import resolves locally or to a well-known type
+        run: |
+          bad=0
+          while IFS= read -r imp; do
+            case "$imp" in
+              google/protobuf/*) ;;
+              o11y_one/*) [[ -f "proto/$imp" ]] || { echo "MISSING: $imp" >&2; bad=1; } ;;
+              *) echo "UNRESOLVED: $imp — add the module to buf.yaml deps" >&2; bad=1 ;;
+            esac
+          done < <(grep -rho '^import "[^"]*"' proto/o11y_one | sed 's/^import "//; s/"$//' | sort -u)
+          exit "$bad"
+
+      - name: Committed generated code matches `just gen`
+        run: just gen-check
+
+  # ---------------------------------------------------------------------------
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        with:
+          version: 2026.9.1
+          install: true
+          cache: true
+
+      # --frozen-lockfile / --locked: CI never resolves. If a manifest and a
+      # lockfile disagree, that is a failure to fix in a PR, not something to
+      # paper over by re-resolving on a runner.
+      - name: Install (TypeScript)
+        run: pnpm install --frozen-lockfile
+
+      - name: Install (Python)
+        run: uv sync --all-packages --locked
+
+      - name: Lint
+        run: just lint
+
+      - name: Build
+        run: just build
+
+      - name: Test
+        run: just test
+
+  # ---------------------------------------------------------------------------
+  # The ci-runner ships as a static binary customers curl into a pipeline, so
+  # every release platform has to at least compile on every PR. Cheap, and it
+  # catches a build-tag mistake long before the release workflow does.
+  # ---------------------------------------------------------------------------
+  ci-runner-cross-compile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { goos: linux, goarch: amd64 }
+          - { goos: linux, goarch: arm64 }
+          - { goos: darwin, goarch: amd64 }
+          - { goos: darwin, goarch: arm64 }
+          - { goos: windows, goarch: amd64 }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        with:
+          version: 2026.9.1
+          install: true
+          cache: true
+
+      - name: Build ${{ matrix.goos }}/${{ matrix.goarch }}
+        working-directory: tools/ci-runner
+        env:
+          CGO_ENABLED: "0"
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: go build -trimpath -o /dev/null .

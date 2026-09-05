@@ -1,0 +1,14 @@
+# Proto source-of-truth pin.
+#
+# The .proto files under proto/o11y_one/ in THIS repo are a vendored snapshot.
+# They are NOT edited here. The source of truth is the o11y-api repo.
+#
+# source_repo:  o11y-api  (private; local checkouts are commonly ../o11y-api or ../o11y-api-agentic)
+# source_path:  proto/o11y_one/
+# source_commit: fb8f5098
+#
+# Regenerate with:
+#   ./tools/sync-proto.sh ../o11y-api-agentic
+# which verifies the checkout is at the commit below, re-vendors proto/o11y_one/,
+# and re-runs `buf generate`. Generated code is committed.
+fb8f5098

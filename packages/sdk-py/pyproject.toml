@@ -1,0 +1,49 @@
+[project]
+name = "o11y-one"
+version = "0.0.0"
+description = "Hand-written Python client for the O11y One API: transport construction, credential injection, and the O11y One error taxonomy."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+authors = [{ name = "O11y One" }]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Typing :: Typed",
+]
+
+dependencies = [
+  "o11y-one-api",
+  "connect-python>=0.9.0,<1",
+  "httpx>=0.28",
+]
+
+[project.urls]
+Homepage = "https://o11y.one"
+Source = "https://github.com/o11y-one/o11y-one-sdk"
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+# o11y_one is a PEP 420 namespace shared with o11y-one-api; this distribution
+# owns exactly o11y_one/sdk. No src/o11y_one/__init__.py, ever — adding one
+# would shadow the generated o11y_one.billing, o11y_one.agentic, ... packages.
+packages = ["src/o11y_one"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src", "tests", "README.md", "pyproject.toml"]
+
+[tool.uv.sources]
+# Inside the workspace, resolve the generated package from the sibling member
+# rather than PyPI, so the SDK always builds against the generated code from
+# THIS commit. Published wheels carry the plain `o11y-one-api` requirement.
+o11y-one-api = { workspace = true }
+
+[dependency-groups]
+dev = ["pytest>=8.4"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

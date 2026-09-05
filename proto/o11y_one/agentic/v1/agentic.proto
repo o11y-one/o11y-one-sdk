@@ -1,0 +1,4707 @@
+syntax = "proto3";
+
+package o11y_one.agentic.v1;
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "o11y_one/common/v1/common.proto";
+
+message CorrelationContextV1 {
+  optional string trace_id = 1;
+  optional string span_id = 2;
+  optional string observation_id = 3;
+  optional string conversation_id = 4;
+  optional string user_id = 5;
+  optional string account_id = 6;
+  optional string customer_id = 7;
+  optional string feature_id = 8;
+  optional string deployment_id = 9;
+  optional string prompt_version = 10;
+  optional string model_version = 11;
+  optional string tool_version = 12;
+  optional string release_id = 13;
+  optional string source_turn_id = 14;
+}
+
+enum ScoreSourceV1 {
+  SCORE_SOURCE_V1_UNSPECIFIED = 0;
+  SCORE_SOURCE_V1_SDK = 1;
+  SCORE_SOURCE_V1_ONLINE = 2;
+  SCORE_SOURCE_V1_OFFLINE = 3;
+  SCORE_SOURCE_V1_ANNOTATION = 4;
+  SCORE_SOURCE_V1_API = 5;
+}
+
+enum FeedbackSourceTypeV1 {
+  FEEDBACK_SOURCE_TYPE_V1_UNSPECIFIED = 0;
+  FEEDBACK_SOURCE_TYPE_V1_USER = 1;
+  FEEDBACK_SOURCE_TYPE_V1_REVIEWER = 2;
+  FEEDBACK_SOURCE_TYPE_V1_API = 3;
+  FEEDBACK_SOURCE_TYPE_V1_EVALUATOR = 4;
+  FEEDBACK_SOURCE_TYPE_V1_SYSTEM = 5;
+}
+
+enum FeedbackApprovalStatusV1 {
+  FEEDBACK_APPROVAL_STATUS_V1_UNSPECIFIED = 0;
+  FEEDBACK_APPROVAL_STATUS_V1_NOT_APPLICABLE = 1;
+  FEEDBACK_APPROVAL_STATUS_V1_PENDING = 2;
+  FEEDBACK_APPROVAL_STATUS_V1_APPROVED = 3;
+  FEEDBACK_APPROVAL_STATUS_V1_REJECTED = 4;
+}
+
+enum DatasetItemSourceKindV1 {
+  DATASET_ITEM_SOURCE_KIND_V1_UNSPECIFIED = 0;
+  DATASET_ITEM_SOURCE_KIND_V1_TRACE = 1;
+  DATASET_ITEM_SOURCE_KIND_V1_SPAN = 2;
+  DATASET_ITEM_SOURCE_KIND_V1_OBSERVATION = 3;
+  DATASET_ITEM_SOURCE_KIND_V1_SESSION = 4;
+  DATASET_ITEM_SOURCE_KIND_V1_MANUAL = 5;
+}
+
+enum DatasetImportFormatV1 {
+  DATASET_IMPORT_FORMAT_V1_UNSPECIFIED = 0;
+  DATASET_IMPORT_FORMAT_V1_CSV = 1;
+  DATASET_IMPORT_FORMAT_V1_TSV = 2;
+  DATASET_IMPORT_FORMAT_V1_JSON = 3;
+  DATASET_IMPORT_FORMAT_V1_JSONL = 4;
+}
+
+enum DatasetItemSplitV1 {
+  DATASET_ITEM_SPLIT_V1_UNSPECIFIED = 0;
+  DATASET_ITEM_SPLIT_V1_TRAIN = 1;
+  DATASET_ITEM_SPLIT_V1_EVAL = 2;
+  DATASET_ITEM_SPLIT_V1_GOLDEN = 3;
+  DATASET_ITEM_SPLIT_V1_REGRESSION = 4;
+  DATASET_ITEM_SPLIT_V1_CANARY = 5;
+}
+
+enum AnnotationRoutingReasonV1 {
+  ANNOTATION_ROUTING_REASON_V1_UNSPECIFIED = 0;
+  ANNOTATION_ROUTING_REASON_V1_NEGATIVE_EXPLICIT_FEEDBACK = 1;
+  ANNOTATION_ROUTING_REASON_V1_BAD_IMPLICIT_OUTCOME = 2;
+  ANNOTATION_ROUTING_REASON_V1_EVALUATOR_DISAGREEMENT = 3;
+  ANNOTATION_ROUTING_REASON_V1_HIGH_COST_FAILURE = 4;
+  ANNOTATION_ROUTING_REASON_V1_STRATEGIC_CUSTOMER = 5;
+}
+
+enum AnnotationTaskStateV1 {
+  ANNOTATION_TASK_STATE_V1_UNSPECIFIED = 0;
+  ANNOTATION_TASK_STATE_V1_OPEN = 1;
+  ANNOTATION_TASK_STATE_V1_CLAIMED = 2;
+  ANNOTATION_TASK_STATE_V1_COMPLETED = 3;
+  ANNOTATION_TASK_STATE_V1_APPROVED = 4;
+  ANNOTATION_TASK_STATE_V1_REJECTED = 5;
+}
+
+enum AnnotationTaskModeV1 {
+  ANNOTATION_TASK_MODE_V1_UNSPECIFIED = 0;
+  ANNOTATION_TASK_MODE_V1_SINGLE = 1;
+  ANNOTATION_TASK_MODE_V1_PAIRWISE = 2;
+}
+
+enum AnnotationPairwiseWinnerV1 {
+  ANNOTATION_PAIRWISE_WINNER_V1_UNSPECIFIED = 0;
+  ANNOTATION_PAIRWISE_WINNER_V1_BASELINE = 1;
+  ANNOTATION_PAIRWISE_WINNER_V1_CANDIDATE = 2;
+  ANNOTATION_PAIRWISE_WINNER_V1_TIE = 3;
+}
+
+enum PromptEnvironmentV1 {
+  PROMPT_ENVIRONMENT_V1_UNSPECIFIED = 0;
+  PROMPT_ENVIRONMENT_V1_DRAFT = 1;
+  PROMPT_ENVIRONMENT_V1_PROD = 2;
+  PROMPT_ENVIRONMENT_V1_CANDIDATE = 3;
+  PROMPT_ENVIRONMENT_V1_EXPERIMENT = 4;
+}
+
+enum EvaluatorExecutionModeV1 {
+  EVALUATOR_EXECUTION_MODE_V1_UNSPECIFIED = 0;
+  EVALUATOR_EXECUTION_MODE_V1_DETERMINISTIC = 1;
+  EVALUATOR_EXECUTION_MODE_V1_ASYNC = 2;
+}
+
+enum ProviderExecutionModeV1 {
+  PROVIDER_EXECUTION_MODE_V1_UNSPECIFIED = 0;
+  PROVIDER_EXECUTION_MODE_V1_BYO_PROVIDER_KEY_PROXY = 1;
+  PROVIDER_EXECUTION_MODE_V1_PLATFORM_MANAGED_PROXY = 2;
+  PROVIDER_EXECUTION_MODE_V1_CUSTOMER_HOSTED_ENDPOINT = 3;
+  PROVIDER_EXECUTION_MODE_V1_SELF_HOSTED_LOCAL_MODEL = 4;
+  PROVIDER_EXECUTION_MODE_V1_DETERMINISTIC_LOCAL_EXECUTOR = 5;
+}
+
+// The six providers under study (E1-1). Extended additively: no existing value
+// moves. Every exhaustive match over this enum is a compile-time obligation on
+// purpose -- a provider that arrives without its accounting convention, its
+// credential mapping or its adapter must not compile, because each of those
+// silently defaulted is a wrong number rather than a missing one.
+//
+// The four added by E1-1 are DEGRADED, not AVAILABLE: their adapters are E1-4.
+enum ProviderNameV1 {
+  PROVIDER_NAME_V1_UNSPECIFIED = 0;
+  PROVIDER_NAME_V1_OPENAI = 1;
+  PROVIDER_NAME_V1_ANTHROPIC = 2;
+  PROVIDER_NAME_V1_GOOGLE = 3;
+  PROVIDER_NAME_V1_XAI = 4;
+  // Moonshot AI hosts the Kimi model family. This enum names providers, so the
+  // host is the value and the family appears in MoonshotTextModelV1.
+  PROVIDER_NAME_V1_MOONSHOT = 5;
+  PROVIDER_NAME_V1_DEEPSEEK = 6;
+  // E1-1b: a ROUTER, not a lab. It is in this enum rather than a second one
+  // because it is addressed the same way -- a credential and a model id -- and
+  // a second namespace would fork the credential plane, the adapter table, the
+  // accounting table and every match this track made exhaustive on purpose.
+  // What makes it different travels as a fact instead: ProviderKindV1.
+  PROVIDER_NAME_V1_OPENROUTER = 7;
+}
+
+// What KIND of thing a provider is, published beside every provider cell's
+// availability (increment E1-1b sec 0.1).
+//
+// Three of this build's facts are properties of a LAB and are NOT properties of
+// a ROUTER: the token-accounting sign (NN48 -- a router's cache inclusivity is
+// whatever the upstream it chose reports), the price (a router's price is its
+// own, plus its fee, not the lab's), and the observability attribution (apps
+// point the OpenAI SDK at the router, so the emitted provider name is the
+// lab's). A client that cannot tell the two kinds apart cannot know which of
+// its numbers carry those caveats.
+//
+// UNSPECIFIED is a real answer: it means this build did not declare a kind,
+// which is what an older build's response decodes to. It never means LAB.
+enum ProviderKindV1 {
+  PROVIDER_KIND_V1_UNSPECIFIED = 0;
+  // Serves its own models from its own inference.
+  PROVIDER_KIND_V1_LAB = 1;
+  // Chooses an upstream per call. The upstream is part of the unit of
+  // measurement (NN47) and is not pinned by the model id alone.
+  PROVIDER_KIND_V1_ROUTER = 2;
+}
+
+enum ProviderCostModeV1 {
+  PROVIDER_COST_MODE_V1_UNSPECIFIED = 0;
+  PROVIDER_COST_MODE_V1_DISABLED = 1;
+  PROVIDER_COST_MODE_V1_FIXED_USD = 2;
+  PROVIDER_COST_MODE_V1_TOKEN_RATES = 3;
+}
+
+enum ProviderToolChoiceV1 {
+  PROVIDER_TOOL_CHOICE_V1_UNSPECIFIED = 0;
+  PROVIDER_TOOL_CHOICE_V1_AUTO = 1;
+  PROVIDER_TOOL_CHOICE_V1_NONE = 2;
+  PROVIDER_TOOL_CHOICE_V1_REQUIRED = 3;
+}
+
+enum ProviderReasoningEffortV1 {
+  PROVIDER_REASONING_EFFORT_V1_UNSPECIFIED = 0;
+  PROVIDER_REASONING_EFFORT_V1_NONE = 1;
+  PROVIDER_REASONING_EFFORT_V1_MINIMAL = 2;
+  PROVIDER_REASONING_EFFORT_V1_LOW = 3;
+  PROVIDER_REASONING_EFFORT_V1_MEDIUM = 4;
+  PROVIDER_REASONING_EFFORT_V1_HIGH = 5;
+  PROVIDER_REASONING_EFFORT_V1_XHIGH = 6;
+}
+
+enum ProviderVerbosityV1 {
+  PROVIDER_VERBOSITY_V1_UNSPECIFIED = 0;
+  PROVIDER_VERBOSITY_V1_DEFAULT = 1;
+  PROVIDER_VERBOSITY_V1_LOW = 2;
+  PROVIDER_VERBOSITY_V1_MEDIUM = 3;
+  PROVIDER_VERBOSITY_V1_HIGH = 4;
+}
+
+enum ProviderTruncationV1 {
+  PROVIDER_TRUNCATION_V1_UNSPECIFIED = 0;
+  PROVIDER_TRUNCATION_V1_AUTO = 1;
+  PROVIDER_TRUNCATION_V1_DISABLED = 2;
+}
+
+enum ProviderPromptCacheRetentionV1 {
+  PROVIDER_PROMPT_CACHE_RETENTION_V1_UNSPECIFIED = 0;
+  PROVIDER_PROMPT_CACHE_RETENTION_V1_IN_MEMORY = 1;
+  PROVIDER_PROMPT_CACHE_RETENTION_V1_TWENTY_FOUR_HOURS = 2;
+}
+
+enum ProviderServiceTierV1 {
+  PROVIDER_SERVICE_TIER_V1_UNSPECIFIED = 0;
+  PROVIDER_SERVICE_TIER_V1_AUTO = 1;
+  PROVIDER_SERVICE_TIER_V1_DEFAULT = 2;
+  PROVIDER_SERVICE_TIER_V1_FLEX = 3;
+  PROVIDER_SERVICE_TIER_V1_PRIORITY = 4;
+  PROVIDER_SERVICE_TIER_V1_STANDARD_ONLY = 5;
+}
+
+enum BaselineStrategyV1 {
+  BASELINE_STRATEGY_V1_UNSPECIFIED = 0;
+  BASELINE_STRATEGY_V1_REQUIRE_EXPLICIT = 1;
+  BASELINE_STRATEGY_V1_ALLOW_ROLLING_HISTORICAL = 2;
+  BASELINE_STRATEGY_V1_ALLOW_LAST_GOOD_CANDIDATE = 3;
+}
+
+enum EvaluatorOutputSchemaModeV1 {
+  EVALUATOR_OUTPUT_SCHEMA_MODE_V1_UNSPECIFIED = 0;
+  EVALUATOR_OUTPUT_SCHEMA_MODE_V1_JSON_OBJECT = 1;
+  EVALUATOR_OUTPUT_SCHEMA_MODE_V1_STRUCTURED_VERDICT = 2;
+  EVALUATOR_OUTPUT_SCHEMA_MODE_V1_TEXT = 3;
+}
+
+enum ProviderResponseParsingModeV1 {
+  PROVIDER_RESPONSE_PARSING_MODE_V1_UNSPECIFIED = 0;
+  PROVIDER_RESPONSE_PARSING_MODE_V1_STRICT_JSON = 1;
+  PROVIDER_RESPONSE_PARSING_MODE_V1_RELAXED_JSON = 2;
+  PROVIDER_RESPONSE_PARSING_MODE_V1_TEXT = 3;
+}
+
+enum ScoreAggregationModeV1 {
+  SCORE_AGGREGATION_MODE_V1_UNSPECIFIED = 0;
+  SCORE_AGGREGATION_MODE_V1_SINGLE = 1;
+  SCORE_AGGREGATION_MODE_V1_MEAN = 2;
+  SCORE_AGGREGATION_MODE_V1_MEDIAN = 3;
+  SCORE_AGGREGATION_MODE_V1_MAJORITY = 4;
+}
+
+enum ScoreConfidencePolicyV1 {
+  SCORE_CONFIDENCE_POLICY_V1_UNSPECIFIED = 0;
+  SCORE_CONFIDENCE_POLICY_V1_IGNORE = 1;
+  SCORE_CONFIDENCE_POLICY_V1_REQUIRE_PRESENT = 2;
+  SCORE_CONFIDENCE_POLICY_V1_REQUIRE_THRESHOLD = 3;
+}
+
+enum ScorerStarterKindV1 {
+  SCORER_STARTER_KIND_V1_UNSPECIFIED = 0;
+  SCORER_STARTER_KIND_V1_LLM_JUDGE = 1;
+  SCORER_STARTER_KIND_V1_DETERMINISTIC = 2;
+  SCORER_STARTER_KIND_V1_CODE = 3;
+}
+
+enum DatasetExportFormatV1 {
+  DATASET_EXPORT_FORMAT_V1_UNSPECIFIED = 0;
+  DATASET_EXPORT_FORMAT_V1_JSONL = 1;
+  DATASET_EXPORT_FORMAT_V1_CSV = 2;
+}
+
+enum OpenAiTextModelV1 {
+  OPEN_AI_TEXT_MODEL_V1_UNSPECIFIED = 0;
+  OPEN_AI_TEXT_MODEL_V1_GPT_5_5 = 1;
+  OPEN_AI_TEXT_MODEL_V1_GPT_5_5_PRO = 2;
+  OPEN_AI_TEXT_MODEL_V1_GPT_5_4 = 3;
+  OPEN_AI_TEXT_MODEL_V1_GPT_5_4_PRO = 4;
+  OPEN_AI_TEXT_MODEL_V1_GPT_5_4_MINI = 5;
+  OPEN_AI_TEXT_MODEL_V1_GPT_5_4_NANO = 6;
+  OPEN_AI_TEXT_MODEL_V1_GPT_5 = 7;
+  OPEN_AI_TEXT_MODEL_V1_GPT_5_PRO = 8;
+  OPEN_AI_TEXT_MODEL_V1_GPT_5_MINI = 9;
+  OPEN_AI_TEXT_MODEL_V1_GPT_5_NANO = 10;
+  OPEN_AI_TEXT_MODEL_V1_GPT_4_1 = 11;
+  OPEN_AI_TEXT_MODEL_V1_GPT_4_1_MINI = 12;
+  OPEN_AI_TEXT_MODEL_V1_GPT_4O = 13;
+  OPEN_AI_TEXT_MODEL_V1_GPT_4O_MINI = 14;
+  OPEN_AI_TEXT_MODEL_V1_O3_PRO = 15;
+  OPEN_AI_TEXT_MODEL_V1_O3 = 16;
+  OPEN_AI_TEXT_MODEL_V1_GPT_4 = 17;
+}
+
+enum AnthropicTextModelV1 {
+  ANTHROPIC_TEXT_MODEL_V1_UNSPECIFIED = 0;
+  ANTHROPIC_TEXT_MODEL_V1_OPUS_4_7 = 1;
+  ANTHROPIC_TEXT_MODEL_V1_OPUS_4_6 = 2;
+  ANTHROPIC_TEXT_MODEL_V1_OPUS_4_5_20251101 = 3;
+  ANTHROPIC_TEXT_MODEL_V1_OPUS_4_1_20250805 = 4;
+  ANTHROPIC_TEXT_MODEL_V1_SONNET_4_6 = 5;
+  ANTHROPIC_TEXT_MODEL_V1_SONNET_4_5_20250929 = 6;
+  ANTHROPIC_TEXT_MODEL_V1_HAIKU_4_5_20251001 = 7;
+}
+
+enum GoogleTextModelV1 {
+  GOOGLE_TEXT_MODEL_V1_UNSPECIFIED = 0;
+  GOOGLE_TEXT_MODEL_V1_GEMINI_3_PRO = 1;
+  GOOGLE_TEXT_MODEL_V1_GEMINI_2_5_PRO = 2;
+  GOOGLE_TEXT_MODEL_V1_GEMINI_2_5_FLASH = 3;
+}
+
+enum XaiTextModelV1 {
+  XAI_TEXT_MODEL_V1_UNSPECIFIED = 0;
+  XAI_TEXT_MODEL_V1_GROK_4 = 1;
+  XAI_TEXT_MODEL_V1_GROK_4_FAST = 2;
+  XAI_TEXT_MODEL_V1_GROK_3 = 3;
+}
+
+enum MoonshotTextModelV1 {
+  MOONSHOT_TEXT_MODEL_V1_UNSPECIFIED = 0;
+  MOONSHOT_TEXT_MODEL_V1_KIMI_K2_THINKING = 1;
+  MOONSHOT_TEXT_MODEL_V1_KIMI_K2_0905_PREVIEW = 2;
+}
+
+enum DeepSeekTextModelV1 {
+  DEEP_SEEK_TEXT_MODEL_V1_UNSPECIFIED = 0;
+  DEEP_SEEK_TEXT_MODEL_V1_DEEPSEEK_REASONER = 1;
+  DEEP_SEEK_TEXT_MODEL_V1_DEEPSEEK_CHAT = 2;
+}
+
+// E1-1b: the three OpenRouter slugs this build can address, fetched from
+// GET https://openrouter.ai/api/v1/models on 2026-08-19 (415 models) rather
+// than remembered.
+//
+// Each value names a slug in the router's OWN namespace, prefix included, and
+// each has a lab-side twin already in the enums above -- which is what makes
+// the differentiator "the same model via the lab vs via the router" authorable
+// as two candidates over one frozen configuration. `anthropic/claude-sonnet-4.6`
+// and `claude-sonnet-4-6` are two different ADDRESSES for one model and this
+// build must not be able to confuse them.
+//
+// All three are aliases rather than dated snapshots -- OpenRouter's slug space
+// for these families carries no date suffix -- so a router candidate is doubly
+// unpinned: the alias may move and the upstream may change (H-OR-1, E1-4's to
+// close). Visible in the identifier, which is what NN51 asks for.
+enum OpenRouterTextModelV1 {
+  OPEN_ROUTER_TEXT_MODEL_V1_UNSPECIFIED = 0;
+  OPEN_ROUTER_TEXT_MODEL_V1_ANTHROPIC_CLAUDE_SONNET_4_6 = 1;
+  OPEN_ROUTER_TEXT_MODEL_V1_OPENAI_GPT_5_5 = 2;
+  OPEN_ROUTER_TEXT_MODEL_V1_MOONSHOTAI_KIMI_K2_THINKING = 3;
+}
+
+// Six sibling enums rather than one governed model-ref string list, decided in
+// increments/2026-08-18-e1-1-provider-matrix-kinds.md sec 0.1: the enum is what
+// makes "the builder offers a model the rate registry cannot price" a failing
+// test instead of a runtime lookup miss, and what keeps the wire model id a
+// &'static str through the candidate executor.
+message ProviderModelRefV1 {
+  oneof model {
+    OpenAiTextModelV1 openai = 1;
+    AnthropicTextModelV1 anthropic = 2;
+    GoogleTextModelV1 google = 3;
+    XaiTextModelV1 xai = 4;
+    MoonshotTextModelV1 moonshot = 5;
+    DeepSeekTextModelV1 deepseek = 6;
+    OpenRouterTextModelV1 openrouter = 7;
+  }
+}
+
+enum EvaluatorComparisonModeV1 {
+  EVALUATOR_COMPARISON_MODE_V1_UNSPECIFIED = 0;
+  EVALUATOR_COMPARISON_MODE_V1_EXACT = 1;
+  EVALUATOR_COMPARISON_MODE_V1_CONTAINS = 2;
+  EVALUATOR_COMPARISON_MODE_V1_NUMERIC_GTE = 3;
+}
+
+enum EvalJobStateV1 {
+  EVAL_JOB_STATE_V1_UNSPECIFIED = 0;
+  EVAL_JOB_STATE_V1_PENDING = 1;
+  EVAL_JOB_STATE_V1_RUNNING = 2;
+  EVAL_JOB_STATE_V1_RETRYABLE = 3;
+  EVAL_JOB_STATE_V1_SUCCEEDED = 4;
+  EVAL_JOB_STATE_V1_FAILED = 5;
+  EVAL_JOB_STATE_V1_DEAD_LETTER = 6;
+}
+
+enum ExperimentRunStateV1 {
+  EXPERIMENT_RUN_STATE_V1_UNSPECIFIED = 0;
+  EXPERIMENT_RUN_STATE_V1_PENDING = 1;
+  EXPERIMENT_RUN_STATE_V1_RUNNING = 2;
+  EXPERIMENT_RUN_STATE_V1_SUCCEEDED = 3;
+  EXPERIMENT_RUN_STATE_V1_FAILED = 4;
+}
+
+enum ExperimentRunAggregateStatusV1 {
+  EXPERIMENT_RUN_AGGREGATE_STATUS_V1_UNSPECIFIED = 0;
+  EXPERIMENT_RUN_AGGREGATE_STATUS_V1_PENDING = 1;
+  EXPERIMENT_RUN_AGGREGATE_STATUS_V1_RUNNING = 2;
+  EXPERIMENT_RUN_AGGREGATE_STATUS_V1_PASSED = 3;
+  EXPERIMENT_RUN_AGGREGATE_STATUS_V1_FAILED = 4;
+  EXPERIMENT_RUN_AGGREGATE_STATUS_V1_BLOCKED = 5;
+  EXPERIMENT_RUN_AGGREGATE_STATUS_V1_INCOMPLETE = 6;
+}
+
+enum ExperimentTargetModeV1 {
+  EXPERIMENT_TARGET_MODE_V1_UNSPECIFIED = 0;
+  EXPERIMENT_TARGET_MODE_V1_RECORDED_OUTPUT = 1;
+  EXPERIMENT_TARGET_MODE_V1_HTTP_JSON_ENDPOINT = 2;
+  EXPERIMENT_TARGET_MODE_V1_PROVIDER_PROXY_PROMPT = 3;
+}
+
+enum ExperimentRunRoleV1 {
+  EXPERIMENT_RUN_ROLE_V1_UNSPECIFIED = 0;
+  EXPERIMENT_RUN_ROLE_V1_STANDALONE = 1;
+  EXPERIMENT_RUN_ROLE_V1_BASELINE = 2;
+  EXPERIMENT_RUN_ROLE_V1_CANDIDATE = 3;
+  EXPERIMENT_RUN_ROLE_V1_PAIRWISE = 4;
+}
+
+enum ExperimentRunFailureStageV1 {
+  EXPERIMENT_RUN_FAILURE_STAGE_V1_UNSPECIFIED = 0;
+  EXPERIMENT_RUN_FAILURE_STAGE_V1_TARGET_EXECUTION = 1;
+  EXPERIMENT_RUN_FAILURE_STAGE_V1_EVALUATOR_EXECUTION = 2;
+}
+
+enum ReleaseGateDecisionV1 {
+  RELEASE_GATE_DECISION_V1_UNSPECIFIED = 0;
+  RELEASE_GATE_DECISION_V1_PASS = 1;
+  RELEASE_GATE_DECISION_V1_FAIL = 2;
+  RELEASE_GATE_DECISION_V1_INSUFFICIENT_DATA = 3;
+}
+
+enum ReleaseDestinationChannelKindV1 {
+  RELEASE_DESTINATION_CHANNEL_KIND_V1_UNSPECIFIED = 0;
+  RELEASE_DESTINATION_CHANNEL_KIND_V1_EMAIL = 1;
+  RELEASE_DESTINATION_CHANNEL_KIND_V1_WEBHOOK = 2;
+}
+
+enum ReleaseAlertDeliveryStateV1 {
+  RELEASE_ALERT_DELIVERY_STATE_V1_UNSPECIFIED = 0;
+  RELEASE_ALERT_DELIVERY_STATE_V1_PENDING = 1;
+  RELEASE_ALERT_DELIVERY_STATE_V1_DELIVERED = 2;
+  RELEASE_ALERT_DELIVERY_STATE_V1_RETRYABLE = 3;
+  RELEASE_ALERT_DELIVERY_STATE_V1_FAILED = 4;
+  RELEASE_ALERT_DELIVERY_STATE_V1_ACKNOWLEDGED = 5;
+  RELEASE_ALERT_DELIVERY_STATE_V1_ESCALATED = 6;
+  RELEASE_ALERT_DELIVERY_STATE_V1_SUPPRESSED = 7;
+}
+
+enum RoutingPriorityTierV1 {
+  ROUTING_PRIORITY_TIER_V1_UNSPECIFIED = 0;
+  ROUTING_PRIORITY_TIER_V1_CRITICAL = 1;
+  ROUTING_PRIORITY_TIER_V1_STANDARD = 2;
+  ROUTING_PRIORITY_TIER_V1_BULK = 3;
+}
+
+enum RoutingSignalStateV1 {
+  ROUTING_SIGNAL_STATE_V1_UNSPECIFIED = 0;
+  ROUTING_SIGNAL_STATE_V1_CAPTURED = 1;
+  ROUTING_SIGNAL_STATE_V1_DISPATCHED = 2;
+  ROUTING_SIGNAL_STATE_V1_PROCESSING = 3;
+  ROUTING_SIGNAL_STATE_V1_MATERIALIZED = 4;
+  ROUTING_SIGNAL_STATE_V1_SKIPPED = 5;
+  ROUTING_SIGNAL_STATE_V1_RETRYABLE = 6;
+  ROUTING_SIGNAL_STATE_V1_DEAD_LETTER = 7;
+}
+
+enum RoutingSignalTypeV1 {
+  ROUTING_SIGNAL_TYPE_V1_UNSPECIFIED = 0;
+  ROUTING_SIGNAL_TYPE_V1_SCORE = 1;
+  ROUTING_SIGNAL_TYPE_V1_FEEDBACK_EVENT = 2;
+  ROUTING_SIGNAL_TYPE_V1_OUTCOME_EVENT = 3;
+  ROUTING_SIGNAL_TYPE_V1_RELEASE_GATE_EVALUATION = 4;
+}
+
+enum RoutingAuditActionV1 {
+  ROUTING_AUDIT_ACTION_V1_UNSPECIFIED = 0;
+  ROUTING_AUDIT_ACTION_V1_CAPTURED = 1;
+  ROUTING_AUDIT_ACTION_V1_PUBLISHED = 2;
+  ROUTING_AUDIT_ACTION_V1_CLAIMED = 3;
+  ROUTING_AUDIT_ACTION_V1_POLICY_LOADED = 4;
+  ROUTING_AUDIT_ACTION_V1_QUEUE_MATCHED = 5;
+  ROUTING_AUDIT_ACTION_V1_QUEUE_SKIPPED = 6;
+  ROUTING_AUDIT_ACTION_V1_TASK_MATERIALIZED = 7;
+  ROUTING_AUDIT_ACTION_V1_SUPPRESSED = 8;
+  ROUTING_AUDIT_ACTION_V1_RETRY_SCHEDULED = 9;
+  ROUTING_AUDIT_ACTION_V1_DEAD_LETTERED = 10;
+  ROUTING_AUDIT_ACTION_V1_REPLAYED = 11;
+}
+
+message AnnotationAuditEntryV1 {
+  AnnotationTaskStateV1 state = 1;
+  optional string actor_user_id = 2;
+  google.protobuf.Timestamp occurred_at = 3;
+  optional string note = 4;
+}
+
+message AnnotationPairwiseRefsV1 {
+  optional string baseline_experiment_run_id = 1;
+  optional string baseline_experiment_run_item_id = 2;
+  optional string candidate_experiment_run_id = 3;
+  optional string candidate_experiment_run_item_id = 4;
+  google.protobuf.Struct baseline_output = 5;
+  google.protobuf.Struct candidate_output = 6;
+  optional string baseline_label = 7;
+  optional string candidate_label = 8;
+}
+
+message AnnotationQueueV1 {
+  string queue_id = 1;
+  string queue_key = 2;
+  string name = 3;
+  optional string description = 4;
+  AnnotationRoutingReasonV1 routing_reason = 5;
+  google.protobuf.Struct routing_config = 6;
+  bool is_system_managed = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message AnnotationTaskV1 {
+  string task_id = 1;
+  string queue_id = 2;
+  string queue_key = 3;
+  string queue_name = 4;
+  AnnotationRoutingReasonV1 routing_reason = 5;
+  AnnotationTaskStateV1 state = 6;
+  string task_key = 7;
+  string title = 8;
+  optional string summary = 9;
+  optional string source_feedback_event_id = 10;
+  optional string source_outcome_event_id = 11;
+  optional string source_score_id = 12;
+  CorrelationContextV1 correlation = 13;
+  google.protobuf.Struct evidence = 14;
+  google.protobuf.Struct correction_payload = 15;
+  optional string resolution_notes = 16;
+  optional string claimed_by_user_id = 17;
+  google.protobuf.Timestamp claimed_at = 18;
+  optional string completed_by_user_id = 19;
+  google.protobuf.Timestamp completed_at = 20;
+  optional string approved_by_user_id = 21;
+  google.protobuf.Timestamp approved_at = 22;
+  optional string rejected_by_user_id = 23;
+  google.protobuf.Timestamp rejected_at = 24;
+  repeated AnnotationAuditEntryV1 audit_entries = 25;
+  google.protobuf.Timestamp created_at = 26;
+  google.protobuf.Timestamp updated_at = 27;
+  AnnotationTaskModeV1 task_mode = 28;
+  RoutingPriorityTierV1 priority_tier = 29;
+  optional string assigned_user_id = 30;
+  google.protobuf.Timestamp due_at = 31;
+  optional string experiment_run_id = 32;
+  optional string experiment_run_item_id = 33;
+  AnnotationPairwiseRefsV1 pairwise_refs = 34;
+  AnnotationPairwiseWinnerV1 pairwise_winner = 35;
+}
+
+message RoutingPolicyV1 {
+  string routing_policy_id = 1;
+  string policy_key = 2;
+  string name = 3;
+  optional string description = 4;
+  bool is_default = 5;
+  bool enabled = 6;
+  uint32 version = 7;
+  google.protobuf.Struct rules_json = 8;
+  optional string created_by_user_id = 9;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp updated_at = 11;
+}
+
+message CustomerPriorityPolicyV1 {
+  string customer_priority_policy_id = 1;
+  string policy_key = 2;
+  string name = 3;
+  optional string description = 4;
+  bool is_default = 5;
+  bool enabled = 6;
+  uint32 version = 7;
+  google.protobuf.Struct cohorts_json = 8;
+  optional string created_by_user_id = 9;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp updated_at = 11;
+}
+
+message RoutingPolicyComparisonV1 {
+  RoutingPolicyV1 baseline_policy = 1;
+  RoutingPolicyV1 comparison_policy = 2;
+  int32 version_delta = 3;
+  bool same_policy_key = 4;
+  bool name_changed = 5;
+  bool description_changed = 6;
+  bool enabled_changed = 7;
+  bool default_changed = 8;
+  repeated string added_rule_keys = 9;
+  repeated string removed_rule_keys = 10;
+  repeated string changed_rule_keys = 11;
+}
+
+message CustomerPriorityPolicyComparisonV1 {
+  CustomerPriorityPolicyV1 baseline_policy = 1;
+  CustomerPriorityPolicyV1 comparison_policy = 2;
+  int32 version_delta = 3;
+  bool same_policy_key = 4;
+  bool name_changed = 5;
+  bool description_changed = 6;
+  bool enabled_changed = 7;
+  bool default_changed = 8;
+  repeated string added_cohort_keys = 9;
+  repeated string removed_cohort_keys = 10;
+  repeated string changed_cohort_keys = 11;
+}
+
+message RoutingSignalV1 {
+  string routing_signal_id = 1;
+  RoutingSignalTypeV1 signal_type = 2;
+  repeated AnnotationRoutingReasonV1 routing_reason_candidates = 3;
+  RoutingPriorityTierV1 priority_tier = 4;
+  RoutingSignalStateV1 state = 5;
+  optional string routing_policy_id = 6;
+  optional string customer_priority_policy_id = 7;
+  optional string source_score_id = 8;
+  optional string source_feedback_event_id = 9;
+  optional string source_outcome_event_id = 10;
+  optional string source_release_gate_evaluation_id = 11;
+  CorrelationContextV1 correlation = 12;
+  google.protobuf.Struct evidence = 13;
+  string dispatch_key = 14;
+  uint32 task_materialization_count = 15;
+  uint32 attempts = 16;
+  google.protobuf.Timestamp next_attempt_at = 17;
+  optional string worker_id = 18;
+  optional string last_error = 19;
+  optional string created_by_user_id = 20;
+  google.protobuf.Timestamp created_at = 21;
+  google.protobuf.Timestamp updated_at = 22;
+}
+
+message RoutingAuditV1 {
+  string routing_audit_id = 1;
+  string routing_signal_id = 2;
+  optional string annotation_task_id = 3;
+  RoutingAuditActionV1 action = 4;
+  AnnotationRoutingReasonV1 routing_reason = 5;
+  optional string queue_id = 6;
+  optional string queue_key = 7;
+  RoutingPriorityTierV1 priority_tier = 8;
+  optional string worker_id = 9;
+  optional string note = 10;
+  google.protobuf.Struct details = 11;
+  google.protobuf.Timestamp occurred_at = 12;
+}
+
+enum AgenticDispatchKindV1 {
+  AGENTIC_DISPATCH_KIND_V1_UNSPECIFIED = 0;
+  AGENTIC_DISPATCH_KIND_V1_EVAL_JOB = 1;
+  AGENTIC_DISPATCH_KIND_V1_ROUTING_SIGNAL = 2;
+  AGENTIC_DISPATCH_KIND_V1_EXPERIMENT_RUN_EXPANSION = 3;
+}
+
+enum AgenticDispatchStateV1 {
+  AGENTIC_DISPATCH_STATE_V1_UNSPECIFIED = 0;
+  AGENTIC_DISPATCH_STATE_V1_PENDING = 1;
+  AGENTIC_DISPATCH_STATE_V1_DISPATCHED = 2;
+  AGENTIC_DISPATCH_STATE_V1_RETRYABLE = 3;
+  AGENTIC_DISPATCH_STATE_V1_DEAD_LETTER = 4;
+}
+
+message AgenticDispatchOutboxEntryV1 {
+  string dispatch_entry_id = 1;
+  AgenticDispatchKindV1 dispatch_kind = 2;
+  optional string priority_tier = 3;
+  string dispatch_key = 4;
+  google.protobuf.Struct payload = 5;
+  AgenticDispatchStateV1 state = 6;
+  uint32 attempts = 7;
+  google.protobuf.Timestamp next_attempt_at = 8;
+  optional string last_error = 9;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp updated_at = 11;
+}
+
+message ProviderExecutionConfigV1 {
+  ProviderExecutionModeV1 provider_mode = 1;
+  ProviderNameV1 provider_name = 2;
+  optional string provider_model_id = 3;
+  optional string provider_endpoint_ref = 4;
+  optional string provider_key_ref = 5;
+  google.protobuf.Struct provider_request_params = 6;
+  ProviderCostModeV1 provider_cost_mode = 7;
+  ProviderRequestSettingsV1 provider_request_settings = 8;
+  ProviderModelRefV1 provider_model = 9;
+}
+
+message ProviderRequestSettingsV1 {
+  optional uint32 max_output_tokens = 1;
+  optional double fixed_cost_usd = 2;
+  optional double input_token_rate_usd = 3;
+  optional double output_token_rate_usd = 4;
+  optional double budget_limit_usd = 5;
+  optional string anthropic_version = 6;
+  // Legacy string form. Prefer reasoning_effort_mode for new clients.
+  optional string reasoning_effort = 7;
+  optional uint32 reasoning_budget_tokens = 8;
+  optional double temperature = 9;
+  optional double top_p = 10;
+  optional double frequency_penalty = 11;
+  optional double presence_penalty = 12;
+  repeated string stop_sequences = 13;
+  optional ProviderToolChoiceV1 tool_choice = 14;
+  optional ProviderReasoningEffortV1 reasoning_effort_mode = 15;
+  optional ProviderVerbosityV1 verbosity = 16;
+  optional uint32 max_tool_calls = 17;
+  optional bool parallel_tool_calls = 18;
+  optional ProviderTruncationV1 truncation = 19;
+  optional string prompt_cache_key = 20;
+  optional ProviderPromptCacheRetentionV1 prompt_cache_retention = 21;
+  optional string safety_identifier = 22;
+  optional ProviderServiceTierV1 service_tier = 23;
+  optional uint32 top_logprobs = 24;
+  optional uint32 top_k = 25;
+  optional string anthropic_metadata_user_id = 26;
+  map<string, string> provider_metadata = 27;
+  optional string tool_choice_name = 28;
+}
+
+message ProviderCredentialV1 {
+  string provider_credential_id = 1;
+  ProviderNameV1 provider_name = 2;
+  string credential_key = 3;
+  string auth_ref = 4;
+  string key_ref = 5;
+  bool is_default = 6;
+  optional string created_by_user_id = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message ProviderCredentialSecretV1 {
+  string provider_credential_secret_id = 1;
+  string provider_credential_id = 2;
+  string credential_key = 3;
+  string secret_ref = 4;
+  uint32 version_number = 5;
+  bool is_active = 6;
+  optional string created_by_user_id = 7;
+  google.protobuf.Timestamp created_at = 8;
+  optional string revoked_by_user_id = 9;
+  google.protobuf.Timestamp revoked_at = 10;
+  optional string revoke_reason = 11;
+}
+
+message PromptTemplateV1 {
+  string prompt_template_id = 1;
+  string template_key = 2;
+  string name = 3;
+  optional string description = 4;
+  google.protobuf.Struct labels = 5;
+  bool is_archived = 6;
+  google.protobuf.Timestamp archived_at = 7;
+  optional string archived_by_user_id = 8;
+  optional string created_by_user_id = 9;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp updated_at = 11;
+  optional string latest_prompt_version_id = 12;
+  optional uint32 latest_version_number = 13;
+  optional string latest_version_label = 14;
+  optional string latest_version_ref = 15;
+  repeated PromptEnvironmentV1 latest_environments = 16;
+  optional string latest_prompt_text_preview = 17;
+  bool latest_has_system_prompt = 18;
+  google.protobuf.Timestamp latest_prompt_updated_at = 19;
+}
+
+message PromptVersionV1 {
+  string prompt_version_id = 1;
+  string prompt_template_id = 2;
+  uint32 version_number = 3;
+  optional string version_label = 4;
+  repeated PromptEnvironmentV1 environments = 5;
+  string version_ref = 6;
+  string prompt_text = 7;
+  optional string system_prompt = 8;
+  google.protobuf.Struct metadata = 9;
+  bool is_archived = 10;
+  google.protobuf.Timestamp archived_at = 11;
+  optional string archived_by_user_id = 12;
+  optional string created_by_user_id = 13;
+  google.protobuf.Timestamp created_at = 14;
+  google.protobuf.Timestamp updated_at = 15;
+}
+
+message EvaluatorTemplateV1 {
+  string template_id = 1;
+  string template_key = 2;
+  string name = 3;
+  string evaluator_kind = 4;
+  EvaluatorExecutionModeV1 execution_mode = 5;
+  google.protobuf.Struct config = 6;
+  optional string created_by_user_id = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+  ProviderExecutionConfigV1 provider_execution = 10;
+  EvaluatorTemplateSettingsV1 settings = 11;
+  bool is_archived = 12;
+  google.protobuf.Timestamp archived_at = 13;
+  optional string archived_by_user_id = 14;
+  optional string prompt_template_id = 15;
+  optional string prompt_version_id = 16;
+  optional string description = 17;
+  google.protobuf.Struct metadata = 18;
+}
+
+message EvaluatorRubricSectionV1 {
+  string section_key = 1;
+  string title = 2;
+  optional string instructions = 3;
+  optional double weight = 4;
+}
+
+message EvaluatorTemplateSettingsV1 {
+  optional EvaluatorComparisonModeV1 comparison_mode = 1;
+  optional string subject_path = 2;
+  optional string expected_path = 3;
+  optional string instructions = 4;
+  optional string rubric = 5;
+  optional double execution_cost_usd = 6;
+  optional EvaluatorOutputSchemaModeV1 output_schema_mode = 7;
+  repeated EvaluatorRubricSectionV1 rubric_sections = 8;
+  google.protobuf.Struct structured_response_schema = 9;
+  optional uint32 retry_max_attempts = 10;
+  optional uint32 timeout_seconds = 11;
+  optional ProviderResponseParsingModeV1 provider_response_parsing_mode = 12;
+}
+
+message ScoreConfigV1 {
+  string score_config_id = 1;
+  string config_key = 2;
+  string name = 3;
+  string metric_name = 4;
+  ScoreSourceV1 score_source = 5;
+  string evaluator_template_id = 6;
+  optional string pass_label = 7;
+  optional string fail_label = 8;
+  optional double pass_threshold = 9;
+  uint32 max_attempts = 10;
+  uint32 retry_backoff_seconds = 11;
+  google.protobuf.Struct config = 12;
+  optional string created_by_user_id = 13;
+  google.protobuf.Timestamp created_at = 14;
+  google.protobuf.Timestamp updated_at = 15;
+  ProviderExecutionConfigV1 provider_execution = 16;
+  ScoreConfigSettingsV1 settings = 17;
+  bool is_archived = 18;
+  google.protobuf.Timestamp archived_at = 19;
+  optional string archived_by_user_id = 20;
+  optional string description = 21;
+  google.protobuf.Struct metadata = 22;
+}
+
+enum ScorerAggregationModeV1 {
+  SCORER_AGGREGATION_MODE_V1_UNSPECIFIED = 0;
+  SCORER_AGGREGATION_MODE_V1_WEIGHTED_MEAN = 1;
+  SCORER_AGGREGATION_MODE_V1_ALL_REQUIRED_PASS = 2;
+  SCORER_AGGREGATION_MODE_V1_ANY_FAIL_FAILS = 3;
+  SCORER_AGGREGATION_MODE_V1_MIN_SCORE = 4;
+}
+
+enum ScorerTargetRoleV1 {
+  SCORER_TARGET_ROLE_V1_UNSPECIFIED = 0;
+  SCORER_TARGET_ROLE_V1_USER = 1;
+  SCORER_TARGET_ROLE_V1_AGENT = 2;
+  SCORER_TARGET_ROLE_V1_TOOL = 3;
+  SCORER_TARGET_ROLE_V1_AGENT_WITH_TOOL_CALLS = 4;
+  SCORER_TARGET_ROLE_V1_SYSTEM = 5;
+  SCORER_TARGET_ROLE_V1_ANY = 6;
+}
+
+enum ScorerTurnSelectionModeV1 {
+  SCORER_TURN_SELECTION_MODE_V1_UNSPECIFIED = 0;
+  SCORER_TURN_SELECTION_MODE_V1_FIRST = 1;
+  SCORER_TURN_SELECTION_MODE_V1_LAST = 2;
+  SCORER_TURN_SELECTION_MODE_V1_NTH = 3;
+  SCORER_TURN_SELECTION_MODE_V1_ALL = 4;
+  SCORER_TURN_SELECTION_MODE_V1_JSON_PATH = 5;
+  SCORER_TURN_SELECTION_MODE_V1_SPAN_FILTER = 6;
+}
+
+enum ScorerReasoningModeV1 {
+  SCORER_REASONING_MODE_V1_UNSPECIFIED = 0;
+  SCORER_REASONING_MODE_V1_OFF = 1;
+  SCORER_REASONING_MODE_V1_BRIEF_EXPLANATION = 2;
+  SCORER_REASONING_MODE_V1_EVIDENCE_SUMMARY = 3;
+  SCORER_REASONING_MODE_V1_REASONING_ENABLED = 4;
+}
+
+enum ScorerAutomationRuntimeScopeV1 {
+  SCORER_AUTOMATION_RUNTIME_SCOPE_V1_UNSPECIFIED = 0;
+  SCORER_AUTOMATION_RUNTIME_SCOPE_V1_TRACE = 1;
+  SCORER_AUTOMATION_RUNTIME_SCOPE_V1_SESSION = 2;
+  SCORER_AUTOMATION_RUNTIME_SCOPE_V1_SPAN = 3;
+}
+
+enum ScorerAutomationExecutionStateV1 {
+  SCORER_AUTOMATION_EXECUTION_STATE_V1_UNSPECIFIED = 0;
+  SCORER_AUTOMATION_EXECUTION_STATE_V1_PENDING = 1;
+  SCORER_AUTOMATION_EXECUTION_STATE_V1_QUEUED = 2;
+  SCORER_AUTOMATION_EXECUTION_STATE_V1_SUCCEEDED = 3;
+  SCORER_AUTOMATION_EXECUTION_STATE_V1_FAILED = 4;
+  SCORER_AUTOMATION_EXECUTION_STATE_V1_SKIPPED = 5;
+}
+
+message ExperimentRunScorerTargetV1 {
+  optional string score_config_id = 1;
+  optional string scorer_suite_id = 2;
+}
+
+enum ExperimentRunExpansionStatusV1 {
+  EXPERIMENT_RUN_EXPANSION_STATUS_V1_UNSPECIFIED = 0;
+  EXPERIMENT_RUN_EXPANSION_STATUS_V1_NOT_REQUIRED = 1;
+  EXPERIMENT_RUN_EXPANSION_STATUS_V1_PENDING = 2;
+  EXPERIMENT_RUN_EXPANSION_STATUS_V1_RUNNING = 3;
+  EXPERIMENT_RUN_EXPANSION_STATUS_V1_RETRYABLE = 4;
+  EXPERIMENT_RUN_EXPANSION_STATUS_V1_SUCCEEDED = 5;
+  EXPERIMENT_RUN_EXPANSION_STATUS_V1_FAILED = 6;
+}
+
+message ScorerTargetSelectorV1 {
+  ScorerTargetRoleV1 role = 1;
+  ScorerTurnSelectionModeV1 selection_mode = 2;
+  optional uint32 turn_index = 3;
+  optional string input_path = 4;
+  optional string subject_path = 5;
+  optional string expected_path = 6;
+  optional string tool_name = 7;
+  optional string mcp_method_name = 8;
+  repeated TraceInvestigationTraceFilterV1 span_filters = 9;
+  google.protobuf.Struct options = 10;
+}
+
+message ScorerTargetEvidenceRefV1 {
+  string turn_id = 1;
+  ScorerTargetRoleV1 role = 2;
+  optional string trace_id = 3;
+  optional string span_id = 4;
+  optional string session_id = 5;
+  optional string source_path = 6;
+  optional string content_class = 7;
+  optional string tool_name = 8;
+  optional string mcp_method_name = 9;
+}
+
+message AgenticMessageTurnV1 {
+  string turn_id = 1;
+  ScorerTargetRoleV1 role = 2;
+  optional string trace_id = 3;
+  optional string span_id = 4;
+  optional string session_id = 5;
+  google.protobuf.Value content = 6;
+  optional string source_path = 7;
+  optional string content_class = 8;
+  optional string tool_name = 9;
+  optional string mcp_method_name = 10;
+  repeated ScorerTargetEvidenceRefV1 evidence_refs = 11;
+  google.protobuf.Struct metadata = 12;
+}
+
+message ResolvedScorerTargetV1 {
+  google.protobuf.Value input_payload = 1;
+  google.protobuf.Value subject_output = 2;
+  google.protobuf.Value expected_output = 3;
+  repeated AgenticMessageTurnV1 selected_turns = 4;
+  repeated ScorerTargetEvidenceRefV1 evidence_refs = 5;
+  repeated string warnings = 6;
+  ScorerTargetSelectorV1 selector = 7;
+  google.protobuf.Struct debug_metadata = 8;
+}
+
+message ScorerSuiteItemDraftV1 {
+  string score_config_id = 1;
+  optional double weight = 2;
+  optional bool required = 3;
+  optional bool enabled = 4;
+  optional uint32 display_order = 5;
+  ScorerTargetSelectorV1 target_selector = 6;
+  google.protobuf.Struct metadata = 7;
+  optional ScorerReasoningModeV1 reasoning_mode = 8;
+}
+
+message ScorerSuiteItemV1 {
+  string scorer_suite_item_id = 1;
+  string score_config_id = 2;
+  ScorerBundleV1 scorer_bundle = 3;
+  double weight = 4;
+  bool required = 5;
+  bool enabled = 6;
+  uint32 display_order = 7;
+  ScorerTargetSelectorV1 target_selector = 8;
+  google.protobuf.Struct metadata = 9;
+  ScorerReasoningModeV1 reasoning_mode = 10;
+}
+
+message ScorerSuiteV1 {
+  string scorer_suite_id = 1;
+  string suite_key = 2;
+  string name = 3;
+  optional string description = 4;
+  ScorerAggregationModeV1 aggregation_mode = 5;
+  optional double pass_threshold = 6;
+  repeated ScorerSuiteItemV1 items = 7;
+  google.protobuf.Struct metadata = 8;
+  bool is_archived = 9;
+  google.protobuf.Timestamp archived_at = 10;
+  optional string archived_by_user_id = 11;
+  optional string created_by_user_id = 12;
+  google.protobuf.Timestamp created_at = 13;
+  google.protobuf.Timestamp updated_at = 14;
+  ScorerReasoningModeV1 default_reasoning_mode = 15;
+}
+
+message ScoreVerdictMappingV1 {
+  string verdict = 1;
+  double mapped_score = 2;
+}
+
+message ScorePairwiseWinnerMappingV1 {
+  optional string baseline_label = 1;
+  optional string candidate_label = 2;
+  optional string tie_label = 3;
+}
+
+message ScoreConfigSettingsV1 {
+  optional string instructions = 1;
+  repeated ScoreVerdictMappingV1 verdict_mappings = 2;
+  optional ScoreConfidencePolicyV1 confidence_policy = 3;
+  optional double minimum_confidence = 4;
+  optional ScoreAggregationModeV1 aggregation_mode = 5;
+  ScorePairwiseWinnerMappingV1 pairwise_winner_mapping = 6;
+  optional double budget_limit_usd = 7;
+}
+
+message EvalJobV1 {
+  string job_id = 1;
+  string score_config_id = 2;
+  string evaluator_template_id = 3;
+  optional string experiment_run_id = 4;
+  optional string experiment_run_item_id = 5;
+  optional string dataset_item_id = 6;
+  EvalJobStateV1 state = 7;
+  uint32 attempts = 8;
+  uint32 max_attempts = 9;
+  uint32 retry_backoff_seconds = 10;
+  optional string worker_id = 11;
+  optional string last_error = 12;
+  optional string score_id = 13;
+  optional string execution_trace_id = 14;
+  optional double execution_cost_usd = 15;
+  google.protobuf.Timestamp available_at = 16;
+  google.protobuf.Timestamp started_at = 17;
+  google.protobuf.Timestamp finished_at = 18;
+  CorrelationContextV1 correlation = 19;
+  google.protobuf.Struct input_payload = 20;
+  google.protobuf.Struct subject_output = 21;
+  google.protobuf.Struct expected_output = 22;
+  google.protobuf.Struct metadata = 23;
+  optional string created_by_user_id = 24;
+  google.protobuf.Timestamp created_at = 25;
+  google.protobuf.Timestamp updated_at = 26;
+  ProviderExecutionConfigV1 provider_execution = 27;
+  optional string scorer_suite_item_id = 28;
+}
+
+message ExecutionArtifactRefV1 {
+  string artifact_ref_id = 1;
+  string eval_job_id = 2;
+  optional string experiment_run_id = 3;
+  optional string experiment_run_item_id = 4;
+  optional string score_id = 5;
+  string content_manifest_id = 6;
+  string artifact_role = 7;
+  string artifact_class = 8;
+  uint32 artifact_index = 9;
+  string canonical_storage_uri = 10;
+  optional string canonical_checksum_sha256 = 11;
+  string body_format = 12;
+  bool is_query_indexed = 13;
+  bool is_replay_required = 14;
+  google.protobuf.Timestamp created_at = 15;
+}
+
+message ExecutionArtifactPreviewV1 {
+  string artifact_ref_id = 1;
+  string artifact_role = 2;
+  string artifact_class = 3;
+  string body_format = 4;
+  optional string content_preview = 5;
+  bool truncated = 6;
+  uint32 preview_bytes = 7;
+  optional string canonical_storage_uri = 8;
+}
+
+message EvalExecutionEvidenceV1 {
+  optional ExecutionArtifactPreviewV1 target_prompt = 1;
+  optional ExecutionArtifactPreviewV1 target_request = 2;
+  optional ExecutionArtifactPreviewV1 target_response = 3;
+  optional ExecutionArtifactPreviewV1 candidate_output = 4;
+  optional ExecutionArtifactPreviewV1 prompt = 5;
+  optional ExecutionArtifactPreviewV1 provider_request = 6;
+  optional ExecutionArtifactPreviewV1 provider_response = 7;
+  optional ExecutionArtifactPreviewV1 verdict = 8;
+  optional ExecutionArtifactPreviewV1 explanation = 9;
+  optional ExecutionArtifactPreviewV1 execution_metadata = 10;
+}
+
+message ExecutionArtifactRoleSummaryV1 {
+  string artifact_role = 1;
+  uint32 artifact_count = 2;
+  uint32 query_indexed_count = 3;
+  uint32 replay_required_count = 4;
+  repeated string artifact_classes = 5;
+}
+
+message ExperimentRunArtifactSummaryV1 {
+  uint32 total_artifacts = 1;
+  uint32 query_indexed_artifacts = 2;
+  uint32 replay_required_artifacts = 3;
+  uint64 total_content_bytes = 4;
+  repeated ExecutionArtifactRoleSummaryV1 by_role = 5;
+}
+
+message ExecutionArtifactScopeV1 {
+  optional string eval_job_id = 1;
+  optional string experiment_run_id = 2;
+  optional string experiment_run_item_id = 3;
+}
+
+message ExecutionArtifactRoleComparisonV1 {
+  string artifact_role = 1;
+  uint32 baseline_count = 2;
+  uint32 comparison_count = 3;
+  int32 count_delta = 4;
+  repeated string baseline_artifact_classes = 5;
+  repeated string comparison_artifact_classes = 6;
+  uint32 baseline_query_indexed_count = 7;
+  uint32 comparison_query_indexed_count = 8;
+  uint32 baseline_replay_required_count = 9;
+  uint32 comparison_replay_required_count = 10;
+}
+
+message ExecutionArtifactComparisonV1 {
+  ExecutionArtifactScopeV1 baseline_scope = 1;
+  ExecutionArtifactScopeV1 comparison_scope = 2;
+  uint32 baseline_total_artifacts = 3;
+  uint32 comparison_total_artifacts = 4;
+  int32 total_artifact_delta = 5;
+  repeated string added_roles = 6;
+  repeated string removed_roles = 7;
+  repeated ExecutionArtifactRoleComparisonV1 role_comparisons = 8;
+}
+
+message ExperimentRunV1 {
+  string experiment_run_id = 1;
+  string run_key = 2;
+  string name = 3;
+  string experiment_input_id = 4;
+  string dataset_version_id = 5;
+  string score_config_id = 6;
+  ExperimentRunStateV1 state = 7;
+  optional string execution_trace_id = 8;
+  google.protobuf.Struct summary = 9;
+  optional string created_by_user_id = 10;
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp started_at = 12;
+  google.protobuf.Timestamp finished_at = 13;
+  google.protobuf.Timestamp updated_at = 14;
+  optional string experiment_target_id = 15;
+  ExperimentRunRoleV1 comparison_role = 16;
+  optional string baseline_experiment_run_id = 17;
+  optional string candidate_experiment_run_id = 18;
+  ExperimentRunScorerTargetV1 scorer_target = 19;
+  ExperimentRunExpansionStatusV1 expansion_status = 20;
+  uint32 expected_scorer_count = 21;
+  uint32 expected_job_count = 22;
+  optional string expansion_error = 23;
+  repeated ExperimentRunScorerBreakdownV1 scorer_breakdowns = 24;
+  optional double aggregate_score = 25;
+  optional bool aggregate_passed = 26;
+  ExperimentRunAggregateStatusV1 aggregate_status = 27;
+  optional double aggregate_pass_threshold = 28;
+  uint32 missing_required_scorer_count = 29;
+  uint32 failed_required_scorer_count = 30;
+  uint32 failed_optional_scorer_count = 31;
+}
+
+message ExperimentRunItemV1 {
+  string experiment_run_item_id = 1;
+  string experiment_run_id = 2;
+  string dataset_item_id = 3;
+  EvalJobStateV1 state = 4;
+  optional string score_id = 5;
+  optional string execution_trace_id = 6;
+  optional double execution_cost_usd = 7;
+  optional string last_error = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+  ExperimentRunFailureStageV1 failure_stage = 11;
+  repeated ExperimentRunItemScorerBreakdownV1 scorer_breakdowns = 12;
+  optional double aggregate_score = 13;
+  optional bool aggregate_passed = 14;
+  ExperimentRunAggregateStatusV1 aggregate_status = 15;
+  uint32 missing_required_scorer_count = 16;
+  uint32 failed_required_scorer_count = 17;
+  uint32 failed_optional_scorer_count = 18;
+}
+
+message ExperimentRunScorerBreakdownV1 {
+  string scorer_suite_item_id = 1;
+  optional string scorer_suite_id = 2;
+  string score_config_id = 3;
+  string evaluator_template_id = 4;
+  string metric_name = 5;
+  string display_name = 6;
+  double weight = 7;
+  bool required = 8;
+  EvalJobStateV1 state = 9;
+  uint32 expected_item_count = 10;
+  uint32 pending_item_count = 11;
+  uint32 running_item_count = 12;
+  uint32 succeeded_item_count = 13;
+  uint32 failed_item_count = 14;
+  uint32 dead_letter_item_count = 15;
+  uint32 scored_item_count = 16;
+  optional double avg_score_value = 17;
+  uint32 pass_count = 18;
+  uint32 fail_count = 19;
+  optional double avg_execution_cost_usd = 20;
+  optional string last_error = 21;
+  ScorerTargetSelectorV1 target_selector = 22;
+  ScorerReasoningModeV1 reasoning_mode = 23;
+  optional double pass_threshold = 24;
+  optional double normalized_weight = 25;
+}
+
+message ExperimentRunItemScorerBreakdownV1 {
+  string scorer_suite_item_id = 1;
+  optional string scorer_suite_id = 2;
+  string score_config_id = 3;
+  string evaluator_template_id = 4;
+  string metric_name = 5;
+  string display_name = 6;
+  double weight = 7;
+  bool required = 8;
+  EvalJobStateV1 state = 9;
+  optional string eval_job_id = 10;
+  optional string score_id = 11;
+  optional double score_value = 12;
+  optional string score_label = 13;
+  optional string execution_trace_id = 14;
+  optional double execution_cost_usd = 15;
+  optional string last_error = 16;
+  ScorerTargetSelectorV1 target_selector = 17;
+  ScorerReasoningModeV1 reasoning_mode = 18;
+  optional double pass_threshold = 19;
+  optional double normalized_weight = 20;
+  optional string explanation = 21;
+  repeated string explanation_artifact_ref_ids = 22;
+  repeated string evidence_artifact_ref_ids = 23;
+}
+
+message EvalScoreResultV1 {
+  string score_id = 1;
+  string metric_name = 2;
+  double score_value = 3;
+  optional string score_label = 4;
+  optional string explanation = 5;
+  optional string evaluator_name = 6;
+  optional string evaluator_kind = 7;
+  google.protobuf.Timestamp occurred_at = 8;
+}
+
+message ExperimentRunItemDetailV1 {
+  ExperimentRunItemV1 item = 1;
+  EvalJobV1 eval_job = 2;
+  DatasetItemV1 dataset_item = 3;
+  google.protobuf.Struct subject_output = 4;
+  google.protobuf.Struct expected_output = 5;
+  EvalScoreResultV1 score = 6;
+  repeated ExecutionArtifactRefV1 artifact_refs = 7;
+  repeated ExecutionArtifactPreviewV1 artifact_previews = 8;
+  EvalExecutionEvidenceV1 execution_evidence = 9;
+  ExperimentRunItemComputedSummaryV1 computed_summary = 10;
+}
+
+message ExperimentRunItemComparisonV1 {
+  string dataset_item_id = 1;
+  ExperimentRunItemDetailV1 baseline = 2;
+  ExperimentRunItemDetailV1 comparison = 3;
+  optional double score_delta = 4;
+  optional double execution_cost_delta_usd = 5;
+  bool verdict_changed = 6;
+}
+
+enum ExperimentRunItemSortKeyV1 {
+  EXPERIMENT_RUN_ITEM_SORT_KEY_V1_UNSPECIFIED = 0;
+  EXPERIMENT_RUN_ITEM_SORT_KEY_V1_CREATED_AT = 1;
+  EXPERIMENT_RUN_ITEM_SORT_KEY_V1_STATE = 2;
+  EXPERIMENT_RUN_ITEM_SORT_KEY_V1_SCORE_VALUE = 3;
+  EXPERIMENT_RUN_ITEM_SORT_KEY_V1_EXECUTION_COST_USD = 4;
+  EXPERIMENT_RUN_ITEM_SORT_KEY_V1_DATASET_ITEM_ID = 5;
+}
+
+message ExperimentRunItemSortV1 {
+  ExperimentRunItemSortKeyV1 sort_key = 1;
+  bool descending = 2;
+}
+
+message ExperimentRunItemFilterV1 {
+  repeated EvalJobStateV1 states = 1;
+  optional double min_score_value = 2;
+  optional double max_score_value = 3;
+  optional string score_label = 4;
+  repeated string dataset_tags = 5;
+  optional string error_query = 6;
+  optional string customer_id = 7;
+  optional string deployment_id = 8;
+  optional string prompt_version = 9;
+  optional string feature_id = 10;
+  optional string model_version = 11;
+  optional string tool_version = 12;
+}
+
+message ReleaseGateCohortFiltersV1 {
+  repeated string customer_ids = 1;
+  repeated string account_ids = 2;
+  repeated string deployment_ids = 3;
+  repeated string prompt_versions = 4;
+  repeated string model_versions = 5;
+  repeated string tool_versions = 6;
+  repeated string feature_ids = 7;
+}
+
+message ReleaseGateRolloutBudgetV1 {
+  optional uint32 max_failed_scores = 1;
+  optional uint32 max_bad_outcomes = 2;
+  optional uint32 max_impacted_customers = 3;
+  optional uint32 max_impacted_users = 4;
+  optional double max_impact_score = 5;
+}
+
+message ReleaseGateServiceImpactPolicyV1 {
+  optional double max_service_error_rate_delta_pct = 1;
+  optional double max_service_latency_delta_ms = 2;
+  optional uint32 deployment_lookback_days = 3;
+}
+
+message ReleaseGateDeliveryPolicyV1 {
+  optional uint32 max_attempts = 1;
+  optional uint32 retry_backoff_seconds = 2;
+  optional bool escalate_on_retry_exhaustion = 3;
+  optional double escalation_impact_score_threshold = 4;
+}
+
+message ReleaseGatePolicyV1 {
+  BaselineStrategyV1 baseline_strategy = 1;
+  ReleaseGateCohortFiltersV1 cohort_filters = 2;
+  ReleaseGateRolloutBudgetV1 rollout_budget = 3;
+  ReleaseGateServiceImpactPolicyV1 service_impact = 4;
+  ReleaseGateDeliveryPolicyV1 delivery_policy = 5;
+}
+
+message ReleaseGateDeliverySummaryV1 {
+  uint32 pending = 1;
+  uint32 delivered = 2;
+  uint32 retryable = 3;
+  uint32 failed = 4;
+  uint32 acknowledged = 5;
+  uint32 escalated = 6;
+  uint32 suppressed = 7;
+  optional string latest_delivery_id = 8;
+}
+
+message ReleaseGateV1 {
+  string gate_id = 1;
+  string gate_key = 2;
+  string name = 3;
+  string metric_name = 4;
+  string deployment_id = 5;
+  optional string baseline_deployment_id = 6;
+  uint32 evaluation_window_hours = 7;
+  uint32 min_samples = 8;
+  optional double max_score_regression = 9;
+  optional double max_avg_cost_usd = 10;
+  optional uint32 max_bad_outcomes = 11;
+  google.protobuf.Struct config = 12;
+  optional string created_by_user_id = 13;
+  google.protobuf.Timestamp created_at = 14;
+  google.protobuf.Timestamp updated_at = 15;
+  repeated string destination_ids = 16;
+  optional string customer_priority_policy_id = 17;
+  optional string service_name = 18;
+  optional string namespace = 19;
+  optional string environment = 20;
+  ReleaseGatePolicyV1 policy = 21;
+}
+
+message ReleaseGateEvaluationV1 {
+  string evaluation_id = 1;
+  string gate_id = 2;
+  ReleaseGateDecisionV1 decision = 3;
+  string summary = 4;
+  string deployment_id = 5;
+  optional string baseline_deployment_id = 6;
+  string metric_name = 7;
+  optional double current_avg_score = 8;
+  optional double baseline_avg_score = 9;
+  optional double avg_score_delta = 10;
+  uint32 current_sample_count = 11;
+  uint32 baseline_sample_count = 12;
+  optional double current_avg_cost_usd = 13;
+  uint32 bad_outcomes_count = 14;
+  google.protobuf.Struct impact_summary = 15;
+  optional string created_by_user_id = 16;
+  google.protobuf.Timestamp created_at = 17;
+  bool used_fallback_baseline = 18;
+  optional string baseline_source = 19;
+  repeated string failure_reasons = 20;
+  repeated string destination_delivery_ids = 21;
+  BaselineStrategyV1 baseline_strategy = 22;
+  bool simulated = 23;
+}
+
+message ReleaseGateEvaluationComparisonV1 {
+  ReleaseGateV1 gate = 1;
+  ReleaseGateEvaluationV1 baseline_evaluation = 2;
+  ReleaseGateEvaluationV1 comparison_evaluation = 3;
+  bool decision_changed = 4;
+  optional double current_avg_score_delta = 5;
+  optional double avg_score_delta_change = 6;
+  int32 current_sample_count_delta = 7;
+  int32 baseline_sample_count_delta = 8;
+  optional double current_avg_cost_usd_delta = 9;
+  int32 bad_outcomes_count_delta = 10;
+  repeated string added_failure_reasons = 11;
+  repeated string removed_failure_reasons = 12;
+  bool used_fallback_baseline_changed = 13;
+  bool baseline_source_changed = 14;
+}
+
+message ExperimentRunSummaryV1 {
+  uint32 total_items = 1;
+  uint32 pending_items = 2;
+  uint32 running_items = 3;
+  uint32 succeeded_items = 4;
+  uint32 failed_items = 5;
+  uint32 dead_letter_items = 6;
+  uint32 scored_items = 7;
+  optional double avg_score_value = 8;
+  uint32 pass_count = 9;
+  uint32 fail_count = 10;
+  optional double avg_execution_cost_usd = 11;
+}
+
+// How much to trust the token counts in an ExperimentRunTokenUsageSummaryV1.
+enum ExperimentRunTokenUsageCompletenessV1 {
+  EXPERIMENT_RUN_TOKEN_USAGE_COMPLETENESS_V1_UNSPECIFIED = 0;
+  // Counts were recorded at execution time from the provider response.
+  EXPERIMENT_RUN_TOKEN_USAGE_COMPLETENESS_V1_EXACT = 1;
+  // Counts were re-derived from a byte-capped artifact preview because the
+  // execution predates write-time recording. Treat as a lower bound.
+  EXPERIMENT_RUN_TOKEN_USAGE_COMPLETENESS_V1_ESTIMATED_LEGACY_PREVIEW = 2;
+  // As above, and at least one preview was truncated or unparseable, so counts
+  // are known to be missing contributions. Never display as a total.
+  EXPERIMENT_RUN_TOKEN_USAGE_COMPLETENESS_V1_ESTIMATED_INCOMPLETE = 3;
+  // Nothing was recorded and nothing could be estimated; the zeros are the
+  // absence of data, not a measurement of zero.
+  EXPERIMENT_RUN_TOKEN_USAGE_COMPLETENESS_V1_NOT_RECORDED = 4;
+}
+
+// Whether the scorers being compared graded the same candidate output.
+enum ExperimentRunComparisonAlignmentV1 {
+  EXPERIMENT_RUN_COMPARISON_ALIGNMENT_V1_UNSPECIFIED = 0;
+  // Every scorer in the run graded one shared candidate output per item.
+  EXPERIMENT_RUN_COMPARISON_ALIGNMENT_V1_ALIGNED = 1;
+  // Legacy suite expansion executed the candidate once per scorer, so scorers
+  // within one item graded different sampled outputs. Cross-scorer differences
+  // are not attributable to the scorers.
+  EXPERIMENT_RUN_COMPARISON_ALIGNMENT_V1_LEGACY_UNALIGNED_SUBJECTS = 2;
+}
+
+message ExperimentRunTokenUsageSummaryV1 {
+  uint64 input_tokens = 1;
+  uint64 output_tokens = 2;
+  uint64 total_tokens = 3;
+  uint64 cache_read_input_tokens = 4;
+  uint64 cache_creation_input_tokens = 5;
+  uint64 reasoning_tokens = 6;
+  ExperimentRunTokenUsageCompletenessV1 completeness = 7;
+}
+
+message ExperimentRunItemComputedSummaryV1 {
+  string computed_decision = 1;
+  string decision_reason = 2;
+  optional double risk_score = 3;
+  optional double execution_cost_usd = 4;
+  // Candidate and evaluator tokens combined; kept for existing readers.
+  ExperimentRunTokenUsageSummaryV1 token_usage = 5;
+  optional string input_preview = 6;
+  optional string subject_output_preview = 7;
+  optional string expected_output_preview = 8;
+  bool has_artifacts = 9;
+  // Tokens burned by the system under test.
+  ExperimentRunTokenUsageSummaryV1 candidate_token_usage = 10;
+  // Tokens burned by the evaluator grading it.
+  ExperimentRunTokenUsageSummaryV1 evaluator_token_usage = 11;
+}
+
+message ExperimentRunRichSummaryV1 {
+  string computed_decision = 1;
+  string decision_reason = 2;
+  optional double risk_score = 3;
+  optional double total_execution_cost_usd = 4;
+  optional double avg_execution_cost_usd = 5;
+  // Candidate and evaluator tokens combined; kept for existing readers.
+  ExperimentRunTokenUsageSummaryV1 token_usage = 6;
+  optional string primary_input_preview = 7;
+  optional string primary_subject_output_preview = 8;
+  optional string primary_expected_output_preview = 9;
+  uint32 artifact_count = 10;
+  bool has_comparisons = 11;
+  ExperimentRunTokenUsageSummaryV1 candidate_token_usage = 12;
+  ExperimentRunTokenUsageSummaryV1 evaluator_token_usage = 13;
+  ExperimentRunComparisonAlignmentV1 comparison_alignment = 14;
+  string comparison_alignment_reason = 15;
+}
+
+message ExperimentRunComparisonV1 {
+  ExperimentRunV1 baseline_run = 1;
+  ExperimentRunV1 comparison_run = 2;
+  ExperimentRunSummaryV1 baseline_summary = 3;
+  ExperimentRunSummaryV1 comparison_summary = 4;
+  int32 total_items_delta = 5;
+  int32 succeeded_items_delta = 6;
+  int32 failed_items_delta = 7;
+  int32 dead_letter_items_delta = 8;
+  optional double avg_score_value_delta = 9;
+  optional double avg_execution_cost_usd_delta = 10;
+  bool same_experiment_input = 11;
+  bool same_score_config = 12;
+  bool same_dataset_version = 13;
+  // Worst alignment of the two runs: a comparison is only as trustworthy as
+  // its least aligned side.
+  ExperimentRunComparisonAlignmentV1 comparison_alignment = 14;
+  string comparison_alignment_reason = 15;
+}
+
+message TraceAgenticSummaryV1 {
+  string trace_id = 1;
+  uint32 score_count = 2;
+  uint32 feedback_count = 3;
+  uint32 outcome_count = 4;
+  uint32 content_manifest_count = 5;
+  uint32 dataset_lineage_count = 6;
+  repeated string metric_names = 7;
+  repeated string feedback_keys = 8;
+  repeated string outcome_types = 9;
+  repeated string content_classes = 10;
+  repeated string dataset_collection_names = 11;
+}
+
+message TraceAgenticComparisonV1 {
+  TraceAgenticSummaryV1 baseline_summary = 1;
+  TraceAgenticSummaryV1 comparison_summary = 2;
+  int32 score_count_delta = 3;
+  int32 feedback_count_delta = 4;
+  int32 outcome_count_delta = 5;
+  int32 content_manifest_count_delta = 6;
+  int32 dataset_lineage_count_delta = 7;
+  repeated string added_metric_names = 8;
+  repeated string removed_metric_names = 9;
+  repeated string added_feedback_keys = 10;
+  repeated string removed_feedback_keys = 11;
+  repeated string added_outcome_types = 12;
+  repeated string removed_outcome_types = 13;
+  repeated string added_content_classes = 14;
+  repeated string removed_content_classes = 15;
+  repeated string added_dataset_collection_names = 16;
+  repeated string removed_dataset_collection_names = 17;
+}
+
+enum InvestigationModeV1 {
+  INVESTIGATION_MODE_V1_UNSPECIFIED = 0;
+  INVESTIGATION_MODE_V1_OVERVIEW = 1;
+  INVESTIGATION_MODE_V1_FAILING_JUDGE_SCORE = 2;
+  INVESTIGATION_MODE_V1_NEGATIVE_FEEDBACK = 3;
+  INVESTIGATION_MODE_V1_BAD_OUTCOME = 4;
+  INVESTIGATION_MODE_V1_COST_LATENCY = 5;
+  INVESTIGATION_MODE_V1_TOOL_OR_MCP_ERROR = 6;
+  INVESTIGATION_MODE_V1_CUSTOMER_IMPACT = 7;
+  INVESTIGATION_MODE_V1_RELEASE_EVIDENCE = 8;
+  INVESTIGATION_MODE_V1_DATASET_CANDIDATE = 9;
+}
+
+enum TraceInvestigationSortKeyV1 {
+  TRACE_INVESTIGATION_SORT_KEY_V1_UNSPECIFIED = 0;
+  TRACE_INVESTIGATION_SORT_KEY_V1_BACKEND_RANK = 1;
+  TRACE_INVESTIGATION_SORT_KEY_V1_URGENCY = 2;
+  TRACE_INVESTIGATION_SORT_KEY_V1_STARTED_AT = 3;
+  TRACE_INVESTIGATION_SORT_KEY_V1_SCORE = 4;
+  TRACE_INVESTIGATION_SORT_KEY_V1_COST = 5;
+  TRACE_INVESTIGATION_SORT_KEY_V1_LATENCY = 6;
+  TRACE_INVESTIGATION_SORT_KEY_V1_FEEDBACK_COUNT = 7;
+  TRACE_INVESTIGATION_SORT_KEY_V1_REVIEW_TASK_COUNT = 8;
+  TRACE_INVESTIGATION_SORT_KEY_V1_RELEASE_IMPACT = 9;
+}
+
+enum TraceInvestigationFacetDimensionV1 {
+  TRACE_INVESTIGATION_FACET_DIMENSION_V1_UNSPECIFIED = 0;
+  TRACE_INVESTIGATION_FACET_DIMENSION_V1_CUSTOMER = 1;
+  TRACE_INVESTIGATION_FACET_DIMENSION_V1_DEPLOYMENT = 2;
+  TRACE_INVESTIGATION_FACET_DIMENSION_V1_PROMPT_VERSION = 3;
+  TRACE_INVESTIGATION_FACET_DIMENSION_V1_TOOL_VERSION = 4;
+  TRACE_INVESTIGATION_FACET_DIMENSION_V1_MODEL_VERSION = 5;
+  TRACE_INVESTIGATION_FACET_DIMENSION_V1_PROVIDER = 6;
+  TRACE_INVESTIGATION_FACET_DIMENSION_V1_MCP_METHOD = 7;
+  TRACE_INVESTIGATION_FACET_DIMENSION_V1_URGENCY = 8;
+  TRACE_INVESTIGATION_FACET_DIMENSION_V1_REVIEW_STATE = 9;
+  TRACE_INVESTIGATION_FACET_DIMENSION_V1_DATASET_STATE = 10;
+}
+
+enum TraceInvestigationDetailPreviewLevelV1 {
+  TRACE_INVESTIGATION_DETAIL_PREVIEW_LEVEL_V1_UNSPECIFIED = 0;
+  TRACE_INVESTIGATION_DETAIL_PREVIEW_LEVEL_V1_NONE = 1;
+  TRACE_INVESTIGATION_DETAIL_PREVIEW_LEVEL_V1_COMPACT = 2;
+  TRACE_INVESTIGATION_DETAIL_PREVIEW_LEVEL_V1_FULL = 3;
+}
+
+enum RcaConfidenceV1 {
+  RCA_CONFIDENCE_V1_UNSPECIFIED = 0;
+  RCA_CONFIDENCE_V1_LOW = 1;
+  RCA_CONFIDENCE_V1_MEDIUM = 2;
+  RCA_CONFIDENCE_V1_HIGH = 3;
+}
+
+message TraceInvestigationUnavailableReasonV1 {
+  string section = 1;
+  string reason_code = 2;
+  string message = 3;
+  bool retryable = 4;
+}
+
+message TraceInvestigationEvidenceLinkV1 {
+  string evidence_type = 1;
+  string evidence_id = 2;
+  optional string trace_id = 3;
+  optional string span_id = 4;
+  optional string label = 5;
+}
+
+message TraceInvestigationReasonV1 {
+  string reason_code = 1;
+  string title = 2;
+  string summary = 3;
+  RcaConfidenceV1 confidence = 4;
+  repeated TraceInvestigationEvidenceLinkV1 evidence_links = 5;
+}
+
+message TraceInvestigationRootCauseCandidateV1 {
+  string candidate_id = 1;
+  string title = 2;
+  string summary = 3;
+  RcaConfidenceV1 confidence = 4;
+  repeated TraceInvestigationEvidenceLinkV1 evidence_links = 5;
+  string status = 6;
+}
+
+message TraceInvestigationRegressionComparisonV1 {
+  string comparison_key = 1;
+  string title = 2;
+  optional string baseline_label = 3;
+  optional string current_label = 4;
+  optional double baseline_value = 5;
+  optional double current_value = 6;
+  optional double delta = 7;
+  optional double percent_delta = 8;
+  RcaConfidenceV1 confidence = 9;
+  repeated TraceInvestigationEvidenceLinkV1 evidence_links = 10;
+  repeated TraceInvestigationUnavailableReasonV1 unavailable_reasons = 11;
+}
+
+message TraceInvestigationTimelineEventV1 {
+  google.protobuf.Timestamp timestamp = 1;
+  string event_type = 2;
+  string label = 3;
+  optional string status = 4;
+  optional double duration_ms = 5;
+  repeated TraceInvestigationEvidenceLinkV1 evidence_links = 6;
+}
+
+message TraceInvestigationThreadMessagePreviewV1 {
+  string role = 1;
+  string content_class = 2;
+  string redaction_state = 3;
+  optional string content_preview = 4;
+  optional string content_ref = 5;
+  bool truncated = 6;
+}
+
+message TraceInvestigationThreadPreviewV1 {
+  repeated TraceInvestigationThreadMessagePreviewV1 messages = 1;
+  bool truncated = 2;
+  repeated TraceInvestigationUnavailableReasonV1 unavailable_reasons = 3;
+}
+
+message TraceInvestigationSpanPreviewV1 {
+  string span_id = 1;
+  optional string parent_span_id = 2;
+  string name = 3;
+  string kind = 4;
+  optional string service_name = 5;
+  double duration_ms = 6;
+  optional string status = 7;
+  optional string error_type = 8;
+  optional string error_message = 9;
+  repeated TraceInvestigationUnavailableReasonV1 unavailable_reasons = 10;
+}
+
+message TraceInvestigationScorePreviewV1 {
+  string score_id = 1;
+  string metric_name = 2;
+  double score_value = 3;
+  optional string score_label = 4;
+  optional string explanation = 5;
+  optional string evaluator_name = 6;
+  optional string evaluator_kind = 7;
+  google.protobuf.Timestamp occurred_at = 8;
+}
+
+message TraceInvestigationFeedbackPreviewV1 {
+  string feedback_event_id = 1;
+  string feedback_key = 2;
+  optional double rating_value = 3;
+  optional string rating_label = 4;
+  optional string comment_preview = 5;
+  string approval_status = 6;
+  google.protobuf.Timestamp occurred_at = 7;
+}
+
+message TraceInvestigationOutcomePreviewV1 {
+  string outcome_event_id = 1;
+  string outcome_type = 2;
+  optional string status = 3;
+  optional double numeric_value = 4;
+  optional string payload_preview = 5;
+  bool truncated = 6;
+  google.protobuf.Timestamp occurred_at = 7;
+}
+
+message TraceInvestigationRawPayloadPreviewV1 {
+  string content_manifest_id = 1;
+  string content_class = 2;
+  string storage_backend = 3;
+  string storage_uri = 4;
+  optional string sensitivity = 5;
+  optional string redaction_status = 6;
+  optional int64 size_bytes = 7;
+  optional string payload_preview = 8;
+  bool truncated = 9;
+  google.protobuf.Timestamp occurred_at = 10;
+}
+
+message AgenticEvidenceGraphNodeV1 {
+  string node_id = 1;
+  string node_type = 2;
+  string label = 3;
+  optional string status = 4;
+  google.protobuf.Struct metadata = 5;
+  repeated TraceInvestigationEvidenceLinkV1 evidence_links = 6;
+}
+
+message AgenticEvidenceGraphEdgeV1 {
+  string source_node_id = 1;
+  string target_node_id = 2;
+  string relationship = 3;
+}
+
+message AgenticEvidenceGraphV1 {
+  repeated AgenticEvidenceGraphNodeV1 nodes = 1;
+  repeated AgenticEvidenceGraphEdgeV1 edges = 2;
+  bool truncated = 3;
+  repeated TraceInvestigationUnavailableReasonV1 unavailable_reasons = 4;
+}
+
+message TraceInvestigationAgentGraphNodeV1 {
+  string node_id = 1;
+  string node_type = 2;
+  string label = 3;
+  optional string status = 4;
+  repeated TraceInvestigationEvidenceLinkV1 evidence_links = 5;
+}
+
+message TraceInvestigationAgentGraphEdgeV1 {
+  string source_node_id = 1;
+  string target_node_id = 2;
+  string relationship = 3;
+}
+
+message TraceInvestigationAgentGraphPreviewV1 {
+  repeated TraceInvestigationAgentGraphNodeV1 nodes = 1;
+  repeated TraceInvestigationAgentGraphEdgeV1 edges = 2;
+  bool truncated = 3;
+  repeated TraceInvestigationUnavailableReasonV1 unavailable_reasons = 4;
+}
+
+message TraceInvestigationRelatedTraceRefV1 {
+  string trace_id = 1;
+  optional string trace_name = 2;
+  optional google.protobuf.Timestamp started_at = 3;
+  string relationship = 4;
+  repeated TraceInvestigationEvidenceLinkV1 evidence_links = 5;
+}
+
+message TraceInvestigationDetailPreviewV1 {
+  repeated TraceInvestigationTimelineEventV1 timeline = 1;
+  optional TraceInvestigationThreadPreviewV1 thread = 2;
+  repeated TraceInvestigationSpanPreviewV1 spans = 3;
+  repeated TraceInvestigationScorePreviewV1 scores = 4;
+  repeated TraceInvestigationFeedbackPreviewV1 feedback = 5;
+  repeated TraceInvestigationOutcomePreviewV1 outcomes = 6;
+  repeated TraceInvestigationRawPayloadPreviewV1 raw_payloads = 7;
+  optional TraceInvestigationAgentGraphPreviewV1 agent_graph = 8;
+  repeated TraceInvestigationRelatedTraceRefV1 related_traces = 9;
+  repeated TraceInvestigationUnavailableReasonV1 unavailable_reasons = 10;
+  bool truncated = 11;
+}
+
+message SessionSummaryV1 {
+  uint32 trace_count = 1;
+  uint32 score_count = 2;
+  uint32 feedback_count = 3;
+  uint32 outcome_count = 4;
+  uint32 content_manifest_count = 5;
+  uint32 dataset_item_count = 6;
+  uint32 annotation_task_count = 7;
+  optional double avg_score_value = 8;
+  uint32 negative_feedback_count = 9;
+  uint32 negative_outcome_count = 10;
+}
+
+message SessionV1 {
+  string session_id = 1;
+  optional string customer_id = 2;
+  optional string deployment_id = 3;
+  optional string prompt_version = 4;
+  optional string model_version = 5;
+  optional string tool_version = 6;
+  google.protobuf.Timestamp started_at = 7;
+  google.protobuf.Timestamp last_seen_at = 8;
+  SessionSummaryV1 summary = 9;
+  repeated string trace_ids = 10;
+  repeated string dataset_item_ids = 11;
+  repeated string annotation_task_ids = 12;
+}
+
+enum TraceInvestigationActionKindV1 {
+  TRACE_INVESTIGATION_ACTION_KIND_V1_UNSPECIFIED = 0;
+  TRACE_INVESTIGATION_ACTION_KIND_V1_REVIEW_TASK = 1;
+  TRACE_INVESTIGATION_ACTION_KIND_V1_DATASET_ITEM = 2;
+  TRACE_INVESTIGATION_ACTION_KIND_V1_EVAL_CANDIDATE = 3;
+  TRACE_INVESTIGATION_ACTION_KIND_V1_RELEASE_EVIDENCE = 4;
+  TRACE_INVESTIGATION_ACTION_KIND_V1_ALERT = 5;
+}
+
+enum TraceInvestigationActionStatusV1 {
+  TRACE_INVESTIGATION_ACTION_STATUS_V1_UNSPECIFIED = 0;
+  TRACE_INVESTIGATION_ACTION_STATUS_V1_CREATED = 1;
+  TRACE_INVESTIGATION_ACTION_STATUS_V1_REPLAYED = 2;
+  TRACE_INVESTIGATION_ACTION_STATUS_V1_PENDING = 3;
+  TRACE_INVESTIGATION_ACTION_STATUS_V1_FAILED = 4;
+}
+
+enum TraceInvestigationActionResourceKindV1 {
+  TRACE_INVESTIGATION_ACTION_RESOURCE_KIND_V1_UNSPECIFIED = 0;
+  TRACE_INVESTIGATION_ACTION_RESOURCE_KIND_V1_ANNOTATION_TASK = 1;
+  TRACE_INVESTIGATION_ACTION_RESOURCE_KIND_V1_DATASET_ITEM = 2;
+  TRACE_INVESTIGATION_ACTION_RESOURCE_KIND_V1_DATASET_COLLECTION = 3;
+  TRACE_INVESTIGATION_ACTION_RESOURCE_KIND_V1_DATASET_VERSION = 4;
+  TRACE_INVESTIGATION_ACTION_RESOURCE_KIND_V1_EVAL_JOB = 5;
+  TRACE_INVESTIGATION_ACTION_RESOURCE_KIND_V1_RELEASE_EVIDENCE = 6;
+  TRACE_INVESTIGATION_ACTION_RESOURCE_KIND_V1_ALERT = 7;
+  TRACE_INVESTIGATION_ACTION_RESOURCE_KIND_V1_EXPERIMENT_RUN = 8;
+  TRACE_INVESTIGATION_ACTION_RESOURCE_KIND_V1_MONITOR = 9;
+}
+
+enum TraceInvestigationDatasetIncludeV1 {
+  TRACE_INVESTIGATION_DATASET_INCLUDE_V1_UNSPECIFIED = 0;
+  TRACE_INVESTIGATION_DATASET_INCLUDE_V1_MESSAGES = 1;
+  TRACE_INVESTIGATION_DATASET_INCLUDE_V1_SPANS = 2;
+  TRACE_INVESTIGATION_DATASET_INCLUDE_V1_SCORES = 3;
+  TRACE_INVESTIGATION_DATASET_INCLUDE_V1_FEEDBACK = 4;
+  TRACE_INVESTIGATION_DATASET_INCLUDE_V1_OUTCOMES = 5;
+  TRACE_INVESTIGATION_DATASET_INCLUDE_V1_RAW_PAYLOADS = 6;
+}
+
+enum TraceInvestigationActionDestinationV1 {
+  TRACE_INVESTIGATION_ACTION_DESTINATION_V1_UNSPECIFIED = 0;
+  TRACE_INVESTIGATION_ACTION_DESTINATION_V1_REVIEW_QUEUE = 1;
+  TRACE_INVESTIGATION_ACTION_DESTINATION_V1_RELEASE_GOVERNANCE = 2;
+  TRACE_INVESTIGATION_ACTION_DESTINATION_V1_WEBHOOK = 3;
+  TRACE_INVESTIGATION_ACTION_DESTINATION_V1_ALERTS = 4;
+}
+
+message TraceInvestigationActionRouteV1 {
+  string label = 1;
+  string path = 2;
+  google.protobuf.Struct metadata = 3;
+}
+
+message TraceInvestigationActionResourceV1 {
+  TraceInvestigationActionResourceKindV1 resource_kind = 1;
+  string resource_id = 2;
+  optional string route_path = 3;
+  google.protobuf.Struct metadata = 4;
+}
+
+message TraceInvestigationActionResultV1 {
+  string action_id = 1;
+  TraceInvestigationActionKindV1 action_kind = 2;
+  TraceInvestigationActionStatusV1 status = 3;
+  repeated string trace_ids = 4;
+  repeated TraceInvestigationActionResourceV1 resources = 5;
+  TraceInvestigationActionRouteV1 route = 6;
+  google.protobuf.Struct metadata = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message CreateTraceInvestigationActionRequest {
+  TraceInvestigationActionKindV1 action_kind = 1;
+  repeated string trace_ids = 2;
+  string idempotency_key = 3;
+  string title = 4;
+  optional string summary = 5;
+  repeated TraceInvestigationEvidenceLinkV1 evidence_links = 6;
+  repeated string selected_evidence_keys = 7;
+  optional string queue_id = 8;
+  optional string queue_key = 9;
+  optional string rubric_id = 10;
+  optional string dataset_collection_id = 11;
+  optional string dataset_version_id = 12;
+  optional string dataset_version_label = 13;
+  repeated TraceInvestigationDatasetIncludeV1 dataset_includes = 14;
+  optional string rationale = 15;
+  optional string score_config_id = 16;
+  optional string evaluator_template_id = 17;
+  optional string candidate_label = 18;
+  optional string baseline_label = 19;
+  optional string release_gate_id = 20;
+  optional uint32 failed_gate_count = 21;
+  optional double release_impact_score = 22;
+  optional string suggested_action = 23;
+  optional ListTraceInvestigationsRequest investigation_filter = 24;
+  TraceInvestigationActionDestinationV1 destination = 25;
+  google.protobuf.Struct metadata = 26;
+}
+
+message CreateTraceInvestigationActionResponse {
+  TraceInvestigationActionResultV1 action = 1;
+}
+
+message GetTraceInvestigationActionRequest {
+  string action_id = 1;
+}
+
+message GetTraceInvestigationActionResponse {
+  TraceInvestigationActionResultV1 action = 1;
+}
+
+message ListTraceInvestigationActionsRequest {
+  optional TraceInvestigationActionKindV1 action_kind = 1;
+  optional string trace_id = 2;
+  optional uint32 limit = 3;
+  optional string page_token = 4;
+  o11y_one.common.v1.PageRequestV1 page = 5;
+}
+
+message ListTraceInvestigationActionsResponse {
+  repeated TraceInvestigationActionResultV1 items = 1;
+  optional string next_page_token = 2;
+  bool has_more = 3;
+  uint64 total_count = 4;
+  o11y_one.common.v1.PageResponseV1 page = 5;
+}
+
+enum TraceInvestigationAlertStateV1 {
+  TRACE_INVESTIGATION_ALERT_STATE_V1_UNSPECIFIED = 0;
+  TRACE_INVESTIGATION_ALERT_STATE_V1_ACTIVE = 1;
+  TRACE_INVESTIGATION_ALERT_STATE_V1_PAUSED = 2;
+  TRACE_INVESTIGATION_ALERT_STATE_V1_DISABLED = 3;
+}
+
+message TraceInvestigationReleaseEvidenceV1 {
+  string evidence_id = 1;
+  string action_id = 2;
+  string release_gate_id = 3;
+  repeated string trace_ids = 4;
+  repeated TraceInvestigationEvidenceLinkV1 evidence_links = 5;
+  optional uint32 failed_gate_count = 6;
+  optional double release_impact_score = 7;
+  optional string suggested_action = 8;
+  google.protobuf.Struct metadata = 9;
+  optional string created_by_user_id = 10;
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
+}
+
+message GetTraceInvestigationReleaseEvidenceRequest {
+  string evidence_id = 1;
+}
+
+message GetTraceInvestigationReleaseEvidenceResponse {
+  TraceInvestigationReleaseEvidenceV1 evidence = 1;
+}
+
+message ListTraceInvestigationReleaseEvidenceRequest {
+  optional string release_gate_id = 1;
+  optional string trace_id = 2;
+  optional uint32 limit = 3;
+  optional string page_token = 4;
+  o11y_one.common.v1.PageRequestV1 page = 5;
+}
+
+message ListTraceInvestigationReleaseEvidenceResponse {
+  repeated TraceInvestigationReleaseEvidenceV1 items = 1;
+  optional string next_page_token = 2;
+  bool has_more = 3;
+  uint64 total_count = 4;
+  o11y_one.common.v1.PageResponseV1 page = 5;
+}
+
+message TraceInvestigationAlertV1 {
+  string alert_id = 1;
+  string action_id = 2;
+  TraceInvestigationAlertStateV1 state = 3;
+  TraceInvestigationActionDestinationV1 destination = 4;
+  repeated string trace_ids = 5;
+  ListTraceInvestigationsRequest investigation_filter = 6;
+  google.protobuf.Struct destination_metadata = 7;
+  google.protobuf.Struct metadata = 8;
+  optional string created_by_user_id = 9;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp updated_at = 11;
+}
+
+message GetTraceInvestigationAlertRequest {
+  string alert_id = 1;
+}
+
+message GetTraceInvestigationAlertResponse {
+  TraceInvestigationAlertV1 alert = 1;
+}
+
+message ListTraceInvestigationAlertsRequest {
+  optional TraceInvestigationAlertStateV1 state = 1;
+  optional string trace_id = 2;
+  optional uint32 limit = 3;
+  optional string page_token = 4;
+  o11y_one.common.v1.PageRequestV1 page = 5;
+}
+
+message ListTraceInvestigationAlertsResponse {
+  repeated TraceInvestigationAlertV1 items = 1;
+  optional string next_page_token = 2;
+  bool has_more = 3;
+  uint64 total_count = 4;
+  o11y_one.common.v1.PageResponseV1 page = 5;
+}
+
+message TraceInvestigationRowV1 {
+  string trace_id = 1;
+  string trace_name = 2;
+  string scenario_name = 3;
+  string scenario_summary = 4;
+  google.protobuf.Timestamp started_at = 5;
+  double duration_ms = 6;
+  uint32 span_count = 7;
+  optional string service_name = 8;
+  optional string customer_id = 9;
+  optional string deployment_id = 10;
+  optional string prompt_version = 11;
+  optional string tool_version = 12;
+  optional string model_version = 13;
+  optional string provider_name = 14;
+  optional string mcp_method_name = 15;
+  uint32 score_count = 16;
+  uint32 low_score_count = 17;
+  optional double avg_score_value = 18;
+  uint32 feedback_count = 19;
+  uint32 negative_feedback_count = 20;
+  uint32 outcome_count = 21;
+  uint32 negative_outcome_count = 22;
+  uint32 content_manifest_count = 23;
+  uint32 dataset_lineage_count = 24;
+  uint32 related_review_task_count = 25;
+  uint32 failed_gate_count = 26;
+  optional double fix_queue_impact_score = 27;
+  optional double fix_queue_total_cost_usd = 28;
+  uint32 error_span_count = 29;
+  bool has_tool_or_mcp_error = 30;
+  optional string urgency_label = 31;
+  optional TraceInvestigationDetailPreviewV1 detail_preview = 32;
+  repeated TraceInvestigationReasonV1 reasons = 33;
+  repeated TraceInvestigationRootCauseCandidateV1 root_cause_candidates = 34;
+  repeated TraceInvestigationRegressionComparisonV1 regression_comparisons = 35;
+  optional string session_id = 36;
+}
+
+message TraceInvestigationSummaryV1 {
+  uint32 total_traces = 1;
+  uint32 unique_customers = 2;
+  uint32 unique_deployments = 3;
+  uint32 feedback_hotspots = 4;
+  uint32 dataset_candidates = 5;
+}
+
+message TraceInvestigationCohortV1 {
+  string label = 1;
+  string value = 2;
+  uint32 count = 3;
+}
+
+message TraceInvestigationFacetRequestV1 {
+  TraceInvestigationFacetDimensionV1 dimension = 1;
+  uint32 limit = 2;
+}
+
+message TraceInvestigationFacetValueV1 {
+  string label = 1;
+  string value = 2;
+  uint64 count = 3;
+  bool selected = 4;
+}
+
+message TraceInvestigationFacetV1 {
+  TraceInvestigationFacetDimensionV1 dimension = 1;
+  repeated TraceInvestigationFacetValueV1 values = 2;
+  uint64 other_count = 3;
+}
+
+message TraceInvestigationContextV1 {
+  optional string service = 1;
+  optional string environment = 2;
+  optional TraceInvestigationTimeRangeV1 time_range = 3;
+  optional google.protobuf.Timestamp start = 4 [deprecated = true];
+  optional google.protobuf.Timestamp end = 5 [deprecated = true];
+  optional string namespace = 6;
+}
+
+message TraceInvestigationTimeRangeV1 {
+  optional google.protobuf.Timestamp start = 1;
+  optional google.protobuf.Timestamp end = 2;
+}
+
+message TraceInvestigationDetailPreviewOptionsV1 {
+  optional uint32 row_limit_per_trace = 1;
+  optional uint32 text_limit = 2;
+  optional uint32 related_trace_limit = 3;
+  optional uint32 graph_node_limit = 4;
+  optional bool hydrate_content_bodies = 5;
+}
+
+enum TraceInvestigationFilterOpV1 {
+  TRACE_INVESTIGATION_FILTER_OP_V1_UNSPECIFIED = 0;
+  TRACE_INVESTIGATION_FILTER_OP_V1_EQ = 1;
+  TRACE_INVESTIGATION_FILTER_OP_V1_NE = 2;
+  TRACE_INVESTIGATION_FILTER_OP_V1_GT = 3;
+  TRACE_INVESTIGATION_FILTER_OP_V1_GE = 4;
+  TRACE_INVESTIGATION_FILTER_OP_V1_LT = 5;
+  TRACE_INVESTIGATION_FILTER_OP_V1_LE = 6;
+  TRACE_INVESTIGATION_FILTER_OP_V1_LIKE = 7;
+  TRACE_INVESTIGATION_FILTER_OP_V1_IN = 8;
+  TRACE_INVESTIGATION_FILTER_OP_V1_NOT_IN = 9;
+  TRACE_INVESTIGATION_FILTER_OP_V1_EXISTS = 10;
+  TRACE_INVESTIGATION_FILTER_OP_V1_NOT_EXISTS = 11;
+  TRACE_INVESTIGATION_FILTER_OP_V1_CONTAINS = 12;
+  TRACE_INVESTIGATION_FILTER_OP_V1_NOT_CONTAINS = 13;
+  TRACE_INVESTIGATION_FILTER_OP_V1_REGEX = 14;
+  TRACE_INVESTIGATION_FILTER_OP_V1_NOT_REGEX = 15;
+  TRACE_INVESTIGATION_FILTER_OP_V1_IS_NULL = 16;
+  TRACE_INVESTIGATION_FILTER_OP_V1_IS_NOT_NULL = 17;
+  TRACE_INVESTIGATION_FILTER_OP_V1_STARTS_WITH = 18;
+  TRACE_INVESTIGATION_FILTER_OP_V1_NOT_STARTS_WITH = 19;
+  TRACE_INVESTIGATION_FILTER_OP_V1_ENDS_WITH = 20;
+  TRACE_INVESTIGATION_FILTER_OP_V1_NOT_ENDS_WITH = 21;
+  TRACE_INVESTIGATION_FILTER_OP_V1_IEQ = 22;
+  TRACE_INVESTIGATION_FILTER_OP_V1_INE = 23;
+  TRACE_INVESTIGATION_FILTER_OP_V1_IS_EMPTY = 24;
+  TRACE_INVESTIGATION_FILTER_OP_V1_IS_NOT_EMPTY = 25;
+  TRACE_INVESTIGATION_FILTER_OP_V1_BETWEEN = 26;
+  TRACE_INVESTIGATION_FILTER_OP_V1_NOT_BETWEEN = 27;
+}
+
+message TraceInvestigationTraceFilterV1 {
+  string key = 1;
+  TraceInvestigationFilterOpV1 operator = 2;
+  google.protobuf.Value value = 3;
+}
+
+message ListTraceInvestigationsRequest {
+  TraceInvestigationContextV1 context = 1;
+  optional string trace_id = 2;
+  optional string customer_id = 3;
+  optional string deployment_id = 4;
+  optional string prompt_version = 5;
+  optional string tool_version = 6;
+  optional string model_version = 7;
+  optional string mcp_method_name = 8;
+  optional string metric_name = 9;
+  InvestigationModeV1 mode = 10;
+  optional uint32 limit = 11;
+  optional string page_token = 12;
+  optional bool include_cohort_summaries = 13;
+  o11y_one.common.v1.PageRequestV1 page = 14;
+  TraceInvestigationSortKeyV1 sort_key = 15;
+  o11y_one.common.v1.SortDirectionV1 sort_direction = 16;
+  repeated TraceInvestigationFacetRequestV1 facets = 17;
+  TraceInvestigationDetailPreviewLevelV1 detail_preview_level = 18;
+  optional string session_id = 19;
+  optional TraceInvestigationDetailPreviewOptionsV1 detail_preview_options = 20;
+  repeated TraceInvestigationTraceFilterV1 trace_filters = 21;
+}
+
+message ListTraceInvestigationsResponse {
+  repeated TraceInvestigationRowV1 items = 1;
+  TraceInvestigationSummaryV1 summary = 2;
+  repeated TraceInvestigationCohortV1 top_customers = 3;
+  repeated TraceInvestigationCohortV1 top_deployments = 4;
+  repeated TraceInvestigationCohortV1 top_prompts = 5;
+  optional string next_page_token = 6;
+  bool has_more = 7;
+  uint64 total_count = 8;
+  repeated TraceInvestigationFacetV1 facets = 9;
+  o11y_one.common.v1.PageResponseV1 page = 10;
+}
+
+message ReleaseDestinationV1 {
+  string release_destination_id = 1;
+  string destination_key = 2;
+  string name = 3;
+  ReleaseDestinationChannelKindV1 channel_kind = 4;
+  bool enabled = 5;
+  bool is_default = 6;
+  repeated string email_recipients = 7;
+  optional string webhook_url = 8;
+  optional string webhook_secret_ref = 9;
+  google.protobuf.Struct headers_json = 10;
+  optional string created_by_user_id = 11;
+  google.protobuf.Timestamp created_at = 12;
+  google.protobuf.Timestamp updated_at = 13;
+}
+
+message ReleaseAlertDeliveryV1 {
+  string release_alert_delivery_id = 1;
+  string release_gate_id = 2;
+  string release_gate_evaluation_id = 3;
+  string release_destination_id = 4;
+  ReleaseDestinationChannelKindV1 channel_kind = 5;
+  ReleaseAlertDeliveryStateV1 state = 6;
+  uint32 attempts = 7;
+  optional string last_error = 8;
+  optional string last_delivered_at = 9;
+  optional string acknowledged_by_user_id = 10;
+  optional string acknowledged_at = 11;
+  optional string escalated_at = 12;
+  google.protobuf.Struct metadata = 13;
+  google.protobuf.Timestamp created_at = 14;
+  google.protobuf.Timestamp updated_at = 15;
+}
+
+message FixQueueRankingExplanationV1 {
+  double recurrence_factor = 1;
+  double cost_factor = 2;
+  double blast_radius_factor = 3;
+  double customer_priority_factor = 4;
+  double failed_gate_factor = 5;
+  double deployment_signal_factor = 6;
+  double normalized_failure_rate = 7;
+}
+
+message FixQueueItemV1 {
+  string group_key = 1;
+  optional string deployment_id = 2;
+  optional string prompt_version = 3;
+  optional string model_version = 4;
+  optional string tool_version = 5;
+  optional string feature_id = 6;
+  string metric_name = 7;
+  uint32 total_scores = 8;
+  uint32 failed_scores = 9;
+  double failure_rate = 10;
+  uint32 recurrence_count = 11;
+  uint32 affected_customers = 12;
+  uint32 affected_users = 13;
+  double total_cost_usd = 14;
+  double avg_confidence = 15;
+  uint32 strategic_customer_hits = 16;
+  uint32 failed_gate_count = 17;
+  double impact_score = 18;
+  optional string latest_trace_id = 19;
+  FixQueueRankingExplanationV1 ranking_explanation = 20;
+}
+
+message SubmitScoreRequest {
+  string metric_name = 1;
+  double score_value = 2;
+  optional string score_label = 3;
+  optional string explanation = 4;
+  ScoreSourceV1 source = 5;
+  optional string evaluator_name = 6;
+  optional string evaluator_version = 7;
+  optional string evaluator_kind = 8;
+  optional string execution_trace_id = 9;
+  CorrelationContextV1 correlation = 10;
+  google.protobuf.Struct metadata = 11;
+  google.protobuf.Timestamp occurred_at = 12;
+}
+
+message SubmitScoreResponse {
+  string score_id = 1;
+  google.protobuf.Timestamp recorded_at = 2;
+}
+
+message SubmitFeedbackRequest {
+  string feedback_key = 1;
+  optional double rating_value = 2;
+  optional string rating_label = 3;
+  optional string comment = 4;
+  google.protobuf.Struct correction_payload = 5;
+  FeedbackSourceTypeV1 source_type = 6;
+  optional string reviewer_identity = 7;
+  FeedbackApprovalStatusV1 approval_status = 8;
+  optional string linked_score_id = 9;
+  CorrelationContextV1 correlation = 10;
+  google.protobuf.Struct metadata = 11;
+  google.protobuf.Timestamp occurred_at = 12;
+}
+
+message SubmitFeedbackResponse {
+  string feedback_event_id = 1;
+  google.protobuf.Timestamp recorded_at = 2;
+}
+
+message SubmitOutcomeRequest {
+  string outcome_type = 1;
+  optional string status = 2;
+  optional double numeric_value = 3;
+  google.protobuf.Struct payload = 4;
+  CorrelationContextV1 correlation = 5;
+  google.protobuf.Timestamp occurred_at = 6;
+}
+
+message SubmitOutcomeResponse {
+  string outcome_event_id = 1;
+  google.protobuf.Timestamp recorded_at = 2;
+}
+
+message CreateContentManifestRequest {
+  string content_class = 1;
+  string storage_uri = 2;
+  optional string storage_backend = 3;
+  optional string checksum_sha256 = 4;
+  optional int64 size_bytes = 5;
+  optional string encryption_key_ref = 6;
+  optional string sensitivity = 7;
+  optional string retention_class = 8;
+  optional string redaction_status = 9;
+  google.protobuf.Struct metadata = 10;
+  CorrelationContextV1 correlation = 11;
+  google.protobuf.Timestamp occurred_at = 12;
+}
+
+message CreateContentManifestResponse {
+  string content_manifest_id = 1;
+  google.protobuf.Timestamp recorded_at = 2;
+}
+
+message GetExecutionArtifactRefRequest {
+  string artifact_ref_id = 1;
+}
+
+message GetExecutionArtifactRefResponse {
+  ExecutionArtifactRefV1 artifact_ref = 1;
+}
+
+message ListExecutionArtifactRefsRequest {
+  optional string eval_job_id = 1;
+  optional string experiment_run_id = 2;
+  optional string experiment_run_item_id = 3;
+  optional string score_id = 4;
+  optional string artifact_role = 5;
+  optional uint32 limit = 6;
+  optional uint32 offset = 7;
+}
+
+message ListExecutionArtifactRefsResponse {
+  repeated ExecutionArtifactRefV1 items = 1;
+}
+
+message GetExecutionArtifactContentRequest {
+  string artifact_ref_id = 1;
+  optional uint32 max_bytes = 2;
+}
+
+message GetExecutionArtifactContentResponse {
+  ExecutionArtifactRefV1 artifact_ref = 1;
+  string content_text = 2;
+  string resolved_url = 3;
+  uint32 content_bytes = 4;
+  bool truncated = 5;
+}
+
+message ResolveExecutionArtifactUrlRequest {
+  string artifact_ref_id = 1;
+}
+
+message ResolveExecutionArtifactUrlResponse {
+  ExecutionArtifactRefV1 artifact_ref = 1;
+  string resolved_url = 2;
+}
+
+message CompareExecutionArtifactsRequest {
+  ExecutionArtifactScopeV1 baseline_scope = 1;
+  ExecutionArtifactScopeV1 comparison_scope = 2;
+}
+
+message CompareExecutionArtifactsResponse {
+  ExecutionArtifactComparisonV1 comparison = 1;
+}
+
+message PromoteDatasetItemRequest {
+  string collection_name = 1;
+  optional string collection_description = 2;
+  optional string target_version_id = 3;
+  optional string version_label = 4;
+  DatasetItemSourceKindV1 source_kind = 5;
+  CorrelationContextV1 correlation = 6;
+  google.protobuf.Struct input_payload = 7;
+  google.protobuf.Struct expected_output = 8;
+  google.protobuf.Struct correction_payload = 9;
+  google.protobuf.Struct evaluator_snapshot = 10;
+  google.protobuf.Struct original_context = 11;
+  repeated string tags = 12;
+  optional string rationale = 13;
+  optional DatasetItemSplitV1 split = 14;
+}
+
+message PromoteDatasetItemResponse {
+  string collection_id = 1;
+  string version_id = 2;
+  uint32 version_number = 3;
+  string item_id = 4;
+  google.protobuf.Timestamp recorded_at = 5;
+}
+
+message DatasetCollectionV1 {
+  string collection_id = 1;
+  string name = 2;
+  optional string description = 3;
+  google.protobuf.Struct labels = 4;
+  optional string created_by_user_id = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+  uint32 total_versions = 8;
+  uint32 total_items = 9;
+  optional string latest_version_id = 10;
+  optional uint32 latest_version_number = 11;
+  optional string latest_version_label = 12;
+  bool is_archived = 13;
+  google.protobuf.Timestamp archived_at = 14;
+  optional string archived_by_user_id = 15;
+  DatasetUsageSummaryV1 usage_summary = 16;
+}
+
+message DatasetVersionV1 {
+  string version_id = 1;
+  string collection_id = 2;
+  uint32 version_number = 3;
+  optional string label = 4;
+  bool is_pinned = 5;
+  optional string pinned_reason = 6;
+  optional string pinned_by_user_id = 7;
+  google.protobuf.Timestamp pinned_at = 8;
+  google.protobuf.Timestamp created_at = 9;
+  uint32 item_count = 10;
+  optional string base_version_id = 11;
+  DatasetUsageSummaryV1 usage_summary = 12;
+}
+
+message DatasetUsageSummaryV1 {
+  uint32 experiment_input_count = 1;
+  uint32 experiment_run_count = 2;
+  uint32 release_gate_count = 3;
+  uint32 regressions_since_version_count = 4;
+  optional string latest_experiment_input_id = 5;
+  optional string latest_experiment_run_id = 6;
+}
+
+message DatasetItemV1 {
+  string item_id = 1;
+  string version_id = 2;
+  string collection_id = 3;
+  DatasetItemSourceKindV1 source_kind = 4;
+  optional string source_feedback_event_id = 5;
+  optional string source_outcome_event_id = 6;
+  optional string source_score_id = 7;
+  optional string source_annotation_task_id = 8;
+  CorrelationContextV1 correlation = 9;
+  google.protobuf.Struct input_payload = 10;
+  google.protobuf.Struct expected_output = 11;
+  google.protobuf.Struct correction_payload = 12;
+  google.protobuf.Struct evaluator_snapshot = 13;
+  google.protobuf.Struct original_context = 14;
+  optional string reviewer_user_id = 15;
+  optional string reviewer_identity = 16;
+  google.protobuf.Timestamp reviewed_at = 17;
+  repeated string tags = 18;
+  optional string rationale = 19;
+  optional string promoted_by_user_id = 20;
+  google.protobuf.Timestamp created_at = 21;
+  optional string derived_from_item_id = 22;
+  DatasetItemSplitV1 split = 23;
+  optional string source_session_id = 24;
+}
+
+message ListDatasetCollectionsRequest {
+  optional uint32 limit = 1;
+  optional uint32 offset = 2;
+  optional bool include_archived = 3;
+}
+
+message ListDatasetCollectionsResponse {
+  repeated DatasetCollectionV1 items = 1;
+}
+
+message GetDatasetCollectionRequest {
+  string collection_id = 1;
+}
+
+message GetDatasetCollectionResponse {
+  DatasetCollectionV1 collection = 1;
+  repeated DatasetVersionV1 versions = 2;
+}
+
+message ListDatasetVersionsRequest {
+  optional string collection_id = 1;
+  optional string collection_name = 2;
+  optional uint32 limit = 3;
+  optional uint32 offset = 4;
+}
+
+message ListDatasetVersionsResponse {
+  repeated DatasetVersionV1 items = 1;
+}
+
+message GetDatasetVersionRequest {
+  string version_id = 1;
+}
+
+message GetDatasetVersionResponse {
+  DatasetCollectionV1 collection = 1;
+  DatasetVersionV1 version = 2;
+}
+
+message ListDatasetItemsRequest {
+  optional string collection_id = 1;
+  optional string version_id = 2;
+  optional DatasetItemSourceKindV1 source_kind = 3;
+  optional uint32 limit = 4;
+  optional uint32 offset = 5;
+  optional DatasetItemSplitV1 split = 6;
+}
+
+message ListDatasetItemsResponse {
+  repeated DatasetItemV1 items = 1;
+}
+
+message GetDatasetItemRequest {
+  string item_id = 1;
+}
+
+message GetDatasetItemResponse {
+  DatasetCollectionV1 collection = 1;
+  DatasetVersionV1 version = 2;
+  DatasetItemV1 item = 3;
+}
+
+message StringFieldPatchV1 {
+  oneof patch {
+    string value = 1;
+    bool clear = 2;
+  }
+}
+
+message StructFieldPatchV1 {
+  oneof patch {
+    google.protobuf.Struct value = 1;
+    bool clear = 2;
+  }
+}
+
+message UpdateDatasetCollectionRequest {
+  string collection_id = 1;
+  StringFieldPatchV1 name = 2;
+  StringFieldPatchV1 description = 3;
+  StructFieldPatchV1 labels = 4;
+}
+
+message UpdateDatasetCollectionResponse {
+  DatasetCollectionV1 collection = 1;
+}
+
+message CreateDatasetVersionRequest {
+  string collection_id = 1;
+  optional string label = 2;
+  optional string base_version_id = 3;
+}
+
+message CreateDatasetVersionResponse {
+  DatasetCollectionV1 collection = 1;
+  DatasetVersionV1 version = 2;
+  uint32 copied_item_count = 3;
+}
+
+message CreateDatasetItemRequest {
+  optional string collection_id = 1;
+  optional string collection_name = 2;
+  optional string collection_description = 3;
+  optional string target_version_id = 4;
+  optional string version_label = 5;
+  DatasetItemSourceKindV1 source_kind = 6;
+  CorrelationContextV1 correlation = 7;
+  google.protobuf.Struct input_payload = 8;
+  google.protobuf.Struct expected_output = 9;
+  google.protobuf.Struct correction_payload = 10;
+  google.protobuf.Struct evaluator_snapshot = 11;
+  google.protobuf.Struct original_context = 12;
+  repeated string tags = 13;
+  optional string rationale = 14;
+  optional DatasetItemSplitV1 split = 15;
+}
+
+message CreateDatasetItemResponse {
+  DatasetCollectionV1 collection = 1;
+  DatasetVersionV1 version = 2;
+  DatasetItemV1 item = 3;
+}
+
+message UpdateDatasetItemRequest {
+  string item_id = 1;
+  optional string version_label = 2;
+  StructFieldPatchV1 input_payload = 3;
+  StructFieldPatchV1 expected_output = 4;
+  StructFieldPatchV1 correction_payload = 5;
+  StructFieldPatchV1 evaluator_snapshot = 6;
+  StructFieldPatchV1 original_context = 7;
+  repeated string tags = 8;
+  bool replace_tags = 9;
+  StringFieldPatchV1 rationale = 10;
+  optional DatasetItemSplitV1 split = 11;
+}
+
+message UpdateDatasetItemResponse {
+  DatasetCollectionV1 collection = 1;
+  DatasetVersionV1 version = 2;
+  DatasetItemV1 previous_item = 3;
+  DatasetItemV1 item = 4;
+}
+
+message DeleteDatasetItemRequest {
+  string item_id = 1;
+  optional string version_label = 2;
+}
+
+message DeleteDatasetItemResponse {
+  DatasetCollectionV1 collection = 1;
+  DatasetVersionV1 version = 2;
+  string deleted_item_id = 3;
+}
+
+message MoveDatasetItemRequest {
+  string item_id = 1;
+  string target_version_id = 2;
+}
+
+message MoveDatasetItemResponse {
+  DatasetCollectionV1 source_collection = 1;
+  DatasetVersionV1 source_version = 2;
+  DatasetCollectionV1 target_collection = 3;
+  DatasetVersionV1 target_version = 4;
+  DatasetItemV1 item = 5;
+}
+
+message ArchiveDatasetCollectionRequest {
+  string collection_id = 1;
+}
+
+message ArchiveDatasetCollectionResponse {
+  DatasetCollectionV1 collection = 1;
+}
+
+message UnarchiveDatasetCollectionRequest {
+  string collection_id = 1;
+}
+
+message UnarchiveDatasetCollectionResponse {
+  DatasetCollectionV1 collection = 1;
+}
+
+message DatasetImportRowFailureV1 {
+  uint32 row_number = 1;
+  repeated string fields = 2;
+  string message = 3;
+}
+
+message ImportDatasetFileRequest {
+  optional string collection_id = 1;
+  optional string collection_name = 2;
+  optional string collection_description = 3;
+  optional string target_version_id = 4;
+  optional string version_label = 5;
+  DatasetImportFormatV1 format = 6;
+  string file_name = 7;
+  bytes file_bytes = 8;
+  map<string, string> field_mappings = 9;
+  DatasetItemSourceKindV1 default_source_kind = 10;
+  optional string content_type = 11;
+  optional DatasetItemSplitV1 default_split = 12;
+}
+
+message ExportDatasetVersionRequest {
+  string version_id = 1;
+  DatasetExportFormatV1 format = 2;
+}
+
+message ExportDatasetVersionResponse {
+  DatasetCollectionV1 collection = 1;
+  DatasetVersionV1 version = 2;
+  string file_name = 3;
+  string content_type = 4;
+  bytes file_bytes = 5;
+  uint32 item_count = 6;
+}
+
+message ImportDatasetFileResponse {
+  DatasetCollectionV1 collection = 1;
+  DatasetVersionV1 version = 2;
+  uint32 total_rows = 3;
+  uint32 imported_rows = 4;
+  bool applied = 5;
+  repeated DatasetImportRowFailureV1 row_failures = 6;
+}
+
+message PromoteApprovedAnnotationTaskRequest {
+  string task_id = 1;
+  string collection_name = 2;
+  optional string collection_description = 3;
+  optional string target_version_id = 4;
+  optional string version_label = 5;
+  DatasetItemSourceKindV1 source_kind = 6;
+  google.protobuf.Struct input_payload = 7;
+  google.protobuf.Struct expected_output = 8;
+  google.protobuf.Struct evaluator_snapshot = 9;
+  google.protobuf.Struct original_context = 10;
+  repeated string tags = 11;
+  optional string rationale = 12;
+  optional DatasetItemSplitV1 split = 13;
+}
+
+message ExperimentInputV1 {
+  string input_id = 1;
+  string input_key = 2;
+  string name = 3;
+  optional string description = 4;
+  string dataset_collection_id = 5;
+  string dataset_version_id = 6;
+  google.protobuf.Struct metadata = 7;
+  optional string created_by_user_id = 8;
+  google.protobuf.Timestamp created_at = 9;
+}
+
+message CreatePromptTemplateRequest {
+  string template_key = 1;
+  string name = 2;
+  optional string description = 3;
+  google.protobuf.Struct labels = 4;
+}
+
+message CreatePromptTemplateResponse {
+  PromptTemplateV1 prompt_template = 1;
+}
+
+message GetPromptTemplateRequest {
+  string prompt_template_id = 1;
+}
+
+message GetPromptTemplateResponse {
+  PromptTemplateV1 prompt_template = 1;
+}
+
+message ListPromptTemplatesRequest {
+  optional bool include_archived = 1;
+  optional uint32 limit = 2;
+  optional uint32 offset = 3;
+}
+
+message ListPromptTemplatesResponse {
+  repeated PromptTemplateV1 items = 1;
+}
+
+message UpdatePromptTemplateRequest {
+  string prompt_template_id = 1;
+  string template_key = 2;
+  string name = 3;
+  optional string description = 4;
+  google.protobuf.Struct labels = 5;
+}
+
+message UpdatePromptTemplateResponse {
+  PromptTemplateV1 prompt_template = 1;
+}
+
+message DeletePromptTemplateRequest {
+  string prompt_template_id = 1;
+}
+
+message DeletePromptTemplateResponse {
+  string prompt_template_id = 1;
+}
+
+message CreatePromptVersionRequest {
+  string prompt_template_id = 1;
+  optional string version_label = 2;
+  repeated PromptEnvironmentV1 environments = 3;
+  string prompt_text = 4;
+  optional string system_prompt = 5;
+  google.protobuf.Struct metadata = 6;
+}
+
+message CreatePromptVersionResponse {
+  PromptVersionV1 prompt_version = 1;
+}
+
+message GetPromptVersionRequest {
+  string prompt_version_id = 1;
+}
+
+message GetPromptVersionResponse {
+  PromptVersionV1 prompt_version = 1;
+}
+
+message ListPromptVersionsRequest {
+  string prompt_template_id = 1;
+  optional bool include_archived = 2;
+  optional uint32 limit = 3;
+  optional uint32 offset = 4;
+}
+
+message ListPromptVersionsResponse {
+  repeated PromptVersionV1 items = 1;
+}
+
+message UpdatePromptVersionRequest {
+  string prompt_version_id = 1;
+  optional string version_label = 2;
+  repeated PromptEnvironmentV1 environments = 3;
+  string prompt_text = 4;
+  optional string system_prompt = 5;
+  google.protobuf.Struct metadata = 6;
+}
+
+message UpdatePromptVersionResponse {
+  PromptVersionV1 prompt_version = 1;
+}
+
+message DeletePromptVersionRequest {
+  string prompt_version_id = 1;
+}
+
+message DeletePromptVersionResponse {
+  string prompt_version_id = 1;
+}
+
+message ExperimentTargetV1 {
+  string target_id = 1;
+  string target_key = 2;
+  string name = 3;
+  ExperimentTargetModeV1 target_mode = 4;
+  google.protobuf.Struct config = 5;
+  ProviderExecutionConfigV1 provider_execution = 6;
+  optional string prompt_template = 7;
+  optional string prompt_version = 8;
+  optional string prompt_label = 9;
+  optional string created_by_user_id = 10;
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
+  optional string prompt_template_id = 13;
+  optional string prompt_version_id = 14;
+  bool is_archived = 15;
+  google.protobuf.Timestamp archived_at = 16;
+  optional string archived_by_user_id = 17;
+}
+
+message ExperimentExecutionTargetSnapshotV1 {
+  optional string target_id = 1;
+  string target_key = 2;
+  string name = 3;
+  ExperimentTargetModeV1 target_mode = 4;
+  google.protobuf.Struct config = 5;
+  ProviderExecutionConfigV1 provider_execution = 6;
+  optional string prompt_template = 7;
+  optional string prompt_version = 8;
+  optional string prompt_label = 9;
+  optional string prompt_template_id = 10;
+  optional string prompt_version_id = 11;
+}
+
+message CreateExperimentInputRequest {
+  string input_key = 1;
+  string name = 2;
+  optional string description = 3;
+  string dataset_version_id = 4;
+  google.protobuf.Struct metadata = 5;
+}
+
+message CreateExperimentInputResponse {
+  ExperimentInputV1 input = 1;
+  DatasetVersionV1 dataset_version = 2;
+}
+
+message ListExperimentInputsRequest {
+  optional string dataset_collection_id = 1;
+  optional string dataset_version_id = 2;
+  optional uint32 limit = 3;
+  optional uint32 offset = 4;
+}
+
+message ListExperimentInputsResponse {
+  repeated ExperimentInputV1 items = 1;
+}
+
+message GetExperimentInputRequest {
+  string experiment_input_id = 1;
+}
+
+message GetExperimentInputResponse {
+  ExperimentInputV1 input = 1;
+  DatasetCollectionV1 collection = 2;
+  DatasetVersionV1 dataset_version = 3;
+}
+
+message CreateExperimentTargetRequest {
+  string target_key = 1;
+  string name = 2;
+  ExperimentTargetModeV1 target_mode = 3;
+  google.protobuf.Struct config = 4;
+  ProviderExecutionConfigV1 provider_execution = 5;
+  optional string prompt_template = 6;
+  optional string prompt_version = 7;
+  optional string prompt_label = 8;
+  optional string prompt_template_id = 9;
+  optional string prompt_version_id = 10;
+}
+
+message CreateExperimentTargetResponse {
+  ExperimentTargetV1 target = 1;
+}
+
+message GetExperimentTargetRequest {
+  string experiment_target_id = 1;
+}
+
+message GetExperimentTargetResponse {
+  ExperimentTargetV1 target = 1;
+}
+
+message ListExperimentTargetsRequest {
+  optional ExperimentTargetModeV1 target_mode = 1;
+  optional uint32 limit = 2;
+  optional uint32 offset = 3;
+  optional bool include_archived = 4;
+}
+
+message ListExperimentTargetsResponse {
+  repeated ExperimentTargetV1 items = 1;
+}
+
+message UpdateExperimentTargetRequest {
+  string experiment_target_id = 1;
+  string target_key = 2;
+  string name = 3;
+  ExperimentTargetModeV1 target_mode = 4;
+  google.protobuf.Struct config = 5;
+  ProviderExecutionConfigV1 provider_execution = 6;
+  optional string prompt_template = 7;
+  optional string prompt_version = 8;
+  optional string prompt_label = 9;
+  optional string prompt_template_id = 10;
+  optional string prompt_version_id = 11;
+}
+
+message UpdateExperimentTargetResponse {
+  ExperimentTargetV1 target = 1;
+}
+
+message ArchiveExperimentTargetRequest {
+  string experiment_target_id = 1;
+}
+
+message ArchiveExperimentTargetResponse {
+  ExperimentTargetV1 target = 1;
+}
+
+message DeleteExperimentTargetRequest {
+  string experiment_target_id = 1;
+}
+
+message DeleteExperimentTargetResponse {
+  string experiment_target_id = 1;
+}
+
+message CreateEvaluatorTemplateRequest {
+  string template_key = 1;
+  string name = 2;
+  string evaluator_kind = 3;
+  EvaluatorExecutionModeV1 execution_mode = 4;
+  google.protobuf.Struct config = 5;
+  ProviderExecutionConfigV1 provider_execution = 6;
+  EvaluatorTemplateSettingsV1 settings = 7;
+  optional string prompt_template_id = 8;
+  optional string prompt_version_id = 9;
+  optional string description = 10;
+  google.protobuf.Struct metadata = 11;
+}
+
+message CreateEvaluatorTemplateResponse {
+  EvaluatorTemplateV1 template = 1;
+}
+
+message ListEvaluatorTemplatesRequest {
+  optional uint32 limit = 1;
+  optional uint32 offset = 2;
+  optional bool include_archived = 3;
+}
+
+message ListEvaluatorTemplatesResponse {
+  repeated EvaluatorTemplateV1 items = 1;
+}
+
+message GetEvaluatorTemplateRequest {
+  string template_id = 1;
+}
+
+message GetEvaluatorTemplateResponse {
+  EvaluatorTemplateV1 template = 1;
+}
+
+message UpdateEvaluatorTemplateRequest {
+  string template_id = 1;
+  string template_key = 2;
+  string name = 3;
+  string evaluator_kind = 4;
+  EvaluatorExecutionModeV1 execution_mode = 5;
+  google.protobuf.Struct config = 6;
+  ProviderExecutionConfigV1 provider_execution = 7;
+  EvaluatorTemplateSettingsV1 settings = 8;
+  optional string prompt_template_id = 9;
+  optional string prompt_version_id = 10;
+  optional string description = 11;
+  google.protobuf.Struct metadata = 12;
+}
+
+message UpdateEvaluatorTemplateResponse {
+  EvaluatorTemplateV1 template = 1;
+}
+
+message ArchiveEvaluatorTemplateRequest {
+  string template_id = 1;
+}
+
+message ArchiveEvaluatorTemplateResponse {
+  EvaluatorTemplateV1 template = 1;
+}
+
+message DeleteEvaluatorTemplateRequest {
+  string template_id = 1;
+}
+
+message DeleteEvaluatorTemplateResponse {
+  string template_id = 1;
+}
+
+message CreateScoreConfigRequest {
+  string config_key = 1;
+  string name = 2;
+  string metric_name = 3;
+  ScoreSourceV1 score_source = 4;
+  string evaluator_template_id = 5;
+  optional string pass_label = 6;
+  optional string fail_label = 7;
+  optional double pass_threshold = 8;
+  optional uint32 max_attempts = 9;
+  optional uint32 retry_backoff_seconds = 10;
+  google.protobuf.Struct config = 11;
+  ProviderExecutionConfigV1 provider_execution = 12;
+  ScoreConfigSettingsV1 settings = 13;
+  optional string description = 14;
+  google.protobuf.Struct metadata = 15;
+}
+
+message CreateProviderCredentialRequest {
+  ProviderNameV1 provider_name = 1;
+  string credential_key = 2;
+  string auth_ref = 3;
+  string key_ref = 4;
+  optional bool is_default = 5;
+}
+
+message CreateProviderCredentialResponse {
+  ProviderCredentialV1 provider_credential = 1;
+}
+
+message GetProviderCredentialRequest {
+  string provider_credential_id = 1;
+}
+
+message GetProviderCredentialResponse {
+  ProviderCredentialV1 provider_credential = 1;
+}
+
+message ListProviderCredentialsRequest {
+  optional uint32 limit = 1;
+  optional uint32 offset = 2;
+}
+
+message ListProviderCredentialsResponse {
+  repeated ProviderCredentialV1 items = 1;
+}
+
+message UpdateProviderCredentialRequest {
+  string provider_credential_id = 1;
+  ProviderNameV1 provider_name = 2;
+  string credential_key = 3;
+  string auth_ref = 4;
+  string key_ref = 5;
+  optional bool is_default = 6;
+}
+
+message UpdateProviderCredentialResponse {
+  ProviderCredentialV1 provider_credential = 1;
+}
+
+message SetProviderCredentialSecretRequest {
+  string provider_credential_id = 1;
+  string secret_value = 2;
+  optional string note = 3;
+}
+
+message SetProviderCredentialSecretResponse {
+  ProviderCredentialV1 provider_credential = 1;
+  ProviderCredentialSecretV1 provider_credential_secret = 2;
+}
+
+message ListProviderCredentialSecretsRequest {
+  string provider_credential_id = 1;
+  optional uint32 limit = 2;
+  optional uint32 offset = 3;
+}
+
+message ListProviderCredentialSecretsResponse {
+  repeated ProviderCredentialSecretV1 items = 1;
+}
+
+message RevokeProviderCredentialSecretRequest {
+  string provider_credential_id = 1;
+  optional string note = 2;
+}
+
+message RevokeProviderCredentialSecretResponse {
+  ProviderCredentialV1 provider_credential = 1;
+  ProviderCredentialSecretV1 provider_credential_secret = 2;
+}
+
+message CreateScoreConfigResponse {
+  ScoreConfigV1 score_config = 1;
+}
+
+message ListScoreConfigsRequest {
+  optional uint32 limit = 1;
+  optional uint32 offset = 2;
+  optional bool include_archived = 3;
+}
+
+message ListScoreConfigsResponse {
+  repeated ScoreConfigV1 items = 1;
+}
+
+message GetScoreConfigRequest {
+  string score_config_id = 1;
+}
+
+message GetScoreConfigResponse {
+  ScoreConfigV1 score_config = 1;
+}
+
+message UpdateScoreConfigRequest {
+  string score_config_id = 1;
+  string config_key = 2;
+  string name = 3;
+  string metric_name = 4;
+  ScoreSourceV1 score_source = 5;
+  string evaluator_template_id = 6;
+  optional string pass_label = 7;
+  optional string fail_label = 8;
+  optional double pass_threshold = 9;
+  optional uint32 max_attempts = 10;
+  optional uint32 retry_backoff_seconds = 11;
+  google.protobuf.Struct config = 12;
+  ProviderExecutionConfigV1 provider_execution = 13;
+  ScoreConfigSettingsV1 settings = 14;
+  optional string description = 15;
+  google.protobuf.Struct metadata = 16;
+}
+
+message UpdateScoreConfigResponse {
+  ScoreConfigV1 score_config = 1;
+}
+
+message ScorerStarterSystemV1 {
+  string starter_key = 1;
+  string name = 2;
+  optional string description = 3;
+  ScorerStarterKindV1 kind = 4;
+  repeated string tags = 5;
+  CreatePromptTemplateRequest default_prompt_template_draft = 6;
+  CreatePromptVersionRequest default_prompt_version_draft = 7;
+  CreateEvaluatorTemplateRequest default_evaluator_template_draft = 8;
+  CreateScoreConfigRequest default_score_config_draft = 9;
+  google.protobuf.Struct recommended_input_mapping = 10;
+  optional string recommended_output_type = 11;
+}
+
+message ListScorerStartersRequest {
+  ScorerStarterKindV1 kind = 1;
+  repeated string tags = 2;
+}
+
+message ListScorerStartersResponse {
+  repeated ScorerStarterSystemV1 items = 1;
+}
+
+message ScorerBundleUsageSummaryV1 {
+  uint64 experiment_run_count = 1;
+  uint64 release_gate_count = 2;
+  uint64 online_scoring_rule_count = 3;
+  optional string latest_experiment_run_id = 4;
+  optional string latest_release_gate_id = 5;
+  uint64 automation_rule_count = 6;
+  optional string latest_online_scoring_rule_id = 7;
+  optional string latest_automation_rule_id = 8;
+  bool has_online_scoring_rule = 9;
+  bool has_automation_rule = 10;
+}
+
+message ScorerBundleCompletenessV1 {
+  bool has_score_config = 1;
+  bool has_evaluator_template = 2;
+  bool has_prompt_template = 3;
+  bool has_prompt_version = 4;
+  bool is_runnable = 5;
+  repeated string missing_fields = 6;
+  repeated string warnings = 7;
+}
+
+message ScorerBundlePromptResolutionV1 {
+  optional string prompt_template_id = 1;
+  optional string prompt_version_id = 2;
+  optional string template_key = 3;
+  optional string template_name = 4;
+  optional uint32 version_number = 5;
+  optional string version_label = 6;
+  optional string version_ref = 7;
+  repeated PromptEnvironmentV1 environments = 8;
+  string source = 9;
+  bool prompt_version_matches_template = 10;
+  repeated string warnings = 11;
+}
+
+message ScorerBundleAutomationHandoffV1 {
+  bool can_create_automation_rule = 1;
+  repeated string supported_automation_scopes = 2;
+  repeated string supported_runtime_scopes = 3;
+  optional string recommended_default_scope = 4;
+  optional string recommended_runtime_scope = 5;
+  optional string cta_label = 6;
+  optional string cta_hint = 7;
+  string handoff_status = 8;
+  google.protobuf.Struct default_rule_config = 9;
+  repeated string warnings = 10;
+}
+
+message ScorerBundleV1 {
+  string bundle_id = 1;
+  ScoreConfigV1 score_config = 2;
+  EvaluatorTemplateV1 evaluator_template = 3;
+  PromptTemplateV1 prompt_template = 4;
+  PromptVersionV1 prompt_version = 5;
+  ScorerBundleUsageSummaryV1 usage_summary = 6;
+  ScorerBundleCompletenessV1 completeness = 7;
+  ScorerBundlePromptResolutionV1 prompt_resolution = 8;
+  ScorerBundleAutomationHandoffV1 automation_handoff = 9;
+}
+
+message ListScorerBundlesRequest {
+  optional uint32 limit = 1;
+  optional uint32 offset = 2;
+  optional bool include_archived = 3;
+}
+
+message ListScorerBundlesResponse {
+  repeated ScorerBundleV1 items = 1;
+}
+
+message GetScorerBundleRequest {
+  string bundle_id = 1;
+}
+
+message GetScorerBundleResponse {
+  ScorerBundleV1 bundle = 1;
+}
+
+message ScorerPromptRefV1 {
+  optional string prompt_template_id = 1;
+  optional string prompt_version_id = 2;
+}
+
+message ScorerPromptDraftV1 {
+  string prompt_text = 1;
+  optional string system_prompt = 2;
+  google.protobuf.Struct metadata = 3;
+}
+
+message ScorerInlinePreviewPayloadV1 {
+  google.protobuf.Struct input_payload = 1;
+  google.protobuf.Struct subject_output = 2;
+  google.protobuf.Struct expected_output = 3;
+  CorrelationContextV1 correlation = 4;
+}
+
+message ScorerPreviewTargetV1 {
+  optional string trace_id = 1;
+  optional string session_id = 2;
+  optional string dataset_item_id = 3;
+  optional string experiment_run_item_id = 4;
+  ScorerInlinePreviewPayloadV1 inline_payload = 5;
+}
+
+message ScorerPreviewOptionsV1 {
+  optional bool execute = 1;
+  optional bool include_artifact_previews = 2;
+}
+
+message PreviewScorerDraftRequest {
+  ScorerPromptRefV1 prompt_ref = 1;
+  ScorerPromptDraftV1 prompt_draft = 2;
+  CreateEvaluatorTemplateRequest evaluator_template_draft = 3;
+  CreateScoreConfigRequest score_config_draft = 4;
+  ScorerPreviewTargetV1 preview_target = 5;
+  ScorerPreviewOptionsV1 preview_options = 6;
+  ScorerTargetSelectorV1 target_selector = 7;
+}
+
+message PreviewScorerDraftResponse {
+  optional string rendered_prompt = 1;
+  google.protobuf.Struct resolved_mapping = 2;
+  google.protobuf.Struct provider_request_preview = 3;
+  google.protobuf.Struct verdict_preview = 4;
+  optional double mapped_score = 5;
+  optional bool passes_threshold = 6;
+  repeated ExecutionArtifactPreviewV1 artifact_previews = 7;
+  google.protobuf.Struct execution_metadata = 8;
+  ResolvedScorerTargetV1 resolved_target = 9;
+  repeated string warnings = 10;
+}
+
+message ResolveScorerTargetRequest {
+  ScorerPreviewTargetV1 preview_target = 1;
+  ScorerTargetSelectorV1 target_selector = 2;
+  optional bool include_turns = 3;
+  optional uint32 max_turns = 4;
+}
+
+message ResolveScorerTargetResponse {
+  ResolvedScorerTargetV1 target = 1;
+  repeated AgenticMessageTurnV1 turns = 2;
+  repeated string warnings = 3;
+}
+
+message PreviewScorerAutomationRuleOptionsV1 {
+  optional bool execute_sample = 1;
+  optional uint32 max_candidates = 2;
+  optional uint32 max_execute_candidates = 3;
+  optional uint32 max_execute_scorers = 4;
+  optional bool include_candidate_turns = 5;
+}
+
+message ScorerAutomationPreviewScorerResultV1 {
+  string score_config_id = 1;
+  optional string scorer_suite_item_id = 2;
+  string metric_name = 3;
+  string display_name = 4;
+  bool selected_by_execution_bounds = 5;
+  ResolvedScorerTargetV1 resolved_target = 6;
+  repeated AgenticMessageTurnV1 turns = 7;
+  optional string rendered_prompt = 8;
+  google.protobuf.Struct verdict_preview = 9;
+  optional double mapped_score = 10;
+  optional bool passes_threshold = 11;
+  repeated ExecutionArtifactPreviewV1 artifact_previews = 12;
+  google.protobuf.Struct execution_metadata = 13;
+  repeated string warnings = 14;
+}
+
+message ScorerAutomationPreviewCandidateV1 {
+  TraceInvestigationRowV1 trace = 1;
+  string trace_id = 2;
+  optional string session_id = 3;
+  bool matched_filter = 4;
+  bool idle_eligible = 5;
+  optional google.protobuf.Timestamp eligible_after = 6;
+  bool selected_by_sampling = 7;
+  string sampling_key = 8;
+  uint64 sampling_hash = 9;
+  double sampling_value_percent = 10;
+  ResolvedScorerTargetV1 resolved_target = 11;
+  repeated AgenticMessageTurnV1 turns = 12;
+  repeated string warnings = 13;
+  repeated ScorerAutomationPreviewScorerResultV1 scorer_results = 14;
+}
+
+message PreviewScorerAutomationRuleRequest {
+  CreateScorerAutomationRuleRequest rule_draft = 1;
+  PreviewScorerAutomationRuleOptionsV1 options = 2;
+}
+
+message PreviewScorerAutomationRuleResponse {
+  uint32 matched_candidate_count = 1;
+  uint32 idle_eligible_candidate_count = 2;
+  uint32 sampled_candidate_count = 3;
+  uint32 estimated_job_count = 4;
+  uint32 executed_job_count = 5;
+  optional double estimated_execution_cost_usd = 6;
+  repeated ScorerAutomationPreviewCandidateV1 candidates = 7;
+  repeated string warnings = 8;
+  google.protobuf.Struct execution_metadata = 9;
+}
+
+message CreateScorerSuiteRequest {
+  string suite_key = 1;
+  string name = 2;
+  optional string description = 3;
+  ScorerAggregationModeV1 aggregation_mode = 4;
+  optional double pass_threshold = 5;
+  repeated ScorerSuiteItemDraftV1 items = 6;
+  google.protobuf.Struct metadata = 7;
+  optional ScorerReasoningModeV1 default_reasoning_mode = 8;
+}
+
+message CreateScorerSuiteResponse {
+  ScorerSuiteV1 suite = 1;
+}
+
+message GetScorerSuiteRequest {
+  string scorer_suite_id = 1;
+}
+
+message GetScorerSuiteResponse {
+  ScorerSuiteV1 suite = 1;
+}
+
+message ListScorerSuitesRequest {
+  optional uint32 limit = 1;
+  optional uint32 offset = 2;
+  optional bool include_archived = 3;
+}
+
+message ListScorerSuitesResponse {
+  repeated ScorerSuiteV1 items = 1;
+}
+
+message UpdateScorerSuiteRequest {
+  string scorer_suite_id = 1;
+  string suite_key = 2;
+  string name = 3;
+  optional string description = 4;
+  ScorerAggregationModeV1 aggregation_mode = 5;
+  optional double pass_threshold = 6;
+  repeated ScorerSuiteItemDraftV1 items = 7;
+  google.protobuf.Struct metadata = 8;
+  optional ScorerReasoningModeV1 default_reasoning_mode = 9;
+}
+
+message UpdateScorerSuiteResponse {
+  ScorerSuiteV1 suite = 1;
+}
+
+message ArchiveScorerSuiteRequest {
+  string scorer_suite_id = 1;
+}
+
+message ArchiveScorerSuiteResponse {
+  ScorerSuiteV1 suite = 1;
+}
+
+message DeleteScorerSuiteRequest {
+  string scorer_suite_id = 1;
+}
+
+message DeleteScorerSuiteResponse {
+  string scorer_suite_id = 1;
+}
+
+message ScorerAutomationRuleV1 {
+  string automation_rule_id = 1;
+  string rule_key = 2;
+  string name = 3;
+  optional string description = 4;
+  bool enabled = 5;
+  ScorerAutomationRuntimeScopeV1 runtime_scope = 6;
+  ExperimentRunScorerTargetV1 scorer_target = 7;
+  optional uint32 idle_timeout_seconds = 8;
+  optional double sampling_rate_percent = 9;
+  ListTraceInvestigationsRequest trace_filter = 10;
+  ScorerTargetSelectorV1 target_selector = 11;
+  google.protobuf.Struct metadata = 12;
+  google.protobuf.Timestamp created_at = 13;
+  google.protobuf.Timestamp updated_at = 14;
+  ScorerReasoningModeV1 reasoning_mode = 15;
+  optional string created_by_user_id = 16;
+}
+
+message CreateScorerAutomationRuleRequest {
+  string rule_key = 1;
+  string name = 2;
+  optional string description = 3;
+  optional bool enabled = 4;
+  ScorerAutomationRuntimeScopeV1 runtime_scope = 5;
+  ExperimentRunScorerTargetV1 scorer_target = 6;
+  optional uint32 idle_timeout_seconds = 7;
+  optional double sampling_rate_percent = 8;
+  ListTraceInvestigationsRequest trace_filter = 9;
+  ScorerTargetSelectorV1 target_selector = 10;
+  google.protobuf.Struct metadata = 11;
+  optional ScorerReasoningModeV1 reasoning_mode = 12;
+}
+
+message CreateScorerAutomationRuleResponse {
+  ScorerAutomationRuleV1 automation_rule = 1;
+}
+
+message GetScorerAutomationRuleRequest {
+  string automation_rule_id = 1;
+}
+
+message GetScorerAutomationRuleResponse {
+  ScorerAutomationRuleV1 automation_rule = 1;
+}
+
+message ListScorerAutomationRulesRequest {
+  optional uint32 limit = 1;
+  optional uint32 offset = 2;
+  optional bool enabled = 3;
+}
+
+message ListScorerAutomationRulesResponse {
+  repeated ScorerAutomationRuleV1 items = 1;
+}
+
+message UpdateScorerAutomationRuleRequest {
+  string automation_rule_id = 1;
+  string rule_key = 2;
+  string name = 3;
+  optional string description = 4;
+  optional bool enabled = 5;
+  ScorerAutomationRuntimeScopeV1 runtime_scope = 6;
+  ExperimentRunScorerTargetV1 scorer_target = 7;
+  optional uint32 idle_timeout_seconds = 8;
+  optional double sampling_rate_percent = 9;
+  ListTraceInvestigationsRequest trace_filter = 10;
+  ScorerTargetSelectorV1 target_selector = 11;
+  google.protobuf.Struct metadata = 12;
+  optional ScorerReasoningModeV1 reasoning_mode = 13;
+}
+
+message UpdateScorerAutomationRuleResponse {
+  ScorerAutomationRuleV1 automation_rule = 1;
+}
+
+message DeleteScorerAutomationRuleRequest {
+  string automation_rule_id = 1;
+}
+
+message DeleteScorerAutomationRuleResponse {
+  string automation_rule_id = 1;
+}
+
+message ScorerAutomationExecutionV1 {
+  string automation_execution_id = 1;
+  string automation_rule_id = 2;
+  string runtime_scope = 3;
+  string trace_id = 4;
+  optional string session_id = 5;
+  ScorerAutomationExecutionStateV1 state = 6;
+  uint32 eval_job_count = 7;
+  uint32 score_count = 8;
+  uint32 warning_count = 9;
+  optional string error = 10;
+  string sampling_key = 11;
+  string sampling_hash = 12;
+  double sampling_value_percent = 13;
+  bool selected_by_sampling = 14;
+  bool idle_eligible = 15;
+  optional google.protobuf.Timestamp eligible_after = 16;
+  ResolvedScorerTargetV1 resolved_target = 17;
+  google.protobuf.Struct execution_summary = 18;
+  google.protobuf.Struct metadata = 19;
+  optional string created_by_user_id = 20;
+  optional google.protobuf.Timestamp finished_at = 21;
+  google.protobuf.Timestamp created_at = 22;
+  google.protobuf.Timestamp updated_at = 23;
+}
+
+message ListScorerAutomationExecutionsRequest {
+  optional string automation_rule_id = 1;
+  repeated ScorerAutomationExecutionStateV1 states = 2;
+  optional uint32 limit = 3;
+  optional uint32 offset = 4;
+}
+
+message ListScorerAutomationExecutionsResponse {
+  repeated ScorerAutomationExecutionV1 items = 1;
+}
+
+message GetScorerAutomationExecutionRequest {
+  string automation_execution_id = 1;
+}
+
+message GetScorerAutomationExecutionResponse {
+  ScorerAutomationExecutionV1 automation_execution = 1;
+}
+
+message RunScorerAutomationWorkerOnceRequest {
+  optional uint32 rule_limit = 1;
+  optional uint32 trace_limit_per_rule = 2;
+}
+
+message RunScorerAutomationWorkerOnceResponse {
+  uint32 loaded_rule_count = 1;
+  uint32 matched_trace_count = 2;
+  uint32 idle_eligible_trace_count = 3;
+  uint32 sampled_trace_count = 4;
+  uint32 claimed_trace_count = 5;
+  uint32 skipped_by_idle_count = 6;
+  uint32 skipped_by_sampling_count = 7;
+  uint32 skipped_by_dedupe_count = 8;
+  uint32 created_execution_count = 9;
+  uint32 created_eval_job_count = 10;
+  uint32 dispatched_eval_job_count = 11;
+  uint32 failed_execution_count = 12;
+  repeated string warnings = 13;
+  // Lease-sweep outcomes: stranded claims released back to the scan, claims
+  // promoted to terminal after exhausting their attempt budget, and write-backs
+  // rejected by the fencing token.
+  uint32 reclaimed_execution_count = 14;
+  uint32 abandoned_execution_count = 15;
+  uint32 lost_lease_count = 16;
+}
+
+message ArchiveScoreConfigRequest {
+  string score_config_id = 1;
+}
+
+message ArchiveScoreConfigResponse {
+  ScoreConfigV1 score_config = 1;
+}
+
+message DeleteScoreConfigRequest {
+  string score_config_id = 1;
+}
+
+message DeleteScoreConfigResponse {
+  string score_config_id = 1;
+}
+
+message CreateEvalJobRequest {
+  string score_config_id = 1;
+  CorrelationContextV1 correlation = 2;
+  google.protobuf.Struct input_payload = 3;
+  google.protobuf.Struct subject_output = 4;
+  google.protobuf.Struct expected_output = 5;
+  google.protobuf.Struct metadata = 6;
+}
+
+message CreateEvalJobResponse {
+  EvalJobV1 job = 1;
+}
+
+message ListEvalJobsRequest {
+  repeated EvalJobStateV1 states = 1;
+  optional uint32 limit = 2;
+  optional uint32 offset = 3;
+}
+
+message ListEvalJobsResponse {
+  repeated EvalJobV1 items = 1;
+}
+
+message GetEvalJobRequest {
+  string eval_job_id = 1;
+}
+
+message GetEvalJobResponse {
+  EvalJobV1 job = 1;
+}
+
+message RetryEvalJobRequest {
+  string eval_job_id = 1;
+}
+
+message RetryEvalJobResponse {
+  EvalJobV1 job = 1;
+}
+
+message ReplayEvalJobRequest {
+  string eval_job_id = 1;
+}
+
+message ReplayEvalJobResponse {
+  EvalJobV1 job = 1;
+}
+
+message CancelEvalJobRequest {
+  string eval_job_id = 1;
+  optional string reason = 2;
+}
+
+message CancelEvalJobResponse {
+  EvalJobV1 job = 1;
+}
+
+message RunEvalSchedulerOnceRequest {
+  optional uint32 limit = 1;
+}
+
+message RunEvalSchedulerOnceResponse {
+  uint32 leased_jobs = 1;
+  uint32 succeeded_jobs = 2;
+  uint32 retried_jobs = 3;
+  uint32 failed_jobs = 4;
+  uint32 dead_letter_jobs = 5;
+  uint32 async_jobs_spawned = 6;
+  uint32 leased_expansions = 7;
+  uint32 succeeded_expansions = 8;
+  uint32 failed_expansions = 9;
+}
+
+message CreateExperimentRunRequest {
+  string run_key = 1;
+  string name = 2;
+  string experiment_input_id = 3;
+  string score_config_id = 4;
+  google.protobuf.Struct summary = 5;
+  optional string experiment_target_id = 6;
+  optional ExperimentRunRoleV1 comparison_role = 7;
+  optional string baseline_experiment_run_id = 8;
+  optional string candidate_experiment_run_id = 9;
+  ExperimentRunScorerTargetV1 scorer_target = 10;
+}
+
+message CreateExperimentRunResponse {
+  ExperimentRunV1 experiment_run = 1;
+}
+
+message ListExperimentRunsRequest {
+  repeated ExperimentRunStateV1 states = 1;
+  optional uint32 limit = 2;
+  optional uint32 offset = 3;
+}
+
+message ListExperimentRunsResponse {
+  repeated ExperimentRunV1 items = 1;
+}
+
+message CompareExperimentRunsRequest {
+  string baseline_experiment_run_id = 1;
+  string comparison_experiment_run_id = 2;
+  optional uint32 item_limit = 3;
+}
+
+message CompareExperimentRunsResponse {
+  ExperimentRunComparisonV1 comparison = 1;
+  repeated ExperimentRunItemComparisonV1 item_comparisons = 2;
+}
+
+message CompareTraceAgenticContextsRequest {
+  string baseline_trace_id = 1;
+  string comparison_trace_id = 2;
+  optional uint32 limit = 3;
+}
+
+message CompareTraceAgenticContextsResponse {
+  TraceAgenticComparisonV1 comparison = 1;
+}
+
+message GetExperimentRunRequest {
+  string experiment_run_id = 1;
+  repeated EvalJobStateV1 states = 2;
+  optional uint32 limit = 3;
+  optional uint32 offset = 4;
+  ExperimentRunItemFilterV1 filter = 5;
+  ExperimentRunItemSortV1 sort = 6;
+}
+
+message GetExperimentRunResponse {
+  ExperimentRunV1 experiment_run = 1;
+  ExperimentInputV1 input = 2;
+  repeated ExperimentRunItemV1 items = 3;
+  ScoreConfigV1 score_config = 4;
+  EvaluatorTemplateV1 evaluator_template = 5;
+  ExperimentExecutionTargetSnapshotV1 execution_target = 6;
+  ExperimentRunSummaryV1 run_summary = 7;
+  repeated ExperimentRunItemDetailV1 item_details = 8;
+  optional ExperimentRunArtifactSummaryV1 artifact_summary = 9;
+  ExperimentRunRichSummaryV1 rich_summary = 10;
+}
+
+message GetExperimentRunItemRequest {
+  string experiment_run_item_id = 1;
+}
+
+message GetExperimentRunItemResponse {
+  ExperimentRunItemV1 experiment_run_item = 1;
+  ExperimentRunItemDetailV1 detail = 2;
+}
+
+message ListExperimentRunItemsRequest {
+  string experiment_run_id = 1;
+  repeated EvalJobStateV1 states = 2;
+  optional uint32 limit = 3;
+  optional uint32 offset = 4;
+  ExperimentRunItemFilterV1 filter = 5;
+  ExperimentRunItemSortV1 sort = 6;
+}
+
+message ListExperimentRunItemsResponse {
+  repeated ExperimentRunItemV1 items = 1;
+  repeated ExperimentRunItemDetailV1 item_details = 2;
+}
+
+message CreateReleaseGateRequest {
+  string gate_key = 1;
+  string name = 2;
+  string metric_name = 3;
+  string deployment_id = 4;
+  optional string baseline_deployment_id = 5;
+  optional uint32 evaluation_window_hours = 6;
+  optional uint32 min_samples = 7;
+  optional double max_score_regression = 8;
+  optional double max_avg_cost_usd = 9;
+  optional uint32 max_bad_outcomes = 10;
+  google.protobuf.Struct config = 11;
+  repeated string destination_ids = 12;
+  optional string customer_priority_policy_id = 13;
+  optional string service_name = 14;
+  optional string namespace = 15;
+  optional string environment = 16;
+  ReleaseGatePolicyV1 policy = 17;
+}
+
+message CreateReleaseGateResponse {
+  ReleaseGateV1 gate = 1;
+}
+
+message GetReleaseGateRequest {
+  string gate_id = 1;
+}
+
+message GetReleaseGateResponse {
+  ReleaseGateV1 gate = 1;
+  optional ReleaseGateEvaluationV1 latest_evaluation = 2;
+  optional ReleaseGateEvaluationV1 last_successful_baseline_evaluation = 3;
+  ReleaseGateDeliverySummaryV1 delivery_summary = 4;
+  repeated string fix_queue_group_keys = 5;
+}
+
+message ListReleaseGatesRequest {
+  optional uint32 limit = 1;
+  optional uint32 offset = 2;
+}
+
+message ReleaseGateListItemV1 {
+  ReleaseGateV1 gate = 1;
+  optional ReleaseGateEvaluationV1 latest_evaluation = 2;
+  optional ReleaseGateEvaluationV1 last_successful_baseline_evaluation = 3;
+  ReleaseGateDeliverySummaryV1 delivery_summary = 4;
+  repeated string fix_queue_group_keys = 5;
+}
+
+message ListReleaseGatesResponse {
+  repeated ReleaseGateV1 items = 1;
+  repeated ReleaseGateListItemV1 summaries = 2;
+}
+
+message UpdateReleaseGateRequest {
+  string gate_id = 1;
+  string gate_key = 2;
+  string name = 3;
+  string metric_name = 4;
+  string deployment_id = 5;
+  optional string baseline_deployment_id = 6;
+  optional uint32 evaluation_window_hours = 7;
+  optional uint32 min_samples = 8;
+  optional double max_score_regression = 9;
+  optional double max_avg_cost_usd = 10;
+  optional uint32 max_bad_outcomes = 11;
+  google.protobuf.Struct config = 12;
+  repeated string destination_ids = 13;
+  optional string customer_priority_policy_id = 14;
+  optional string service_name = 15;
+  optional string namespace = 16;
+  optional string environment = 17;
+  ReleaseGatePolicyV1 policy = 18;
+}
+
+message UpdateReleaseGateResponse {
+  ReleaseGateV1 gate = 1;
+}
+
+message DeleteReleaseGateRequest {
+  string gate_id = 1;
+}
+
+message DeleteReleaseGateResponse {
+  string gate_id = 1;
+}
+
+message GetReleaseGateEvaluationRequest {
+  string evaluation_id = 1;
+}
+
+message GetReleaseGateEvaluationResponse {
+  ReleaseGateV1 gate = 1;
+  ReleaseGateEvaluationV1 evaluation = 2;
+}
+
+message ListReleaseGateEvaluationsRequest {
+  optional string gate_id = 1;
+  optional uint32 limit = 2;
+  optional uint32 offset = 3;
+}
+
+message ListReleaseGateEvaluationsResponse {
+  repeated ReleaseGateEvaluationV1 items = 1;
+}
+
+message CompareReleaseGateEvaluationsRequest {
+  string baseline_evaluation_id = 1;
+  string comparison_evaluation_id = 2;
+}
+
+message CompareReleaseGateEvaluationsResponse {
+  ReleaseGateEvaluationComparisonV1 comparison = 1;
+}
+
+message EvaluateReleaseGateRequest {
+  string gate_id = 1;
+}
+
+message EvaluateReleaseGateResponse {
+  ReleaseGateV1 gate = 1;
+  ReleaseGateEvaluationV1 evaluation = 2;
+}
+
+message SimulateReleaseGateRequest {
+  string gate_id = 1;
+  optional string deployment_id = 2;
+  optional string baseline_deployment_id = 3;
+  optional uint32 evaluation_window_hours = 4;
+  optional google.protobuf.Timestamp start = 5;
+  optional google.protobuf.Timestamp end = 6;
+}
+
+message SimulateReleaseGateResponse {
+  ReleaseGateV1 gate = 1;
+  ReleaseGateEvaluationV1 evaluation = 2;
+}
+
+message CreateReleaseDestinationRequest {
+  string destination_key = 1;
+  string name = 2;
+  ReleaseDestinationChannelKindV1 channel_kind = 3;
+  optional bool enabled = 4;
+  optional bool is_default = 5;
+  repeated string email_recipients = 6;
+  optional string webhook_url = 7;
+  optional string webhook_secret_ref = 8;
+  google.protobuf.Struct headers_json = 9;
+}
+
+message CreateReleaseDestinationResponse {
+  ReleaseDestinationV1 release_destination = 1;
+}
+
+message GetReleaseDestinationRequest {
+  string release_destination_id = 1;
+}
+
+message GetReleaseDestinationResponse {
+  ReleaseDestinationV1 release_destination = 1;
+}
+
+message ListReleaseDestinationsRequest {
+  optional uint32 limit = 1;
+  optional uint32 offset = 2;
+}
+
+message ListReleaseDestinationsResponse {
+  repeated ReleaseDestinationV1 items = 1;
+}
+
+message UpdateReleaseDestinationRequest {
+  string release_destination_id = 1;
+  string destination_key = 2;
+  string name = 3;
+  ReleaseDestinationChannelKindV1 channel_kind = 4;
+  optional bool enabled = 5;
+  optional bool is_default = 6;
+  repeated string email_recipients = 7;
+  optional string webhook_url = 8;
+  optional string webhook_secret_ref = 9;
+  google.protobuf.Struct headers_json = 10;
+}
+
+message UpdateReleaseDestinationResponse {
+  ReleaseDestinationV1 release_destination = 1;
+}
+
+message DeleteReleaseDestinationRequest {
+  string release_destination_id = 1;
+}
+
+message DeleteReleaseDestinationResponse {
+  string release_destination_id = 1;
+}
+
+message ListReleaseAlertDeliveriesRequest {
+  optional string release_gate_id = 1;
+  optional string release_gate_evaluation_id = 2;
+  optional string release_destination_id = 3;
+  optional ReleaseAlertDeliveryStateV1 state = 4;
+  optional uint32 limit = 5;
+  optional uint32 offset = 6;
+}
+
+message ListReleaseAlertDeliveriesResponse {
+  repeated ReleaseAlertDeliveryV1 items = 1;
+}
+
+message GetReleaseAlertDeliveryRequest {
+  string release_alert_delivery_id = 1;
+}
+
+message GetReleaseAlertDeliveryResponse {
+  ReleaseAlertDeliveryV1 release_alert_delivery = 1;
+}
+
+message AcknowledgeReleaseAlertRequest {
+  string release_alert_delivery_id = 1;
+}
+
+message AcknowledgeReleaseAlertResponse {
+  ReleaseAlertDeliveryV1 release_alert_delivery = 1;
+}
+
+message SuppressReleaseAlertRequest {
+  string release_alert_delivery_id = 1;
+  optional string note = 2;
+}
+
+message SuppressReleaseAlertResponse {
+  ReleaseAlertDeliveryV1 release_alert_delivery = 1;
+}
+
+message EscalateReleaseAlertRequest {
+  string release_alert_delivery_id = 1;
+  optional string note = 2;
+}
+
+message EscalateReleaseAlertResponse {
+  ReleaseAlertDeliveryV1 release_alert_delivery = 1;
+}
+
+message ListFixQueueRequest {
+  optional uint32 lookback_hours = 1;
+  optional uint32 limit = 2;
+  optional double failure_threshold = 3;
+  repeated string strategic_customer_ids = 4;
+}
+
+message ListFixQueueResponse {
+  repeated FixQueueItemV1 items = 1;
+}
+
+message ListSessionsRequest {
+  optional string customer_id = 1;
+  optional string deployment_id = 2;
+  optional string prompt_version = 3;
+  optional uint32 limit = 4;
+  optional uint32 offset = 5;
+  // Sessions listing always scans a bounded window: unset means the recent-24h
+  // default, and a range wider than the 720h maximum is clamped, never honored.
+  optional google.protobuf.Timestamp start = 6;
+  optional google.protobuf.Timestamp end = 7;
+}
+
+message ListSessionsResponse {
+  repeated SessionV1 items = 1;
+}
+
+message GetSessionRequest {
+  string session_id = 1;
+  optional TraceInvestigationDetailPreviewLevelV1 detail_preview_level = 2;
+  optional TraceInvestigationDetailPreviewOptionsV1 detail_preview_options = 3;
+}
+
+message GetSessionResponse {
+  SessionV1 session = 1;
+  repeated TraceInvestigationRowV1 related_traces = 2;
+  AgenticEvidenceGraphV1 evidence_graph = 3;
+}
+
+message GetAgenticEvidenceGraphRequest {
+  oneof scope {
+    string trace_id = 1;
+    string session_id = 2;
+    string dataset_item_id = 3;
+    string eval_job_id = 4;
+    string experiment_run_item_id = 5;
+    string release_gate_evaluation_id = 6;
+    string annotation_task_id = 7;
+    // Wave 41 lane A. The EIGHTH arm, taking field 9 because 8 is `node_limit`.
+    //
+    // `PLAN:1709` was ticked in wave 37 as NOT NEEDED YET, with its own reversal
+    // trigger written into the tick: "the wave that lands the agent-run grouping
+    // plane adds the eighth arm in the same change". That plane lands in this
+    // wave, so the arm lands with it — an id that names nothing was the whole
+    // reason to wait, and it now names something.
+    //
+    // Scoped by the agent run's CANONICAL id; a stale id resolves through the
+    // grouping redirect rather than answering `NOT_FOUND`. The graph is built
+    // over the run's member traces through the same trace arm above, so a run of
+    // one trace and that trace itself produce the same evidence.
+    string agent_run_id = 9;
+  }
+  optional uint32 node_limit = 8;
+}
+
+message GetAgenticEvidenceGraphResponse {
+  AgenticEvidenceGraphV1 graph = 1;
+}
+
+message CreateRoutingPolicyRequest {
+  string policy_key = 1;
+  string name = 2;
+  optional string description = 3;
+  optional bool is_default = 4;
+  optional bool enabled = 5;
+  optional uint32 version = 6;
+  google.protobuf.Struct rules_json = 7;
+}
+
+message CreateRoutingPolicyResponse {
+  RoutingPolicyV1 routing_policy = 1;
+}
+
+message GetRoutingPolicyRequest {
+  string routing_policy_id = 1;
+}
+
+message GetRoutingPolicyResponse {
+  RoutingPolicyV1 routing_policy = 1;
+}
+
+message ListRoutingPoliciesRequest {
+  optional uint32 limit = 1;
+  optional uint32 offset = 2;
+}
+
+message ListRoutingPoliciesResponse {
+  repeated RoutingPolicyV1 items = 1;
+}
+
+message UpdateRoutingPolicyRequest {
+  string routing_policy_id = 1;
+  string policy_key = 2;
+  string name = 3;
+  optional string description = 4;
+  optional bool is_default = 5;
+  optional bool enabled = 6;
+  optional uint32 version = 7;
+  google.protobuf.Struct rules_json = 8;
+}
+
+message UpdateRoutingPolicyResponse {
+  RoutingPolicyV1 routing_policy = 1;
+}
+
+message CompareRoutingPoliciesRequest {
+  string baseline_routing_policy_id = 1;
+  string comparison_routing_policy_id = 2;
+}
+
+message CompareRoutingPoliciesResponse {
+  RoutingPolicyComparisonV1 comparison = 1;
+}
+
+message CreateCustomerPriorityPolicyRequest {
+  string policy_key = 1;
+  string name = 2;
+  optional string description = 3;
+  optional bool is_default = 4;
+  optional bool enabled = 5;
+  optional uint32 version = 6;
+  google.protobuf.Struct cohorts_json = 7;
+}
+
+message CreateCustomerPriorityPolicyResponse {
+  CustomerPriorityPolicyV1 customer_priority_policy = 1;
+}
+
+message GetCustomerPriorityPolicyRequest {
+  string customer_priority_policy_id = 1;
+}
+
+message GetCustomerPriorityPolicyResponse {
+  CustomerPriorityPolicyV1 customer_priority_policy = 1;
+}
+
+message ListCustomerPriorityPoliciesRequest {
+  optional uint32 limit = 1;
+  optional uint32 offset = 2;
+}
+
+message ListCustomerPriorityPoliciesResponse {
+  repeated CustomerPriorityPolicyV1 items = 1;
+}
+
+message UpdateCustomerPriorityPolicyRequest {
+  string customer_priority_policy_id = 1;
+  string policy_key = 2;
+  string name = 3;
+  optional string description = 4;
+  optional bool is_default = 5;
+  optional bool enabled = 6;
+  optional uint32 version = 7;
+  google.protobuf.Struct cohorts_json = 8;
+}
+
+message UpdateCustomerPriorityPolicyResponse {
+  CustomerPriorityPolicyV1 customer_priority_policy = 1;
+}
+
+message CompareCustomerPriorityPoliciesRequest {
+  string baseline_customer_priority_policy_id = 1;
+  string comparison_customer_priority_policy_id = 2;
+}
+
+message CompareCustomerPriorityPoliciesResponse {
+  CustomerPriorityPolicyComparisonV1 comparison = 1;
+}
+
+message GetRoutingSignalRequest {
+  string routing_signal_id = 1;
+}
+
+message GetRoutingSignalResponse {
+  RoutingSignalV1 routing_signal = 1;
+}
+
+message ListRoutingSignalsRequest {
+  repeated RoutingSignalStateV1 states = 1;
+  optional uint32 limit = 2;
+  optional uint32 offset = 3;
+}
+
+message ListRoutingSignalsResponse {
+  repeated RoutingSignalV1 items = 1;
+}
+
+message ReplayRoutingSignalRequest {
+  string routing_signal_id = 1;
+}
+
+message ReplayRoutingSignalResponse {
+  RoutingSignalV1 routing_signal = 1;
+}
+
+message ListRoutingAuditsRequest {
+  optional string routing_signal_id = 1;
+  optional uint32 limit = 2;
+  optional uint32 offset = 3;
+}
+
+message ListRoutingAuditsResponse {
+  repeated RoutingAuditV1 items = 1;
+}
+
+message RunRoutingWorkerOnceRequest {
+  optional uint32 limit = 1;
+  optional uint32 per_tenant_limit = 2;
+}
+
+message RunRoutingWorkerOnceResponse {
+  uint32 leased_signals = 1;
+  uint32 materialized_signals = 2;
+  uint32 skipped_signals = 3;
+  uint32 retried_signals = 4;
+  uint32 dead_letter_signals = 5;
+  uint32 created_tasks = 6;
+}
+
+message GetAgenticDispatchOutboxEntryRequest {
+  string dispatch_entry_id = 1;
+}
+
+message GetAgenticDispatchOutboxEntryResponse {
+  AgenticDispatchOutboxEntryV1 entry = 1;
+}
+
+message ListAgenticDispatchOutboxEntriesRequest {
+  repeated AgenticDispatchStateV1 states = 1;
+  repeated AgenticDispatchKindV1 kinds = 2;
+  optional uint32 limit = 3;
+  optional uint32 offset = 4;
+}
+
+message ListAgenticDispatchOutboxEntriesResponse {
+  repeated AgenticDispatchOutboxEntryV1 items = 1;
+}
+
+message RetryAgenticDispatchOutboxEntryRequest {
+  string dispatch_entry_id = 1;
+}
+
+message RetryAgenticDispatchOutboxEntryResponse {
+  AgenticDispatchOutboxEntryV1 entry = 1;
+}
+
+message CreateAnnotationQueueRequest {
+  string queue_key = 1;
+  string name = 2;
+  optional string description = 3;
+  AnnotationRoutingReasonV1 routing_reason = 4;
+  google.protobuf.Struct routing_config = 5;
+}
+
+message CreateAnnotationQueueResponse {
+  AnnotationQueueV1 queue = 1;
+}
+
+message ListAnnotationQueuesRequest {
+  optional uint32 limit = 1;
+  optional uint32 offset = 2;
+}
+
+message ListAnnotationQueuesResponse {
+  repeated AnnotationQueueV1 items = 1;
+}
+
+message GetAnnotationQueueRequest {
+  string queue_id = 1;
+}
+
+message GetAnnotationQueueResponse {
+  AnnotationQueueV1 queue = 1;
+}
+
+message UpdateAnnotationQueueRequest {
+  string queue_id = 1;
+  string queue_key = 2;
+  string name = 3;
+  optional string description = 4;
+  AnnotationRoutingReasonV1 routing_reason = 5;
+  google.protobuf.Struct routing_config = 6;
+}
+
+message UpdateAnnotationQueueResponse {
+  AnnotationQueueV1 queue = 1;
+}
+
+message ListAnnotationTasksRequest {
+  optional string queue_id = 1;
+  repeated AnnotationTaskStateV1 states = 2;
+  optional uint32 limit = 3;
+  optional uint32 offset = 4;
+  optional string experiment_run_id = 5;
+  optional AnnotationTaskModeV1 task_mode = 6;
+  optional string assigned_user_id = 7;
+  optional string claimed_by_user_id = 8;
+  optional bool current_user_only = 9;
+}
+
+message ListAnnotationTasksResponse {
+  repeated AnnotationTaskV1 items = 1;
+}
+
+message GetAnnotationTaskRequest {
+  string task_id = 1;
+}
+
+message GetAnnotationTaskResponse {
+  AnnotationTaskV1 task = 1;
+}
+
+message CreatePairwiseAnnotationTaskRequest {
+  string queue_id = 1;
+  string task_key = 2;
+  string title = 3;
+  optional string summary = 4;
+  CorrelationContextV1 correlation = 5;
+  google.protobuf.Struct evidence = 6;
+  google.protobuf.Struct correction_payload = 7;
+  optional string resolution_notes = 8;
+  RoutingPriorityTierV1 priority_tier = 9;
+  optional string assigned_user_id = 10;
+  google.protobuf.Timestamp due_at = 11;
+  optional string experiment_run_id = 12;
+  optional string experiment_run_item_id = 13;
+  AnnotationPairwiseRefsV1 pairwise_refs = 14;
+}
+
+message CreatePairwiseAnnotationTaskResponse {
+  AnnotationTaskV1 task = 1;
+}
+
+message ClaimAnnotationTaskRequest {
+  string task_id = 1;
+  optional string note = 2;
+}
+
+message ClaimAnnotationTaskResponse {
+  AnnotationTaskV1 task = 1;
+}
+
+message SaveAnnotationTaskReviewRequest {
+  string task_id = 1;
+  google.protobuf.Struct correction_payload = 2;
+  optional string resolution_notes = 3;
+  optional AnnotationPairwiseWinnerV1 pairwise_winner = 4;
+  optional bool clear_correction_payload = 5;
+  optional bool clear_pairwise_winner = 6;
+}
+
+message SaveAnnotationTaskReviewResponse {
+  AnnotationTaskV1 task = 1;
+}
+
+message ReleaseAnnotationTaskClaimRequest {
+  string task_id = 1;
+  optional string note = 2;
+}
+
+message ReleaseAnnotationTaskClaimResponse {
+  AnnotationTaskV1 task = 1;
+}
+
+message TransferAnnotationTaskClaimRequest {
+  string task_id = 1;
+  string target_user_id = 2;
+  optional string note = 3;
+}
+
+message TransferAnnotationTaskClaimResponse {
+  AnnotationTaskV1 task = 1;
+}
+
+message CompleteAnnotationTaskRequest {
+  string task_id = 1;
+  google.protobuf.Struct correction_payload = 2;
+  optional string resolution_notes = 3;
+  optional AnnotationPairwiseWinnerV1 pairwise_winner = 4;
+}
+
+message CompleteAnnotationTaskResponse {
+  AnnotationTaskV1 task = 1;
+}
+
+message ApproveAnnotationTaskRequest {
+  string task_id = 1;
+  optional string note = 2;
+}
+
+message ApproveAnnotationTaskResponse {
+  AnnotationTaskV1 task = 1;
+}
+
+message RejectAnnotationTaskRequest {
+  string task_id = 1;
+  optional string note = 2;
+}
+
+message RejectAnnotationTaskResponse {
+  AnnotationTaskV1 task = 1;
+}
+
+message RequeueAnnotationTaskRequest {
+  string task_id = 1;
+  optional string note = 2;
+}
+
+message RequeueAnnotationTaskResponse {
+  AnnotationTaskV1 task = 1;
+}
+
+service AgenticObservabilityService {
+  rpc SubmitScore(SubmitScoreRequest) returns (SubmitScoreResponse);
+  rpc SubmitFeedback(SubmitFeedbackRequest) returns (SubmitFeedbackResponse);
+  rpc SubmitOutcome(SubmitOutcomeRequest) returns (SubmitOutcomeResponse);
+  rpc PromoteDatasetItem(PromoteDatasetItemRequest) returns (PromoteDatasetItemResponse);
+  rpc PromoteApprovedAnnotationTask(PromoteApprovedAnnotationTaskRequest) returns (PromoteDatasetItemResponse);
+  rpc ListDatasetCollections(ListDatasetCollectionsRequest) returns (ListDatasetCollectionsResponse);
+  rpc GetDatasetCollection(GetDatasetCollectionRequest) returns (GetDatasetCollectionResponse);
+  rpc ListDatasetVersions(ListDatasetVersionsRequest) returns (ListDatasetVersionsResponse);
+  rpc GetDatasetVersion(GetDatasetVersionRequest) returns (GetDatasetVersionResponse);
+  rpc ListDatasetItems(ListDatasetItemsRequest) returns (ListDatasetItemsResponse);
+  rpc GetDatasetItem(GetDatasetItemRequest) returns (GetDatasetItemResponse);
+  rpc UpdateDatasetCollection(UpdateDatasetCollectionRequest) returns (UpdateDatasetCollectionResponse);
+  rpc CreateDatasetVersion(CreateDatasetVersionRequest) returns (CreateDatasetVersionResponse);
+  rpc CreateDatasetItem(CreateDatasetItemRequest) returns (CreateDatasetItemResponse);
+  rpc UpdateDatasetItem(UpdateDatasetItemRequest) returns (UpdateDatasetItemResponse);
+  rpc DeleteDatasetItem(DeleteDatasetItemRequest) returns (DeleteDatasetItemResponse);
+  rpc MoveDatasetItem(MoveDatasetItemRequest) returns (MoveDatasetItemResponse);
+  rpc ArchiveDatasetCollection(ArchiveDatasetCollectionRequest) returns (ArchiveDatasetCollectionResponse);
+  rpc UnarchiveDatasetCollection(UnarchiveDatasetCollectionRequest) returns (UnarchiveDatasetCollectionResponse);
+  rpc ImportDatasetFile(ImportDatasetFileRequest) returns (ImportDatasetFileResponse);
+  rpc ExportDatasetVersion(ExportDatasetVersionRequest) returns (ExportDatasetVersionResponse);
+  rpc CreateExperimentInput(CreateExperimentInputRequest) returns (CreateExperimentInputResponse);
+  rpc ListExperimentInputs(ListExperimentInputsRequest) returns (ListExperimentInputsResponse);
+  rpc GetExperimentInput(GetExperimentInputRequest) returns (GetExperimentInputResponse);
+  rpc CreatePromptTemplate(CreatePromptTemplateRequest) returns (CreatePromptTemplateResponse);
+  rpc GetPromptTemplate(GetPromptTemplateRequest) returns (GetPromptTemplateResponse);
+  rpc ListPromptTemplates(ListPromptTemplatesRequest) returns (ListPromptTemplatesResponse);
+  rpc UpdatePromptTemplate(UpdatePromptTemplateRequest) returns (UpdatePromptTemplateResponse);
+  rpc DeletePromptTemplate(DeletePromptTemplateRequest) returns (DeletePromptTemplateResponse);
+  rpc CreatePromptVersion(CreatePromptVersionRequest) returns (CreatePromptVersionResponse);
+  rpc GetPromptVersion(GetPromptVersionRequest) returns (GetPromptVersionResponse);
+  rpc ListPromptVersions(ListPromptVersionsRequest) returns (ListPromptVersionsResponse);
+  rpc UpdatePromptVersion(UpdatePromptVersionRequest) returns (UpdatePromptVersionResponse);
+  rpc DeletePromptVersion(DeletePromptVersionRequest) returns (DeletePromptVersionResponse);
+  rpc CreateExperimentTarget(CreateExperimentTargetRequest) returns (CreateExperimentTargetResponse);
+  rpc GetExperimentTarget(GetExperimentTargetRequest) returns (GetExperimentTargetResponse);
+  rpc ListExperimentTargets(ListExperimentTargetsRequest) returns (ListExperimentTargetsResponse);
+  rpc UpdateExperimentTarget(UpdateExperimentTargetRequest) returns (UpdateExperimentTargetResponse);
+  rpc ArchiveExperimentTarget(ArchiveExperimentTargetRequest) returns (ArchiveExperimentTargetResponse);
+  rpc DeleteExperimentTarget(DeleteExperimentTargetRequest) returns (DeleteExperimentTargetResponse);
+  rpc CreateProviderCredential(CreateProviderCredentialRequest) returns (CreateProviderCredentialResponse);
+  rpc GetProviderCredential(GetProviderCredentialRequest) returns (GetProviderCredentialResponse);
+  rpc ListProviderCredentials(ListProviderCredentialsRequest) returns (ListProviderCredentialsResponse);
+  rpc UpdateProviderCredential(UpdateProviderCredentialRequest) returns (UpdateProviderCredentialResponse);
+  rpc SetProviderCredentialSecret(SetProviderCredentialSecretRequest) returns (SetProviderCredentialSecretResponse);
+  rpc ListProviderCredentialSecrets(ListProviderCredentialSecretsRequest) returns (ListProviderCredentialSecretsResponse);
+  rpc RevokeProviderCredentialSecret(RevokeProviderCredentialSecretRequest) returns (RevokeProviderCredentialSecretResponse);
+  rpc CreateEvaluatorTemplate(CreateEvaluatorTemplateRequest) returns (CreateEvaluatorTemplateResponse);
+  rpc GetEvaluatorTemplate(GetEvaluatorTemplateRequest) returns (GetEvaluatorTemplateResponse);
+  rpc ListEvaluatorTemplates(ListEvaluatorTemplatesRequest) returns (ListEvaluatorTemplatesResponse);
+  rpc UpdateEvaluatorTemplate(UpdateEvaluatorTemplateRequest) returns (UpdateEvaluatorTemplateResponse);
+  rpc ArchiveEvaluatorTemplate(ArchiveEvaluatorTemplateRequest) returns (ArchiveEvaluatorTemplateResponse);
+  rpc DeleteEvaluatorTemplate(DeleteEvaluatorTemplateRequest) returns (DeleteEvaluatorTemplateResponse);
+  rpc ListScorerStarters(ListScorerStartersRequest) returns (ListScorerStartersResponse);
+  rpc ListScorerBundles(ListScorerBundlesRequest) returns (ListScorerBundlesResponse);
+  rpc GetScorerBundle(GetScorerBundleRequest) returns (GetScorerBundleResponse);
+  rpc PreviewScorerDraft(PreviewScorerDraftRequest) returns (PreviewScorerDraftResponse);
+  rpc ResolveScorerTarget(ResolveScorerTargetRequest) returns (ResolveScorerTargetResponse);
+  rpc PreviewScorerAutomationRule(PreviewScorerAutomationRuleRequest) returns (PreviewScorerAutomationRuleResponse);
+  rpc CreateScorerSuite(CreateScorerSuiteRequest) returns (CreateScorerSuiteResponse);
+  rpc GetScorerSuite(GetScorerSuiteRequest) returns (GetScorerSuiteResponse);
+  rpc ListScorerSuites(ListScorerSuitesRequest) returns (ListScorerSuitesResponse);
+  rpc UpdateScorerSuite(UpdateScorerSuiteRequest) returns (UpdateScorerSuiteResponse);
+  rpc ArchiveScorerSuite(ArchiveScorerSuiteRequest) returns (ArchiveScorerSuiteResponse);
+  rpc DeleteScorerSuite(DeleteScorerSuiteRequest) returns (DeleteScorerSuiteResponse);
+  rpc CreateScorerAutomationRule(CreateScorerAutomationRuleRequest) returns (CreateScorerAutomationRuleResponse);
+  rpc GetScorerAutomationRule(GetScorerAutomationRuleRequest) returns (GetScorerAutomationRuleResponse);
+  rpc ListScorerAutomationRules(ListScorerAutomationRulesRequest) returns (ListScorerAutomationRulesResponse);
+  rpc UpdateScorerAutomationRule(UpdateScorerAutomationRuleRequest) returns (UpdateScorerAutomationRuleResponse);
+  rpc DeleteScorerAutomationRule(DeleteScorerAutomationRuleRequest) returns (DeleteScorerAutomationRuleResponse);
+  rpc ListScorerAutomationExecutions(ListScorerAutomationExecutionsRequest) returns (ListScorerAutomationExecutionsResponse);
+  rpc GetScorerAutomationExecution(GetScorerAutomationExecutionRequest) returns (GetScorerAutomationExecutionResponse);
+  rpc RunScorerAutomationWorkerOnce(RunScorerAutomationWorkerOnceRequest) returns (RunScorerAutomationWorkerOnceResponse);
+  rpc CreateScoreConfig(CreateScoreConfigRequest) returns (CreateScoreConfigResponse);
+  rpc GetScoreConfig(GetScoreConfigRequest) returns (GetScoreConfigResponse);
+  rpc ListScoreConfigs(ListScoreConfigsRequest) returns (ListScoreConfigsResponse);
+  rpc UpdateScoreConfig(UpdateScoreConfigRequest) returns (UpdateScoreConfigResponse);
+  rpc ArchiveScoreConfig(ArchiveScoreConfigRequest) returns (ArchiveScoreConfigResponse);
+  rpc DeleteScoreConfig(DeleteScoreConfigRequest) returns (DeleteScoreConfigResponse);
+  rpc CreateEvalJob(CreateEvalJobRequest) returns (CreateEvalJobResponse);
+  rpc GetEvalJob(GetEvalJobRequest) returns (GetEvalJobResponse);
+  rpc ListEvalJobs(ListEvalJobsRequest) returns (ListEvalJobsResponse);
+  rpc RetryEvalJob(RetryEvalJobRequest) returns (RetryEvalJobResponse);
+  rpc ReplayEvalJob(ReplayEvalJobRequest) returns (ReplayEvalJobResponse);
+  rpc CancelEvalJob(CancelEvalJobRequest) returns (CancelEvalJobResponse);
+  rpc RunEvalSchedulerOnce(RunEvalSchedulerOnceRequest) returns (RunEvalSchedulerOnceResponse);
+  rpc CreateExperimentRun(CreateExperimentRunRequest) returns (CreateExperimentRunResponse);
+  rpc ListExperimentRuns(ListExperimentRunsRequest) returns (ListExperimentRunsResponse);
+  rpc CompareExperimentRuns(CompareExperimentRunsRequest) returns (CompareExperimentRunsResponse);
+  rpc CompareTraceAgenticContexts(CompareTraceAgenticContextsRequest) returns (CompareTraceAgenticContextsResponse);
+  rpc ListTraceInvestigations(ListTraceInvestigationsRequest) returns (ListTraceInvestigationsResponse);
+  rpc CreateTraceInvestigationAction(CreateTraceInvestigationActionRequest) returns (CreateTraceInvestigationActionResponse);
+  rpc GetTraceInvestigationAction(GetTraceInvestigationActionRequest) returns (GetTraceInvestigationActionResponse);
+  rpc ListTraceInvestigationActions(ListTraceInvestigationActionsRequest) returns (ListTraceInvestigationActionsResponse);
+  rpc GetTraceInvestigationReleaseEvidence(GetTraceInvestigationReleaseEvidenceRequest) returns (GetTraceInvestigationReleaseEvidenceResponse);
+  rpc ListTraceInvestigationReleaseEvidence(ListTraceInvestigationReleaseEvidenceRequest) returns (ListTraceInvestigationReleaseEvidenceResponse);
+  rpc GetTraceInvestigationAlert(GetTraceInvestigationAlertRequest) returns (GetTraceInvestigationAlertResponse);
+  rpc ListTraceInvestigationAlerts(ListTraceInvestigationAlertsRequest) returns (ListTraceInvestigationAlertsResponse);
+  rpc GetExperimentRun(GetExperimentRunRequest) returns (GetExperimentRunResponse);
+  rpc GetExperimentRunItem(GetExperimentRunItemRequest) returns (GetExperimentRunItemResponse);
+  rpc ListExperimentRunItems(ListExperimentRunItemsRequest) returns (ListExperimentRunItemsResponse);
+  rpc CreateReleaseDestination(CreateReleaseDestinationRequest) returns (CreateReleaseDestinationResponse);
+  rpc GetReleaseDestination(GetReleaseDestinationRequest) returns (GetReleaseDestinationResponse);
+  rpc ListReleaseDestinations(ListReleaseDestinationsRequest) returns (ListReleaseDestinationsResponse);
+  rpc UpdateReleaseDestination(UpdateReleaseDestinationRequest) returns (UpdateReleaseDestinationResponse);
+  rpc DeleteReleaseDestination(DeleteReleaseDestinationRequest) returns (DeleteReleaseDestinationResponse);
+  rpc CreateReleaseGate(CreateReleaseGateRequest) returns (CreateReleaseGateResponse);
+  rpc GetReleaseGate(GetReleaseGateRequest) returns (GetReleaseGateResponse);
+  rpc ListReleaseGates(ListReleaseGatesRequest) returns (ListReleaseGatesResponse);
+  rpc UpdateReleaseGate(UpdateReleaseGateRequest) returns (UpdateReleaseGateResponse);
+  rpc DeleteReleaseGate(DeleteReleaseGateRequest) returns (DeleteReleaseGateResponse);
+  rpc GetReleaseGateEvaluation(GetReleaseGateEvaluationRequest) returns (GetReleaseGateEvaluationResponse);
+  rpc ListReleaseGateEvaluations(ListReleaseGateEvaluationsRequest) returns (ListReleaseGateEvaluationsResponse);
+  rpc CompareReleaseGateEvaluations(CompareReleaseGateEvaluationsRequest) returns (CompareReleaseGateEvaluationsResponse);
+  rpc EvaluateReleaseGate(EvaluateReleaseGateRequest) returns (EvaluateReleaseGateResponse);
+  rpc SimulateReleaseGate(SimulateReleaseGateRequest) returns (SimulateReleaseGateResponse);
+  rpc GetReleaseAlertDelivery(GetReleaseAlertDeliveryRequest) returns (GetReleaseAlertDeliveryResponse);
+  rpc ListReleaseAlertDeliveries(ListReleaseAlertDeliveriesRequest) returns (ListReleaseAlertDeliveriesResponse);
+  rpc AcknowledgeReleaseAlert(AcknowledgeReleaseAlertRequest) returns (AcknowledgeReleaseAlertResponse);
+  rpc SuppressReleaseAlert(SuppressReleaseAlertRequest) returns (SuppressReleaseAlertResponse);
+  rpc EscalateReleaseAlert(EscalateReleaseAlertRequest) returns (EscalateReleaseAlertResponse);
+  rpc ListFixQueue(ListFixQueueRequest) returns (ListFixQueueResponse);
+  rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse);
+  rpc GetSession(GetSessionRequest) returns (GetSessionResponse);
+  rpc GetAgenticEvidenceGraph(GetAgenticEvidenceGraphRequest) returns (GetAgenticEvidenceGraphResponse);
+  rpc CreateRoutingPolicy(CreateRoutingPolicyRequest) returns (CreateRoutingPolicyResponse);
+  rpc GetRoutingPolicy(GetRoutingPolicyRequest) returns (GetRoutingPolicyResponse);
+  rpc ListRoutingPolicies(ListRoutingPoliciesRequest) returns (ListRoutingPoliciesResponse);
+  rpc UpdateRoutingPolicy(UpdateRoutingPolicyRequest) returns (UpdateRoutingPolicyResponse);
+  rpc CompareRoutingPolicies(CompareRoutingPoliciesRequest) returns (CompareRoutingPoliciesResponse);
+  rpc CreateCustomerPriorityPolicy(CreateCustomerPriorityPolicyRequest) returns (CreateCustomerPriorityPolicyResponse);
+  rpc GetCustomerPriorityPolicy(GetCustomerPriorityPolicyRequest) returns (GetCustomerPriorityPolicyResponse);
+  rpc ListCustomerPriorityPolicies(ListCustomerPriorityPoliciesRequest) returns (ListCustomerPriorityPoliciesResponse);
+  rpc UpdateCustomerPriorityPolicy(UpdateCustomerPriorityPolicyRequest) returns (UpdateCustomerPriorityPolicyResponse);
+  rpc CompareCustomerPriorityPolicies(CompareCustomerPriorityPoliciesRequest) returns (CompareCustomerPriorityPoliciesResponse);
+  rpc GetRoutingSignal(GetRoutingSignalRequest) returns (GetRoutingSignalResponse);
+  rpc ListRoutingSignals(ListRoutingSignalsRequest) returns (ListRoutingSignalsResponse);
+  rpc ReplayRoutingSignal(ReplayRoutingSignalRequest) returns (ReplayRoutingSignalResponse);
+  rpc ListRoutingAudits(ListRoutingAuditsRequest) returns (ListRoutingAuditsResponse);
+  rpc RunRoutingWorkerOnce(RunRoutingWorkerOnceRequest) returns (RunRoutingWorkerOnceResponse);
+  rpc GetAgenticDispatchOutboxEntry(GetAgenticDispatchOutboxEntryRequest) returns (GetAgenticDispatchOutboxEntryResponse);
+  rpc ListAgenticDispatchOutboxEntries(ListAgenticDispatchOutboxEntriesRequest) returns (ListAgenticDispatchOutboxEntriesResponse);
+  rpc RetryAgenticDispatchOutboxEntry(RetryAgenticDispatchOutboxEntryRequest) returns (RetryAgenticDispatchOutboxEntryResponse);
+  rpc CreateContentManifest(CreateContentManifestRequest) returns (CreateContentManifestResponse);
+  rpc GetExecutionArtifactRef(GetExecutionArtifactRefRequest) returns (GetExecutionArtifactRefResponse);
+  rpc ListExecutionArtifactRefs(ListExecutionArtifactRefsRequest) returns (ListExecutionArtifactRefsResponse);
+  rpc GetExecutionArtifactContent(GetExecutionArtifactContentRequest) returns (GetExecutionArtifactContentResponse);
+  rpc ResolveExecutionArtifactUrl(ResolveExecutionArtifactUrlRequest) returns (ResolveExecutionArtifactUrlResponse);
+  rpc CompareExecutionArtifacts(CompareExecutionArtifactsRequest) returns (CompareExecutionArtifactsResponse);
+  rpc CreateAnnotationQueue(CreateAnnotationQueueRequest) returns (CreateAnnotationQueueResponse);
+  rpc GetAnnotationQueue(GetAnnotationQueueRequest) returns (GetAnnotationQueueResponse);
+  rpc ListAnnotationQueues(ListAnnotationQueuesRequest) returns (ListAnnotationQueuesResponse);
+  rpc UpdateAnnotationQueue(UpdateAnnotationQueueRequest) returns (UpdateAnnotationQueueResponse);
+  rpc ListAnnotationTasks(ListAnnotationTasksRequest) returns (ListAnnotationTasksResponse);
+  rpc GetAnnotationTask(GetAnnotationTaskRequest) returns (GetAnnotationTaskResponse);
+  rpc CreatePairwiseAnnotationTask(CreatePairwiseAnnotationTaskRequest) returns (CreatePairwiseAnnotationTaskResponse);
+  rpc ClaimAnnotationTask(ClaimAnnotationTaskRequest) returns (ClaimAnnotationTaskResponse);
+  rpc SaveAnnotationTaskReview(SaveAnnotationTaskReviewRequest) returns (SaveAnnotationTaskReviewResponse);
+  rpc ReleaseAnnotationTaskClaim(ReleaseAnnotationTaskClaimRequest) returns (ReleaseAnnotationTaskClaimResponse);
+  rpc TransferAnnotationTaskClaim(TransferAnnotationTaskClaimRequest) returns (TransferAnnotationTaskClaimResponse);
+  rpc CompleteAnnotationTask(CompleteAnnotationTaskRequest) returns (CompleteAnnotationTaskResponse);
+  rpc ApproveAnnotationTask(ApproveAnnotationTaskRequest) returns (ApproveAnnotationTaskResponse);
+  rpc RejectAnnotationTask(RejectAnnotationTaskRequest) returns (RejectAnnotationTaskResponse);
+  rpc RequeueAnnotationTask(RequeueAnnotationTaskRequest) returns (RequeueAnnotationTaskResponse);
+}

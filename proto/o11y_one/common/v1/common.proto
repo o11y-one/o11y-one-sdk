@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package o11y_one.common.v1;
+
+enum SortDirectionV1 {
+  SORT_DIRECTION_V1_UNSPECIFIED = 0;
+  SORT_DIRECTION_V1_DESC = 1;
+  SORT_DIRECTION_V1_ASC = 2;
+}
+
+message PageRequestV1 {
+  optional uint32 limit = 1;
+  optional string page_token = 2;
+}
+
+message PageResponseV1 {
+  optional string next_page_token = 1;
+  bool has_more = 2;
+  uint64 total_count = 3;
+  string cursor_semantics = 4;
+  bool total_count_approximate = 5;
+  string total_count_semantics = 6;
+}
+
+message SortSpecV1 {
+  string key = 1;
+  SortDirectionV1 direction = 2;
+}

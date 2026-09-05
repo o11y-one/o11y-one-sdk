@@ -1,0 +1,37 @@
+version: v2
+
+# The module root is proto/, so every file path carries the o11y_one/ prefix
+# (o11y_one/common/v1/common.proto). Upstream o11y-api roots its module one level
+# deeper, at proto/o11y_one, which makes its file paths `common/v1/common.proto`.
+# tools/sync-proto.sh rewrites the intra-tree imports on the way in to match this
+# root; the reasoning (Python cannot ship top-level `common`/`billing` packages)
+# is documented at length in that script's header. Nothing on the wire changes —
+# only descriptor file names.
+modules:
+  - path: proto
+
+# No `deps:`. Every import in the vendored tree resolves either inside the module
+# or to a google/protobuf well-known type, which buf carries itself. Upstream
+# o11y-api declares buf.build/googleapis/googleapis, but nothing under
+# proto/o11y_one/ actually imports google/api/*, so carrying the dep here would
+# add a BSR fetch and a buf.lock to the supply chain for nothing.
+# tools/sync-proto.sh fails loudly if a future sync introduces an import that is
+# neither local nor a well-known type — the fix is to add the dep here and run
+# `buf dep update`.
+
+# No `lint:` and no `breaking:` block, on purpose.
+#
+# This repo does not author protos, it vendors them. Style is o11y-api's job and
+# is enforced there, at the point where a human can actually fix a finding. Wiring
+# `buf lint` in here would only produce a standing wall of failures this repo has
+# no authority to resolve — the snapshot at PROTO_PIN already trips STANDARD in
+# ~60 places (RPC_REQUEST_RESPONSE_UNIQUE, RPC_RESPONSE_STANDARD_NAME,
+# ENUM_NO_ALLOW_ALIAS), all of them deliberate choices upstream.
+#
+# `buf build` IS run on every sync and in CI: the snapshot must compile. That is
+# the invariant this repo owns.
+#
+# TODO(follow-up): add breaking-change detection of the NEW snapshot against the
+# previously committed one (`buf breaking --against .git#ref=HEAD`). That is a
+# genuine SDK-consumer concern — unlike lint — but it needs a policy decision
+# first about what an SDK major bump means here.

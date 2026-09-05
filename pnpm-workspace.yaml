@@ -1,0 +1,25 @@
+packages:
+  - packages/gen-ts
+  - packages/sdk-ts
+
+# --- supply chain -----------------------------------------------------------
+# Install-time code execution is the single largest npm attack surface, so it is
+# off by default here and opened package by package. `allowBuilds` is pnpm 11's
+# spelling of the postinstall allowlist (pnpm 10 called it
+# onlyBuiltDependencies); mise pins pnpm to the 11 line, matching o11y-web.
+#
+# The list is deliberately EMPTY: nothing this repo installs needs a build step.
+# Adding an entry means "we read this package's install script and accept it".
+allowBuilds: {}
+
+# Refuse to install a version of anything published in the last 7 days
+# (10080 minutes). Most npm compromises are caught within hours; this window
+# buys the ecosystem time to notice before we pull the tarball. Same value as
+# o11y-web.
+minimumReleaseAge: 10080
+
+# Never silently accept a lower version than the lockfile records — a downgrade
+# is how a resolution attack rolls you back onto a yanked, vulnerable release.
+trustPolicy: no-downgrade
+
+resolutionMode: highest

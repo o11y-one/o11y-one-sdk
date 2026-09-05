@@ -1,0 +1,34 @@
+# uv workspace root. Not itself a distribution — the two publishable packages are
+# packages/gen-py (o11y-one-api) and packages/sdk-py (o11y-one).
+#
+# Same shape as the pnpm workspace next door: one lockfile at the root
+# (uv.lock, committed), members resolved together so the SDK always builds
+# against the generated package from THIS commit rather than whatever is on PyPI.
+
+[tool.uv.workspace]
+members = ["packages/gen-py", "packages/sdk-py"]
+
+# --- supply chain -----------------------------------------------------------
+# uv has no age-based equivalent of pnpm's `minimumReleaseAge`; `exclude-newer`
+# takes an absolute date, not a window, and pinning a date here would silently
+# freeze the resolver instead of just delaying new releases. So the Python side
+# gets its guarantee a different way: uv.lock is committed and CI resolves with
+# `uv sync --locked`, which fails rather than re-resolving. Nothing enters the
+# Python dependency graph without appearing in a reviewed lockfile diff.
+#
+# The practical gap versus the npm side: a dependency bump made deliberately here
+# is not held back for a week. Reviewers of a uv.lock diff should check release
+# dates on anything new before merging.
+
+# Workspace-level tooling. Not a dependency of either published package — it is
+# installed into the workspace environment by `uv sync` and invoked by `just`.
+[dependency-groups]
+dev = ["ruff>=0.16.6,<0.17"]
+
+[tool.ruff]
+line-length = 100
+# The generated tree is not ours to style.
+extend-exclude = ["packages/gen-py/src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]

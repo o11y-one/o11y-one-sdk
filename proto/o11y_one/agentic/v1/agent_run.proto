@@ -1,0 +1,455 @@
+syntax = "proto3";
+
+// Agentic Reliability V2 — the agent-run identity plane (wave 41).
+//
+// Same package as agentic.proto, evaluation.proto, artifact.proto and
+// trace_view.proto by design (lock ruling L1-4): prost emits one Rust module per
+// package, so `proto::agentic::*` stays one flat namespace and `proto/src/lib.rs`
+// needs no change. A separate FILE keeps `buf breaking` (FILE mode,
+// `proto/buf.yaml`) from letting this surface destabilise its neighbours —
+// which matters more than usual here, because three lanes are appending to this
+// one file in the same tree.
+//
+// WHY THIS FILE RATHER THAN trace_view.proto
+//
+//   `trace_view.proto` is a TRACE surface: one trace, bounded, five levels. This
+//   file is a CONVERSATION surface: many traces, one identity, and a confidence
+//   about whether that identity is real. Folding them into one file would have
+//   put the agent-run contract inside the breaking surface of the trace viewer,
+//   and the two move on different schedules. `trace_view.proto` imports this
+//   file and hangs the RPCs on the service it already declares — the service
+//   that holds `UnifiedTelemetryQueryEngine`, because span rows are reachable
+//   through nothing else (w32 `0.1`).
+//
+// FILE LAYOUT — THREE LANES, THREE BLOCKS, ONE FILE
+//
+//   Lane A (identity and grouping) owns this header, the import block, and the
+//   first block. Lane B (summary index) appends after lane A's end marker; lane
+//   C (timeline and external artifacts) appends after lane B's. No lane edits
+//   above its own start marker.
+//
+//   Lane A owns the imports wholesale (coordinator ruling A-3) so that no
+//   sibling has to touch this header: `artifact.proto` is imported here for
+//   lane C's `ArtifactLinkV1` / `EvidenceAnchorV1` / `LinkExternalArtifact*`
+//   family even though lane A's own block does not reference it.
+package o11y_one.agentic.v1;
+
+import "google/protobuf/timestamp.proto";
+import "o11y_one/agentic/v1/evaluation.proto";
+import "o11y_one/agentic/v1/artifact.proto";
+
+// ---------------------------------------------------------------------------
+// ---- wave 41 lane A: identity ----
+// ---------------------------------------------------------------------------
+//
+// The contract is 0b §4 (`P7-1` … `P7-13`) and plan rows `:1670`-`:1678`.
+// SM-9, SM-10 and SM-11 are transcribed VERBATIM in their value sets; the four
+// enums after them are minted by this lane and say so.
+
+// SM-9 (`0b:P7-1`), verbatim.
+//
+// Grouping resolves in strict precedence order and the FIRST rung that produces
+// a group wins; the rung that produced it is recorded on the run and returned as
+// `GroupingConfidenceInputV1.contributed_rung`.
+//
+// There is NO terminal value. Confidence is recomputed as identity arrives, with
+// exactly one rule that behaves like a terminal and is a rule rather than a
+// state: `_CONFIRMED` is never downgraded by the grouping pass. A human said
+// these traces are one conversation, and a heuristic does not get to disagree
+// with them silently.
+enum AgentRunGroupingConfidenceV1 {
+  AGENT_RUN_GROUPING_CONFIDENCE_V1_UNSPECIFIED = 0;
+  // Rung 1: official conversation identity (`gen_ai.conversation.id`) on EVERY
+  // member trace. Authoritative.
+  AGENT_RUN_GROUPING_CONFIDENCE_V1_EXPLICIT = 1;
+  // Rung 2: official identity on SOME members; the rest attached by span link.
+  // Authoritative, with the partial posture surfaced — and see
+  // `AGENT_RUN_GROUPING_SIGNAL_KIND_V1_SPAN_LINK`, whose availability says what
+  // a link can and cannot tell this build.
+  AGENT_RUN_GROUPING_CONFIDENCE_V1_EXPLICIT_PARTIAL = 2;
+  // Rung 3: compatible SECONDARY identity only — the control plane's own
+  // `conversation_id`, recorded against a trace by a score, feedback, outcome or
+  // content manifest whose spans never carried the attribute. Authoritative.
+  AGENT_RUN_GROUPING_CONFIDENCE_V1_DERIVED = 3;
+  // Rung 4: bounded heuristic — same service AND deployment AND customer
+  // identity AND within the published bounds. NOT authoritative: see
+  // `AgentRunAuthorityCapabilityV1`.
+  AGENT_RUN_GROUPING_CONFIDENCE_V1_PROVISIONAL = 4;
+  // Rung 5: no identity at all. One trace, one run — and VISIBLE in the agent-run
+  // index, unlike `ListSessions`, which excludes identity-less traces (0b docket
+  // B1-4, adopted). Not authoritative for CROSS-TRACE claims; a single-trace
+  // claim about a single-trace run is a claim about that trace.
+  AGENT_RUN_GROUPING_CONFIDENCE_V1_UNGROUPED = 5;
+  // A `_PROVISIONAL` group an authorized user confirmed through
+  // `ConfirmAgentRunGrouping`. Authoritative, with the audit record attached.
+  AGENT_RUN_GROUPING_CONFIDENCE_V1_CONFIRMED = 6;
+}
+
+// SM-10 (`0b:P7-5`), verbatim.
+//
+// Three of the five are terminal, and ALL THREE REDIRECT. None of them is a
+// `NOT_FOUND`: a read by a stale id returns the canonical run plus a
+// `GroupingRedirectV1`, because an operator who followed a link from an incident
+// ticket to a merged run has asked a reasonable question and deserves an answer
+// rather than a 404.
+enum AgentRunGroupingStateV1 {
+  AGENT_RUN_GROUPING_STATE_V1_UNSPECIFIED = 0;
+  // This id is the canonical grouping at this revision.
+  AGENT_RUN_GROUPING_STATE_V1_CURRENT = 1;
+  // Merged into another run; reads redirect to exactly one id.
+  AGENT_RUN_GROUPING_STATE_V1_MERGED_AWAY = 2;
+  // Split into two or more runs; reads redirect to a disambiguation set.
+  AGENT_RUN_GROUPING_STATE_V1_SPLIT_AWAY = 3;
+  // The canonical id changed for another audited reason.
+  AGENT_RUN_GROUPING_STATE_V1_REDIRECTED = 4;
+}
+
+// SM-11 (`0b:P7-11`..`P7-13`), verbatim.
+//
+// NO terminal: `_COMPLETE` is reopenable by construction, because a late span is
+// a fact about the customer's system and not a violation of ours.
+//
+// Every transition is decided by POSTGRES'S clock, inside the statement that
+// stores it (wave 39 `DEV-3`). There is no Rust twin of this comparison, because
+// two clocks answering "is this conversation over?" is how a conversation gets
+// scored twice with two different answers.
+enum ConversationCompletenessStateV1 {
+  CONVERSATION_COMPLETENESS_STATE_V1_UNSPECIFIED = 0;
+  // Within the configured inactivity window; more spans expected.
+  CONVERSATION_COMPLETENESS_STATE_V1_OPEN = 1;
+  // Inactivity window elapsed; provisionally final. THIS is where
+  // conversation-subject scoring and conversation-scoped rules fire (`P7-11`) —
+  // firing at `_COMPLETE` makes the learning loop unusably slow, and firing at
+  // `_OPEN` scores a truncated conversation.
+  CONVERSATION_COMPLETENESS_STATE_V1_INACTIVE = 2;
+  // Inactivity window plus late-arrival grace elapsed; finality claimed.
+  CONVERSATION_COMPLETENESS_STATE_V1_COMPLETE = 3;
+  // A late span arrived after `_COMPLETE`. `completeness_epoch` increments;
+  // evidence produced against epoch n stays valid and readable, marked
+  // superseded-eligible. Nothing is retroactively deleted (NN13).
+  CONVERSATION_COMPLETENESS_STATE_V1_REOPENED = 4;
+}
+
+// Minted by wave 41 lane A: `P7-3`'s `signal_kind`.
+//
+// One value per source of identity this build can actually read. There is no
+// value for a signal nothing produces — an enum arm for an unreadable signal is
+// a promise a client would render an empty row for.
+enum AgentRunGroupingSignalKindV1 {
+  AGENT_RUN_GROUPING_SIGNAL_KIND_V1_UNSPECIFIED = 0;
+  // `gen_ai.conversation.id` on the span. The only declaration is
+  // `transformation/src/trace_registry.rs:587`; it is a typed Arrow column.
+  AGENT_RUN_GROUPING_SIGNAL_KIND_V1_OFFICIAL_CONVERSATION_ID = 1;
+  // An OTel span link from a span in one trace to a span in another.
+  //
+  // ADJACENCY ONLY, and the availability field on the input says so per run:
+  // span links reach this lake with their ATTRIBUTES DROPPED
+  // (`transformation/src/otel_trace.rs:461-499` writes trace id, span id, trace
+  // state, dropped-attributes count and flags — and nothing else). So a link can
+  // say THAT it links and can never say WHY. "Continuation", "batch member" and
+  // "retry of" are indistinguishable here, and this build does not guess between
+  // them.
+  AGENT_RUN_GROUPING_SIGNAL_KIND_V1_SPAN_LINK = 2;
+  // The control plane's own `conversation_id`, recorded beside a `trace_id` on a
+  // score, feedback event, outcome event, content manifest or dataset item
+  // (migration `20260416100000`). A genuinely second source: a customer can name
+  // the conversation on the SCORE for a trace whose spans never carried it.
+  AGENT_RUN_GROUPING_SIGNAL_KIND_V1_CONTROL_PLANE_CONVERSATION_ID = 3;
+  // Same service AND deployment AND customer identity AND inside the three
+  // published bounds. Rung 4, and never authoritative.
+  AGENT_RUN_GROUPING_SIGNAL_KIND_V1_BOUNDED_HEURISTIC = 4;
+  // No identity of any kind was found for this trace. Recorded as a signal
+  // rather than as an absence, so "we looked and found none" appears in the
+  // confidence inputs instead of an empty list that reads as "we did not look".
+  AGENT_RUN_GROUPING_SIGNAL_KIND_V1_NO_IDENTITY = 5;
+}
+
+// Minted by wave 41 lane A: why a stale id redirects.
+enum AgentRunGroupingRedirectReasonV1 {
+  AGENT_RUN_GROUPING_REDIRECT_REASON_V1_UNSPECIFIED = 0;
+  // Late explicit identity arrived and joined two runs into one.
+  AGENT_RUN_GROUPING_REDIRECT_REASON_V1_LATE_EXPLICIT_IDENTITY_MERGE = 1;
+  // Late explicit identity arrived and proved one run was two conversations.
+  AGENT_RUN_GROUPING_REDIRECT_REASON_V1_LATE_EXPLICIT_IDENTITY_SPLIT = 2;
+  // A heuristic group grew past one of its three bounds and was split rather
+  // than enlarged (`P7-2`, split-not-merge).
+  AGENT_RUN_GROUPING_REDIRECT_REASON_V1_BOUND_BREACH_SPLIT = 3;
+  // The bounded heuristic folded runs that previously stood alone, or pulled
+  // them apart again. Distinct from the two `LATE_EXPLICIT_IDENTITY_*` reasons
+  // on purpose: an operator reading "your run moved" is owed the difference
+  // between "your application finally told us the conversation id" and "our
+  // heuristic changed its mind", because only the first of those is a fact
+  // about their system.
+  AGENT_RUN_GROUPING_REDIRECT_REASON_V1_HEURISTIC_REGROUPED = 4;
+}
+
+// Minted by wave 41 lane A: the audited reason `PLAN:1675` requires on a
+// promotion. Typed rather than free text, because "why did somebody confirm
+// this?" is a question the audit chain must answer without a human reading prose.
+enum AgentRunGroupingConfirmationReasonV1 {
+  AGENT_RUN_GROUPING_CONFIRMATION_REASON_V1_UNSPECIFIED = 0;
+  // The operator checked the member traces and they are one conversation.
+  AGENT_RUN_GROUPING_CONFIRMATION_REASON_V1_OPERATOR_VERIFIED_SAME_CONVERSATION = 1;
+  // The application does not emit conversation identity, and the operator
+  // accepts the heuristic in its place until it does.
+  AGENT_RUN_GROUPING_CONFIRMATION_REASON_V1_INSTRUMENTATION_GAP_ACKNOWLEDGED = 2;
+  // Confirmed inside an incident, to make the run usable as evidence now.
+  AGENT_RUN_GROUPING_CONFIRMATION_REASON_V1_INCIDENT_INVESTIGATION = 3;
+}
+
+// Minted by wave 41 lane A: `P7-10`'s six rows, addressable.
+//
+// The matrix is a table in the contract and prose everywhere else, which is how
+// "provisional groups cannot drive automation" becomes five different guesses at
+// five call sites. Here it is one enum and one function
+// (`assert_grouping_authority`), and every refusal names the row it came from.
+enum AgentRunAuthorityCapabilityV1 {
+  AGENT_RUN_AUTHORITY_CAPABILITY_V1_UNSPECIFIED = 0;
+  // Allowed at every confidence, labelled.
+  AGENT_RUN_AUTHORITY_CAPABILITY_V1_RENDER = 1;
+  // Allowed at every confidence: a human chose it, and the draft records the
+  // confidence at selection. This row is the whole design — human selection
+  // permitted, automation forbidden — and it must survive into the UI.
+  AGENT_RUN_AUTHORITY_CAPABILITY_V1_MANUAL_DRAFT_SELECTION = 2;
+  // Refused for `_PROVISIONAL`; single-trace only for `_UNGROUPED`.
+  AGENT_RUN_AUTHORITY_CAPABILITY_V1_AUTOMATIC_LINEAGE = 3;
+  // Refused for `_PROVISIONAL`; single-trace only for `_UNGROUPED`.
+  AGENT_RUN_AUTHORITY_CAPABILITY_V1_PRODUCTION_RULE_TRIGGER = 4;
+  // Refused for `_PROVISIONAL` AND for `_UNGROUPED`: a conversation of unknown
+  // membership has no conversation subject.
+  AGENT_RUN_AUTHORITY_CAPABILITY_V1_CONVERSATION_SUBJECT_SCORING = 5;
+  // Refused for `_PROVISIONAL` AND for `_UNGROUPED`.
+  AGENT_RUN_AUTHORITY_CAPABILITY_V1_RELEASE_EVIDENCE = 6;
+}
+
+// `P7-3`, verbatim in its four required fields: confidence carries its INPUTS,
+// not just its verdict, so "explain confidence" is a rendering of returned data
+// and never a frontend heuristic.
+message GroupingConfidenceInputV1 {
+  AgentRunGroupingSignalKindV1 signal_kind = 1;
+  // How many member traces this signal was observed on.
+  uint32 observed_on_member_count = 2;
+  // How many member traces the run has. `observed == total` is what separates
+  // rung 1 from rung 2.
+  uint32 total_member_count = 3;
+  // The rung this signal contributed. Present on every input, including inputs
+  // that did NOT win: a reader can see that a secondary identity agreed with the
+  // official one rather than only that the official one was used.
+  AgentRunGroupingConfidenceV1 contributed_rung = 4;
+  // The fifth field, and not decoration. It is the only place the span-link
+  // posture can be told per run rather than per deployment: `_DEGRADED` with
+  // `span_link_attributes_dropped_at_ingest` says this signal is adjacency and
+  // not a stated relationship.
+  MetricAvailabilityV1 availability = 5;
+}
+
+// `P7-6`. Returned by ANY read addressed with a non-`_CURRENT` id, alongside the
+// canonical run's content. Never instead of it, and never a `NOT_FOUND`.
+message GroupingRedirectV1 {
+  // The id the caller asked for.
+  string from_id = 1;
+  // Where it went. Exactly one for a merge or a plain redirect; two or more for
+  // a split, which is why this is repeated rather than optional.
+  repeated string to_ids = 2;
+  AgentRunGroupingRedirectReasonV1 reason = 3;
+  // The grouping revision at which the move happened.
+  uint64 revision = 4;
+  google.protobuf.Timestamp occurred_at = 5;
+}
+
+// The bounds, published as numbers on every run rather than described in prose
+// on a capability nobody fetched.
+//
+// `P7-2` locks the RULE that three bounds exist and that breach means
+// split-not-merge; the numbers are this lane's, and they are here so a client
+// rendering "this group was split" can say what it was split by.
+message AgentRunGroupingBoundsV1 {
+  // Rung-4 bound 1: the most member traces a heuristic group may hold.
+  uint32 max_member_traces = 1;
+  // Rung-4 bound 2: the widest wall clock a heuristic group may span.
+  uint64 max_wall_clock_seconds = 2;
+  // Rung-4 bound 3: the longest silence between two members of one heuristic
+  // group. Deliberately EQUAL to the completeness inactivity window, so "this
+  // conversation went quiet" and "these are not the same conversation" cannot
+  // disagree about the same silence.
+  uint64 max_inactivity_gap_seconds = 3;
+  // The plane's own edge, not this surface's choice:
+  // `trace_partition_pruning_range` clamps every trace query to fourteen days.
+  uint32 max_lookback_hours = 4;
+  // The trace viewer's whole refusal, per MEMBER trace.
+  uint32 max_spans_per_member_trace = 5;
+  // `max_member_traces` × `max_spans_per_member_trace`, published as a number
+  // because a member ceiling a client has to multiply out is a ceiling it will
+  // get wrong.
+  uint64 max_member_span_ceiling = 6;
+}
+
+// The audited promotion, attached to the run it promoted.
+message AgentRunGroupingConfirmationV1 {
+  PrincipalRefV1 confirmed_by = 1;
+  AgentRunGroupingConfirmationReasonV1 reason = 2;
+  optional string reason_note = 3;
+  google.protobuf.Timestamp confirmed_at = 4;
+  // The revision the confirmation minted. A confirmation is a grouping change
+  // like any other, so it advances the revision and appears in the audit chain.
+  uint64 revision = 5;
+}
+
+// `P7-7` on the wire: what happened to the evidence anchored to this run.
+//
+// "Confirmed links survive a merge or a split" is a promise that is unfalsifiable
+// unless the move is visible. An operator who linked a dataset draft to a run and
+// then watched that run merge has exactly one question — *did my link follow?* —
+// and this is the answer, as data rather than as documentation.
+//
+// `anchor` is the SAME `EvidenceAnchorV1` every other plane addresses evidence
+// with (A1 §4.5, twelve arms, arm 7 `agent_run`), reused rather than twinned.
+// `original_agent_run_id` is written once and never overwritten: the audit chain
+// is the point, and a chain whose first link is editable is not a chain.
+message AgentRunAnchorRebindV1 {
+  EvidenceAnchorV1 anchor = 1;
+  // The run the anchor was FIRST created against. Immutable.
+  string original_agent_run_id = 2;
+  // The canonical run it points at now.
+  string agent_run_id = 3;
+  // The grouping revision that moved it.
+  uint64 revision = 4;
+  AgentRunGroupingRedirectReasonV1 reason = 5;
+  google.protobuf.Timestamp occurred_at = 6;
+}
+
+// The identity block. Lanes B and C embed this rather than re-deriving any part
+// of it, so there is exactly one answer to "how sure are we about this run?".
+message AgentRunGroupingV1 {
+  // The CANONICAL id. When `redirect` is set, this is NOT the id the caller
+  // asked for — that one is in `redirect.from_id`.
+  string agent_run_id = 1;
+  AgentRunGroupingStateV1 state = 2;
+  AgentRunGroupingConfidenceV1 confidence = 3;
+  // The rung that produced this grouping, 1..5. Zero means unspecified.
+  uint32 attached_rung = 4;
+  // Monotone. A grouping change advances it, so a cursor bound to it resyncs
+  // rather than reordering invisibly (`P7-9`, NN20).
+  uint64 revision = 5;
+  repeated GroupingConfidenceInputV1 confidence_inputs = 6;
+  // The official conversation identity, when there is one. Absent for a rung-4
+  // or rung-5 run, and absent is not empty-string.
+  optional string conversation_id = 7;
+  uint32 member_trace_count = 8;
+  AgentRunGroupingBoundsV1 bounds = 9;
+  // Set when the read was addressed with a non-`_CURRENT` id.
+  optional GroupingRedirectV1 redirect = 10;
+  // Set when this run reached `_CONFIRMED` through `ConfirmAgentRunGrouping`.
+  optional AgentRunGroupingConfirmationV1 confirmation = 11;
+  // Monotone, and it advances on a grouping change AND on late data. Lane C's
+  // timeline cursor binds to this; lane B's index pass joins against it.
+  uint64 projection_version = 12;
+  // Evidence that moved with this run, newest first, capped at
+  // `anchor_rebind_cap` on the `agent_run_grouping` posture. Empty means no
+  // anchor has ever moved — which for a run that has never merged or split is
+  // the true answer and not a missing field.
+  repeated AgentRunAnchorRebindV1 anchor_rebinds = 13;
+}
+
+// SM-11's state, with the configuration that produced it.
+//
+// `P7-13`: the timeline's "this conversation is done" affordance READS this and
+// computes no idle heuristic of its own. The window and grace ride along so a
+// client can say "quiet for 15 minutes" without a second fetch.
+message ConversationCompletenessV1 {
+  ConversationCompletenessStateV1 state = 1;
+  // Increments on every `_REOPENED`. Evidence produced against a previous epoch
+  // stays valid and readable and is marked superseded-eligible; nothing is
+  // deleted (`P7-12`, NN13).
+  uint32 epoch = 2;
+  google.protobuf.Timestamp last_seen_at = 3;
+  uint64 inactivity_window_seconds = 4;
+  uint64 late_arrival_grace_seconds = 5;
+  // True when this run has been reopened at least once, so evidence from an
+  // earlier epoch is superseded-eligible. False on epoch 1, where there is
+  // nothing to supersede.
+  bool superseded_eligible = 6;
+  // WHEN the state was decided, by Postgres's clock, inside the statement that
+  // stored it. On the wire so a reader can tell a stale projection from a quiet
+  // conversation.
+  google.protobuf.Timestamp evaluated_at = 7;
+}
+
+// `PLAN:1675` / `PLAN:494`: the audited promotion of a provisional grouping when
+// explicit telemetry identity is unavailable.
+message ConfirmAgentRunGroupingRequest {
+  // May be a stale id. It resolves to the canonical run and the response carries
+  // the redirect; it is never a `NOT_FOUND`.
+  string agent_run_id = 1;
+  AgentRunGroupingConfirmationReasonV1 reason = 2;
+  optional string reason_note = 3;
+  // Replaying one key returns the SAME run with `idempotent_replay` set and
+  // writes no second revision.
+  string idempotency_key = 4;
+}
+
+message ConfirmAgentRunGroupingResponse {
+  AgentRunGroupingV1 grouping = 1;
+  bool idempotent_replay = 2;
+  ConversationCompletenessV1 completeness = 3;
+  EvaluationFreshnessV1 freshness = 4;
+  AgenticEvaluationCapabilitiesV1 capabilities = 5;
+}
+
+// ---------------------------------------------------------------------------
+// NAMES RESERVED FOR THE SIBLING LANES
+//
+// proto3 has no top-level name reservation, so this is the reservation: lanes B
+// and C define these in their own blocks below, and lane A defines none of them.
+//
+//   Lane B (summary index):
+//     AgentRunSummaryV1, AgentRunEvaluationCoverageV1,
+//     AgentRunInstrumentationCompletenessV1, AgentRunListFilterV1,
+//     AgentRunOutcomeV1, ListAgentRunsRequest, ListAgentRunsResponse,
+//     GetAgentRunRequest, GetAgentRunResponse
+//
+//   Lane C (timeline and external artifacts):
+//     AgentRunTimelineModeV1, AgentRunEventKindV1, AgentRunEventKindCoverageV1,
+//     AgentRunEventV1, ListAgentRunEventsRequest, ListAgentRunEventsResponse,
+//     RevokeExternalArtifactLinkRequest, RevokeExternalArtifactLinkResponse,
+//     ResolveExternalArtifactLinkRequest, ResolveExternalArtifactLinkResponse
+//
+// `AgentRunEventKindCoverageV1` collides with nothing lane A mints: lane A's
+// completeness message is `ConversationCompletenessV1`, which is SM-11 — a
+// CONVERSATION lifecycle — and not an instrumentation-coverage statement.
+// `LinkExternalArtifactRequest` / `LinkExternalArtifactResponse` already exist in
+// `artifact.proto` and are wired by lane C rather than re-minted.
+// ---------------------------------------------------------------------------
+// ---- end wave 41 lane A ----
+
+// ---- wave 41 lane B: summary index ----
+//
+// POINTER ONLY. The nine names lane A reserved above are defined in
+// `trace_view.proto`, not here, and the reason is an import cycle rather than a
+// preference: `trace_view.proto:47` already imports THIS file (for lane A's
+// `ConfirmAgentRunGrouping`), while every lane-B message carries at least one
+// shape defined there — `TraceFaultBreakdownV1`, `TraceFirstFailureV1`,
+// `TraceSpanCostRollupV1`, `TraceOperationKindV1`, `TraceWindowV1`,
+// `TraceSpanPopulationBoundaryV1`. Defining them here would need the reverse
+// import, or a second minting of the fault and cost shapes.
+//
+// The names remain reserved and remain unique in the package: one prost module
+// per package (lock ruling `L1-4`), so `AgentRunSummaryV1` means one thing
+// whichever file a reader opens.
+// ---- end wave 41 lane B ----
+
+// ---- wave 41 lane C: timeline ----
+//
+// POINTER ONLY, for the reason lane B records above: `trace_view.proto` imports
+// THIS file, and every lane-C message carries at least one shape defined there —
+// `TraceSpanCostV1`, `TraceSpanContentRefV1`, `TraceOperationKindV1`,
+// `TraceSpanStatusV1`, `TraceFaultCategoryV1`, `TraceFirstFailureV1`,
+// `TraceWindowV1`, `TraceReadRefusalV1`. Defining them here would need the
+// reverse import or a second minting of the cost and fault shapes.
+//
+// The ten names lane A reserved for lane C are defined in `trace_view.proto`,
+// alongside the seventeen supporting messages and three supporting enums the
+// timeline needs. `LinkExternalArtifactRequest` / `LinkExternalArtifactResponse`
+// are NOT re-minted: they already exist in `artifact.proto` and lane C wires the
+// service block they were waiting for.
+// ---- end wave 41 lane C ----

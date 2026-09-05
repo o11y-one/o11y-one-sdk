@@ -1,0 +1,593 @@
+syntax = "proto3";
+
+// Agentic Reliability V2 artifact-link surface — increment 1C-7.
+//
+// Same package as agentic.proto and evaluation.proto by design (lock ruling
+// L1-4): prost emits one Rust module per package, so `proto::agentic::*` stays
+// one flat namespace and no import churn reaches the existing services. A
+// separate FILE keeps `buf breaking` (FILE mode, `proto/buf.yaml`) from letting
+// this surface destabilise either neighbour's breaking-change surface.
+//
+// WHY THIS FILE EXISTS
+//
+//   `2026-08-13-0a-canonical-type-contract.md` §4.5 locked three shapes —
+//   `ExternalArtifactRefV1`, `ArtifactLinkV1`, `EvidenceAnchorV1` — in Phase 0a
+//   and said the wire-side application "rides the increment that first needs
+//   the message" (amendment `B2-6` note 4). This is that increment. Until today
+//   none of them existed in any proto file, which is why
+//   `evaluation.proto:3061-3065` carries a comment declining to mint
+//   `ExternalArtifactRefV1` on a surface that does not own it (docket `F-3`).
+//
+// RULES THIS FILE IS WRITTEN AGAINST
+//
+//   R5    — shared value objects are defined once. `MetadataEntryV1`,
+//           `SemanticConventionProvenanceV1` and `PrincipalRefV1` live in
+//           evaluation.proto and are IMPORTED, never twinned.
+//   R6/R7 — no `google.protobuf.Struct`, no `Value`, no untyped map. This file
+//           IS R7's sanctioned escape hatch and it is typed throughout.
+//   R10   — every persisted row carries both `tenant_id` and `org_id`.
+//   §1.1  — `V1` suffix, `SCREAMING_ENUM_NAME_VALUE` members, zero value
+//           `..._UNSPECIFIED`, `optional` only where absence is meaningful.
+//
+// `COINED HERE` MARKS EVERY VALUE NO APPROVED ARTIFACT FIXES
+//
+//   0b freezes `ArtifactLinkFallbackReasonV1` and `ArtifactResolverPostureV1`
+//   member-for-member, and A1 names the members of four more enums inline. The
+//   rest are closed sets this increment coins; each carries a `COINED HERE`
+//   marker so a lock review finds them by grep rather than by diff. Increment
+//   record 2026-08-17-1c7-artifact-link-writer.md §2.1, deviation `D-4`.
+package o11y_one.agentic.v1;
+
+import "google/protobuf/timestamp.proto";
+// R5 reuse: MetadataEntryV1 (§4.7), SemanticConventionProvenanceV1 (§5.4),
+// PrincipalRefV1 (§6). Importing does not edit; evaluation.proto is owned by a
+// parallel lane this wave and is not touched by this increment.
+import "o11y_one/agentic/v1/evaluation.proto";
+
+// ===========================================================================
+// Content value objects
+// ===========================================================================
+
+// A content digest, algorithm named rather than assumed.
+//
+// Distinct from the emitter's supply-chain `artifact.hash` (registry entry 32):
+// that is what the customer's convention says, this is what this plane
+// computed. A3 §2.3 keeps both, and neither absorbs the other.
+message ContentDigestV1 {
+  ContentDigestAlgorithmV1 algorithm = 1;
+  bytes value = 2;
+}
+
+// COINED HERE (`D-4`). A1:455 names `ContentDigestV1` and fixes no algorithm
+// vocabulary.
+enum ContentDigestAlgorithmV1 {
+  CONTENT_DIGEST_ALGORITHM_V1_UNSPECIFIED = 0;
+  CONTENT_DIGEST_ALGORITHM_V1_SHA256 = 1;
+  CONTENT_DIGEST_ALGORITHM_V1_SHA512 = 2;
+  CONTENT_DIGEST_ALGORITHM_V1_BLAKE3 = 3;
+}
+
+// COINED HERE (`D-4`). A1:416 requires the class to be an enum and states there
+// is "deliberately no string field anywhere"; it fixes no member list.
+enum ContentSensitivityClassV1 {
+  CONTENT_SENSITIVITY_CLASS_V1_UNSPECIFIED = 0;
+  CONTENT_SENSITIVITY_CLASS_V1_PUBLIC = 1;
+  CONTENT_SENSITIVITY_CLASS_V1_INTERNAL = 2;
+  CONTENT_SENSITIVITY_CLASS_V1_CONFIDENTIAL = 3;
+  CONTENT_SENSITIVITY_CLASS_V1_RESTRICTED = 4;
+}
+
+// COINED HERE (`D-4`).
+enum RedactionClassV1 {
+  REDACTION_CLASS_V1_UNSPECIFIED = 0;
+  // Nothing was removed and nothing needed to be.
+  REDACTION_CLASS_V1_NONE = 1;
+  // A named policy removed part of the value.
+  REDACTION_CLASS_V1_PARTIAL = 2;
+  // The value is withheld in full.
+  REDACTION_CLASS_V1_WITHHELD = 3;
+  // The value has not been through the content policy. Never treated as safe:
+  // "unclassified" and "safe" are different values, the discipline
+  // `artifact_content.rs`'s `ContentSanitization` already applies to bodies.
+  REDACTION_CLASS_V1_UNCLASSIFIED = 4;
+}
+
+// COINED HERE (`D-4`). A3 §2.3 gives the link fact its own retention class
+// `artifact_link_facts`, independent of eval facts.
+enum RetentionClassV1 {
+  RETENTION_CLASS_V1_UNSPECIFIED = 0;
+  RETENTION_CLASS_V1_STANDARD = 1;
+  RETENTION_CLASS_V1_EXTENDED = 2;
+  RETENTION_CLASS_V1_RELEASE_EVIDENCE = 3;
+  RETENTION_CLASS_V1_LEGAL_HOLD = 4;
+}
+
+// ===========================================================================
+// Artifact vocabularies
+// ===========================================================================
+
+// COINED HERE (`D-4`). `0b:846` requires an unknown wire value to become "the
+// typed unknown member plus a diagnostic, not a rejection" — that member is
+// `..._OTHER`, and it is why this enum may be extended without a break.
+enum ArtifactTypeV1 {
+  ARTIFACT_TYPE_V1_UNSPECIFIED = 0;
+  ARTIFACT_TYPE_V1_DOCUMENT = 1;
+  ARTIFACT_TYPE_V1_DATASET = 2;
+  ARTIFACT_TYPE_V1_MODEL = 3;
+  ARTIFACT_TYPE_V1_PROMPT = 4;
+  ARTIFACT_TYPE_V1_SOURCE_CODE = 5;
+  ARTIFACT_TYPE_V1_BUILD_OUTPUT = 6;
+  ARTIFACT_TYPE_V1_CONFIGURATION = 7;
+  ARTIFACT_TYPE_V1_IMAGE = 8;
+  ARTIFACT_TYPE_V1_AUDIO = 9;
+  ARTIFACT_TYPE_V1_VIDEO = 10;
+  ARTIFACT_TYPE_V1_LOG_BUNDLE = 11;
+  ARTIFACT_TYPE_V1_REPORT = 12;
+  ARTIFACT_TYPE_V1_TOOL_RESULT = 13;
+  // The emitter named a type this build does not know. A link carrying it is
+  // ACCEPTED with a convention diagnostic, never REJECTED (`0b:846`).
+  ARTIFACT_TYPE_V1_OTHER = 14;
+}
+
+// A1:467 names `CONSUMED|PRODUCED|EVIDENCE|...` and elides the rest;
+// `REFERENCED` is COINED HERE (`D-4`) for the relationship plan `:599`
+// describes as "used the artifact as evidence" versus merely naming it.
+enum ArtifactRoleV1 {
+  ARTIFACT_ROLE_V1_UNSPECIFIED = 0;
+  ARTIFACT_ROLE_V1_CONSUMED = 1;
+  ARTIFACT_ROLE_V1_PRODUCED = 2;
+  ARTIFACT_ROLE_V1_EVIDENCE = 3;
+  ARTIFACT_ROLE_V1_REFERENCED = 4;
+}
+
+// COINED HERE (`D-4`). `AL-4` is the constraint that matters more than the
+// member list: "a relation expressed as an unconstrained free string reaches
+// raw provenance but does not populate the typed `relation` field" (`0b:860`).
+enum ArtifactRelationV1 {
+  ARTIFACT_RELATION_V1_UNSPECIFIED = 0;
+  ARTIFACT_RELATION_V1_INPUT_TO = 1;
+  ARTIFACT_RELATION_V1_OUTPUT_OF = 2;
+  ARTIFACT_RELATION_V1_DERIVED_FROM = 3;
+  ARTIFACT_RELATION_V1_EVIDENCE_FOR = 4;
+  ARTIFACT_RELATION_V1_ATTACHED_TO = 5;
+  ARTIFACT_RELATION_V1_SUPERSEDES = 6;
+  // The emitter named a relation this build does not know. It reaches raw
+  // provenance and leaves the typed field UNSPECIFIED, per `AL-4`.
+  ARTIFACT_RELATION_V1_OTHER = 7;
+}
+
+// A1:458, verbatim.
+enum ArtifactAvailabilityV1 {
+  ARTIFACT_AVAILABILITY_V1_UNSPECIFIED = 0;
+  ARTIFACT_AVAILABILITY_V1_AVAILABLE = 1;
+  ARTIFACT_AVAILABILITY_V1_TOMBSTONED = 2;
+  ARTIFACT_AVAILABILITY_V1_UNRESOLVED = 3;
+  ARTIFACT_AVAILABILITY_V1_REVOKED = 4;
+  ARTIFACT_AVAILABILITY_V1_FORBIDDEN = 5;
+}
+
+// A1:471 for members 1-5, verbatim. `AL-1` FROZEN: every path produces the same
+// in-memory `ArtifactLinkV1` and the same immutable fact row; they differ ONLY
+// here.
+enum ArtifactLinkSourceKindV1 {
+  ARTIFACT_LINK_SOURCE_KIND_V1_UNSPECIFIED = 0;
+  ARTIFACT_LINK_SOURCE_KIND_V1_SPAN_EVENT = 1;
+  ARTIFACT_LINK_SOURCE_KIND_V1_CORRELATED_LOG = 2;
+  ARTIFACT_LINK_SOURCE_KIND_V1_SPAN_ATTRIBUTE = 3;
+  ARTIFACT_LINK_SOURCE_KIND_V1_FALLBACK_RPC = 4;
+  ARTIFACT_LINK_SOURCE_KIND_V1_BACKFILL = 5;
+  // COINED HERE (increment `D-5b`, 2026-08-18). A SIXTH PATH, not a re-spelling
+  // of one of the five.
+  //
+  // `AL-1`'s table (`0b:610`) enumerates five paths whose authority is either
+  // customer instrumentation or an authenticated principal. It has no row for
+  // an artifact the PLATFORM'S OWN evaluation executor emitted about a call it
+  // made itself — which is what the verbatim provider-usage object is
+  // (increment `D-5`, non-negotiable 49). None of the five fits: the three
+  // telemetry kinds name carriers this artifact never rode, `FALLBACK_RPC`
+  // names an RPC nobody called, and `BACKFILL` names historical artifacts
+  // predating instrumentation, whereas this one is written milliseconds after
+  // the provider answered.
+  //
+  // A LINK OF THIS KIND CARRIES NO `source`, AND THAT IS WHAT THE MEMBER MEANS.
+  // See `ArtifactLinkV1.source`. Filling it would fabricate a telemetry
+  // identity a timeline would later join on (non-negotiable 5).
+  //
+  // Additive: appending a member changes no existing number or name, so `buf
+  // breaking` (FILE mode) sees no change, and a reader that has never seen `6`
+  // meets it as the typed unknown value plus a diagnostic, never a rejection
+  // (`0b:846`). Increment record 2026-08-18-d5b-artifact-link-surfacing-and-sweep.md §0.1.
+  ARTIFACT_LINK_SOURCE_KIND_V1_PLATFORM_EXECUTOR = 6;
+}
+
+// A1:473, verbatim. SM-12's transitions are `0b:939-943`; this enum carries the
+// names and adds none.
+enum ArtifactLinkStatusV1 {
+  ARTIFACT_LINK_STATUS_V1_UNSPECIFIED = 0;
+  ARTIFACT_LINK_STATUS_V1_ACCEPTED = 1;
+  ARTIFACT_LINK_STATUS_V1_CORRECTED = 2;
+  ARTIFACT_LINK_STATUS_V1_REVOKED = 3;
+  ARTIFACT_LINK_STATUS_V1_REJECTED = 4;
+  ARTIFACT_LINK_STATUS_V1_UNRESOLVED = 5;
+}
+
+// A3 §2.3 carries a `conflict_posture` column; this is its enum.
+// COINED HERE (`D-4`) — `AL-7` fixes the behaviour, not the spelling.
+enum ArtifactLinkConflictPostureV1 {
+  ARTIFACT_LINK_CONFLICT_POSTURE_V1_UNSPECIFIED = 0;
+  // No other link shares this `link_id`.
+  ARTIFACT_LINK_CONFLICT_POSTURE_V1_NONE = 1;
+  // Same `link_id`, equal normalized payload — deduplicated silently (`AL-7`).
+  ARTIFACT_LINK_CONFLICT_POSTURE_V1_DUPLICATE = 2;
+  // Same `link_id`, DIFFERENT normalized payload. Both rows are retained, the
+  // newer carries this posture, and the read model reports the conflict rather
+  // than picking a winner. Nothing is ever overwritten (`AL-7`, `0b:883-887`).
+  ARTIFACT_LINK_CONFLICT_POSTURE_V1_CONFLICTING = 3;
+}
+
+// `0b:952-965` (`AL-14`), FROZEN-PROPOSAL, member-for-member.
+enum ArtifactResolverPostureV1 {
+  ARTIFACT_RESOLVER_POSTURE_V1_UNSPECIFIED = 0;
+  // No resolver for this storage system / resolver key.
+  ARTIFACT_RESOLVER_POSTURE_V1_NOT_CONFIGURED = 1;
+  // Resolvable on explicit selection; nothing attempted.
+  ARTIFACT_RESOLVER_POSTURE_V1_CONFIGURED_NOT_RESOLVED = 2;
+  // One authorized resolution succeeded.
+  ARTIFACT_RESOLVER_POSTURE_V1_RESOLVED = 3;
+  // Policy or authorization refused.
+  ARTIFACT_RESOLVER_POSTURE_V1_DENIED = 4;
+  // Resolver attempted and failed (typed error).
+  ARTIFACT_RESOLVER_POSTURE_V1_FAILED = 5;
+  // A prior resolution's validity lapsed.
+  ARTIFACT_RESOLVER_POSTURE_V1_EXPIRED = 6;
+}
+
+// `0b:900-906` (`AL-9`), FROZEN-PROPOSAL, member-for-member. The four reasons
+// are the ONLY reasons the fallback RPC exists; anything else is instrumentation
+// routed through an RPC, which NN35 (`PLAN:187`) forbids.
+enum ArtifactLinkFallbackReasonV1 {
+  ARTIFACT_LINK_FALLBACK_REASON_V1_UNSPECIFIED = 0;
+  // The emitting system cannot emit telemetry.
+  ARTIFACT_LINK_FALLBACK_REASON_V1_UNAVAILABLE_INSTRUMENTATION = 1;
+  // Historical artifacts predating instrumentation.
+  ARTIFACT_LINK_FALLBACK_REASON_V1_BACKFILL = 2;
+  // An emitted link was wrong.
+  ARTIFACT_LINK_FALLBACK_REASON_V1_CORRECTION = 3;
+  // An emitted link must be logically withdrawn.
+  ARTIFACT_LINK_FALLBACK_REASON_V1_REVOCATION = 4;
+}
+
+// ===========================================================================
+// Narrow references
+// ===========================================================================
+
+// A1 `OQ-7` answer (b): the narrow telemetry reference, added rather than
+// reusing `CorrelationContextV1` (`agentic.proto:9`), whose 14 optional strings
+// mix telemetry ids with product identity and lack `session_id`.
+message TelemetryRefV1 {
+  optional bytes trace_id = 1;
+  optional bytes span_id = 2;
+  optional string observation_id = 3;
+  optional string conversation_id = 4;
+  optional string session_id = 5;
+}
+
+// The bounded content range `A1:492` names as an `EvidenceAnchorV1` arm and
+// which is defined in no document and no proto — routed by registry §13.8 to
+// "whichever lane defines the message", which is this one.
+//
+// TWO THINGS THIS MESSAGE FIXES, BOTH RECORDED AS DECISIONS
+//
+//   1. UNIT: bytes. Registry amendment `Q-6` ruled bytes AGAINST the draft's
+//      UTF-8-codepoint recommendation, carried as UCUM `By` on wire entries 24
+//      and 25. A codepoint offset and a byte offset are the same number only in
+//      ASCII, so this is not cosmetic.
+//   2. INTERVAL: HALF-OPEN, `[start_byte, end_byte)`. Registry `U-3` records
+//      that inclusivity "is fixed by no artifact" and routes it here. Half-open
+//      is chosen because it makes an empty range representable
+//      (`start == end`), makes length `end - start` without an off-by-one, and
+//      matches every range type this repo already carries. Increment record
+//      deviation `D-3`.
+message ContentRangeRefV1 {
+  // The subject the range is cut from — an anchor id in its own right, so a
+  // content-range link is still attributable without resolving the body.
+  string subject_id = 1;
+  // Inclusive lower bound, in BYTES.
+  uint64 start_byte = 2;
+  // EXCLUSIVE upper bound, in BYTES. A range with `end_byte < start_byte` is
+  // rejected at `AL-12` rung V3; a content-range anchor missing either bound is
+  // rejected by `0b:849` outright.
+  uint64 end_byte = 3;
+}
+
+// ---------------------------------------------------------------------------
+// EvidenceAnchorV1's arm references.
+//
+// A1 §4.5 locks `EvidenceAnchorV1` as a TWELVE-ARM oneof and references these
+// eleven messages without defining any of them. A partial definition is a lock
+// violation and flattening the anchor changes a locked field's type, so this
+// increment defines them — minimal identity carriers, each a FIRST definition.
+//
+// A1 §2.1's no-twin rule governs what happens next: a later lane that needs a
+// richer shape EXTENDS the message here, additively. It does not define a
+// second one. Increment record deviation `D-2`.
+// ---------------------------------------------------------------------------
+
+message EvaluationRunRefV1 {
+  string evaluation_run_id = 1;
+}
+
+// NN2 (`A1:167`): the 5-tuple IS the execution identity. Carried whole rather
+// than as a run id plus "some coordinates", because a partial coordinate
+// identifies a set, not a cell.
+message EvaluationCellCoordinateV1 {
+  string evaluation_run_id = 1;
+  string cohort_id = 2;
+  string candidate_id = 3;
+  string case_revision_id = 4;
+  int32 trial = 5;
+
+  // ADDED BY INCREMENT `AL-6-ENC` (2026-08-20), additively, as the extension
+  // A1 §2.1's no-twin rule sanctions — see this file's header comment on the
+  // eleven ref messages: "a later lane that needs a richer shape EXTENDS the
+  // message here."
+  //
+  // Which attempt of this cell, when the link is about ONE attempt rather than
+  // about the cell. `optional` is load-bearing (NN5): ABSENT means "this link
+  // is about the cell", and a bare int32 would make 0 mean both "attempt zero"
+  // and "nobody said". The spelling is `AttemptRefV1`'s own, so the file has
+  // one word for one concept.
+  //
+  // It is also an INPUT TO IDENTITY: `AL-6`'s canonical `anchor_id` encoding
+  // for anchor type `evaluation_cell` appends this field when it is present
+  // (`artifact_link/identity.rs`), so two attempts of one cell are two
+  // `link_id`s and two derived object keys. Increment record `AL-6-ENC` §0.6.
+  optional int32 attempt_generation = 6;
+}
+
+// One attempt, of either kind. `EvidenceAnchorV1` uses it twice — once for the
+// candidate attempt and once for the scorer attempt — which is A1's shape, not
+// an accident: the two are the same identity in different roles.
+message AttemptRefV1 {
+  string attempt_id = 1;
+  optional string execution_id = 2;
+  int32 attempt_generation = 3;
+}
+
+message EvaluationSubjectRefV1 {
+  string subject_id = 1;
+  optional string subject_revision_id = 2;
+}
+
+message AgentRunRefV1 {
+  string agent_run_id = 1;
+  optional string conversation_id = 2;
+}
+
+message DatasetDraftRefV1 {
+  string dataset_draft_id = 1;
+}
+
+message DatasetCaseRevisionRefV1 {
+  string case_revision_id = 1;
+  optional string dataset_version_id = 2;
+}
+
+message RuleStepRefV1 {
+  string rule_id = 1;
+  string rule_version_id = 2;
+  string step_id = 3;
+}
+
+message ReleaseEvidenceRefV1 {
+  string release_id = 1;
+  string evidence_revision_id = 2;
+}
+
+// A1:479-494, twelve arms, in A1's order.
+//
+// The `oneof` is REQUIRED (plan `:592`): a link with no anchor names no subject
+// and is rejected at `AL-12` rung V3. proto3 cannot express "oneof required", so
+// the requirement lives in the validator and its absence has a named reason
+// code rather than a silent default.
+//
+// STILL TWELVE ARMS, DELIBERATELY. Increment `D-5b` §9 `D-1` routed "one
+// attempt of one cell" here as EITHER a thirteenth arm OR a field on
+// `EvaluationCellCoordinateV1`, and increment `AL-6-ENC` §0.5 took the field:
+// A1 §4.5 locks this union at twelve, so a thirteenth arm is a lock amendment
+// rather than an additive edit — and it would put two arms in this oneof that
+// both mean "a cell", which is exactly the twin A1 §2.1 forbids. A reader
+// asking "which attempt?" reads
+// `evaluation_cell.attempt_generation`, and its absence means the link is
+// about the cell as a whole.
+//
+// The per-arm `artifact.anchor.id` ENCODING — which of an arm's fields the
+// identity string carries, in what order — is fixed by
+// `artifact_link/identity.rs`'s registry, whose match over these arms is
+// exhaustive. A thirteenth arm added here fails that build until its encoding
+// is written, which is the property `AL-6-ENC` §0.2 exists to install.
+message EvidenceAnchorV1 {
+  oneof target {
+    EvaluationRunRefV1 evaluation_run = 1;
+    EvaluationCellCoordinateV1 evaluation_cell = 2;
+    AttemptRefV1 candidate_attempt = 3;
+    AttemptRefV1 scorer_attempt = 4;
+    EvaluationSubjectRefV1 evaluation_subject = 5;
+    TelemetryRefV1 telemetry = 6;
+    AgentRunRefV1 agent_run = 7;
+    DatasetDraftRefV1 dataset_draft = 8;
+    DatasetCaseRevisionRefV1 dataset_case_revision = 9;
+    RuleStepRefV1 rule_workflow_step = 10;
+    ReleaseEvidenceRefV1 release_evidence = 11;
+    ContentRangeRefV1 content_range = 12;
+  }
+}
+
+// ===========================================================================
+// The two locked shapes
+// ===========================================================================
+
+// A1 §4.5 / §4.7's R7 escape hatch — the ONLY sanctioned opaque reference on
+// the v2 surface, and it is typed end to end: media type, digest, size,
+// sensitivity, redaction, retention. Docket `F-3`'s first definition.
+//
+// `A1:445-448`'s four supply-chain fields are the OFFICIAL OpenTelemetry
+// attributes `artifact.filename` / `.version` / `.hash` / `.purl`, used only
+// with their registered meaning (registry entries 30-33, `maturity:
+// provisional-pending` pending 1C-8). A3 §2.3 amendment `R-1` added their four
+// physical columns on 2026-08-17 — note 1 of that amendment records why
+// `version` in particular is not optional-in-effect: it is an input to `AL-6`'s
+// link-id digest tuple, so a value that determines `link_id` and is never stored
+// cannot be used to explain or reproduce a digest after the fact.
+message ExternalArtifactRefV1 {
+  // Stable identity: emitter-provided `artifact.id`, or a derived digest.
+  string artifact_id = 1;
+  ArtifactTypeV1 type = 2;
+
+  // Official OpenTelemetry supply-chain attributes (registry entries 30-33).
+  optional string filename = 3;
+  optional string version = 4;
+  optional string hash = 5;
+  optional string purl = 6;
+
+  // Provisional storage coordinates, PREFERRED over any URL (plan `:603`,
+  // registry `N-11`).
+  optional string storage_system = 7;
+  optional string storage_key = 8;
+  optional string resolver_key = 9;
+
+  // `url.full` — registry entry 34, the registry's first `official-stable` /
+  // `verified` entry. Accepted ONLY when policy permits AND it carries no
+  // credentials and no long-lived signed query parameters; a URL failing that
+  // check produces `REJECTED` and IS NOT PERSISTED (`AL-12` rung V6,
+  // `conflict_behavior: reject_link`). The backend never proxies it.
+  optional string policy_safe_url = 10;
+
+  optional string media_type = 11;
+  optional uint64 size_bytes = 12;
+  // This plane's own digest, distinct from the emitter's `hash` above.
+  optional ContentDigestV1 digest = 13;
+
+  ContentSensitivityClassV1 sensitivity = 14;
+  RedactionClassV1 redaction = 15;
+  RetentionClassV1 retention = 16;
+
+  // Bounded typed metadata (R6). No nesting: a `MetadataValueV1` can never
+  // contain a `MetadataEntryV1`, which is the affordance that would turn typed
+  // metadata back into `Struct`.
+  repeated MetadataEntryV1 metadata = 17;
+
+  ArtifactAvailabilityV1 availability = 18;
+}
+
+// One artifact relationship, normalized. `AL-1` FROZEN: there is exactly ONE
+// normalizer, and span events, correlated logs, span attributes and the
+// fallback RPC all produce this same message and the same immutable fact row.
+//
+// One event = exactly one relationship (`AL-3`, `PLAN:1114`). A JSON blob
+// carrying several links in one attribute is rejected, and so are numbered
+// attribute sequences (`artifact.0.*`) — `AL-4`.
+message ArtifactLinkV1 {
+  // R10 / NN21: both, always, and equal — a link whose tenant and org disagree
+  // is DROPPED at rung V1, the one rung that produces no link row at all.
+  string tenant_id = 1;
+  string org_id = 2;
+
+  // `AL-6` FROZEN: the emitter-provided `artifact.link.id` when present,
+  // otherwise a deterministic semantic-link digest over
+  // `(tenant_id, org_id, artifact_id, artifact_version, anchor_type, anchor_id,
+  // role, relation)` truncated to 16 bytes. The tuple is frozen because
+  // exporter replay, correlated logs and fallback RPCs must land on the same
+  // value; changing it silently re-keys every historical link.
+  //
+  // 16 raw bytes on the wire, matching A3 §2.3's `FixedSizeBinary(16)` column.
+  // Recorded because registry entry 17 maps a bounded STRING wire attribute onto
+  // this column, and nobody should read the column as the emitter's string.
+  bytes link_id = 3;
+
+  ExternalArtifactRefV1 artifact = 4;
+  ArtifactRoleV1 role = 5;
+  ArtifactRelationV1 relation = 6;
+
+  // Where the signal came from.
+  //
+  // PRESENT ON THE FIVE TELEMETRY AND RPC KINDS, ABSENT ON `PLATFORM_EXECUTOR`
+  // (increment `D-5b` §0.2) — the mirror of `fallback_reason`'s rule below,
+  // and for the same reason `B2-6` note 2 gives: a field whose presence is a
+  // function of `source_kind` beats forcing a meaningless value onto a path
+  // that has none. A platform-emitted link is produced inside a provider call
+  // this backend made itself; there is no customer trace, span, observation,
+  // conversation or session to name, and a synthesized one would be a
+  // fabricated identity (non-negotiable 5). The rule is enforced, not
+  // described: `artifact_link::normalize::validate_constructed_link` rejects a
+  // `PLATFORM_EXECUTOR` link carrying a source, and a telemetry-path link
+  // carrying none, with `source_kind_contradicts_source`.
+  //
+  // No label, number or type changed when this comment landed.
+  TelemetryRefV1 source = 7;
+  // What the artifact is attached to.
+  EvidenceAnchorV1 anchor = 8;
+
+  ArtifactLinkSourceKindV1 source_kind = 9;
+  google.protobuf.Timestamp observed_at = 10;
+  ArtifactLinkStatusV1 status = 11;
+
+  // `AL-8`: corrections are APPEND-ONLY. A correction is a new row with
+  // `supersedes_link_id` set and `correction_sequence` incremented; a revocation
+  // is a tombstone status, never a delete of source telemetry.
+  optional string supersedes_link_id = 12;
+  uint32 correction_sequence = 13;
+
+  SemanticConventionProvenanceV1 provenance = 14;
+  string facts_watermark = 15;
+
+  // `AL-7`: a collision surfaces, it never overwrites.
+  ArtifactLinkConflictPostureV1 conflict_posture = 16;
+
+  // Amendment `B2-6` (A1, 2026-08-15). OPTIONAL here and REQUIRED on the
+  // request (`B1-3`) — deliberately different fields: a link whose `source_kind`
+  // is SPAN_EVENT, CORRELATED_LOG or SPAN_ATTRIBUTE has no fallback reason to
+  // carry, and collapsing them would force a meaningless value onto every
+  // telemetry-path link. Set it only for FALLBACK_RPC and BACKFILL.
+  //
+  // This is the message's FIRST definition, so the field lands with it rather
+  // than as a later widening: `buf breaking` never sees a change here.
+  optional ArtifactLinkFallbackReasonV1 fallback_reason = 17;
+
+  // `AL-14` rule 2: reads return POSTURE, not resolution. A timeline shows
+  // "resolvable" without having resolved.
+  ArtifactResolverPostureV1 resolver_posture = 18;
+}
+
+// ===========================================================================
+// The narrow fallback boundary (AL-9, AL-10, B1-3)
+// ===========================================================================
+
+// `AL-10`: `MUTATION_ACK` class, requires an authorized principal, writes one
+// audit row per call, and is RATE-LIMITED AS A WRITE SURFACE.
+//
+// NO `service` BLOCK IS DEFINED IN THIS FILE. The messages land with the
+// increment that owns the shapes; the surface lands with the increment that
+// wires it. Recorded in increment record §0.3.
+message LinkExternalArtifactRequest {
+  // `B1-3`: REQUIRED. A request whose reason is `..._UNSPECIFIED` is refused
+  // with `INVALID_ARGUMENT` before any row is written — the four reasons in
+  // `AL-9` are the only reasons this surface exists.
+  ArtifactLinkFallbackReasonV1 fallback_reason = 1;
+  // `AL-10`: the authorized principal, recorded on the audit row.
+  PrincipalRefV1 principal = 2;
+  // Exactly one relationship per call, the same rule the telemetry paths obey.
+  ArtifactLinkV1 link = 3;
+  // Caller-supplied idempotency key, so a retried RPC is a no-op rather than a
+  // second audit row.
+  string idempotency_key = 4;
+}
+
+message LinkExternalArtifactResponse {
+  // The normalized link as it was accepted, including a `link_id` the caller
+  // may not have supplied and a `conflict_posture` it cannot compute.
+  ArtifactLinkV1 link = 1;
+  // Present when the ladder produced a status other than ACCEPTED. A
+  // machine-groupable code, never prose.
+  optional string rejection_reason_code = 2;
+}

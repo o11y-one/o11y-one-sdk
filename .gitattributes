@@ -1,0 +1,16 @@
+# Generated code is committed (see README, "The regen ritual"). Marking it keeps
+# it out of language statistics and collapses it by default in GitHub diffs, so
+# a proto change reads as the proto change plus a summary rather than 30k lines.
+gen/go/o11y_one/**              linguist-generated=true
+packages/gen-ts/src/o11y_one/** linguist-generated=true
+packages/gen-py/src/o11y_one/** linguist-generated=true
+
+# The vendored proto snapshot is not authored here either.
+proto/o11y_one/**               linguist-vendored=true
+
+# Lockfiles: reviewed, but never worth syntax-highlighting in a diff view.
+pnpm-lock.yaml                  linguist-generated=true
+uv.lock                         linguist-generated=true
+
+# Keep shell scripts LF on every platform; they run on CI runners.
+*.sh text eol=lf

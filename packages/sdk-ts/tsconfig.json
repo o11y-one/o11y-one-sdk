@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
+  },
+  // No project references: @o11y-one/api resolves through the pnpm workspace
+  // link to its built dist/*.d.ts. `pnpm -r run build` orders the two correctly
+  // because sdk-ts declares api as a dependency.
+  "include": ["src/**/*.ts"]
+}

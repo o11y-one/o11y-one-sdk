@@ -1,0 +1,25 @@
+# Build artifacts. Note what is NOT here: packages/*/src/o11y_one and
+# gen/go/o11y_one are GENERATED but COMMITTED on purpose — see README, "The
+# regen ritual". Only compiler output is ignored.
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+build/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Go
+/tools/ci-runner/bin/
+/dist-bin/
+
+# mise/local
+.mise.local.toml
+
+# OS
+.DS_Store
