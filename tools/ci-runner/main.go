@@ -6,23 +6,28 @@
 // so a pipeline can curl it and run it without a toolchain, a container, or a
 // package manager.
 //
-// STATUS: scaffold. Every subcommand parses its flags, validates them, and then
-// returns an honest "not implemented" that exits 3 (infra-failure). Nothing here
-// pretends to pass. See outcome.go for why not-implemented maps to
-// infra-failure rather than to success or indeterminate.
-//
-// What each subcommand is blocked on is stated in its own not-implemented
-// message, so `o11y-eval run --help` and a failing invocation both tell the
-// truth about where the work actually is.
+// The runner DRIVES the code-first loop; it does not judge it. The verdict on a
+// change comes from the server's authoritative candidate comparison
+// (CompareReleaseGateEvaluations); `diff` maps that decision onto the exit
+// taxonomy and never recomputes it. See outcome.go for the taxonomy and
+// diffdoc.go for the mapping.
 package main
 
 import (
+	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"os"
 	"strings"
 	"time"
+
+	"connectrpc.com/connect"
+	agenticv1 "github.com/o11y-one/o11y-one-sdk/gen/go/o11y_one/agentic/v1"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const usage = `o11y-eval — O11y One CI runner
@@ -31,16 +36,16 @@ Usage:
   o11y-eval <command> [flags]
 
 Commands:
-  run        launch an evaluation run against a definition
-  wait       block until a run reaches a terminal state
-  diff       compare a run against a baseline and return a verdict
-  annotate   record a platform annotation (deployment marker, custom event)
+  run        launch an evaluation run against a definition or inline draft
+  wait       block until a run's operation reaches a terminal state
+  diff       compare a candidate against a baseline and return the server's verdict
+  annotate   record a platform annotation (deployment marker, event, highlight)
 
 Exit codes (the verdict is the exit code):
   0  improvement     gate passes
   1  regression      comparison completed, result is worse than baseline
-  2  indeterminate   no verdict reachable (too few cases, no baseline)
-  3  infra-failure   runner or platform failed; says nothing about the change
+  2  indeterminate   no verdict reachable (insufficient data, unspecified)
+  3  infra-failure   runner or platform failed, or a wait timed out
   64 usage-error     bad invocation
 
 Global flags are per-command; run "o11y-eval <command> --help".
@@ -163,6 +168,20 @@ func reportError(err error) int {
 	}
 }
 
+// generatorStamp identifies this build inside emitted documents.
+func generatorStamp() Generator { return Generator{Tool: "o11y-eval", Version: version} }
+
+// newIdempotencyKey derives a stable-per-launch key when the caller did not
+// supply one. Callers SHOULD pass a key tied to the change (a commit sha) so a
+// retried pipeline dedupes; this fallback only guarantees the field is set.
+func newIdempotencyKey() string {
+	var b [16]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		return fmt.Sprintf("o11y-eval-%d", nowUTC().UnixNano())
+	}
+	return "o11y-eval-" + hex.EncodeToString(b[:])
+}
+
 // --- run --------------------------------------------------------------------
 
 func cmdRun(args []string) error {
@@ -170,28 +189,83 @@ func cmdRun(args []string) error {
 	var common commonFlags
 	common.register(fs)
 
-	definition := fs.String("definition", "", "evaluation definition id or slug (required)")
-	dataset := fs.String("dataset", "", "dataset id; defaults to the definition's pinned dataset")
-	label := fs.String("label", "", "human label for this run, e.g. the PR title")
-	commit := fs.String("commit", os.Getenv("GITHUB_SHA"), "commit sha under test")
-	waitFor := fs.Bool("wait", false, "block until the run reaches a terminal state")
+	definition := fs.String("definition", "", "evaluation definition id (definition revision); required unless --preview-token is given")
+	previewToken := fs.String("preview-token", "", "preview token for an inline draft run (from PreviewEvaluationRun)")
+	idempotencyKey := fs.String("idempotency-key", os.Getenv("GITHUB_SHA"), "idempotency key; a retry with the same key is deduped (env default: GITHUB_SHA)")
+	waitFor := fs.Bool("wait", false, "block until the run's operation reaches a terminal state")
+	budget := fs.Duration("budget", 0, "max time to spend waiting when --wait is set; 0 means bounded only by --timeout")
+	poll := fs.Duration("poll-interval", 10*time.Second, "how often to poll for terminal state when --wait is set")
 
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	if *definition == "" {
-		return &usageError{msg: "--definition is required"}
+	if *definition == "" && *previewToken == "" {
+		return &usageError{msg: "one of --definition or --preview-token is required"}
 	}
-	if _, err := common.credential(); err != nil {
+	if *poll <= 0 {
+		return &usageError{msg: "--poll-interval must be positive"}
+	}
+	cred, err := common.credential()
+	if err != nil {
 		return err
 	}
-	_, _, _, _ = dataset, label, commit, waitFor
 
-	return &errNotImplemented{
-		subcommand: "run",
-		blockedOn: "the machine-principal auth surface (lane 50A: CreateMachineCredential, " +
-			"GetCallerPrincipal) and the run-launch RPC are not in the proto snapshot at PROTO_PIN",
+	key := *idempotencyKey
+	if strings.TrimSpace(key) == "" {
+		key = newIdempotencyKey()
 	}
+
+	ctx, cancel := common.commandContext()
+	defer cancel()
+
+	clients := newClients(&common, cred)
+	resp, err := clients.eval.CreateEvaluationRun(ctx, connect.NewRequest(&agenticv1.CreateEvaluationRunRequest{
+		DefinitionId:   *definition,
+		PreviewToken:   *previewToken,
+		IdempotencyKey: key,
+	}))
+	if err != nil {
+		return fmt.Errorf("run: CreateEvaluationRun failed: %w", err)
+	}
+	runID := resp.Msg.GetRun().GetEvaluationRunId()
+	op := resp.Msg.GetOperation()
+	operationID := op.GetOperationId()
+
+	if !*waitFor {
+		return emitRun(&common, runID, operationID, resp.Msg.GetIdempotentReplay(), op)
+	}
+
+	fetch := func(fctx context.Context) (*agenticv1.EvaluationOperationV1, error) {
+		r, ferr := clients.eval.GetEvaluationOperation(fctx, connect.NewRequest(&agenticv1.GetEvaluationOperationRequest{
+			Selector: &agenticv1.GetEvaluationOperationRequest_OperationId{OperationId: operationID},
+		}))
+		if ferr != nil {
+			return nil, ferr
+		}
+		return r.Msg.GetOperation(), nil
+	}
+	terminal, err := waitForOperation(ctx, "run", *poll, *budget, fetch)
+	if err != nil {
+		return err
+	}
+	if err := outcomeForOperation("run", terminal); err != nil {
+		return err
+	}
+	return emitRun(&common, runID, operationID, resp.Msg.GetIdempotentReplay(), terminal)
+}
+
+func emitRun(common *commonFlags, runID, operationID string, replay bool, op *agenticv1.EvaluationOperationV1) error {
+	state := operationStateString(op.GetState())
+	if common.jsonOut {
+		return emitJSON(map[string]any{
+			"run_id":            runID,
+			"operation_id":      operationID,
+			"idempotent_replay": replay,
+			"state":             state,
+		})
+	}
+	fmt.Printf("run_id=%s operation_id=%s state=%s idempotent_replay=%t\n", runID, operationID, state, replay)
+	return nil
 }
 
 // --- wait -------------------------------------------------------------------
@@ -201,26 +275,53 @@ func cmdWait(args []string) error {
 	var common commonFlags
 	common.register(fs)
 
-	runID := fs.String("run-id", "", "run id to wait on (required)")
+	operationID := fs.String("operation-id", "", "operation id to wait on")
+	idempotencyKey := fs.String("idempotency-key", "", "idempotency key of the launch to wait on (alternative to --operation-id)")
+	budget := fs.Duration("budget", 0, "max time to spend waiting; 0 means bounded only by --timeout")
 	poll := fs.Duration("poll-interval", 10*time.Second, "how often to poll for terminal state")
 
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	if *runID == "" {
-		return &usageError{msg: "--run-id is required"}
+	if *operationID == "" && *idempotencyKey == "" {
+		return &usageError{msg: "one of --operation-id or --idempotency-key is required"}
+	}
+	if *operationID != "" && *idempotencyKey != "" {
+		return &usageError{msg: "--operation-id and --idempotency-key are mutually exclusive"}
 	}
 	if *poll <= 0 {
 		return &usageError{msg: "--poll-interval must be positive"}
 	}
-	if _, err := common.credential(); err != nil {
+	cred, err := common.credential()
+	if err != nil {
 		return err
 	}
 
-	return &errNotImplemented{
-		subcommand: "wait",
-		blockedOn:  "the run-status RPC is not in the proto snapshot at PROTO_PIN",
+	ctx, cancel := common.commandContext()
+	defer cancel()
+
+	clients := newClients(&common, cred)
+	reqMsg := &agenticv1.GetEvaluationOperationRequest{}
+	if *operationID != "" {
+		reqMsg.Selector = &agenticv1.GetEvaluationOperationRequest_OperationId{OperationId: *operationID}
+	} else {
+		reqMsg.Selector = &agenticv1.GetEvaluationOperationRequest_IdempotencyKey{IdempotencyKey: *idempotencyKey}
 	}
+	fetch := func(fctx context.Context) (*agenticv1.EvaluationOperationV1, error) {
+		r, ferr := clients.eval.GetEvaluationOperation(fctx, connect.NewRequest(reqMsg))
+		if ferr != nil {
+			return nil, ferr
+		}
+		return r.Msg.GetOperation(), nil
+	}
+	terminal, err := waitForOperation(ctx, "wait", *poll, *budget, fetch)
+	if err != nil {
+		return err
+	}
+	if err := outcomeForOperation("wait", terminal); err != nil {
+		return err
+	}
+	return emitRun(&common, terminal.GetEvaluationRunId(), terminal.GetOperationId(), false, terminal)
 }
 
 // --- diff -------------------------------------------------------------------
@@ -230,40 +331,78 @@ func cmdDiff(args []string) error {
 	var common commonFlags
 	common.register(fs)
 
-	runID := fs.String("run-id", "", "run id to evaluate (required)")
-	baseline := fs.String("baseline", "", "baseline run id, or a ref like 'main' (required)")
-	tolerance := fs.Float64("tolerance", 0.0,
-		"score delta tolerated before a drop counts as a regression, 0..1")
-	minCases := fs.Int("min-cases", 1,
-		"below this many comparable cases the verdict is indeterminate, not a pass")
+	baseline := fs.String("baseline", "", "baseline release-gate evaluation id (required)")
+	candidate := fs.String("candidate", "", "candidate release-gate evaluation id under test (required)")
+	out := fs.String("out", "", "also write the diff document JSON to this file")
 
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	if *runID == "" {
-		return &usageError{msg: "--run-id is required"}
-	}
 	if *baseline == "" {
 		return &usageError{msg: "--baseline is required"}
 	}
-	if *tolerance < 0 || *tolerance > 1 {
-		return &usageError{msg: "--tolerance must be in [0, 1]"}
+	if *candidate == "" {
+		return &usageError{msg: "--candidate is required"}
 	}
-	if *minCases < 1 {
-		return &usageError{msg: "--min-cases must be at least 1"}
-	}
-	if _, err := common.credential(); err != nil {
+	cred, err := common.credential()
+	if err != nil {
 		return err
 	}
 
-	// This is the subcommand that owns the verdict, and therefore the one that
-	// must never guess. When it lands, "fewer than --min-cases comparable cases"
-	// exits 2 (indeterminate); only a completed comparison may exit 1.
-	return &errNotImplemented{
-		subcommand: "diff",
-		blockedOn:  "the run-comparison read RPC is not in the proto snapshot at PROTO_PIN",
+	ctx, cancel := common.commandContext()
+	defer cancel()
+
+	clients := newClients(&common, cred)
+	resp, err := clients.obs.CompareReleaseGateEvaluations(ctx, connect.NewRequest(&agenticv1.CompareReleaseGateEvaluationsRequest{
+		BaselineEvaluationId:   *baseline,
+		ComparisonEvaluationId: *candidate,
+	}))
+	if err != nil {
+		return fmt.Errorf("diff: CompareReleaseGateEvaluations failed: %w", err)
 	}
+
+	doc := buildDiffDocument(resp.Msg.GetComparison(), generatorStamp())
+
+	// The document always goes to stdout (it is L4's input); the exit code
+	// carries the verdict. --out additionally persists it for archival.
+	payload, err := json.MarshalIndent(doc, "", "  ")
+	if err != nil {
+		return fmt.Errorf("diff: serializing diff document: %w", err)
+	}
+	fmt.Println(string(payload))
+	if *out != "" {
+		if werr := os.WriteFile(*out, append(payload, '\n'), 0o644); werr != nil {
+			return fmt.Errorf("diff: writing --out %q: %w", *out, werr)
+		}
+	}
+
+	outcome := outcomeForDecision(candidateDecision(resp.Msg.GetComparison()))
+	if outcome == OutcomeImprovement {
+		return nil
+	}
+	return &verdictError{outcome: outcome, decision: doc.Verdict.Decision}
 }
+
+func candidateDecision(cmp *agenticv1.ReleaseGateEvaluationComparisonV1) agenticv1.ReleaseGateDecisionV1 {
+	if cmp == nil || cmp.GetComparisonEvaluation() == nil {
+		return agenticv1.ReleaseGateDecisionV1_RELEASE_GATE_DECISION_V1_UNSPECIFIED
+	}
+	return cmp.GetComparisonEvaluation().GetDecision()
+}
+
+// verdictError carries a non-improvement verdict out to the exit taxonomy. It is
+// not a failure of the runner — the tool did its job — so its message states the
+// server's decision plainly rather than sounding like a crash.
+type verdictError struct {
+	outcome  Outcome
+	decision string
+}
+
+func (e *verdictError) Error() string {
+	return fmt.Sprintf("verdict %s (server decision: %s)", e.outcome, e.decision)
+}
+
+func (e *verdictError) Outcome() Outcome { return e.outcome }
 
 // --- annotate ---------------------------------------------------------------
 
@@ -275,9 +414,10 @@ func cmdAnnotate(args []string) error {
 	kind := fs.String("kind", "deployment",
 		"annotation kind: deployment | event | range")
 	title := fs.String("title", "", "annotation title (required)")
-	body := fs.String("body", "", "annotation body")
+	body := fs.String("body", "", "annotation body, recorded as a 'body' attribute")
 	at := fs.String("at", "", "RFC3339 instant; defaults to now")
 	until := fs.String("until", "", "RFC3339 end instant, for --kind=range")
+	idempotencyKey := fs.String("idempotency-key", "", "idempotency key; a retry with the same key is deduped")
 
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -285,32 +425,93 @@ func cmdAnnotate(args []string) error {
 	if *title == "" {
 		return &usageError{msg: "--title is required"}
 	}
-	switch *kind {
-	case "deployment", "event", "range":
-	default:
+	annKind, ok := annotationKind(*kind)
+	if !ok {
 		return &usageError{msg: fmt.Sprintf("unknown --kind %q (want deployment, event or range)", *kind)}
 	}
 	if *kind == "range" && *until == "" {
 		return &usageError{msg: "--until is required with --kind=range"}
 	}
-	for name, value := range map[string]string{"--at": *at, "--until": *until} {
-		if value == "" {
-			continue
+
+	startAt := nowUTC()
+	if *at != "" {
+		t, perr := time.Parse(time.RFC3339, *at)
+		if perr != nil {
+			return &usageError{msg: fmt.Sprintf("--at is not a valid RFC3339 instant: %v", perr)}
 		}
-		if _, err := time.Parse(time.RFC3339, value); err != nil {
-			return &usageError{msg: fmt.Sprintf("%s is not a valid RFC3339 instant: %v", name, err)}
-		}
+		startAt = t
 	}
-	if _, err := common.credential(); err != nil {
+	var endAt *timestamppb.Timestamp
+	if *until != "" {
+		t, perr := time.Parse(time.RFC3339, *until)
+		if perr != nil {
+			return &usageError{msg: fmt.Sprintf("--until is not a valid RFC3339 instant: %v", perr)}
+		}
+		if t.Before(startAt) {
+			return &usageError{msg: "--until must not precede --at"}
+		}
+		endAt = timestamppb.New(t)
+	}
+	cred, err := common.credential()
+	if err != nil {
 		return err
 	}
-	_ = body
 
-	return &errNotImplemented{
-		subcommand: "annotate",
-		blockedOn: "RecordPlatformAnnotation is not in the proto snapshot at PROTO_PIN; it also " +
-			"requires the platform-annotation:write scope (lane 50A discriminant 5)",
+	req := &agenticv1.RecordPlatformAnnotationRequest{
+		Kind:           annKind,
+		Title:          *title,
+		StartAt:        timestamppb.New(startAt),
+		EndAt:          endAt,
+		IdempotencyKey: *idempotencyKey,
 	}
+	if *body != "" {
+		req.Attributes = []*agenticv1.PlatformAnnotationAttributeV1{{Key: "body", Value: *body}}
+	}
+
+	ctx, cancel := common.commandContext()
+	defer cancel()
+
+	clients := newClients(&common, cred)
+	resp, err := clients.eval.RecordPlatformAnnotation(ctx, connect.NewRequest(req))
+	if err != nil {
+		return fmt.Errorf("annotate: RecordPlatformAnnotation failed: %w", err)
+	}
+
+	ann := resp.Msg.GetAnnotation()
+	if common.jsonOut {
+		return emitJSON(map[string]any{
+			"annotation_id":     ann.GetAnnotationId(),
+			"kind":              *kind,
+			"idempotent_replay": resp.Msg.GetIdempotentReplay(),
+		})
+	}
+	fmt.Printf("annotation_id=%s kind=%s idempotent_replay=%t\n", ann.GetAnnotationId(), *kind, resp.Msg.GetIdempotentReplay())
+	return nil
+}
+
+// annotationKind maps the CLI vocabulary onto the platform's annotation kinds:
+// a deployment marker, a point-in-time event (MARKER), or a time-range
+// highlight (HIGHLIGHT).
+func annotationKind(kind string) (agenticv1.PlatformAnnotationKindV1, bool) {
+	switch kind {
+	case "deployment":
+		return agenticv1.PlatformAnnotationKindV1_PLATFORM_ANNOTATION_KIND_V1_DEPLOYMENT, true
+	case "event":
+		return agenticv1.PlatformAnnotationKindV1_PLATFORM_ANNOTATION_KIND_V1_MARKER, true
+	case "range":
+		return agenticv1.PlatformAnnotationKindV1_PLATFORM_ANNOTATION_KIND_V1_HIGHLIGHT, true
+	default:
+		return agenticv1.PlatformAnnotationKindV1_PLATFORM_ANNOTATION_KIND_V1_UNSPECIFIED, false
+	}
+}
+
+func emitJSON(v any) error {
+	payload, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		return fmt.Errorf("serializing output: %w", err)
+	}
+	fmt.Println(string(payload))
+	return nil
 }
 
 // usageError is a bad invocation: the caller's fault, exit 64.

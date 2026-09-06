@@ -63,23 +63,3 @@ func (o Outcome) String() string {
 
 // ExitCode is the process exit status for this outcome.
 func (o Outcome) ExitCode() int { return int(o) }
-
-// errNotImplemented is what every subcommand returns today.
-//
-// It maps to OutcomeInfraFailure, not to OutcomeIndeterminate and certainly not
-// to OutcomeImprovement. From the caller's side "this build of the runner cannot
-// judge" is a machinery problem, and a gate that silently passes because the
-// tool is a stub is worse than no gate. The message says so out loud.
-type errNotImplemented struct {
-	subcommand string
-	blockedOn  string
-}
-
-func (e *errNotImplemented) Error() string {
-	return fmt.Sprintf(
-		"%s: not implemented in this build (scaffold only). Blocked on: %s",
-		e.subcommand, e.blockedOn,
-	)
-}
-
-func (e *errNotImplemented) Outcome() Outcome { return OutcomeInfraFailure }
