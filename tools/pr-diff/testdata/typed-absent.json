@@ -1,0 +1,83 @@
+{
+  "schema_version": "o11y.eval.diff/v1",
+  "generated_at": "2026-09-07T18:33:00Z",
+  "generator": { "tool": "o11y-eval", "version": "v0.3.1-abc1234" },
+
+  "identity": {
+    "gate_id": "gate_7Yz",
+    "metric_name": "answer_correctness",
+    "baseline": {
+      "evaluation_id": "eval_base_4",
+      "deployment_id": "dep_A",
+      "baseline_source": "PINNED_MAIN",
+      "used_fallback_baseline": false,
+      "simulated": false,
+      "sample_count": 200,
+      "avg_score": { "present": true, "value": 0.81 },
+      "avg_cost_usd": { "present": true, "value": 0.0042 }
+    },
+    "candidate": {
+      "evaluation_id": "eval_cand_4",
+      "deployment_id": "dep_E",
+      "baseline_source": "PINNED_MAIN",
+      "used_fallback_baseline": false,
+      "simulated": false,
+      "sample_count": 200,
+      "avg_score": { "present": true, "value": 0.86 },
+      "avg_cost_usd": { "present": true, "value": 0.0039 }
+    }
+  },
+
+  "verdict": {
+    "decision": "PASS",
+    "decision_source": "server:CompareReleaseGateEvaluations",
+    "outcome": "improvement",
+    "exit_code": 0,
+    "decision_changed": false,
+    "authoritative": true,
+    "coercible": false
+  },
+
+  "metrics": [
+    {
+      "key": "avg_score",
+      "label": "Average score",
+      "unit": "score",
+      "higher_is_better": true,
+      "baseline": { "present": true, "value": 0.81 },
+      "candidate": { "present": true, "value": 0.86 },
+      "delta": { "present": true, "value": 0.05 }
+    },
+    {
+      "key": "bad_outcomes_count",
+      "label": "Bad outcomes",
+      "unit": "count",
+      "higher_is_better": false,
+      "baseline": { "present": false },
+      "candidate": { "present": false },
+      "delta": { "present": true, "value": -3 }
+    },
+    {
+      "key": "avg_cost_usd",
+      "label": "Average cost (USD)",
+      "unit": "usd",
+      "higher_is_better": false,
+      "baseline": { "present": true, "value": 0.0042 },
+      "candidate": { "present": false },
+      "delta": { "present": false }
+    }
+  ],
+
+  "failure_reasons": { "added": [], "removed": [] },
+
+  "notes": [
+    { "code": "simulated_evaluation", "severity": "info",
+      "message": "The candidate evaluation was simulated." }
+  ],
+
+  "absences": [
+    { "field": "identity.baseline.bad_outcomes_count", "reason": "not_reported_by_server" },
+    { "field": "identity.candidate.bad_outcomes_count", "reason": "not_reported_by_server" },
+    { "field": "metrics[avg_cost_usd].candidate", "reason": "not_reported_by_server" }
+  ]
+}

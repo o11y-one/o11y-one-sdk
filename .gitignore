@@ -16,6 +16,7 @@ build/
 
 # Go
 /tools/ci-runner/bin/
+/tools/pr-diff/bin/
 /dist-bin/
 
 # mise/local

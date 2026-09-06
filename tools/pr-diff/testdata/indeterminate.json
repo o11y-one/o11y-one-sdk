@@ -1,0 +1,61 @@
+{
+  "schema_version": "o11y.eval.diff/v1",
+  "generated_at": "2026-09-07T18:32:00Z",
+  "generator": { "tool": "o11y-eval", "version": "v0.3.1-abc1234" },
+
+  "identity": {
+    "gate_id": "gate_7Yz",
+    "metric_name": "answer_correctness",
+    "baseline": {
+      "evaluation_id": "eval_base_3",
+      "deployment_id": "dep_A",
+      "baseline_source": "PINNED_MAIN",
+      "used_fallback_baseline": false,
+      "simulated": false,
+      "sample_count": 3,
+      "avg_score": { "present": true, "value": 0.9 },
+      "avg_cost_usd": { "present": true, "value": 0.004 }
+    },
+    "candidate": {
+      "evaluation_id": "eval_cand_3",
+      "deployment_id": "dep_D",
+      "baseline_source": "PINNED_MAIN",
+      "used_fallback_baseline": false,
+      "simulated": false,
+      "sample_count": 3,
+      "avg_score": { "present": true, "value": 0.92 },
+      "avg_cost_usd": { "present": true, "value": 0.0041 }
+    }
+  },
+
+  "verdict": {
+    "decision": "INSUFFICIENT_DATA",
+    "decision_source": "server:CompareReleaseGateEvaluations",
+    "outcome": "indeterminate",
+    "exit_code": 2,
+    "decision_changed": false,
+    "authoritative": true,
+    "coercible": false
+  },
+
+  "metrics": [
+    {
+      "key": "avg_score",
+      "label": "Average score",
+      "unit": "score",
+      "higher_is_better": true,
+      "baseline": { "present": true, "value": 0.9 },
+      "candidate": { "present": true, "value": 0.92 },
+      "delta": { "present": true, "value": 0.02 }
+    }
+  ],
+
+  "failure_reasons": { "added": [], "removed": [] },
+
+  "notes": [
+    { "code": "min_cases_not_met", "severity": "warn",
+      "message": "Only 3 comparable cases; the gate's min_cases is 5." }
+  ],
+
+  "absences": []
+}

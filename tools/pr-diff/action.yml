@@ -1,0 +1,93 @@
+name: "O11y One PR eval diff"
+description: >
+  Renders an O11y One eval diff document as a GitHub-flavored-markdown PR
+  comment and idempotently upserts it onto the pull request. Recomputes
+  nothing: every number and verdict in the comment comes from the diff
+  document passed in via `diff-document-path`.
+author: "o11y.one"
+
+inputs:
+  diff-document-path:
+    description: >
+      Path to the diff document JSON (e.g. produced by
+      `o11y-eval diff --json`). Required.
+    required: true
+  github-token:
+    description: >
+      Token with `pull-requests: write` (or `issues: write`) on this repo,
+      used to upsert the comment. Defaults to the workflow's GITHUB_TOKEN.
+    required: false
+    default: ${{ github.token }}
+  pr-number:
+    description: >
+      Pull request number to comment on. Defaults to the PR number from the
+      triggering pull_request event.
+    required: false
+    default: ${{ github.event.pull_request.number }}
+  exit-with-verdict:
+    description: >
+      When "true", the action fails the step (exit code taken from the diff
+      document's own verdict/exit_code) after successfully posting the
+      comment, so a regression or infra-failure blocks the job. When "false"
+      (default), the step exits 0 once the comment is posted regardless of
+      verdict, and gating is left to a separate workflow step reading the
+      diff document directly.
+    required: false
+    default: "false"
+
+outputs:
+  comment-body:
+    description: "The rendered markdown that was posted, for use in later steps."
+    value: ${{ steps.render.outputs.comment-body }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Go
+      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      with:
+        go-version-file: ${{ github.action_path }}/go.mod
+
+    - name: Render and post the PR comment
+      id: render
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        DIFF_DOCUMENT_PATH: ${{ inputs.diff-document-path }}
+        PR_NUMBER: ${{ inputs.pr-number }}
+        EXIT_WITH_VERDICT: ${{ inputs.exit-with-verdict }}
+        REPO_OWNER: ${{ github.repository_owner }}
+        # github.repository is "owner/name"; strip the owner prefix for --repo.
+        REPO_NAME: ${{ github.repository }}
+      run: |
+        set -euo pipefail
+
+        if [[ -z "${PR_NUMBER}" || "${PR_NUMBER}" == "null" ]]; then
+          echo "pr-number input is empty and no pull_request event supplied one." >&2
+          exit 64
+        fi
+
+        repo_name="${REPO_NAME#*/}"
+
+        # Render first (pure, no network) so we always have the markdown for
+        # the step output even if the network call below fails.
+        rendered="$(mktemp)"
+        go run . render --input "${DIFF_DOCUMENT_PATH}" --output "${rendered}"
+
+        {
+          echo "comment-body<<PR_DIFF_EOF"
+          cat "${rendered}"
+          echo "PR_DIFF_EOF"
+        } >> "${GITHUB_OUTPUT}"
+
+        post_args=(comment
+          --input "${DIFF_DOCUMENT_PATH}"
+          --owner "${REPO_OWNER}"
+          --repo "${repo_name}"
+          --pr "${PR_NUMBER}"
+        )
+        if [[ "${EXIT_WITH_VERDICT}" == "true" ]]; then
+          post_args+=(--exit-with-verdict)
+        fi
+        go run . "${post_args[@]}"
