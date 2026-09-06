@@ -35,26 +35,26 @@ class CredentialInterceptor:
     """Stamps the credential and scoping headers onto every outbound request.
 
     This is THE auth-injection point for the Python SDK. Everything about the
-    shape it injects is settled (see :mod:`o11y_one.sdk.auth`). What is NOT
-    settled, and is the one open dependency this package has on the backend:
+    shape it injects is settled (see :mod:`o11y_one.sdk.auth`).
 
-    TODO(w50a-auth-shape / lane 50A): the machine-principal management surface --
-        ``CreateMachinePrincipal``, ``ListMachinePrincipals``,
-        ``CreateMachineCredential``, ``RevokeMachineCredential``,
-        ``RevokeMachinePrincipal``, ``GetCallerPrincipal`` -- does not exist in
-        the proto snapshot at PROTO_PIN (fb8f5098). ``auth.proto`` there carries
-        only ``AuthFoundationService.ListAuthMethods``. The RPC NAMES are held by
-        50A and will not move, so when lane A lands them:
-
-          1. bump PROTO_PIN and run ``tools/sync-proto.sh``;
-          2. add ``O11yClient.whoami()`` over ``GetCallerPrincipal`` -- the
-             introspection call that answers "is my credential valid, and which
-             scopes does it carry?" BEFORE a run. That is what makes
-             ``o11y-eval doctor`` possible, and what turns an UNAUTHENTICATED at
-             minute 40 into an error at minute 0.
-
-        Nothing else in this module changes: the header, the encoding, and the
-        error taxonomy are already the final ones.
+    RESOLVED (was a TODO against w50a-auth-shape / lane 50A): the
+    machine-principal management surface -- ``CreateMachinePrincipal``,
+    ``ListMachinePrincipals``, ``CreateMachineCredential``,
+    ``RevokeMachineCredential``, ``RevokeMachinePrincipal``,
+    ``GetCallerPrincipal`` -- landed at PROTO_PIN capability 48
+    (``fd227e87``), but NOT on ``AuthFoundationService`` as this note
+    originally expected: ``auth.proto`` still carries only
+    ``AuthFoundationService.ListAuthMethods``. The RPC names held, the
+    service didn't -- they shipped on ``AgenticEvaluationService``
+    (``o11y_one/agentic/v1/evaluation.proto``) instead, alongside the rest of
+    the lease/run/dataset surface. The introspection call this note wanted --
+    "is my credential valid, and which scopes does it carry?" BEFORE a run,
+    turning an UNAUTHENTICATED at minute 40 into an error at minute 0 -- is
+    :meth:`o11y_one.sdk.agentic.AgenticClientSync.whoami` (and its async
+    twin), not a method on this class: this module's job stays "build clients
+    and attach headers," and whoami is a ``AgenticEvaluationService`` RPC like
+    any other. Nothing in THIS module changed: the header, the encoding, and
+    the error taxonomy were already the final ones.
 
     Implements both the sync and async unary interceptor protocols, which
     connect-python matches structurally (``runtime_checkable`` Protocols), so one
