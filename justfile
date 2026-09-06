@@ -54,7 +54,7 @@ install-py:
 
 # --- build ------------------------------------------------------------------
 
-build: build-ts build-py build-go build-ci-runner
+build: build-ts build-py build-go build-ci-runner build-pr-diff
 
 build-ts:
     pnpm -r --filter "./packages/**" run build
@@ -74,6 +74,13 @@ build-ci-runner version="dev":
         -ldflags "-s -w -X main.version={{version}}" \
         -o bin/o11y-eval .
 
+# The PR eval-diff renderer: consumes the ci-runner's diff document and
+# renders a GitHub PR comment. Same static-binary posture as the runner.
+build-pr-diff version="dev":
+    cd tools/pr-diff && CGO_ENABLED=0 go build -trimpath \
+        -ldflags "-s -w -X main.version={{version}}" \
+        -o bin/pr-diff .
+
 # --- test -------------------------------------------------------------------
 
 test: test-ts test-py test-go
@@ -87,6 +94,7 @@ test-py:
 test-go:
     cd gen/go && go build ./...
     cd tools/ci-runner && go test ./...
+    cd tools/pr-diff && go test ./...
 
 # --- lint -------------------------------------------------------------------
 
