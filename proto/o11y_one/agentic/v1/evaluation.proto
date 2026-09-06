@@ -7550,6 +7550,288 @@ service AgenticEvaluationService {
   // intact (`P5-18`).
   rpc PublishDatasetCaseDrafts(PublishDatasetCaseDraftsRequest) returns (PublishDatasetCaseDraftsResponse);
   // ---- end wave 42 lane A: draft review publish ----
+
+  // ---- wave 50 lane A: machine-principal auth (NN44 `PLAN:210`; 0a §6) ----
+  //
+  // The credential-management surface NN44 requires. 0a §6.1 places these here
+  // deliberately: "the credential CRUD RPCs and the interceptor land with Track
+  // T1", while the attribution fields and the scope enum locked in Phase 0a.
+  //
+  // Exactly ONE of these names is reserved verbatim by 0a §6.3
+  // (`CreateMachineCredential`, as the sole carrier of `plaintext_token_once`).
+  // The other five are minted here as a recorded amendment; the reasoning is in
+  // `docs/specs/agentic-reliability-v2/increments/2026-09-05-w50a-machine-auth.md`
+  // §0.5, together with why there is no `RotateMachineCredential`.
+  //
+  // All five management verbs are USER-only. A machine principal cannot mint
+  // principals or credentials and so cannot widen its own authority; only
+  // `GetCallerPrincipal` is reachable by a machine credential.
+
+  // Mint an org-scoped machine principal carrying a typed `ScopeSet`. An
+  // unknown scope discriminant is `INVALID_ARGUMENT` (0a §6.4), never a
+  // silently dropped element — a principal that was created with fewer powers
+  // than the caller asked for is a security surprise in the safe direction and
+  // a debugging nightmare in every other one.
+  rpc CreateMachinePrincipal(CreateMachinePrincipalRequest) returns (CreateMachinePrincipalResponse);
+
+  // Management list. Carries no secret material and no credential secrets: the
+  // credential summaries it embeds are the same `MachineCredentialV1` the rest
+  // of the surface uses, which has no field material could travel in.
+  rpc ListMachinePrincipals(ListMachinePrincipalsRequest) returns (ListMachinePrincipalsResponse);
+
+  // The ONLY message in this contract that carries plaintext credential
+  // material, in the field `plaintext_token_once`, exactly once, with no
+  // read-back path anywhere (0a §6.3, NN8 `:160`). Losing it means rotating,
+  // which is why a principal may hold several ACTIVE credentials at a time.
+  rpc CreateMachineCredential(CreateMachineCredentialRequest) returns (CreateMachineCredentialResponse);
+
+  // Revocation takes effect on the NEXT request, not on a cache-TTL boundary:
+  // the token cache is invalidated in the same call, following the precedent at
+  // `server/src/services/api_tokens/handlers.rs:199-217`.
+  rpc RevokeMachineCredential(RevokeMachineCredentialRequest) returns (RevokeMachineCredentialResponse);
+
+  // Revokes the principal AND every credential it holds, each with its own
+  // cache invalidation. A principal whose credentials outlived it would be a
+  // revocation that did not revoke.
+  rpc RevokeMachinePrincipal(RevokeMachinePrincipalRequest) returns (RevokeMachinePrincipalResponse);
+
+  // J8.1: "Is my token valid and what can it do?" — the first call an SDK
+  // makes. Reachable by any valid machine credential with NO scope requirement,
+  // because requiring a scope to ask which scopes you hold makes the question
+  // unanswerable for exactly the token that needs to ask it. It introspects the
+  // caller and only the caller; there is no principal id in the request.
+  //
+  // A browser session may also call it, and gets its own USER principal back —
+  // which is what lets one SDK code path work in both modes without branching.
+  rpc GetCallerPrincipal(GetCallerPrincipalRequest) returns (GetCallerPrincipalResponse);
+  // ---- end wave 50 lane A ----
+
+  // ---- wave 50 lane B: externally executed mode (`PLAN:1969`, J8.5) ----
+  //
+  // The reserved candidate arm ships. 0a §5.2 froze the states this plane moves
+  // through and said, verbatim, "The externally executed lease/submit RPCs are
+  // not defined in 0a, but the states they will transition through are." These
+  // four verbs are therefore minted here as recorded amendment `A-50B-1`; 0a
+  // §7.2 row `J8.5` fixes every other axis of the surface and is obeyed.
+  //
+  // The lease is the wave 48-HF fenced-lease dialect on the same three columns
+  // of the same table: `lease_owner` is the lease id, `lease_token` is the
+  // fence, `lease_expires_at` is what the heartbeat moves. Zero rows matched is
+  // the only proof of loss, on every verb.
+
+  // The claim. Bounded batch, one statement, and a reclaim: a lease whose
+  // holder vanished is retaken by the next claim rather than by a sweep, which
+  // is the property that makes an abandoned runtime cost one TTL and not a run.
+  rpc LeaseEvaluationCases(LeaseEvaluationCasesRequest) returns (LeaseEvaluationCasesResponse);
+
+  // The heartbeat. Expiry-only and fenced, never a re-claim: a renewal that
+  // could also claim would let a heartbeat silently grow its own batch.
+  rpc RenewEvaluationCaseLease(RenewEvaluationCaseLeaseRequest) returns (RenewEvaluationCaseLeaseResponse);
+
+  // The fenced submit. Idempotent by coordinate and generation, so a resubmitted
+  // batch converges with no duplicate facts and no double-counted economics
+  // (`PLAN:1937`); partial by construction, so one malformed case never fails
+  // its batch (`PLAN:1928`). Scoring is NOT done here — the submission moves the
+  // cell to the frozen `QUEUED` and the server's own executor scores it, which
+  // is `PLAN:1969`'s "server-side scorer fan-out unchanged" taken literally.
+  rpc SubmitEvaluationCaseOutputs(SubmitEvaluationCaseOutputsRequest) returns (SubmitEvaluationCaseOutputsResponse);
+
+  // The good citizen's exit. Without it, a runtime that fails cleanly must wait
+  // out its whole TTL before anyone can retake its cases, and typed abandonment
+  // would be the only way to give work back.
+  rpc ReleaseEvaluationCaseLease(ReleaseEvaluationCaseLeaseRequest) returns (ReleaseEvaluationCaseLeaseResponse);
+  // ---- end wave 50 lane B ----
+
+  // ---- wave 50 lane C: the platform-annotations plane ----
+  //
+  // The operator's TRACK T1 charter of 2026-09-05 approved a TYPED annotations
+  // plane over an OTLP ridealong, for a stated reason that is the whole design:
+  // "matters slightly more and the lifetime is definitely beyond the regular
+  // telemetry lifecycle". Everything below follows from that second clause.
+  //
+  // These two verbs live on THIS service and not on a new one, and not on
+  // `AgenticTraceViewService` where a timeline overlay might seem to belong,
+  // because the charter also says the runner "falls back to OTLP-ridealong only
+  // when the capability probe says the plane is absent" — and the probe reads
+  // `AgenticEvaluationCapabilitiesV1`, which only this service publishes. A
+  // plane whose verbs answered elsewhere would give the probe nowhere to look,
+  // or would need the envelope duplicated onto a second service to carry one
+  // cell. The increment record's §0.1 has the import-cycle half of the argument.
+  //
+  // The namespace is DELIBERATELY DISJOINT from the human-review annotation
+  // plane (`AnnotationTaskV1`, `AnnotationQueueV1`, `AnnotationRoutingReasonV1`,
+  // `agentic.proto:78-564`). Nothing here reads or writes an annotation TASK,
+  // and nothing there gains a machine principal. The prefix is the guard.
+
+  // `MUTATION_ACK`. Idempotency-keyed, machine-principal attributable, and
+  // required-scope `PLATFORM_ANNOTATION_WRITE` (wave 50 lane A's fifth
+  // discriminant, minted on this lane's ask).
+  //
+  // A deploy marker whose kind this build does not know is REFUSED, and the
+  // refusal carries the capability envelope — so a newer runner learns which
+  // kinds this server supports and can downgrade to `_MARKER` rather than
+  // dropping the annotation on the floor.
+  rpc RecordPlatformAnnotation(RecordPlatformAnnotationRequest) returns (RecordPlatformAnnotationResponse);
+
+  // `INITIAL_PAGE`. A time window, an optional kind filter, keyset-paged,
+  // newest-first. Constant in the page size and in the filter's cardinality.
+  rpc ListPlatformAnnotations(ListPlatformAnnotationsRequest) returns (ListPlatformAnnotationsResponse);
+  // ---- end wave 50 lane C ----
+
+  // =========================================================================
+  // Wave 52 lane B — the scorer LIBRARY: the reads `05` §2 and `17` §2.4 both
+  // record as ABSENT, and the two archive verbs beside them.
+  // =========================================================================
+  //
+  // The plan reserves no scorer read name, so every verb below is a recorded
+  // amendment argued in `increments/2026-09-06-w52b-scorer-library.md` §0. They
+  // stay on the `EvaluationScorer*` stem the two shipped creates established
+  // rather than starting a second vocabulary — the legacy plane's
+  // `ListScoreConfigs` / `GetScoreConfig` / `ListScorerSuites` /
+  // `GetScorerSuite` / `ArchiveScorerSuite` (`agentic.proto:4602-4621`) address
+  // DIFFERENT objects, and `05` §2 already has to spell that out in a table
+  // cell.
+
+  // `INITIAL_PAGE`. The library page, keyset-paged on `config_key`.
+  //
+  // EVERY score configuration in the organisation, not only the v2-authored
+  // ones — the same set `GetEvaluationBuilderContext.scorer_choices[]` serves,
+  // PLUS the archived rows its `is_archived = FALSE` predicate hides, and
+  // WITHOUT that picker's `max_scorers = 50` ceiling, which is a picker bound
+  // and not an inventory bound. `authored_on_this_surface` says which half a
+  // row is in; `kind = UNSPECIFIED` is a real answer and means a scorer
+  // authored outside `CreateEvaluationScorerConfig`.
+  rpc ListEvaluationScorerConfigs(ListEvaluationScorerConfigsRequest) returns (ListEvaluationScorerConfigsResponse);
+
+  // `SELECTED_DETAIL`. The read `17` §8.1 calls "the largest gap on this page"
+  // and `17` §9 question 1 puts to the backend by name.
+  //
+  // The WHOLE authored spec: a judge's `instructions`, `verdict_mappings` and
+  // `subject_path` — written to `evaluator_templates.config` since wave 45 and
+  // read by nothing until now — plus the resolved provider execution, plus the
+  // deterministic spec and the review policy for the other two kinds. Optional
+  // `version_discriminator` addresses a superseded version.
+  rpc GetEvaluationScorerConfig(GetEvaluationScorerConfigRequest) returns (GetEvaluationScorerConfigResponse);
+
+  // `PAGE`. The version history `05` §8 says is "not derivable".
+  //
+  // It is derivable and always has been: the v2 create has minted one
+  // `evaluator_templates` row per version since wave 31 lane A, keyed
+  // `scorer:{config_key}:{version}` and UNIQUE per tenant, and a revision mints
+  // a fresh row rather than mutating the old one. Those rows ARE the history.
+  rpc ListEvaluationScorerConfigVersions(ListEvaluationScorerConfigVersionsRequest) returns (ListEvaluationScorerConfigVersionsResponse);
+
+  // `INITIAL_PAGE` / `SELECTED_DETAIL`. The suite reads `05` §2 records as
+  // ABSENT on the v2 plane.
+  //
+  // The detail's members carry their OWN posture — archived, kind, version —
+  // which `EvaluationScorerSuiteMemberV1` cannot: that message is embedded in
+  // `EvaluationScorerSuiteSnapshotV1`, which "must never gain a field that
+  // moves". Without the posture a suite page cannot say "this member is
+  // archived", and the customer meets it at launch instead, as a
+  // `MISSING_DEPENDENCY` / `scorer_archived` blocker.
+  rpc ListEvaluationScorerSuites(ListEvaluationScorerSuitesRequest) returns (ListEvaluationScorerSuitesResponse);
+  rpc GetEvaluationScorerSuite(GetEvaluationScorerSuiteRequest) returns (GetEvaluationScorerSuiteResponse);
+
+  // `MUTATION_ACK`. Retirement, and it is UNCONDITIONAL.
+  //
+  // Three shipped facts settle the semantics and the increment argues them in
+  // full (§0.5). (1) `score_configs.is_archived` has existed since
+  // `20260515123000` and the v2 picker already filters on it, so this verb
+  // introduces no lifecycle — it writes a flag the surface already honours.
+  // (2) The launch path ALREADY refuses an archived scorer by name
+  // (`run_handlers.rs`, blocker `scorer_archived`), for an explicit selection
+  // and for a suite member alike. (3) The production-rule plane ALREADY
+  // disables a dependent rule version with `dependency_archived`.
+  //
+  // So archiving is never refused for a suite membership, a definition
+  // reference, a production rule or a run pin. A pin makes REVISION unsafe
+  // because the executor reads the template live; archiving mutates no template
+  // and no manifest, and pins never expire, so that refusal would mean "you may
+  // never retire a scorer that was ever used". Instead the response returns the
+  // STANDING REFERENCES, so an operator sees the blast radius at the one moment
+  // it changes a decision — the shape `ArchiveReleaseIntegrationResponse`
+  // already uses.
+  //
+  // There is no unarchive verb and no idempotency key: a monotone state flip is
+  // replayable by construction, and `already_archived` rides back on the
+  // response rather than being an error.
+  rpc ArchiveEvaluationScorerConfig(ArchiveEvaluationScorerConfigRequest) returns (ArchiveEvaluationScorerConfigResponse);
+
+  // `MUTATION_ACK`. Same semantics, and NO launched-run refusal — the suite
+  // migration's own header is the argument: "Nothing reads THIS table at
+  // execution or at read time … launched runs are immune by construction. A
+  // revision is therefore always permitted." Archiving is weaker than the
+  // revision that is already unconditional.
+  rpc ArchiveEvaluationScorerSuite(ArchiveEvaluationScorerSuiteRequest) returns (ArchiveEvaluationScorerSuiteResponse);
+  // ---- end wave 52 lane B ----
+
+  // ---- wave 52 lane A: the dataset read plane's entry points ----
+  //
+  // Wave 42 built every dataset screen GIVEN AN ID and shipped nothing that
+  // hands a client its first id. These three verbs are that residue of A2 gap
+  // `G23`, and all three are RECORDED AMENDMENTS: `PLAN:462`-`:477` is the
+  // dataset plane's whole approved inventory and reserves no collection-list
+  // and no changeset-read name, and `0b :213`-`:214` reserves exactly the three
+  // tab verbs wave 42 built. Every name here was checked against both lists
+  // before it was declared, and none of them was on either — which is why they
+  // are amendments and say so, rather than being quietly minted as if approved.
+  //
+  // `A-52A-1` `ListDatasetCollections`. The verb collides with the LEGACY
+  // `AgenticObservabilityService.ListDatasetCollections`
+  // (`agentic.proto:4533-4550`) exactly as `ListDatasetVersions` already does,
+  // and it is resolved the same way, for the reason recorded on
+  // `ListEvaluationDatasetVersionsRequest`: the verb name is the plane's, the
+  // MESSAGE name carries the `Evaluation` infix to disambiguate inside one
+  // protobuf package. Different service, different messages, different plane —
+  // the legacy verb carries no availability posture, no freshness, and no
+  // knowledge of the changeset plane.
+  //
+  // `PAGE`. Three request-scoped SQL statements — scope, the page, the total —
+  // and the per-collection sub-counts are LATERAL sub-selects INSIDE the page
+  // statement, on `GetEvaluationBuilderContext`'s own precedent and for the
+  // reason `PLAN:1520` exists: a count issued per row is the cost this plane
+  // was built not to pay. The count is therefore constant in the page size.
+  rpc ListDatasetCollections(ListEvaluationDatasetCollectionsRequest) returns (ListEvaluationDatasetCollectionsResponse);
+
+  // `A-52A-2` / `A-52A-3`. The CONTAINER reads.
+  //
+  // `evaluation_dataset_version_drafts` — the row this wire models as
+  // `DatasetChangesetV1` — is written by capture, moved by
+  // `PreviewPublishDatasetChangeset` and committed by
+  // `PublishDatasetCaseDrafts`, and until this wave was reachable through no
+  // read verb at all. Every mutation on it takes a `changeset_id` a client
+  // could only have obtained from a capture response IN THE SAME SESSION: a
+  // reviewer who came back tomorrow had no verb that would tell them a
+  // changeset was open on this collection, what state it was in, or whether its
+  // base version had moved under it. This is the half of doc `08` §8's fourth
+  // row that wave 42 did not close — that section named TWO absent verbs, and
+  // wave 42 shipped `ListEvaluationProposedCases` as `ListDatasetCaseDrafts`
+  // and left the container.
+  //
+  // NAMED `Changeset` AND NOT `Draft`, deliberately. Doc `08` §8 wrote the name
+  // `GetEvaluationDatasetDraft` in 2026-08-31 for a thing that did not exist,
+  // and the wave-42 wire since settled on a different word for it:
+  // `DatasetChangesetV1`, `DatasetChangesetStateV1`,
+  // `PreviewPublishDatasetChangeset`. A `GetDatasetDraft` sitting beside the
+  // shipped `GetDatasetCaseDraft` would ask a client to learn which of the two
+  // is a case and which is the container from the ABSENCE of an infix. One
+  // plane, one word.
+  //
+  // `SELECTED_DETAIL`, three statements: scope, the changeset, and the
+  // collection's ACTIVE version — because "has my base moved?" is a question
+  // the server answers, not one the client reassembles from two reads and a
+  // rule it reimplemented.
+  rpc GetDatasetChangeset(GetDatasetChangesetRequest) returns (GetDatasetChangesetResponse);
+
+  // `PAGE`. Offset-paged and state-filtered, matching `ListDatasetCaseDrafts` —
+  // its sibling queue over the very same rows one level down — rather than
+  // inventing a second paging shape for one plane. An EMPTY `states` means the
+  // LIVE set and never "all", for the reason that request records: a queue
+  // whose default included committed and abandoned changesets would bury the
+  // work under its own history.
+  rpc ListDatasetChangesets(ListDatasetChangesetsRequest) returns (ListDatasetChangesetsResponse);
+  // ---- end wave 52 lane A ----
 }
 
 // ===========================================================================
@@ -10574,6 +10856,37 @@ message GetDatasetOverviewResponse {
   MetricAvailabilityV1 quality_availability = 7;
   EvaluationFreshnessV1 freshness = 8;
   AgenticEvaluationCapabilitiesV1 capabilities = 9;
+
+  // ---- wave 52 lane A: the identity a deep link needs ----
+  //
+  // Shipped at wave 42 WITHOUT these, which meant the Overview tab of blueprint
+  // §10.9 could not render the dataset's NAME: the response named the
+  // collection only by id, and the handler never read `dataset_collections` at
+  // all. They arrive here rather than on a `GetEvaluationDataset` of their own
+  // because a verb whose entire payload is three columns of a row this screen
+  // already reads is a round trip bought with a naming symmetry. They cost no
+  // additional statement — the collection and its newest version come back from
+  // ONE statement that replaced the newest-version read.
+  //
+  // The same statement is why this verb now answers `NOT_FOUND` for a
+  // collection id that does not resolve in the caller's scope, where before
+  // wave 52 it answered `OK` with typed absences over a collection that may
+  // never have existed. Every other dataset read already answered `NOT_FOUND`
+  // there; this was the one that did not.
+  string name = 10;
+  // Absent means the collection carries no description — not that the server
+  // could not read one. An old client that reads the empty string here renders
+  // a dataset with no subtitle, which is what it had before this field existed.
+  optional string description = 11;
+  // Always present. An old client that reads the zero timestamp is reading a
+  // field it does not know about; nothing it renders today depends on it.
+  google.protobuf.Timestamp created_at = 12;
+  // Archived collections are absent from `ListDatasetCollections` by default
+  // and are still readable by id, so a pinned run's dataset never becomes
+  // unreadable because someone tidied the list. `false` for every collection an
+  // old client has ever seen, because nothing in this build archives one.
+  bool is_archived = 13;
+  // ---- end wave 52 lane A ----
 }
 
 // NOTE ON THE NAME. The RPC is `ListDatasetVersions`, exactly as `0b :214`
@@ -11548,3 +11861,1313 @@ enum ReleaseObservationConfidenceV1 {
   RELEASE_OBSERVATION_CONFIDENCE_V1_WINDOW = 2;
 }
 // ---- end wave 49 lane A ----
+
+// ---- wave 50 lane A: machine-principal auth (NN44 `PLAN:210`; 0a §6) ----
+//
+// The shapes below are 0a `2026-08-13-0a-canonical-type-contract.md` §6.3 and
+// §6.4, built rather than re-invented. Two things go beyond that contract and
+// both are recorded amendments, argued in
+// `docs/specs/agentic-reliability-v2/increments/2026-09-05-w50a-machine-auth.md`:
+//   §0.4 — a fifth scope discriminant, `PLATFORM_ANNOTATION_WRITE`;
+//   §0.5 — five management RPC names (0a reserved only `CreateMachineCredential`).
+//
+// `PrincipalKindV1` / `PrincipalRefV1` are NOT redefined here: they already
+// exist at the head of this file with the exact §6.2 shape, and machine
+// attribution is what they were added for.
+
+// 0a §6.4, discriminants 1-4 FROZEN.
+//
+// Rules that bind every reader: scopes are ADDITIVE AND NEVER IMPLIED —
+// `RUN_EXECUTE` does not grant `EVAL_READ`, so a CI job that launches a run and
+// then reads the diff holds both. An unknown discriminant on a write is
+// `INVALID_ARGUMENT`; a request outside scope is `PERMISSION_DENIED` naming the
+// missing scope; an absent, malformed, expired or revoked credential is
+// `UNAUTHENTICATED`. Those two codes are the J8.1 distinction the SDK exists to
+// render, and collapsing them makes "your token is wrong" indistinguishable
+// from "that feature is not built yet".
+enum MachinePrincipalScopeV1 {
+  MACHINE_PRINCIPAL_SCOPE_V1_UNSPECIFIED = 0;
+  // Definitions, runs, matrix, comparison reads — the CI diff.
+  MACHINE_PRINCIPAL_SCOPE_V1_EVAL_READ = 1;
+  // Create, launch and cancel runs; scratch runs.
+  MACHINE_PRINCIPAL_SCOPE_V1_RUN_EXECUTE = 2;
+  // Case draft create, append and publish.
+  MACHINE_PRINCIPAL_SCOPE_V1_DATASET_WRITE = 3;
+  // Externally executed lease and submit. Enforcement ships in wave 50 lane A;
+  // the SURFACE it guards is lane B's, and lane B's own capability cell is the
+  // authority for whether that surface exists yet (0a §6.4's per-scope
+  // availability requirement, satisfied by the surface's cell rather than by a
+  // zero in this lane's cell that another lane must remember to flip).
+  MACHINE_PRINCIPAL_SCOPE_V1_LEASE_SUBMIT = 4;
+  // RECORDED AMENDMENT (increment §0.4). NOT one of the four NN44 names.
+  //
+  // The operator's TRACK T1 charter of 2026-09-05 approved a typed
+  // platform-annotations plane that is explicitly "machine-principal
+  // attributed", with the CI runner emitting deployment markers and time-range
+  // highlights into it. Enforcement here is deny-by-default, so a verb with no
+  // scope row is machine-unreachable — leaving this discriminant out would have
+  // made the approved plane reachable only from a browser, which no CI pipeline
+  // has, and would have silently re-selected the OTLP-ridealong design the
+  // operator rejected on the record.
+  //
+  // It is spelled PLATFORM_ANNOTATION_WRITE and not ANNOTATION_WRITE on
+  // purpose: the shorter name reads as a grant over the HUMAN-REVIEW annotation
+  // plane (`AnnotationTaskV1`, `AnnotationQueueV1`, `agentic.proto:78-564`),
+  // which it is not and must never become. Write-only: there is no annotation
+  // READ scope, because the runner writes markers and does not read them back,
+  // and folding an annotation read into `EVAL_READ` would be exactly the scope
+  // conflation the "never implied" rule above forbids.
+  MACHINE_PRINCIPAL_SCOPE_V1_PLATFORM_ANNOTATION_WRITE = 5;
+}
+
+// 0a §6.3.
+enum MachinePrincipalStateV1 {
+  MACHINE_PRINCIPAL_STATE_V1_UNSPECIFIED = 0;
+  MACHINE_PRINCIPAL_STATE_V1_ACTIVE = 1;
+  // Temporarily refused. Credentials survive, so re-enabling does not force a
+  // re-mint — the difference from REVOKED, which is terminal.
+  MACHINE_PRINCIPAL_STATE_V1_DISABLED = 2;
+  MACHINE_PRINCIPAL_STATE_V1_REVOKED = 3;
+}
+
+// 0a §6.3.
+enum MachineCredentialStateV1 {
+  MACHINE_CREDENTIAL_STATE_V1_UNSPECIFIED = 0;
+  MACHINE_CREDENTIAL_STATE_V1_ACTIVE = 1;
+  // Reserved for a rotation window in which an old credential is still
+  // accepted. No RPC produces it in this wave: rotation here is
+  // create-then-revoke against a principal that may hold several ACTIVE
+  // credentials, which needs no intermediate state. The discriminant is
+  // declared because 0a §6.3 declares it and a reader must be able to handle a
+  // value a later wave may write.
+  MACHINE_CREDENTIAL_STATE_V1_ROTATING = 2;
+  MACHINE_CREDENTIAL_STATE_V1_REVOKED = 3;
+}
+
+// 0a §6.3. Org-scoped, and `scopes` lives HERE rather than on the credential:
+// two credentials of one principal must not be able to disagree about what that
+// principal may do (increment §0.6).
+message MachinePrincipalV1 {
+  string machine_principal_id = 1;
+  string tenant_id = 2;
+  string org_id = 3;
+  string display_name = 4;
+  optional string description = 5;
+  // Set semantics: deduplicated, order-insignificant, unknown-value-rejecting.
+  repeated MachinePrincipalScopeV1 scopes = 6;
+  MachinePrincipalStateV1 state = 7;
+  PrincipalRefV1 created_by = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+  // COARSE, and deliberately so: written only on a cold credential
+  // verification, never on a cache hit, so authentication does no database work
+  // it would not otherwise do. The capability cell publishes
+  // `last_used_is_per_request: 0` rather than letting a reader assume precision
+  // this field does not have.
+  optional google.protobuf.Timestamp last_used_at = 11;
+}
+
+// 0a §6.3. One principal may hold SEVERAL — that is what makes zero-downtime
+// rotation possible without an atomic rotate primitive the platform does not
+// have (0a itself records that `api_tokens` has no rotation path today).
+//
+// There is no field on this message that credential material COULD travel in.
+// That is the `ProviderCredentialSecretV1` discipline (`agentic.proto:649`):
+// structural absence enforced by the type, not a redaction filter applied to a
+// type that could have leaked.
+message MachineCredentialV1 {
+  string credential_id = 1;
+  string machine_principal_id = 2;
+  string tenant_id = 3;
+  string org_id = 4;
+  // A pointer, NEVER material (NN8 `:160`). It is an indirection of the form
+  // `api_token:<uuid>` — not the selector, not the selector hash, not anything
+  // derived from the secret.
+  string secret_ref = 5;
+  // Non-secret display fragment, so an operator can tell two credentials apart
+  // in a list: the type prefix plus a short head of the SELECTOR. Never any
+  // part of the secret.
+  string token_prefix = 6;
+  uint32 version_number = 7;
+  MachineCredentialStateV1 state = 8;
+  optional google.protobuf.Timestamp expires_at = 9;
+  PrincipalRefV1 created_by = 10;
+  google.protobuf.Timestamp created_at = 11;
+  optional PrincipalRefV1 revoked_by = 12;
+  optional google.protobuf.Timestamp revoked_at = 13;
+  optional string revoke_reason = 14;
+}
+
+message CreateMachinePrincipalRequest {
+  string display_name = 1;
+  optional string description = 2;
+  // An unknown discriminant here is `INVALID_ARGUMENT` (0a §6.4). An empty set
+  // is legal and produces a principal that can authenticate and introspect
+  // itself and do nothing else — useful, and the honest default.
+  repeated MachinePrincipalScopeV1 scopes = 3;
+}
+
+message CreateMachinePrincipalResponse {
+  MachinePrincipalV1 principal = 1;
+}
+
+message ListMachinePrincipalsRequest {
+  optional uint32 page_size = 1;
+  optional string page_token = 2;
+}
+
+message MachinePrincipalWithCredentialsV1 {
+  MachinePrincipalV1 principal = 1;
+  // Metadata only. See `MachineCredentialV1`: there is no field here material
+  // could reach.
+  repeated MachineCredentialV1 credentials = 2;
+}
+
+message ListMachinePrincipalsResponse {
+  repeated MachinePrincipalWithCredentialsV1 principals = 1;
+  optional string next_page_token = 2;
+}
+
+message CreateMachineCredentialRequest {
+  string machine_principal_id = 1;
+  optional string description = 2;
+  // Absent means the platform default. Clamped server-side by the same rule the
+  // existing token surface uses.
+  optional google.protobuf.Timestamp expires_at = 3;
+}
+
+message CreateMachineCredentialResponse {
+  MachineCredentialV1 credential = 1;
+  // THE ONLY PLACE RAW CREDENTIAL MATERIAL APPEARS IN THIS CONTRACT (0a §6.3,
+  // NN8 `:160`). Returned exactly once, on this response, with no read-back RPC
+  // and no recovery path. It is not on `MachineCredentialV1`, so it cannot ride
+  // along on a list, a get, an introspection, a fact, a log or an audit row —
+  // the field simply does not exist on the resource.
+  string plaintext_token_once = 2;
+}
+
+message RevokeMachineCredentialRequest {
+  string credential_id = 1;
+  optional string revoke_reason = 2;
+}
+
+message RevokeMachineCredentialResponse {
+  MachineCredentialV1 credential = 1;
+}
+
+message RevokeMachinePrincipalRequest {
+  string machine_principal_id = 1;
+  optional string revoke_reason = 2;
+}
+
+message RevokeMachinePrincipalResponse {
+  MachinePrincipalV1 principal = 1;
+  // Every credential the principal held, each now REVOKED. Returned so a caller
+  // can report exactly what it just invalidated rather than inferring it.
+  repeated MachineCredentialV1 revoked_credentials = 2;
+}
+
+message GetCallerPrincipalRequest {}
+
+// J8.1's answer. Deliberately shaped so ONE SDK code path serves both caller
+// classes: `caller` is always present and always says which kind it is, and the
+// machine-only detail hangs off `machine_principal`, absent for a browser
+// session rather than zero-valued.
+message GetCallerPrincipalResponse {
+  PrincipalRefV1 caller = 1;
+  string tenant_id = 2;
+  string org_id = 3;
+  // Absent for a browser session. Present for a machine credential, carrying
+  // the ScopeSet the SDK needs in order to say "this token lacks
+  // `dataset:write`" BEFORE the run rather than after a failed one.
+  optional MachinePrincipalV1 machine_principal = 4;
+  // Which credential authorized THIS request. Absent for a browser session.
+  // This is what makes a revocation post-mortem possible: it answers "which key
+  // did the thing", not merely "which principal".
+  optional MachineCredentialV1 credential = 5;
+}
+// ---- end wave 50 lane A ----
+
+// ---- wave 50 lane B: externally executed mode (`PLAN:1969`, J8.5) ----
+//
+// The reserved candidate arm graduates. `ExternallyExecutedCandidateV1` and
+// `EVALUATION_CANDIDATE_KIND_V1_EXTERNALLY_EXECUTED` were declared in Phase 0a
+// (§4.3) rather than left as a numbering hole, and the states this plane
+// transitions through — `AWAITING_SUBMISSION`, `LEASE_EXPIRED`, `TIMED_OUT` —
+// were frozen in 0a §5.2 under non-negotiable 39 precisely so that shipping the
+// mode would need no contract change. It needs none: nothing below adds a field
+// to an existing message or a value to an existing enum.
+//
+// 0a §5.2 also says, verbatim, "The externally executed lease/submit RPCs are
+// not defined in 0a, but the states they will transition through are." The four
+// verbs are therefore minted here as recorded amendment `A-50B-1`; every other
+// axis of the surface — the customer question, the request budget, the class,
+// the cost class, the identity axis, the recovery state and the fixture prefix
+// — is fixed by 0a §7.2 row `J8.5` and is obeyed.
+//
+// R6/R7: no `Struct`, no `Value`. Case inputs and submitted outputs travel as
+// canonical JSON strings, the same representation `DatasetCaseV1` already uses
+// for `input_payload_json` and `expected_output_json`.
+
+// A customer runtime's fenced hold on a bounded set of prepared cases.
+//
+// `lease_id` is the storage's `lease_owner` and `lease_token` is its fence:
+// the same triple, on the same columns, that the server's own executor has used
+// since wave 48-HF. A lease is not a row of its own — it is materialised across
+// the cells it holds, which is what keeps one expiry authority instead of two.
+message ExternalCaseLeaseV1 {
+  string lease_id = 1;
+  // Opaque to the client and repeated on every renew, submit and release. A
+  // request carrying a stale token writes nothing.
+  string lease_token = 2;
+  google.protobuf.Timestamp expires_at = 3;
+  uint32 renewals_used = 4;
+  uint32 renewals_remaining = 5;
+  uint32 case_count = 6;
+}
+
+// One prepared cell handed to a customer runtime to execute.
+message LeasedEvaluationCaseV1 {
+  string cohort_key = 1;
+  string candidate_key = 2;
+  string case_revision_id = 3;
+  uint32 trial = 4;
+  // Repeated back on submission. A retry mints a new generation, and an output
+  // produced for the previous one is not evidence for this one.
+  int32 attempt_generation = 5;
+  // Canonical JSON, the same bytes the content digest binds.
+  optional string input_payload_json = 6;
+  optional string expected_output_json = 7;
+  // The runtime's own deadline for this cell. Past it, with no live lease, the
+  // cell reaches `EVALUATION_EXECUTION_STATE_V1_TIMED_OUT` — the frozen name
+  // whose comment reads "whose deadline was the work's".
+  google.protobuf.Timestamp submission_deadline_at = 8;
+}
+
+// What a runtime tried and could not do. A failure is evidence too: it is the
+// difference between "this candidate cannot answer this case" and silence.
+message ExternalCaseFailureV1 {
+  string code = 1;
+  string sanitized_message = 2;
+}
+
+// A submitter's own account of what its runtime spent.
+//
+// Tokens, latency and retries are folded into the run's ledger exactly as a
+// provider candidate's are. `reported_cost_micros` is CARRIED AND NEVER SUMMED:
+// this build did not buy the call and has no rate to price it with, and a
+// caller-declared figure entering the org's spend would let a caller write
+// their own bill. The capability cell publishes this as
+// `submitted_cost_is_priced = 0` rather than leaving a client to discover it.
+message ExternalCaseUsageV1 {
+  optional int64 input_tokens = 1;
+  optional int64 output_tokens = 2;
+  optional int64 total_tokens = 3;
+  optional int64 latency_micros = 4;
+  optional int32 retry_count = 5;
+  optional int64 reported_cost_micros = 6;
+}
+
+message ExternalCaseOutputV1 {
+  string cohort_key = 1;
+  string candidate_key = 2;
+  string case_revision_id = 3;
+  uint32 trial = 4;
+  int32 attempt_generation = 5;
+  oneof result {
+    // Canonical JSON. Bounded by `max_output_bytes`; refused above it with a
+    // typed per-case rejection, never truncated.
+    string output_payload_json = 6;
+    ExternalCaseFailureV1 failure = 7;
+  }
+  optional ExternalCaseUsageV1 usage = 8;
+}
+
+enum ExternalSubmissionAckKindV1 {
+  EXTERNAL_SUBMISSION_ACK_KIND_V1_UNSPECIFIED = 0;
+  EXTERNAL_SUBMISSION_ACK_KIND_V1_ACCEPTED = 1;
+  // The identical coordinate and generation was already submitted under a lease
+  // this caller holds. Convergence, not an error: a retried batch says this.
+  EXTERNAL_SUBMISSION_ACK_KIND_V1_ALREADY_SUBMITTED = 2;
+  EXTERNAL_SUBMISSION_ACK_KIND_V1_REJECTED = 3;
+}
+
+// One case's answer inside a batch. A malformed case never fails its batch —
+// the other forty-nine land, which is `PLAN:1928`'s partial-batch clause read
+// onto this surface.
+message ExternalCaseOutputAckV1 {
+  string cohort_key = 1;
+  string candidate_key = 2;
+  string case_revision_id = 3;
+  uint32 trial = 4;
+  ExternalSubmissionAckKindV1 kind = 5;
+  // The FROZEN execution state this coordinate is in as the server sees it.
+  // A submission whose lease died reads
+  // `EVALUATION_EXECUTION_STATE_V1_LEASE_EXPIRED` here — "reclaimable", which
+  // is exactly what the client should do next.
+  EvaluationExecutionStateV1 observed_state = 6;
+  // Present on `_REJECTED`. `stage` is always
+  // `EVALUATION_FAILURE_STAGE_V1_EXTERNAL_LEASE`, the stage 0a §5.3 froze for
+  // this plane and nothing has written until now.
+  optional EvaluationFailureV1 rejection = 7;
+}
+
+enum ExternalLeaseRefusalKindV1 {
+  EXTERNAL_LEASE_REFUSAL_KIND_V1_UNSPECIFIED = 0;
+  // The run is not in a state that can hand out work: not found, terminal, or
+  // cancellation requested.
+  EXTERNAL_LEASE_REFUSAL_KIND_V1_RUN_NOT_EXECUTABLE = 1;
+  // The named candidate exists but is not an externally executed one, or its
+  // frozen `runtime_key` is not the one this caller claims.
+  EXTERNAL_LEASE_REFUSAL_KIND_V1_CANDIDATE_NOT_EXTERNALLY_EXECUTED = 2;
+  // The fence is gone: unknown lease, or another holder has it now.
+  EXTERNAL_LEASE_REFUSAL_KIND_V1_LEASE_NOT_HELD = 3;
+  EXTERNAL_LEASE_REFUSAL_KIND_V1_LEASE_EXPIRED = 4;
+  EXTERNAL_LEASE_REFUSAL_KIND_V1_RENEWAL_BUDGET_EXHAUSTED = 5;
+  // A bound published on the capability cell was exceeded.
+  EXTERNAL_LEASE_REFUSAL_KIND_V1_BOUNDS_EXCEEDED = 6;
+  // The caller's principal lacks the scope this verb requires (NN44).
+  EXTERNAL_LEASE_REFUSAL_KIND_V1_SCOPE_MISSING = 7;
+}
+
+message ExternalLeaseRefusalV1 {
+  ExternalLeaseRefusalKindV1 kind = 1;
+  string message = 2;
+  // Names the missing scope, never the scopes the caller has.
+  optional string missing_scope = 3;
+  optional RecoveryActionV1 recovery = 4;
+}
+
+message LeaseEvaluationCasesRequest {
+  string evaluation_run_id = 1;
+  string candidate_key = 2;
+  // Must equal the `runtime_key` the launch froze on this candidate. A runtime
+  // answering for a candidate it does not implement is a configuration error
+  // the server can see and the customer cannot.
+  string runtime_key = 3;
+  // 0 means the server default. Clamped to `max_cases_per_lease`.
+  uint32 max_cases = 4;
+  // 0 means the candidate's own `lease_policy.lease_ttl_seconds`. Clamped to
+  // [`min_lease_seconds`, `max_lease_seconds`].
+  uint32 lease_seconds = 5;
+}
+
+message LeaseEvaluationCasesResponse {
+  // ABSENT means nothing was claimable. That is the "you are done" answer and
+  // it is not an error: `remaining_unleased_case_count` says whether the work
+  // is finished or merely held by another runtime.
+  optional ExternalCaseLeaseV1 lease = 1;
+  repeated LeasedEvaluationCaseV1 cases = 2;
+  uint32 remaining_unleased_case_count = 3;
+  optional ExternalLeaseRefusalV1 refusal = 4;
+  AgenticEvaluationCapabilitiesV1 capabilities = 5;
+  EvaluationFreshnessV1 freshness = 6;
+}
+
+message RenewEvaluationCaseLeaseRequest {
+  string evaluation_run_id = 1;
+  string lease_id = 2;
+  string lease_token = 3;
+  uint32 lease_seconds = 4;
+}
+
+message RenewEvaluationCaseLeaseResponse {
+  optional ExternalCaseLeaseV1 lease = 1;
+  optional ExternalLeaseRefusalV1 refusal = 2;
+  AgenticEvaluationCapabilitiesV1 capabilities = 3;
+}
+
+message SubmitEvaluationCaseOutputsRequest {
+  string evaluation_run_id = 1;
+  string lease_id = 2;
+  string lease_token = 3;
+  repeated ExternalCaseOutputV1 outputs = 4;
+  // Convergence is fenced by lease identity and keyed by coordinate, so this is
+  // audit provenance rather than the dedupe key. Bounded like every other
+  // idempotency key on this surface.
+  string idempotency_key = 5;
+}
+
+message SubmitEvaluationCaseOutputsResponse {
+  repeated ExternalCaseOutputAckV1 acks = 1;
+  uint32 accepted_count = 2;
+  uint32 already_submitted_count = 3;
+  uint32 rejected_count = 4;
+  // The lease as it stands after this batch — remaining life and how many cases
+  // it still holds. Absent when the batch emptied it.
+  optional ExternalCaseLeaseV1 lease = 5;
+  uint32 remaining_leased_case_count = 6;
+  // A WHOLE-REQUEST refusal: the fence was lost, so no per-case answer is
+  // meaningful. Never set alongside acks.
+  optional ExternalLeaseRefusalV1 refusal = 7;
+  AgenticEvaluationCapabilitiesV1 capabilities = 8;
+}
+
+message ReleaseEvaluationCaseLeaseRequest {
+  string evaluation_run_id = 1;
+  string lease_id = 2;
+  string lease_token = 3;
+}
+
+message ReleaseEvaluationCaseLeaseResponse {
+  uint32 released_case_count = 1;
+  optional ExternalLeaseRefusalV1 refusal = 2;
+  AgenticEvaluationCapabilitiesV1 capabilities = 3;
+}
+// ---- end wave 50 lane B ----
+// ---- wave 50 lane C: the platform-annotations plane ----
+//
+// APPROVED BY THE OPERATOR ON 2026-09-05 over an OTLP ridealong, with the
+// reason recorded verbatim in the TRACK T1 charter: the annotations plane
+// "matters slightly more and the lifetime is definitely beyond the regular
+// telemetry lifecycle". Read that as the design brief, because it is:
+//
+//   * the plane has its OWN retention class (730 days by default), explicitly
+//     not the telemetry window — see `platform_annotations_retention_days`;
+//   * links to releases, evaluation runs, agent runs and traces are validated
+//     for SHAPE and never for EXISTENCE, because a marker outliving the trace
+//     it points at is the NORMAL end state of a plane with a longer window,
+//     not an error (increment record §0.5);
+//   * an annotation stores identities, refs, a bounded title and bounded
+//     attributes. Never a payload body (NN24, `PLAN:190`). There is no column
+//     one could be written into, which is how NN24 is held here.
+//
+// Everything in this block is NEW. No field is added to any existing message,
+// so this lane shares no field-numbering surface with lanes A or B.
+
+// What an annotation IS. Three kinds and no fourth; a fourth is a wire change
+// and a capability bump, which is the point of a closed enum here.
+enum PlatformAnnotationKindV1 {
+  // NOT a real state, and the contrast with `ReleaseObservationConfidenceV1`
+  // (wave 49 lane A) is deliberate: there, `_UNSPECIFIED` means "no correlation
+  // was performed", which is the truth for every row written before the field
+  // existed. Here there is no such truth. An annotation with no kind was never
+  // recorded, because the write refuses it. This value exists only because
+  // proto3 requires a zero, and a write carrying it is answered identically to
+  // a discriminant this build has never heard of.
+  PLATFORM_ANNOTATION_KIND_V1_UNSPECIFIED = 0;
+  // A deployment happened. The reason the plane exists.
+  PLATFORM_ANNOTATION_KIND_V1_DEPLOYMENT = 1;
+  // A point in time worth remembering that is not a deployment.
+  PLATFORM_ANNOTATION_KIND_V1_MARKER = 2;
+  // A window worth remembering — an incident, an experiment, a regression.
+  // Typically the only kind that carries an `end_at`, though nothing forces it.
+  PLATFORM_ANNOTATION_KIND_V1_HIGHLIGHT = 3;
+}
+
+// What an annotation may point AT. Closed, because an open link kind is an
+// untyped string and an untyped string is where payloads start arriving.
+enum PlatformAnnotationLinkKindV1 {
+  PLATFORM_ANNOTATION_LINK_KIND_V1_UNSPECIFIED = 0;
+  PLATFORM_ANNOTATION_LINK_KIND_V1_RELEASE = 1;
+  PLATFORM_ANNOTATION_LINK_KIND_V1_EVALUATION_RUN = 2;
+  PLATFORM_ANNOTATION_LINK_KIND_V1_AGENT_RUN = 3;
+  PLATFORM_ANNOTATION_LINK_KIND_V1_TRACE = 4;
+}
+
+// One typed reference.
+//
+// NOT RESOLVED AT WRITE, and this is a decision rather than an omission
+// (increment record §0.5). Three reasons, shortest first: resolving is a
+// cross-plane read on the write path, so a constant-cost insert becomes one
+// that varies with the link count; a trace id does not resolve in Postgres at
+// all; and — the one that settles it — this plane keeps its rows for 730 days
+// while a trace keeps its for thirty, so a link that was valid when written and
+// dangling when read is the DESIGNED end state. Validating at write would buy a
+// guarantee with a known expiry date and then have to be un-checked at read.
+//
+// A reader resolves it and renders a typed absence. The capability cell says so
+// out loud with `link_existence_validated = 0`, so an SDK does not report a
+// data-integrity bug when it meets one.
+message PlatformAnnotationLinkV1 {
+  PlatformAnnotationLinkKindV1 kind = 1;
+  // An identity. Never a URL, never a body, byte-capped (NN24).
+  string ref = 2;
+}
+
+// One bounded key/value. Both halves are byte-capped and the count is capped;
+// the whole map is capped again in the database. NN24 admits "identities,
+// states, leases, compact typed errors, timestamps, and fact/artifact
+// references" and this is the "short strings" end of that list, not a place to
+// put a request body.
+message PlatformAnnotationAttributeV1 {
+  string key = 1;
+  string value = 2;
+}
+
+message PlatformAnnotationV1 {
+  string annotation_id = 1;
+  string org_id = 2;
+  PlatformAnnotationKindV1 kind = 3;
+  string title = 4;
+  google.protobuf.Timestamp start_at = 5;
+  // ABSENT MEANS AN INSTANT. This is a `start` plus an optional `end` and not a
+  // `oneof{instant, range}` on purpose (increment record §0.4). An instant IS a
+  // range whose end is absent; a `oneof` would assert they are different kinds
+  // of thing and then make every consumer write the same two-arm switch to
+  // conclude that they are not. It also keeps the window-overlap read to ONE
+  // predicate, which is what lets the list publish a constant statement budget.
+  //
+  // A renderer draws a line when this is absent and a band when it is present —
+  // the same discriminator a `oneof` would have given it, at no schema cost.
+  //
+  // `end_at < start_at` is refused by the database, not by a handler rule.
+  optional google.protobuf.Timestamp end_at = 6;
+  repeated PlatformAnnotationAttributeV1 attributes = 7;
+  repeated PlatformAnnotationLinkV1 links = 8;
+  // Machine or user. Read attribution from HERE and never from a legacy
+  // `created_by_user_id` (wave 50 lane A, `w50a-auth-shape.md` §4): a marker
+  // written by a CI runner has no user, and a user id invented for it would be
+  // a fabricated identity.
+  PrincipalRefV1 recorded_by = 9;
+  google.protobuf.Timestamp recorded_at = 10;
+  // Echoed so a retrying CI job can match the response to the request it
+  // replayed without holding state across the retry.
+  string idempotency_key = 11;
+}
+
+// Why a write was refused.
+//
+// `_IDEMPOTENCY_KEY_REUSED` is the one worth reading twice: a key alone cannot
+// tell a retry from a DIFFERENT request wearing the same key (`PLAN:1757`, the
+// release-action plane's lesson), so the row also carries a normalized request
+// digest and a key presented with different content is refused rather than
+// silently answered with the row that is already there.
+enum PlatformAnnotationRejectionReasonV1 {
+  PLATFORM_ANNOTATION_REJECTION_REASON_V1_UNSPECIFIED = 0;
+  PLATFORM_ANNOTATION_REJECTION_REASON_V1_KIND_UNKNOWN = 1;
+  PLATFORM_ANNOTATION_REJECTION_REASON_V1_TITLE_TOO_LARGE = 2;
+  PLATFORM_ANNOTATION_REJECTION_REASON_V1_ATTRIBUTE_TOO_LARGE = 3;
+  PLATFORM_ANNOTATION_REJECTION_REASON_V1_TOO_MANY_ATTRIBUTES = 4;
+  PLATFORM_ANNOTATION_REJECTION_REASON_V1_TOO_MANY_LINKS = 5;
+  PLATFORM_ANNOTATION_REJECTION_REASON_V1_LINK_REF_TOO_LARGE = 6;
+  PLATFORM_ANNOTATION_REJECTION_REASON_V1_RANGE_INVERTED = 7;
+  PLATFORM_ANNOTATION_REJECTION_REASON_V1_IDEMPOTENCY_KEY_REUSED = 8;
+  // 9 is UNUSED, and deliberately left unused rather than filled.
+  //
+  // This lane's pre-code plan reserved it for `_SCOPE_MISSING`. It is not minted,
+  // because nothing can produce it: wave 50 lane A answers the authority question
+  // centrally, in `authorize_machine_caller` inside `resolve_scope`, BEFORE this
+  // plane's handler is entered, and that refusal is a bare `PERMISSION_DENIED`
+  // whose message names the missing scope in prose and carries no typed detail.
+  // A reason code no code path emits would be a contract that lies.
+  //
+  // Docket `W50C-3` is the typed detail that refusal does not yet carry. When it
+  // lands it is lane A's message, not this one's, and 9 stays free.
+  PLATFORM_ANNOTATION_REJECTION_REASON_V1_WINDOW_INVALID = 10;
+}
+
+// The typed detail, carried on the `grpc-status-details-bin` envelope through
+// `status_details.rs` — the same shape the five shipped `...RejectionV1` types
+// use, and the reason a refusal can be a byte-exact fixture at all: the fixture
+// records THIS message as its response, not the RPC's response type.
+message PlatformAnnotationRejectionV1 {
+  PlatformAnnotationRejectionReasonV1 reason = 1;
+  // The field that was refused, so a robot need not parse prose.
+  optional string field = 2;
+  // The bound that was exceeded, so a caller corrects without a round trip —
+  // the shape wave 48 established on `ProductionRulePreviewRefusalV1`.
+  optional int64 limit_value = 3;
+  // 4 is UNUSED. It held `required_scope`, for a `_SCOPE_MISSING` this build
+  // cannot produce -- see the reason enum's note on 9 and docket `W50C-3`.
+  //
+  // On `_KIND_UNKNOWN`: the kinds this build DOES support, so a newer runner
+  // downgrades to `_MARKER` instead of dropping the annotation. The capability
+  // envelope on the response carries the count; this carries the names.
+  repeated PlatformAnnotationKindV1 supported_kinds = 5;
+}
+
+// `MUTATION_ACK` (A4 S4).
+message RecordPlatformAnnotationRequest {
+  PlatformAnnotationKindV1 kind = 1;
+  string title = 2;
+  google.protobuf.Timestamp start_at = 3;
+  // Absent for an instant. See `PlatformAnnotationV1.end_at`.
+  optional google.protobuf.Timestamp end_at = 4;
+  repeated PlatformAnnotationAttributeV1 attributes = 5;
+  repeated PlatformAnnotationLinkV1 links = 6;
+  // Required. A CI job that retries must not create a second marker.
+  string idempotency_key = 7;
+}
+
+message RecordPlatformAnnotationResponse {
+  PlatformAnnotationV1 annotation = 1;
+  // True when this call matched an existing key AND digest. A retry is a
+  // success, and it is a success the caller can tell apart from a first write.
+  bool idempotent_replay = 2;
+  AgenticEvaluationCapabilitiesV1 capabilities = 3;
+}
+
+// `INITIAL_PAGE` (A4 S8).
+message ListPlatformAnnotationsRequest {
+  // Inclusive. An annotation OVERLAPPING the window is returned, which for a
+  // range means it may have started before `window_start`.
+  google.protobuf.Timestamp window_start = 1;
+  // Exclusive.
+  google.protobuf.Timestamp window_end = 2;
+  // Empty means every kind. `_UNSPECIFIED` INSIDE it is refused rather than
+  // ignored: a filter that silently drops a term returns a page the caller
+  // believes is filtered one way and is filtered another.
+  repeated PlatformAnnotationKindV1 kinds = 3;
+  o11y_one.common.v1.PageRequestV1 page = 4;
+}
+
+message ListPlatformAnnotationsResponse {
+  // Newest first, by `start_at` then by id.
+  repeated PlatformAnnotationV1 annotations = 1;
+  o11y_one.common.v1.PageResponseV1 page = 2;
+  AgenticEvaluationCapabilitiesV1 capabilities = 3;
+  // A cursor this build cannot honour returns a typed resync directive with an
+  // empty page, never a transport error carrying prose.
+  optional EvaluationCursorResyncV1 resync = 4;
+  // NOTE — there is deliberately NO `EvaluationFreshnessV1` here, unlike the
+  // other list responses on this service. This read touches no projection and
+  // no fact plane; every field of a freshness block would be a zero or an
+  // absence, and `EvaluationFreshnessV1.facts_watermark`'s own comment names
+  // that shape as "the shape of every instrumentation lie this contract exists
+  // to prevent". An absent block is the honest answer.
+}
+// ---- end wave 50 lane C ----
+
+// ===========================================================================
+// Wave 52 lane B — the scorer library
+//
+// `05-scorers.md` §2 records three ABSENT rows on this surface — no v2 list, no
+// update/archive/delete, no suite list/get/archive — and `17-judge-authoring-v2.md`
+// §8.1 records a fourth and calls it "the largest gap on this page": an authored
+// judge cannot be read back. §9 question 1 of that document puts the ruling to
+// the backend in as many words, and this block is the answer.
+//
+// NOTHING here changes execution, the launch freeze, pricing, a published
+// refusal, or an existing field number. `CreateEvaluationScorerConfigResponse`
+// is byte-identical before and after: the full read-back lives on its OWN
+// message so that acknowledgement's documented narrowing stays true.
+// ===========================================================================
+
+// Which archived posture a library page wants.
+//
+// `UNSPECIFIED` behaves as `ACTIVE_ONLY`, which is the picker's own default and
+// therefore what a client that sends nothing already expects. It is stated
+// rather than left to be discovered, because a filter whose zero value silently
+// hides rows is how an inventory page becomes a sample.
+enum EvaluationScorerArchivedFilterV1 {
+  EVALUATION_SCORER_ARCHIVED_FILTER_V1_UNSPECIFIED = 0;
+  EVALUATION_SCORER_ARCHIVED_FILTER_V1_ACTIVE_ONLY = 1;
+  EVALUATION_SCORER_ARCHIVED_FILTER_V1_ARCHIVED_ONLY = 2;
+  EVALUATION_SCORER_ARCHIVED_FILTER_V1_ALL = 3;
+}
+
+// One library row.
+//
+// NN24: identity, state, counts, timestamps and references. **No rubric.** A
+// judge's instruction text is bounded at 8 KiB and a fifty-row page carrying
+// fifty of them is a payload on a list, which is the shape
+// `EvaluationDefinitionRevisionSummaryV1` avoids by carrying `draft_byte_size`
+// instead of the draft. The rubric is on the DETAIL read and nowhere else.
+message EvaluationScorerConfigSummaryV1 {
+  string score_config_id = 1;
+  string config_key = 2;
+  string name = 3;
+  optional string description = 4;
+  string metric_name = 5;
+  // Authored on a configuration created through `CreateEvaluationScorerConfig`;
+  // absent on one that predates it, because that row has no such column and
+  // deriving it from the metric name here would invent an authorship.
+  optional string success_dimension = 6;
+  // `UNSPECIFIED` is a REAL ANSWER and means a scorer authored outside
+  // `CreateEvaluationScorerConfig` — the same meaning it carries on
+  // `EvaluationBuilderScorerChoiceV1.kind`. It is not "unknown".
+  EvaluationScorerKindV1 kind = 7;
+  // Absent for the same reason `success_dimension` is: only the v2 authoring
+  // record carries a discriminator in the `v{n}` vocabulary. A legacy row's
+  // `updated_at` micros are not a version and are not published as one.
+  optional string version_discriminator = 8;
+  // `v{n}` implies `n + 1` versions, because the mint is dense: wave 31 lane A
+  // writes `v0` on first authorship and `v{n+1}` on each revision, and every one
+  // leaves an `evaluator_templates` row behind.
+  uint32 version_count = 9;
+  // `NOT_SUPPORTED` with `scorer_version_discriminator_unparsed` when the
+  // discriminator is absent or does not read as `v{n}` — which is exactly what
+  // a not-v2-authored scorer looks like. Missing is not zero.
+  MetricAvailabilityV1 version_count_availability = 10;
+  optional double weight = 11;
+  bool is_blocking_gate = 12;
+  bool is_archived = 13;
+  optional google.protobuf.Timestamp archived_at = 14;
+  // TRUE when a row exists in the v2 authoring record. FALSE means the scorer is
+  // real, runnable and freezable, and was written by the legacy control plane —
+  // dropping it from this list would hide a scorer a run can perfectly well
+  // pin, which is the defect the builder context's LEFT JOIN already avoids.
+  bool authored_on_this_surface = 15;
+  google.protobuf.Timestamp created_at = 16;
+  google.protobuf.Timestamp updated_at = 17;
+  // Present exactly when the row records a user. `CreateEvaluationScorerConfig`
+  // is NOT on the machine surface (`required_scope` returns `None`, which is a
+  // refusal), so a recorded creator here is provably a user rather than a user
+  // by convention. ABSENT, never `UNSPECIFIED` with a bare uuid: the unkinded
+  // UUID is the shape wave 50 lane A's principal-kind column pair exists to
+  // stop.
+  optional PrincipalRefV1 created_by = 18;
+  // NOTE — there is deliberately no `updated_by`. The authoring record carries
+  // `updated_at` and no updater column, and inventing one from `created_by`
+  // would attribute a revision to whoever authored `v0`.
+}
+
+message ListEvaluationScorerConfigsRequest {
+  o11y_one.common.v1.PageRequestV1 page = 1;
+  // Empty admits every kind. A list containing `UNSPECIFIED` selects exactly the
+  // scorers authored outside this surface, which is a question an operator
+  // migrating off the legacy plane actually asks — and it is why the filter is
+  // repeated rather than a single optional field whose zero value would have to
+  // mean both "no filter" and "that kind".
+  repeated EvaluationScorerKindV1 kind_filter = 2;
+  optional EvaluationScorerArchivedFilterV1 archived_filter = 3;
+}
+
+message ListEvaluationScorerConfigsResponse {
+  repeated EvaluationScorerConfigSummaryV1 scorer_configs = 1;
+  o11y_one.common.v1.PageResponseV1 page = 2;
+  EvaluationFreshnessV1 freshness = 3;
+  AgenticEvaluationCapabilitiesV1 capabilities = 4;
+  // A cursor this build cannot honour returns a typed resync with an empty page,
+  // never a transport error carrying prose.
+  optional EvaluationCursorResyncV1 resync = 5;
+}
+
+// Exactly the four request settings that reach a provider.
+//
+// NOT `ProviderRequestSettingsV1`. That message has twenty-eight fields and
+// `execution::request_params_json` stores four of them; returning the
+// twenty-eight-field message with four filled would assert twenty-four
+// absences the storage never recorded. A four-field message named *effective*
+// says what is true: these are what the judge will be called with.
+message EvaluationScorerJudgeEffectiveSettingsV1 {
+  optional uint32 max_output_tokens = 1;
+  optional double temperature = 2;
+  optional double top_p = 3;
+  optional string anthropic_version = 4;
+}
+
+// What will actually execute, resolved.
+//
+// NOT `EvaluationScorerJudgeProviderExecutionV1`. That message carries the typed
+// `ProviderModelRefV1` the caller SENT, and wave 45 declined to reconstruct it
+// on the acknowledgement because "a round trip through two string tables could
+// land on a different catalog entry than the one the caller sent". That argument
+// is correct and this message does not overturn it — it answers a DIFFERENT
+// question. Every field below is read from the same
+// `evaluator_templates.provider_execution` document `execution::resolve_judge`
+// reads at attempt time, so what a client renders here is what the run will do.
+message EvaluationScorerJudgeResolvedExecutionV1 {
+  ProviderNameV1 provider = 1;
+  // The resolved catalog model id, as the executor reads it.
+  string model_id = 2;
+  // BY REFERENCE. Material never appears in this contract (non-negotiable 8).
+  // Unverified at authoring time and still unverified here — docket `W45A-1` is
+  // not closed by a read.
+  string credential_ref = 3;
+  optional string provider_endpoint_ref = 4;
+  // ONE BIT, and not `ProviderReasoningEffortV1`. The five-arm enum the create
+  // accepts is rendered to `reasoning_enabled` or `disabled` at authoring time
+  // and the executor has only ever compared that one string. Publishing five
+  // steps here would invent four states no row ever held.
+  bool reasoning_enabled = 5;
+  optional EvaluationScorerJudgeEffectiveSettingsV1 effective_request_settings = 6;
+}
+
+// A judge's authored content, WHOLE.
+//
+// The three fields `17` §8.1 names as unreachable — `instructions`,
+// `verdict_mappings`, `subject_path` — have been written to
+// `evaluator_templates.config` on every authorship since wave 45 and read by
+// nothing. They are read here.
+//
+// Note what an EMPTY `verdict_mappings` means on THIS message: none were
+// authored. On `EvaluationScorerConfigV1.judge` the same emptiness means "not
+// echoed", which is why that message is not reused. Read `17` §8.3 before
+// rendering the mappings: a configured mapping wins outright, so a mapping table
+// beside a rubric that never names the labels is a run where every cell errors
+// at full cost.
+message EvaluationScorerJudgeDetailV1 {
+  EvaluationScorerJudgeRubricV1 rubric_content = 1;
+  // Absent only on a row whose judge block predates the columns that carry it,
+  // which no v2-authored judge has: the storage `CHECK` moves the three judge
+  // columns together or not at all.
+  optional EvaluationScorerJudgeResolvedExecutionV1 provider_execution = 2;
+  // Absent on a HISTORIC version. The threshold lives on `score_configs` and the
+  // revision path updates it in place, so only the current version's is
+  // knowable. See `EvaluationScorerConfigVersionV1`.
+  optional double pass_threshold = 3;
+}
+
+// One authored scorer, whole.
+//
+// Its OWN message rather than a reuse of `EvaluationScorerConfigV1`, for the
+// reason `EvaluationScorerSuiteSnapshotV1` is its own message. The
+// acknowledgement message is documented to NARROW a judge to `rubric` and
+// `pass_threshold`, so a client reading an empty `verdict_mappings` off it has
+// learned "not echoed". Reading the same emptiness off a full read must mean
+// "none authored". One message cannot carry both meanings without the meaning
+// depending on which verb produced it.
+message EvaluationScorerConfigDetailV1 {
+  string score_config_id = 1;
+  string config_key = 2;
+  // PER-VERSION. `insert_evaluator_template` writes the authored name onto the
+  // evaluator-template row at mint, so a superseded version's name is its own
+  // and this field is present at every version.
+  string name = 3;
+  // ABSENT on a HISTORIC version, and so are `metric_name` and
+  // `pass_threshold`. All three live on `score_configs`, which the revision path
+  // UPDATES IN PLACE, so the values a superseded version was authored with are
+  // stored nowhere. An empty string here would be indistinguishable from a
+  // scorer that was authored without one.
+  optional string description = 4;
+  optional string metric_name = 5;
+  optional string success_dimension = 6;
+  EvaluationScorerKindV1 kind = 7;
+  optional string version_discriminator = 8;
+  optional double weight = 9;
+  bool is_blocking_gate = 10;
+  bool is_archived = 11;
+  optional google.protobuf.Timestamp archived_at = 12;
+  // Present exactly when `kind` is DETERMINISTIC.
+  optional EvaluationScorerDeterministicSpecV1 deterministic = 13;
+  // Present exactly when `kind` is HUMAN. Recorded and read back; per-scorer
+  // ENFORCEMENT is still run-scoped in this build, and reading it back does not
+  // change that.
+  optional EvaluationScorerReviewPolicySpecV1 review_policy = 14;
+  // Present exactly when `kind` is LLM_JUDGE.
+  optional EvaluationScorerJudgeDetailV1 judge = 15;
+  // Absent on a HISTORIC version, present on the current one. See field 8 of
+  // `EvaluationScorerConfigVersionV1` for why.
+  optional double pass_threshold = 16;
+  bool authored_on_this_surface = 17;
+  uint32 version_count = 18;
+  MetricAvailabilityV1 version_count_availability = 19;
+  // The evaluator template this version reads. The id `EvaluationScorerJudgeTemplateRefV1`
+  // would name if another scorer copied from it.
+  string evaluator_template_id = 20;
+  google.protobuf.Timestamp created_at = 21;
+  google.protobuf.Timestamp updated_at = 22;
+  optional PrincipalRefV1 created_by = 23;
+  // THE CONFLICT IDENTITY, and the same one the edit path guards on.
+  //
+  // `CreateEvaluationScorerConfig` on this `config_key` refuses `PINNED_BY_RUN`
+  // when this count is non-zero. Publishing it here lets a revise form predict
+  // the refusal instead of meeting it. `pinned_run_count` is the true count;
+  // `pinned_run_id` is bounded by the same `max_named_pinned_runs` the authoring
+  // cell publishes and may be shorter.
+  uint32 pinned_run_count = 24;
+  repeated string pinned_run_id = 25;
+}
+
+// Who depends on this scorer.
+//
+// `05` §8 calls this "the single most valuable missing read on this surface"
+// (J4 step 6, A2 `J4.4`'s `G24`). TWO halves are derivable on indexes that
+// already exist and TWO are not, and the two that are not say so by name rather
+// than returning an empty list. NN5: missing is not zero, and "nothing uses this
+// scorer" is the one wrong answer that gets a scorer deleted.
+message EvaluationScorerConfigUsageV1 {
+  // DERIVED — `idx_evaluation_scorer_suite_members_config`.
+  repeated EvaluationScorerSuiteRefV1 suite = 1;
+  uint32 suite_count = 2;
+  MetricAvailabilityV1 suite_availability = 3;
+
+  // DERIVED — `idx_evaluation_run_pinned_scorer_configs_lookup`, the pin guard's
+  // own read. The true count, with the ids bounded exactly as the refusal bounds
+  // them.
+  uint32 pinned_run_count = 4;
+  repeated string pinned_run_id = 5;
+  MetricAvailabilityV1 pinned_run_availability = 6;
+
+  // NOT DERIVABLE — `NOT_SUPPORTED` / `definition_scorecard_not_projected`.
+  // A definition's scorecard lives inside
+  // `evaluation_definition_revisions.draft_proto`: a BYTEA holding an encoded
+  // `EvaluationDefinitionV1`. Answering this means decoding every revision in
+  // the organisation, which is a projection this build does not have. The count
+  // beside it is 0 and the availability is what says why.
+  uint32 definition_count = 7;
+  MetricAvailabilityV1 definition_availability = 8;
+
+  // NOT DERIVABLE — `NOT_SUPPORTED` / `production_rule_scorer_reference_not_indexed`.
+  // `evaluation_production_rule_versions.score_config_id` carries no index, and
+  // a scan of every rule version in the organisation is not a read a detail page
+  // may issue. Note that the production-rule plane does NOT need this read to
+  // stay correct: it maintains its own dependency rows and disables a dependent
+  // version with `dependency_archived` on its own clock.
+  uint32 production_rule_count = 9;
+  MetricAvailabilityV1 production_rule_availability = 10;
+}
+
+message EvaluationScorerSuiteRefV1 {
+  string scorer_suite_id = 1;
+  string suite_key = 2;
+  bool is_archived = 3;
+  // The posture THIS suite gives the scorer, which is per-suite and not read off
+  // the configuration.
+  bool is_blocking_gate = 4;
+  optional double weight = 5;
+}
+
+message GetEvaluationScorerConfigRequest {
+  // Exactly one. A key is what an author remembers; an id is what a list row
+  // carries.
+  oneof identity {
+    string score_config_id = 1;
+    string config_key = 2;
+  }
+  // Absent reads the CURRENT version. Present reads that version's evaluator
+  // template row, which no writer on this surface ever rewrites: a revision
+  // mints a fresh template rather than mutating the old one, precisely so a
+  // pinned run's snapshot keeps quoting what it measured.
+  optional string version_discriminator = 3;
+}
+
+message GetEvaluationScorerConfigResponse {
+  EvaluationScorerConfigDetailV1 scorer_config = 1;
+  // Absent when a historic version was addressed: the usage halves answer "what
+  // depends on this scorer", which is a fact about the configuration and not
+  // about one of its versions.
+  optional EvaluationScorerConfigUsageV1 usage = 2;
+  EvaluationFreshnessV1 freshness = 3;
+  AgenticEvaluationCapabilitiesV1 capabilities = 4;
+}
+
+// One version of a scorer.
+//
+// The `scorer:{config_key}:{version}` evaluator-template rows ARE the history:
+// wave 31 lane A mints one per authorship and per revision, they are UNIQUE per
+// tenant, and a revision mints rather than mutates. `05` §8's "No RPC lists
+// scorer versions" was true; "not derivable" was not.
+message EvaluationScorerConfigVersionV1 {
+  string evaluator_template_id = 1;
+  string version_discriminator = 2;
+  // PER-VERSION, because `insert_evaluator_template` writes the authored name
+  // onto the template row at mint.
+  string name = 3;
+  string evaluator_kind = 4;
+  string execution_mode = 5;
+  bool is_current = 6;
+  // The authored rubric's size, not the rubric. A version list is a list (NN24),
+  // and a byte count answers "did the rubric change between v2 and v3" without
+  // moving 8 KiB per row. Zero on a non-judge version.
+  uint32 rubric_bytes = 7;
+  uint32 verdict_mapping_count = 8;
+  google.protobuf.Timestamp created_at = 9;
+  optional PrincipalRefV1 created_by = 10;
+  // NOTE — `pass_threshold`, `metric_name` and `description` are deliberately
+  // ABSENT from this message at every version. All three live on
+  // `score_configs`, which the revision path UPDATES IN PLACE, so the values a
+  // superseded version was authored with are not stored anywhere. The threshold
+  // a RUN measured against is in that run's frozen manifest. Publishing the
+  // current row's value beside a historic version would be the one lie a
+  // version history must not tell.
+}
+
+message ListEvaluationScorerConfigVersionsRequest {
+  oneof identity {
+    string score_config_id = 1;
+    string config_key = 2;
+  }
+  o11y_one.common.v1.PageRequestV1 page = 3;
+}
+
+message ListEvaluationScorerConfigVersionsResponse {
+  // Newest first.
+  repeated EvaluationScorerConfigVersionV1 versions = 1;
+  o11y_one.common.v1.PageResponseV1 page = 2;
+  // `NOT_SUPPORTED` / `scorer_version_discriminator_unparsed` when the current
+  // discriminator does not read as `v{n}` — the shape a not-v2-authored scorer
+  // has. The list then carries the current version alone rather than guessing a
+  // range.
+  MetricAvailabilityV1 history_availability = 3;
+  EvaluationFreshnessV1 freshness = 4;
+  AgenticEvaluationCapabilitiesV1 capabilities = 5;
+  optional EvaluationCursorResyncV1 resync = 6;
+}
+
+message EvaluationScorerSuiteSummaryV1 {
+  string scorer_suite_id = 1;
+  string suite_key = 2;
+  string name = 3;
+  string version_discriminator = 4;
+  EvaluationScorerSuiteCombineRuleV1 combine_rule = 5;
+  uint32 member_count = 6;
+  uint32 blocking_gate_count = 7;
+  // How many members are themselves archived. A suite whose gate is retired
+  // still launches — and then blocks on `scorer_archived`, one dependency at a
+  // time. This count is what lets a list say so before that happens.
+  uint32 archived_member_count = 8;
+  bool is_archived = 9;
+  optional google.protobuf.Timestamp archived_at = 10;
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
+  optional PrincipalRefV1 created_by = 13;
+}
+
+// A suite member WITH its own posture.
+//
+// A new message beside `EvaluationScorerSuiteMemberV1` and not a widening of it:
+// that one is embedded in `EvaluationScorerSuiteSnapshotV1`, which "must never
+// gain a field that moves", and `is_archived` is exactly a field that moves.
+message EvaluationScorerSuiteMemberDetailV1 {
+  string score_config_id = 1;
+  string config_key = 2;
+  string name = 3;
+  // `UNSPECIFIED` means a member authored outside this surface, which is
+  // admissible and freezable.
+  EvaluationScorerKindV1 kind = 4;
+  optional string version_discriminator = 5;
+  // The weight and gate posture THIS suite gives it. Absent weight is 1.0 at
+  // combine time; ignored entirely for a blocking gate, which is adjudicated
+  // rather than averaged.
+  optional double weight = 6;
+  bool is_blocking_gate = 7;
+  // The MEMBER's own posture, not the suite's. A launch that resolves this suite
+  // will raise `MISSING_DEPENDENCY` / `scorer_archived` for it.
+  bool is_archived = 8;
+  bool authored_on_this_surface = 9;
+}
+
+message EvaluationScorerSuiteDetailV1 {
+  string scorer_suite_id = 1;
+  string suite_key = 2;
+  string name = 3;
+  string version_discriminator = 4;
+  EvaluationScorerSuiteCombineRuleV1 combine_rule = 5;
+  // In AUTHOR order, which is the order the suite was written in and not the
+  // order a uuid sorts.
+  repeated EvaluationScorerSuiteMemberDetailV1 members = 6;
+  bool is_archived = 7;
+  optional google.protobuf.Timestamp archived_at = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+  optional PrincipalRefV1 created_by = 11;
+  // `NOT_SUPPORTED` / `suite_revisions_are_not_retained`, always, in this build.
+  //
+  // Unlike a scorer configuration — whose every version leaves an
+  // `evaluator_templates` row behind — a suite re-author UPDATES the row in
+  // place and REPLACES the membership. `version_discriminator` is therefore a
+  // monotone counter with no history behind it, and "show me v2 of this suite"
+  // has no answer. Stated here rather than discovered from an empty list.
+  MetricAvailabilityV1 revision_history_availability = 12;
+}
+
+message ListEvaluationScorerSuitesRequest {
+  o11y_one.common.v1.PageRequestV1 page = 1;
+  optional EvaluationScorerArchivedFilterV1 archived_filter = 2;
+}
+
+message ListEvaluationScorerSuitesResponse {
+  repeated EvaluationScorerSuiteSummaryV1 scorer_suites = 1;
+  o11y_one.common.v1.PageResponseV1 page = 2;
+  EvaluationFreshnessV1 freshness = 3;
+  AgenticEvaluationCapabilitiesV1 capabilities = 4;
+  optional EvaluationCursorResyncV1 resync = 5;
+}
+
+message GetEvaluationScorerSuiteRequest {
+  oneof identity {
+    string scorer_suite_id = 1;
+    string suite_key = 2;
+  }
+}
+
+message GetEvaluationScorerSuiteResponse {
+  EvaluationScorerSuiteDetailV1 scorer_suite = 1;
+  EvaluationFreshnessV1 freshness = 2;
+  AgenticEvaluationCapabilitiesV1 capabilities = 3;
+}
+
+message ArchiveEvaluationScorerConfigRequest {
+  oneof identity {
+    string score_config_id = 1;
+    string config_key = 2;
+  }
+}
+
+message ArchiveEvaluationScorerConfigResponse {
+  EvaluationScorerConfigSummaryV1 scorer_config = 1;
+  // TRUE when this call did not move it: it was already archived. NOT an error.
+  // An append-only state flip is replayable by construction, which is also why
+  // this request carries no idempotency key.
+  bool already_archived = 2;
+  // What still references it, at the moment of archiving.
+  //
+  // Archiving is UNCONDITIONAL on this plane (see the RPC's own comment), so
+  // this is not a refusal's evidence — it is the blast radius, returned at the
+  // one moment it can still change a decision. The two `NOT_SUPPORTED` halves
+  // are honest here for the same reason they are on the detail read: an empty
+  // definition list would read as "no evaluation uses this", which is precisely
+  // the wrong thing to believe while archiving.
+  EvaluationScorerConfigUsageV1 standing_references = 3;
+  AgenticEvaluationCapabilitiesV1 capabilities = 4;
+}
+
+message ArchiveEvaluationScorerSuiteRequest {
+  oneof identity {
+    string scorer_suite_id = 1;
+    string suite_key = 2;
+  }
+}
+
+message ArchiveEvaluationScorerSuiteResponse {
+  EvaluationScorerSuiteSummaryV1 scorer_suite = 1;
+  bool already_archived = 2;
+  // How many production rules target this suite: `NOT_SUPPORTED` /
+  // `production_rule_suite_reference_resolves_on_the_legacy_plane`, always.
+  //
+  // The production-rule dependency validator resolves `scorer_suite` against
+  // `o11y_one.scorer_suites` — the LEGACY table — and never against
+  // `o11y_one.evaluation_scorer_suites`. A v2 suite therefore has no
+  // production-rule blast radius this build can report, and an empty list here
+  // would read as "no rule depends on this" rather than "this build cannot
+  // tell". Recorded as a docket against the production-rule plane, not fixed
+  // here.
+  uint32 production_rule_count = 3;
+  MetricAvailabilityV1 production_rule_availability = 4;
+  AgenticEvaluationCapabilitiesV1 capabilities = 5;
+}
+// ---- end wave 52 lane B ----
+
+// ===========================================================================
+// Wave 52 lane A — the dataset read plane's entry points (A2 `G23`'s residue)
+// ===========================================================================
+
+// One row of `ListDatasetCollections` (`A-52A-1`).
+//
+// A summary, not a detail: it carries what a nav list renders and what a client
+// needs to decide which collection to open, and it stops there. The Overview
+// tab's quality projection is deliberately NOT here — that projection is
+// per VERSION, and folding it per collection across a page would be one
+// projection read per row, which is exactly the cost `PLAN:1520` exists to
+// prevent. `GetDatasetOverview` is where a collection's quality lives.
+message DatasetCollectionSummaryV1 {
+  string dataset_collection_id = 1;
+  string name = 2;
+  optional string description = 3;
+  bool is_archived = 4;
+  google.protobuf.Timestamp created_at = 5;
+  // `COALESCE(updated_at, created_at)`, which is also the sort key. A
+  // collection that has never been updated sorts by when it was made rather
+  // than falling to the bottom of every page forever.
+  google.protobuf.Timestamp updated_at = 6;
+
+  // The newest version, which is what the Overview calls "active". Absent when
+  // the collection has none.
+  DatasetVersionSummaryV1 active_version = 7;
+  // `NOT_OBSERVED / dataset_collection_has_no_version` when there is no
+  // version. Never `_ERROR`, and never an absent block.
+  MetricAvailabilityV1 active_version_availability = 8;
+
+  // How many versions this collection holds. Always known: it is a set-based
+  // count in the page statement, and a collection with none genuinely has
+  // zero — publishing a named absence over a fact that IS known would be NN5
+  // applied backwards.
+  uint32 version_count = 9;
+
+  // There is deliberately NO `case_count` here, and the absence is the
+  // contract rather than an oversight.
+  //
+  // `DatasetVersionSummaryV1` publishes TWO counts — `case_count` over the
+  // shipped `dataset_items` table and `member_count` over wave 42's membership
+  // table — and they DIVERGE, which doc `14` §9's eighth open question raises as
+  // a real artifact a client has to be able to see. A single number here would
+  // have to pick one of them, and picking either discards the distinction the
+  // plane publishes on purpose: a collection whose cases were published through
+  // the wave-42 path would render as "0 cases" under the first, and a
+  // pre-wave-42 collection would misreport under the second. The counts stay
+  // where both of them are, on `active_version`, and this row says only whether
+  // there IS an active version to read them from.
+  //
+  // NN5 is served by `active_version_availability` above: a collection with no
+  // version reports `NOT_OBSERVED / dataset_collection_has_no_version`, which
+  // is the absence that actually matters on a nav row.
+
+  // Changesets on this collection that are not in a terminal state — the "N
+  // waiting for review" a nav row wants. Always known, same argument as
+  // `version_count`.
+  uint32 open_changeset_count = 10;
+}
+
+// `A-52A-1`. Org-scoped, keyset-paged, filtered.
+message ListEvaluationDatasetCollectionsRequest {
+  // The opaque cursor from the previous page's `next_page_token`. It binds the
+  // organisation AND the filter it was minted under, so a token replayed
+  // against a different filter is refused with a typed resync rather than
+  // silently paging a different query — the same contract
+  // `ListPlatformAnnotations` holds, reached for here because this is the first
+  // dataset list that HAS a filter to change. Its siblings
+  // (`ListDatasetCases`, `ListDatasetVersions`, `ListDatasetUsage`) take a bare
+  // keyset value because they have no filter and so no way to change one.
+  optional string page_token = 1;
+  optional uint32 limit = 2;
+  // Archived collections are excluded unless this is set. Live-only is the
+  // default because "the datasets I work with" is what a nav item means.
+  bool include_archived = 3;
+  // Case-insensitive substring match on the name. `%` and `_` are matched
+  // LITERALLY — a customer whose collection is named `100%` searches for it by
+  // typing it.
+  optional string name_filter = 4;
+}
+
+message ListEvaluationDatasetCollectionsResponse {
+  repeated DatasetCollectionSummaryV1 collections = 1;
+  // Exact. The page is bounded and the count is a set-based aggregate under the
+  // same predicate as the page, so there is no approximation to label.
+  uint32 total_count = 2;
+  // Emitted only when the page was FULL. A short page is the last page, and
+  // handing a client a cursor for it costs them a round trip to learn what the
+  // page already told them.
+  optional string next_page_token = 3;
+  EvaluationFreshnessV1 freshness = 4;
+  AgenticEvaluationCapabilitiesV1 capabilities = 5;
+  // Present exactly when the request's `page_token` could not be honoured. The
+  // page is empty in that case — never a first page wearing a resync, which
+  // would leave a client unable to tell a restart from a continuation.
+  optional EvaluationCursorResyncV1 resync = 6;
+}
+
+// `A-52A-2`. One changeset by id.
+message GetDatasetChangesetRequest {
+  string changeset_id = 1;
+}
+
+message GetDatasetChangesetResponse {
+  DatasetChangesetV1 changeset = 1;
+  // The collection's ACTIVE version right now, which is what the changeset's
+  // pinned base is compared against.
+  optional string active_dataset_version_id = 2;
+  // `P5-16`'s drift, decided by the server. A client that recomputed this from
+  // two ids would be a second implementation of one rule, and the two would
+  // eventually disagree about whether a publish is safe.
+  bool base_version_moved = 3;
+  // `NOT_OBSERVED / changeset_has_no_base_version` when the changeset pinned no
+  // base — a first publish into an empty collection. Never `false`, which would
+  // read as "checked, and it has not moved".
+  MetricAvailabilityV1 base_version_moved_availability = 4;
+  EvaluationFreshnessV1 freshness = 5;
+  AgenticEvaluationCapabilitiesV1 capabilities = 6;
+}
+
+// `A-52A-3`. The changeset queue.
+message ListDatasetChangesetsRequest {
+  // Absent lists the whole organisation's changesets.
+  optional string dataset_collection_id = 1;
+  // Empty means the LIVE set, never "all" — `_COMMITTED`, `_ABANDONED` and
+  // `_FAILED` are history, and a queue that opened on its own history would
+  // bury the work.
+  repeated DatasetChangesetStateV1 states = 2;
+  uint32 page_size = 3;
+  uint32 offset = 4;
+}
+
+message ListDatasetChangesetsResponse {
+  repeated DatasetChangesetV1 changesets = 1;
+  uint64 total_count = 2;
+  optional uint32 next_offset = 3;
+  EvaluationFreshnessV1 freshness = 4;
+  AgenticEvaluationCapabilitiesV1 capabilities = 5;
+}
+// ---- end wave 52 lane A ----

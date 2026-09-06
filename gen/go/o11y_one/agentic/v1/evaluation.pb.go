@@ -10199,6 +10199,607 @@ func (ReleaseObservationConfidenceV1) EnumDescriptor() ([]byte, []int) {
 	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{157}
 }
 
+// 0a §6.4, discriminants 1-4 FROZEN.
+//
+// Rules that bind every reader: scopes are ADDITIVE AND NEVER IMPLIED —
+// `RUN_EXECUTE` does not grant `EVAL_READ`, so a CI job that launches a run and
+// then reads the diff holds both. An unknown discriminant on a write is
+// `INVALID_ARGUMENT`; a request outside scope is `PERMISSION_DENIED` naming the
+// missing scope; an absent, malformed, expired or revoked credential is
+// `UNAUTHENTICATED`. Those two codes are the J8.1 distinction the SDK exists to
+// render, and collapsing them makes "your token is wrong" indistinguishable
+// from "that feature is not built yet".
+type MachinePrincipalScopeV1 int32
+
+const (
+	MachinePrincipalScopeV1_MACHINE_PRINCIPAL_SCOPE_V1_UNSPECIFIED MachinePrincipalScopeV1 = 0
+	// Definitions, runs, matrix, comparison reads — the CI diff.
+	MachinePrincipalScopeV1_MACHINE_PRINCIPAL_SCOPE_V1_EVAL_READ MachinePrincipalScopeV1 = 1
+	// Create, launch and cancel runs; scratch runs.
+	MachinePrincipalScopeV1_MACHINE_PRINCIPAL_SCOPE_V1_RUN_EXECUTE MachinePrincipalScopeV1 = 2
+	// Case draft create, append and publish.
+	MachinePrincipalScopeV1_MACHINE_PRINCIPAL_SCOPE_V1_DATASET_WRITE MachinePrincipalScopeV1 = 3
+	// Externally executed lease and submit. Enforcement ships in wave 50 lane A;
+	// the SURFACE it guards is lane B's, and lane B's own capability cell is the
+	// authority for whether that surface exists yet (0a §6.4's per-scope
+	// availability requirement, satisfied by the surface's cell rather than by a
+	// zero in this lane's cell that another lane must remember to flip).
+	MachinePrincipalScopeV1_MACHINE_PRINCIPAL_SCOPE_V1_LEASE_SUBMIT MachinePrincipalScopeV1 = 4
+	// RECORDED AMENDMENT (increment §0.4). NOT one of the four NN44 names.
+	//
+	// The operator's TRACK T1 charter of 2026-09-05 approved a typed
+	// platform-annotations plane that is explicitly "machine-principal
+	// attributed", with the CI runner emitting deployment markers and time-range
+	// highlights into it. Enforcement here is deny-by-default, so a verb with no
+	// scope row is machine-unreachable — leaving this discriminant out would have
+	// made the approved plane reachable only from a browser, which no CI pipeline
+	// has, and would have silently re-selected the OTLP-ridealong design the
+	// operator rejected on the record.
+	//
+	// It is spelled PLATFORM_ANNOTATION_WRITE and not ANNOTATION_WRITE on
+	// purpose: the shorter name reads as a grant over the HUMAN-REVIEW annotation
+	// plane (`AnnotationTaskV1`, `AnnotationQueueV1`, `agentic.proto:78-564`),
+	// which it is not and must never become. Write-only: there is no annotation
+	// READ scope, because the runner writes markers and does not read them back,
+	// and folding an annotation read into `EVAL_READ` would be exactly the scope
+	// conflation the "never implied" rule above forbids.
+	MachinePrincipalScopeV1_MACHINE_PRINCIPAL_SCOPE_V1_PLATFORM_ANNOTATION_WRITE MachinePrincipalScopeV1 = 5
+)
+
+// Enum value maps for MachinePrincipalScopeV1.
+var (
+	MachinePrincipalScopeV1_name = map[int32]string{
+		0: "MACHINE_PRINCIPAL_SCOPE_V1_UNSPECIFIED",
+		1: "MACHINE_PRINCIPAL_SCOPE_V1_EVAL_READ",
+		2: "MACHINE_PRINCIPAL_SCOPE_V1_RUN_EXECUTE",
+		3: "MACHINE_PRINCIPAL_SCOPE_V1_DATASET_WRITE",
+		4: "MACHINE_PRINCIPAL_SCOPE_V1_LEASE_SUBMIT",
+		5: "MACHINE_PRINCIPAL_SCOPE_V1_PLATFORM_ANNOTATION_WRITE",
+	}
+	MachinePrincipalScopeV1_value = map[string]int32{
+		"MACHINE_PRINCIPAL_SCOPE_V1_UNSPECIFIED":               0,
+		"MACHINE_PRINCIPAL_SCOPE_V1_EVAL_READ":                 1,
+		"MACHINE_PRINCIPAL_SCOPE_V1_RUN_EXECUTE":               2,
+		"MACHINE_PRINCIPAL_SCOPE_V1_DATASET_WRITE":             3,
+		"MACHINE_PRINCIPAL_SCOPE_V1_LEASE_SUBMIT":              4,
+		"MACHINE_PRINCIPAL_SCOPE_V1_PLATFORM_ANNOTATION_WRITE": 5,
+	}
+)
+
+func (x MachinePrincipalScopeV1) Enum() *MachinePrincipalScopeV1 {
+	p := new(MachinePrincipalScopeV1)
+	*p = x
+	return p
+}
+
+func (x MachinePrincipalScopeV1) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (MachinePrincipalScopeV1) Descriptor() protoreflect.EnumDescriptor {
+	return file_o11y_one_agentic_v1_evaluation_proto_enumTypes[158].Descriptor()
+}
+
+func (MachinePrincipalScopeV1) Type() protoreflect.EnumType {
+	return &file_o11y_one_agentic_v1_evaluation_proto_enumTypes[158]
+}
+
+func (x MachinePrincipalScopeV1) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use MachinePrincipalScopeV1.Descriptor instead.
+func (MachinePrincipalScopeV1) EnumDescriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{158}
+}
+
+// 0a §6.3.
+type MachinePrincipalStateV1 int32
+
+const (
+	MachinePrincipalStateV1_MACHINE_PRINCIPAL_STATE_V1_UNSPECIFIED MachinePrincipalStateV1 = 0
+	MachinePrincipalStateV1_MACHINE_PRINCIPAL_STATE_V1_ACTIVE      MachinePrincipalStateV1 = 1
+	// Temporarily refused. Credentials survive, so re-enabling does not force a
+	// re-mint — the difference from REVOKED, which is terminal.
+	MachinePrincipalStateV1_MACHINE_PRINCIPAL_STATE_V1_DISABLED MachinePrincipalStateV1 = 2
+	MachinePrincipalStateV1_MACHINE_PRINCIPAL_STATE_V1_REVOKED  MachinePrincipalStateV1 = 3
+)
+
+// Enum value maps for MachinePrincipalStateV1.
+var (
+	MachinePrincipalStateV1_name = map[int32]string{
+		0: "MACHINE_PRINCIPAL_STATE_V1_UNSPECIFIED",
+		1: "MACHINE_PRINCIPAL_STATE_V1_ACTIVE",
+		2: "MACHINE_PRINCIPAL_STATE_V1_DISABLED",
+		3: "MACHINE_PRINCIPAL_STATE_V1_REVOKED",
+	}
+	MachinePrincipalStateV1_value = map[string]int32{
+		"MACHINE_PRINCIPAL_STATE_V1_UNSPECIFIED": 0,
+		"MACHINE_PRINCIPAL_STATE_V1_ACTIVE":      1,
+		"MACHINE_PRINCIPAL_STATE_V1_DISABLED":    2,
+		"MACHINE_PRINCIPAL_STATE_V1_REVOKED":     3,
+	}
+)
+
+func (x MachinePrincipalStateV1) Enum() *MachinePrincipalStateV1 {
+	p := new(MachinePrincipalStateV1)
+	*p = x
+	return p
+}
+
+func (x MachinePrincipalStateV1) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (MachinePrincipalStateV1) Descriptor() protoreflect.EnumDescriptor {
+	return file_o11y_one_agentic_v1_evaluation_proto_enumTypes[159].Descriptor()
+}
+
+func (MachinePrincipalStateV1) Type() protoreflect.EnumType {
+	return &file_o11y_one_agentic_v1_evaluation_proto_enumTypes[159]
+}
+
+func (x MachinePrincipalStateV1) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use MachinePrincipalStateV1.Descriptor instead.
+func (MachinePrincipalStateV1) EnumDescriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{159}
+}
+
+// 0a §6.3.
+type MachineCredentialStateV1 int32
+
+const (
+	MachineCredentialStateV1_MACHINE_CREDENTIAL_STATE_V1_UNSPECIFIED MachineCredentialStateV1 = 0
+	MachineCredentialStateV1_MACHINE_CREDENTIAL_STATE_V1_ACTIVE      MachineCredentialStateV1 = 1
+	// Reserved for a rotation window in which an old credential is still
+	// accepted. No RPC produces it in this wave: rotation here is
+	// create-then-revoke against a principal that may hold several ACTIVE
+	// credentials, which needs no intermediate state. The discriminant is
+	// declared because 0a §6.3 declares it and a reader must be able to handle a
+	// value a later wave may write.
+	MachineCredentialStateV1_MACHINE_CREDENTIAL_STATE_V1_ROTATING MachineCredentialStateV1 = 2
+	MachineCredentialStateV1_MACHINE_CREDENTIAL_STATE_V1_REVOKED  MachineCredentialStateV1 = 3
+)
+
+// Enum value maps for MachineCredentialStateV1.
+var (
+	MachineCredentialStateV1_name = map[int32]string{
+		0: "MACHINE_CREDENTIAL_STATE_V1_UNSPECIFIED",
+		1: "MACHINE_CREDENTIAL_STATE_V1_ACTIVE",
+		2: "MACHINE_CREDENTIAL_STATE_V1_ROTATING",
+		3: "MACHINE_CREDENTIAL_STATE_V1_REVOKED",
+	}
+	MachineCredentialStateV1_value = map[string]int32{
+		"MACHINE_CREDENTIAL_STATE_V1_UNSPECIFIED": 0,
+		"MACHINE_CREDENTIAL_STATE_V1_ACTIVE":      1,
+		"MACHINE_CREDENTIAL_STATE_V1_ROTATING":    2,
+		"MACHINE_CREDENTIAL_STATE_V1_REVOKED":     3,
+	}
+)
+
+func (x MachineCredentialStateV1) Enum() *MachineCredentialStateV1 {
+	p := new(MachineCredentialStateV1)
+	*p = x
+	return p
+}
+
+func (x MachineCredentialStateV1) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (MachineCredentialStateV1) Descriptor() protoreflect.EnumDescriptor {
+	return file_o11y_one_agentic_v1_evaluation_proto_enumTypes[160].Descriptor()
+}
+
+func (MachineCredentialStateV1) Type() protoreflect.EnumType {
+	return &file_o11y_one_agentic_v1_evaluation_proto_enumTypes[160]
+}
+
+func (x MachineCredentialStateV1) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use MachineCredentialStateV1.Descriptor instead.
+func (MachineCredentialStateV1) EnumDescriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{160}
+}
+
+type ExternalSubmissionAckKindV1 int32
+
+const (
+	ExternalSubmissionAckKindV1_EXTERNAL_SUBMISSION_ACK_KIND_V1_UNSPECIFIED ExternalSubmissionAckKindV1 = 0
+	ExternalSubmissionAckKindV1_EXTERNAL_SUBMISSION_ACK_KIND_V1_ACCEPTED    ExternalSubmissionAckKindV1 = 1
+	// The identical coordinate and generation was already submitted under a lease
+	// this caller holds. Convergence, not an error: a retried batch says this.
+	ExternalSubmissionAckKindV1_EXTERNAL_SUBMISSION_ACK_KIND_V1_ALREADY_SUBMITTED ExternalSubmissionAckKindV1 = 2
+	ExternalSubmissionAckKindV1_EXTERNAL_SUBMISSION_ACK_KIND_V1_REJECTED          ExternalSubmissionAckKindV1 = 3
+)
+
+// Enum value maps for ExternalSubmissionAckKindV1.
+var (
+	ExternalSubmissionAckKindV1_name = map[int32]string{
+		0: "EXTERNAL_SUBMISSION_ACK_KIND_V1_UNSPECIFIED",
+		1: "EXTERNAL_SUBMISSION_ACK_KIND_V1_ACCEPTED",
+		2: "EXTERNAL_SUBMISSION_ACK_KIND_V1_ALREADY_SUBMITTED",
+		3: "EXTERNAL_SUBMISSION_ACK_KIND_V1_REJECTED",
+	}
+	ExternalSubmissionAckKindV1_value = map[string]int32{
+		"EXTERNAL_SUBMISSION_ACK_KIND_V1_UNSPECIFIED":       0,
+		"EXTERNAL_SUBMISSION_ACK_KIND_V1_ACCEPTED":          1,
+		"EXTERNAL_SUBMISSION_ACK_KIND_V1_ALREADY_SUBMITTED": 2,
+		"EXTERNAL_SUBMISSION_ACK_KIND_V1_REJECTED":          3,
+	}
+)
+
+func (x ExternalSubmissionAckKindV1) Enum() *ExternalSubmissionAckKindV1 {
+	p := new(ExternalSubmissionAckKindV1)
+	*p = x
+	return p
+}
+
+func (x ExternalSubmissionAckKindV1) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ExternalSubmissionAckKindV1) Descriptor() protoreflect.EnumDescriptor {
+	return file_o11y_one_agentic_v1_evaluation_proto_enumTypes[161].Descriptor()
+}
+
+func (ExternalSubmissionAckKindV1) Type() protoreflect.EnumType {
+	return &file_o11y_one_agentic_v1_evaluation_proto_enumTypes[161]
+}
+
+func (x ExternalSubmissionAckKindV1) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ExternalSubmissionAckKindV1.Descriptor instead.
+func (ExternalSubmissionAckKindV1) EnumDescriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{161}
+}
+
+type ExternalLeaseRefusalKindV1 int32
+
+const (
+	ExternalLeaseRefusalKindV1_EXTERNAL_LEASE_REFUSAL_KIND_V1_UNSPECIFIED ExternalLeaseRefusalKindV1 = 0
+	// The run is not in a state that can hand out work: not found, terminal, or
+	// cancellation requested.
+	ExternalLeaseRefusalKindV1_EXTERNAL_LEASE_REFUSAL_KIND_V1_RUN_NOT_EXECUTABLE ExternalLeaseRefusalKindV1 = 1
+	// The named candidate exists but is not an externally executed one, or its
+	// frozen `runtime_key` is not the one this caller claims.
+	ExternalLeaseRefusalKindV1_EXTERNAL_LEASE_REFUSAL_KIND_V1_CANDIDATE_NOT_EXTERNALLY_EXECUTED ExternalLeaseRefusalKindV1 = 2
+	// The fence is gone: unknown lease, or another holder has it now.
+	ExternalLeaseRefusalKindV1_EXTERNAL_LEASE_REFUSAL_KIND_V1_LEASE_NOT_HELD           ExternalLeaseRefusalKindV1 = 3
+	ExternalLeaseRefusalKindV1_EXTERNAL_LEASE_REFUSAL_KIND_V1_LEASE_EXPIRED            ExternalLeaseRefusalKindV1 = 4
+	ExternalLeaseRefusalKindV1_EXTERNAL_LEASE_REFUSAL_KIND_V1_RENEWAL_BUDGET_EXHAUSTED ExternalLeaseRefusalKindV1 = 5
+	// A bound published on the capability cell was exceeded.
+	ExternalLeaseRefusalKindV1_EXTERNAL_LEASE_REFUSAL_KIND_V1_BOUNDS_EXCEEDED ExternalLeaseRefusalKindV1 = 6
+	// The caller's principal lacks the scope this verb requires (NN44).
+	ExternalLeaseRefusalKindV1_EXTERNAL_LEASE_REFUSAL_KIND_V1_SCOPE_MISSING ExternalLeaseRefusalKindV1 = 7
+)
+
+// Enum value maps for ExternalLeaseRefusalKindV1.
+var (
+	ExternalLeaseRefusalKindV1_name = map[int32]string{
+		0: "EXTERNAL_LEASE_REFUSAL_KIND_V1_UNSPECIFIED",
+		1: "EXTERNAL_LEASE_REFUSAL_KIND_V1_RUN_NOT_EXECUTABLE",
+		2: "EXTERNAL_LEASE_REFUSAL_KIND_V1_CANDIDATE_NOT_EXTERNALLY_EXECUTED",
+		3: "EXTERNAL_LEASE_REFUSAL_KIND_V1_LEASE_NOT_HELD",
+		4: "EXTERNAL_LEASE_REFUSAL_KIND_V1_LEASE_EXPIRED",
+		5: "EXTERNAL_LEASE_REFUSAL_KIND_V1_RENEWAL_BUDGET_EXHAUSTED",
+		6: "EXTERNAL_LEASE_REFUSAL_KIND_V1_BOUNDS_EXCEEDED",
+		7: "EXTERNAL_LEASE_REFUSAL_KIND_V1_SCOPE_MISSING",
+	}
+	ExternalLeaseRefusalKindV1_value = map[string]int32{
+		"EXTERNAL_LEASE_REFUSAL_KIND_V1_UNSPECIFIED":                       0,
+		"EXTERNAL_LEASE_REFUSAL_KIND_V1_RUN_NOT_EXECUTABLE":                1,
+		"EXTERNAL_LEASE_REFUSAL_KIND_V1_CANDIDATE_NOT_EXTERNALLY_EXECUTED": 2,
+		"EXTERNAL_LEASE_REFUSAL_KIND_V1_LEASE_NOT_HELD":                    3,
+		"EXTERNAL_LEASE_REFUSAL_KIND_V1_LEASE_EXPIRED":                     4,
+		"EXTERNAL_LEASE_REFUSAL_KIND_V1_RENEWAL_BUDGET_EXHAUSTED":          5,
+		"EXTERNAL_LEASE_REFUSAL_KIND_V1_BOUNDS_EXCEEDED":                   6,
+		"EXTERNAL_LEASE_REFUSAL_KIND_V1_SCOPE_MISSING":                     7,
+	}
+)
+
+func (x ExternalLeaseRefusalKindV1) Enum() *ExternalLeaseRefusalKindV1 {
+	p := new(ExternalLeaseRefusalKindV1)
+	*p = x
+	return p
+}
+
+func (x ExternalLeaseRefusalKindV1) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ExternalLeaseRefusalKindV1) Descriptor() protoreflect.EnumDescriptor {
+	return file_o11y_one_agentic_v1_evaluation_proto_enumTypes[162].Descriptor()
+}
+
+func (ExternalLeaseRefusalKindV1) Type() protoreflect.EnumType {
+	return &file_o11y_one_agentic_v1_evaluation_proto_enumTypes[162]
+}
+
+func (x ExternalLeaseRefusalKindV1) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ExternalLeaseRefusalKindV1.Descriptor instead.
+func (ExternalLeaseRefusalKindV1) EnumDescriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{162}
+}
+
+// What an annotation IS. Three kinds and no fourth; a fourth is a wire change
+// and a capability bump, which is the point of a closed enum here.
+type PlatformAnnotationKindV1 int32
+
+const (
+	// NOT a real state, and the contrast with `ReleaseObservationConfidenceV1`
+	// (wave 49 lane A) is deliberate: there, `_UNSPECIFIED` means "no correlation
+	// was performed", which is the truth for every row written before the field
+	// existed. Here there is no such truth. An annotation with no kind was never
+	// recorded, because the write refuses it. This value exists only because
+	// proto3 requires a zero, and a write carrying it is answered identically to
+	// a discriminant this build has never heard of.
+	PlatformAnnotationKindV1_PLATFORM_ANNOTATION_KIND_V1_UNSPECIFIED PlatformAnnotationKindV1 = 0
+	// A deployment happened. The reason the plane exists.
+	PlatformAnnotationKindV1_PLATFORM_ANNOTATION_KIND_V1_DEPLOYMENT PlatformAnnotationKindV1 = 1
+	// A point in time worth remembering that is not a deployment.
+	PlatformAnnotationKindV1_PLATFORM_ANNOTATION_KIND_V1_MARKER PlatformAnnotationKindV1 = 2
+	// A window worth remembering — an incident, an experiment, a regression.
+	// Typically the only kind that carries an `end_at`, though nothing forces it.
+	PlatformAnnotationKindV1_PLATFORM_ANNOTATION_KIND_V1_HIGHLIGHT PlatformAnnotationKindV1 = 3
+)
+
+// Enum value maps for PlatformAnnotationKindV1.
+var (
+	PlatformAnnotationKindV1_name = map[int32]string{
+		0: "PLATFORM_ANNOTATION_KIND_V1_UNSPECIFIED",
+		1: "PLATFORM_ANNOTATION_KIND_V1_DEPLOYMENT",
+		2: "PLATFORM_ANNOTATION_KIND_V1_MARKER",
+		3: "PLATFORM_ANNOTATION_KIND_V1_HIGHLIGHT",
+	}
+	PlatformAnnotationKindV1_value = map[string]int32{
+		"PLATFORM_ANNOTATION_KIND_V1_UNSPECIFIED": 0,
+		"PLATFORM_ANNOTATION_KIND_V1_DEPLOYMENT":  1,
+		"PLATFORM_ANNOTATION_KIND_V1_MARKER":      2,
+		"PLATFORM_ANNOTATION_KIND_V1_HIGHLIGHT":   3,
+	}
+)
+
+func (x PlatformAnnotationKindV1) Enum() *PlatformAnnotationKindV1 {
+	p := new(PlatformAnnotationKindV1)
+	*p = x
+	return p
+}
+
+func (x PlatformAnnotationKindV1) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (PlatformAnnotationKindV1) Descriptor() protoreflect.EnumDescriptor {
+	return file_o11y_one_agentic_v1_evaluation_proto_enumTypes[163].Descriptor()
+}
+
+func (PlatformAnnotationKindV1) Type() protoreflect.EnumType {
+	return &file_o11y_one_agentic_v1_evaluation_proto_enumTypes[163]
+}
+
+func (x PlatformAnnotationKindV1) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use PlatformAnnotationKindV1.Descriptor instead.
+func (PlatformAnnotationKindV1) EnumDescriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{163}
+}
+
+// What an annotation may point AT. Closed, because an open link kind is an
+// untyped string and an untyped string is where payloads start arriving.
+type PlatformAnnotationLinkKindV1 int32
+
+const (
+	PlatformAnnotationLinkKindV1_PLATFORM_ANNOTATION_LINK_KIND_V1_UNSPECIFIED    PlatformAnnotationLinkKindV1 = 0
+	PlatformAnnotationLinkKindV1_PLATFORM_ANNOTATION_LINK_KIND_V1_RELEASE        PlatformAnnotationLinkKindV1 = 1
+	PlatformAnnotationLinkKindV1_PLATFORM_ANNOTATION_LINK_KIND_V1_EVALUATION_RUN PlatformAnnotationLinkKindV1 = 2
+	PlatformAnnotationLinkKindV1_PLATFORM_ANNOTATION_LINK_KIND_V1_AGENT_RUN      PlatformAnnotationLinkKindV1 = 3
+	PlatformAnnotationLinkKindV1_PLATFORM_ANNOTATION_LINK_KIND_V1_TRACE          PlatformAnnotationLinkKindV1 = 4
+)
+
+// Enum value maps for PlatformAnnotationLinkKindV1.
+var (
+	PlatformAnnotationLinkKindV1_name = map[int32]string{
+		0: "PLATFORM_ANNOTATION_LINK_KIND_V1_UNSPECIFIED",
+		1: "PLATFORM_ANNOTATION_LINK_KIND_V1_RELEASE",
+		2: "PLATFORM_ANNOTATION_LINK_KIND_V1_EVALUATION_RUN",
+		3: "PLATFORM_ANNOTATION_LINK_KIND_V1_AGENT_RUN",
+		4: "PLATFORM_ANNOTATION_LINK_KIND_V1_TRACE",
+	}
+	PlatformAnnotationLinkKindV1_value = map[string]int32{
+		"PLATFORM_ANNOTATION_LINK_KIND_V1_UNSPECIFIED":    0,
+		"PLATFORM_ANNOTATION_LINK_KIND_V1_RELEASE":        1,
+		"PLATFORM_ANNOTATION_LINK_KIND_V1_EVALUATION_RUN": 2,
+		"PLATFORM_ANNOTATION_LINK_KIND_V1_AGENT_RUN":      3,
+		"PLATFORM_ANNOTATION_LINK_KIND_V1_TRACE":          4,
+	}
+)
+
+func (x PlatformAnnotationLinkKindV1) Enum() *PlatformAnnotationLinkKindV1 {
+	p := new(PlatformAnnotationLinkKindV1)
+	*p = x
+	return p
+}
+
+func (x PlatformAnnotationLinkKindV1) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (PlatformAnnotationLinkKindV1) Descriptor() protoreflect.EnumDescriptor {
+	return file_o11y_one_agentic_v1_evaluation_proto_enumTypes[164].Descriptor()
+}
+
+func (PlatformAnnotationLinkKindV1) Type() protoreflect.EnumType {
+	return &file_o11y_one_agentic_v1_evaluation_proto_enumTypes[164]
+}
+
+func (x PlatformAnnotationLinkKindV1) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use PlatformAnnotationLinkKindV1.Descriptor instead.
+func (PlatformAnnotationLinkKindV1) EnumDescriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{164}
+}
+
+// Why a write was refused.
+//
+// `_IDEMPOTENCY_KEY_REUSED` is the one worth reading twice: a key alone cannot
+// tell a retry from a DIFFERENT request wearing the same key (`PLAN:1757`, the
+// release-action plane's lesson), so the row also carries a normalized request
+// digest and a key presented with different content is refused rather than
+// silently answered with the row that is already there.
+type PlatformAnnotationRejectionReasonV1 int32
+
+const (
+	PlatformAnnotationRejectionReasonV1_PLATFORM_ANNOTATION_REJECTION_REASON_V1_UNSPECIFIED            PlatformAnnotationRejectionReasonV1 = 0
+	PlatformAnnotationRejectionReasonV1_PLATFORM_ANNOTATION_REJECTION_REASON_V1_KIND_UNKNOWN           PlatformAnnotationRejectionReasonV1 = 1
+	PlatformAnnotationRejectionReasonV1_PLATFORM_ANNOTATION_REJECTION_REASON_V1_TITLE_TOO_LARGE        PlatformAnnotationRejectionReasonV1 = 2
+	PlatformAnnotationRejectionReasonV1_PLATFORM_ANNOTATION_REJECTION_REASON_V1_ATTRIBUTE_TOO_LARGE    PlatformAnnotationRejectionReasonV1 = 3
+	PlatformAnnotationRejectionReasonV1_PLATFORM_ANNOTATION_REJECTION_REASON_V1_TOO_MANY_ATTRIBUTES    PlatformAnnotationRejectionReasonV1 = 4
+	PlatformAnnotationRejectionReasonV1_PLATFORM_ANNOTATION_REJECTION_REASON_V1_TOO_MANY_LINKS         PlatformAnnotationRejectionReasonV1 = 5
+	PlatformAnnotationRejectionReasonV1_PLATFORM_ANNOTATION_REJECTION_REASON_V1_LINK_REF_TOO_LARGE     PlatformAnnotationRejectionReasonV1 = 6
+	PlatformAnnotationRejectionReasonV1_PLATFORM_ANNOTATION_REJECTION_REASON_V1_RANGE_INVERTED         PlatformAnnotationRejectionReasonV1 = 7
+	PlatformAnnotationRejectionReasonV1_PLATFORM_ANNOTATION_REJECTION_REASON_V1_IDEMPOTENCY_KEY_REUSED PlatformAnnotationRejectionReasonV1 = 8
+	// 9 is UNUSED, and deliberately left unused rather than filled.
+	//
+	// This lane's pre-code plan reserved it for `_SCOPE_MISSING`. It is not minted,
+	// because nothing can produce it: wave 50 lane A answers the authority question
+	// centrally, in `authorize_machine_caller` inside `resolve_scope`, BEFORE this
+	// plane's handler is entered, and that refusal is a bare `PERMISSION_DENIED`
+	// whose message names the missing scope in prose and carries no typed detail.
+	// A reason code no code path emits would be a contract that lies.
+	//
+	// Docket `W50C-3` is the typed detail that refusal does not yet carry. When it
+	// lands it is lane A's message, not this one's, and 9 stays free.
+	PlatformAnnotationRejectionReasonV1_PLATFORM_ANNOTATION_REJECTION_REASON_V1_WINDOW_INVALID PlatformAnnotationRejectionReasonV1 = 10
+)
+
+// Enum value maps for PlatformAnnotationRejectionReasonV1.
+var (
+	PlatformAnnotationRejectionReasonV1_name = map[int32]string{
+		0:  "PLATFORM_ANNOTATION_REJECTION_REASON_V1_UNSPECIFIED",
+		1:  "PLATFORM_ANNOTATION_REJECTION_REASON_V1_KIND_UNKNOWN",
+		2:  "PLATFORM_ANNOTATION_REJECTION_REASON_V1_TITLE_TOO_LARGE",
+		3:  "PLATFORM_ANNOTATION_REJECTION_REASON_V1_ATTRIBUTE_TOO_LARGE",
+		4:  "PLATFORM_ANNOTATION_REJECTION_REASON_V1_TOO_MANY_ATTRIBUTES",
+		5:  "PLATFORM_ANNOTATION_REJECTION_REASON_V1_TOO_MANY_LINKS",
+		6:  "PLATFORM_ANNOTATION_REJECTION_REASON_V1_LINK_REF_TOO_LARGE",
+		7:  "PLATFORM_ANNOTATION_REJECTION_REASON_V1_RANGE_INVERTED",
+		8:  "PLATFORM_ANNOTATION_REJECTION_REASON_V1_IDEMPOTENCY_KEY_REUSED",
+		10: "PLATFORM_ANNOTATION_REJECTION_REASON_V1_WINDOW_INVALID",
+	}
+	PlatformAnnotationRejectionReasonV1_value = map[string]int32{
+		"PLATFORM_ANNOTATION_REJECTION_REASON_V1_UNSPECIFIED":            0,
+		"PLATFORM_ANNOTATION_REJECTION_REASON_V1_KIND_UNKNOWN":           1,
+		"PLATFORM_ANNOTATION_REJECTION_REASON_V1_TITLE_TOO_LARGE":        2,
+		"PLATFORM_ANNOTATION_REJECTION_REASON_V1_ATTRIBUTE_TOO_LARGE":    3,
+		"PLATFORM_ANNOTATION_REJECTION_REASON_V1_TOO_MANY_ATTRIBUTES":    4,
+		"PLATFORM_ANNOTATION_REJECTION_REASON_V1_TOO_MANY_LINKS":         5,
+		"PLATFORM_ANNOTATION_REJECTION_REASON_V1_LINK_REF_TOO_LARGE":     6,
+		"PLATFORM_ANNOTATION_REJECTION_REASON_V1_RANGE_INVERTED":         7,
+		"PLATFORM_ANNOTATION_REJECTION_REASON_V1_IDEMPOTENCY_KEY_REUSED": 8,
+		"PLATFORM_ANNOTATION_REJECTION_REASON_V1_WINDOW_INVALID":         10,
+	}
+)
+
+func (x PlatformAnnotationRejectionReasonV1) Enum() *PlatformAnnotationRejectionReasonV1 {
+	p := new(PlatformAnnotationRejectionReasonV1)
+	*p = x
+	return p
+}
+
+func (x PlatformAnnotationRejectionReasonV1) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (PlatformAnnotationRejectionReasonV1) Descriptor() protoreflect.EnumDescriptor {
+	return file_o11y_one_agentic_v1_evaluation_proto_enumTypes[165].Descriptor()
+}
+
+func (PlatformAnnotationRejectionReasonV1) Type() protoreflect.EnumType {
+	return &file_o11y_one_agentic_v1_evaluation_proto_enumTypes[165]
+}
+
+func (x PlatformAnnotationRejectionReasonV1) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use PlatformAnnotationRejectionReasonV1.Descriptor instead.
+func (PlatformAnnotationRejectionReasonV1) EnumDescriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{165}
+}
+
+// Which archived posture a library page wants.
+//
+// `UNSPECIFIED` behaves as `ACTIVE_ONLY`, which is the picker's own default and
+// therefore what a client that sends nothing already expects. It is stated
+// rather than left to be discovered, because a filter whose zero value silently
+// hides rows is how an inventory page becomes a sample.
+type EvaluationScorerArchivedFilterV1 int32
+
+const (
+	EvaluationScorerArchivedFilterV1_EVALUATION_SCORER_ARCHIVED_FILTER_V1_UNSPECIFIED   EvaluationScorerArchivedFilterV1 = 0
+	EvaluationScorerArchivedFilterV1_EVALUATION_SCORER_ARCHIVED_FILTER_V1_ACTIVE_ONLY   EvaluationScorerArchivedFilterV1 = 1
+	EvaluationScorerArchivedFilterV1_EVALUATION_SCORER_ARCHIVED_FILTER_V1_ARCHIVED_ONLY EvaluationScorerArchivedFilterV1 = 2
+	EvaluationScorerArchivedFilterV1_EVALUATION_SCORER_ARCHIVED_FILTER_V1_ALL           EvaluationScorerArchivedFilterV1 = 3
+)
+
+// Enum value maps for EvaluationScorerArchivedFilterV1.
+var (
+	EvaluationScorerArchivedFilterV1_name = map[int32]string{
+		0: "EVALUATION_SCORER_ARCHIVED_FILTER_V1_UNSPECIFIED",
+		1: "EVALUATION_SCORER_ARCHIVED_FILTER_V1_ACTIVE_ONLY",
+		2: "EVALUATION_SCORER_ARCHIVED_FILTER_V1_ARCHIVED_ONLY",
+		3: "EVALUATION_SCORER_ARCHIVED_FILTER_V1_ALL",
+	}
+	EvaluationScorerArchivedFilterV1_value = map[string]int32{
+		"EVALUATION_SCORER_ARCHIVED_FILTER_V1_UNSPECIFIED":   0,
+		"EVALUATION_SCORER_ARCHIVED_FILTER_V1_ACTIVE_ONLY":   1,
+		"EVALUATION_SCORER_ARCHIVED_FILTER_V1_ARCHIVED_ONLY": 2,
+		"EVALUATION_SCORER_ARCHIVED_FILTER_V1_ALL":           3,
+	}
+)
+
+func (x EvaluationScorerArchivedFilterV1) Enum() *EvaluationScorerArchivedFilterV1 {
+	p := new(EvaluationScorerArchivedFilterV1)
+	*p = x
+	return p
+}
+
+func (x EvaluationScorerArchivedFilterV1) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (EvaluationScorerArchivedFilterV1) Descriptor() protoreflect.EnumDescriptor {
+	return file_o11y_one_agentic_v1_evaluation_proto_enumTypes[166].Descriptor()
+}
+
+func (EvaluationScorerArchivedFilterV1) Type() protoreflect.EnumType {
+	return &file_o11y_one_agentic_v1_evaluation_proto_enumTypes[166]
+}
+
+func (x EvaluationScorerArchivedFilterV1) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use EvaluationScorerArchivedFilterV1.Descriptor instead.
+func (EvaluationScorerArchivedFilterV1) EnumDescriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{166}
+}
+
 type StringListV1 struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Values        []string               `protobuf:"bytes,1,rep,name=values,proto3" json:"values,omitempty"`
@@ -55026,8 +55627,37 @@ type GetDatasetOverviewResponse struct {
 	QualityAvailability *MetricAvailabilityV1            `protobuf:"bytes,7,opt,name=quality_availability,json=qualityAvailability,proto3" json:"quality_availability,omitempty"`
 	Freshness           *EvaluationFreshnessV1           `protobuf:"bytes,8,opt,name=freshness,proto3" json:"freshness,omitempty"`
 	Capabilities        *AgenticEvaluationCapabilitiesV1 `protobuf:"bytes,9,opt,name=capabilities,proto3" json:"capabilities,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	// ---- wave 52 lane A: the identity a deep link needs ----
+	//
+	// Shipped at wave 42 WITHOUT these, which meant the Overview tab of blueprint
+	// §10.9 could not render the dataset's NAME: the response named the
+	// collection only by id, and the handler never read `dataset_collections` at
+	// all. They arrive here rather than on a `GetEvaluationDataset` of their own
+	// because a verb whose entire payload is three columns of a row this screen
+	// already reads is a round trip bought with a naming symmetry. They cost no
+	// additional statement — the collection and its newest version come back from
+	// ONE statement that replaced the newest-version read.
+	//
+	// The same statement is why this verb now answers `NOT_FOUND` for a
+	// collection id that does not resolve in the caller's scope, where before
+	// wave 52 it answered `OK` with typed absences over a collection that may
+	// never have existed. Every other dataset read already answered `NOT_FOUND`
+	// there; this was the one that did not.
+	Name string `protobuf:"bytes,10,opt,name=name,proto3" json:"name,omitempty"`
+	// Absent means the collection carries no description — not that the server
+	// could not read one. An old client that reads the empty string here renders
+	// a dataset with no subtitle, which is what it had before this field existed.
+	Description *string `protobuf:"bytes,11,opt,name=description,proto3,oneof" json:"description,omitempty"`
+	// Always present. An old client that reads the zero timestamp is reading a
+	// field it does not know about; nothing it renders today depends on it.
+	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// Archived collections are absent from `ListDatasetCollections` by default
+	// and are still readable by id, so a pinned run's dataset never becomes
+	// unreadable because someone tidied the list. `false` for every collection an
+	// old client has ever seen, because nothing in this build archives one.
+	IsArchived    bool `protobuf:"varint,13,opt,name=is_archived,json=isArchived,proto3" json:"is_archived,omitempty"` // ---- end wave 52 lane A ----
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetDatasetOverviewResponse) Reset() {
@@ -55121,6 +55751,34 @@ func (x *GetDatasetOverviewResponse) GetCapabilities() *AgenticEvaluationCapabil
 		return x.Capabilities
 	}
 	return nil
+}
+
+func (x *GetDatasetOverviewResponse) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *GetDatasetOverviewResponse) GetDescription() string {
+	if x != nil && x.Description != nil {
+		return *x.Description
+	}
+	return ""
+}
+
+func (x *GetDatasetOverviewResponse) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *GetDatasetOverviewResponse) GetIsArchived() bool {
+	if x != nil {
+		return x.IsArchived
+	}
+	return false
 }
 
 // NOTE ON THE NAME. The RPC is `ListDatasetVersions`, exactly as `0b :214`
@@ -59461,6 +60119,6085 @@ func (x *ProductionRulePreviewRefusalV1) GetLimitValue() int64 {
 		return *x.LimitValue
 	}
 	return 0
+}
+
+// 0a §6.3. Org-scoped, and `scopes` lives HERE rather than on the credential:
+// two credentials of one principal must not be able to disagree about what that
+// principal may do (increment §0.6).
+type MachinePrincipalV1 struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	MachinePrincipalId string                 `protobuf:"bytes,1,opt,name=machine_principal_id,json=machinePrincipalId,proto3" json:"machine_principal_id,omitempty"`
+	TenantId           string                 `protobuf:"bytes,2,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	OrgId              string                 `protobuf:"bytes,3,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	DisplayName        string                 `protobuf:"bytes,4,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	Description        *string                `protobuf:"bytes,5,opt,name=description,proto3,oneof" json:"description,omitempty"`
+	// Set semantics: deduplicated, order-insignificant, unknown-value-rejecting.
+	Scopes    []MachinePrincipalScopeV1 `protobuf:"varint,6,rep,packed,name=scopes,proto3,enum=o11y_one.agentic.v1.MachinePrincipalScopeV1" json:"scopes,omitempty"`
+	State     MachinePrincipalStateV1   `protobuf:"varint,7,opt,name=state,proto3,enum=o11y_one.agentic.v1.MachinePrincipalStateV1" json:"state,omitempty"`
+	CreatedBy *PrincipalRefV1           `protobuf:"bytes,8,opt,name=created_by,json=createdBy,proto3" json:"created_by,omitempty"`
+	CreatedAt *timestamppb.Timestamp    `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt *timestamppb.Timestamp    `protobuf:"bytes,10,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	// COARSE, and deliberately so: written only on a cold credential
+	// verification, never on a cache hit, so authentication does no database work
+	// it would not otherwise do. The capability cell publishes
+	// `last_used_is_per_request: 0` rather than letting a reader assume precision
+	// this field does not have.
+	LastUsedAt    *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=last_used_at,json=lastUsedAt,proto3,oneof" json:"last_used_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MachinePrincipalV1) Reset() {
+	*x = MachinePrincipalV1{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[537]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MachinePrincipalV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MachinePrincipalV1) ProtoMessage() {}
+
+func (x *MachinePrincipalV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[537]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MachinePrincipalV1.ProtoReflect.Descriptor instead.
+func (*MachinePrincipalV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{537}
+}
+
+func (x *MachinePrincipalV1) GetMachinePrincipalId() string {
+	if x != nil {
+		return x.MachinePrincipalId
+	}
+	return ""
+}
+
+func (x *MachinePrincipalV1) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
+func (x *MachinePrincipalV1) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
+func (x *MachinePrincipalV1) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+func (x *MachinePrincipalV1) GetDescription() string {
+	if x != nil && x.Description != nil {
+		return *x.Description
+	}
+	return ""
+}
+
+func (x *MachinePrincipalV1) GetScopes() []MachinePrincipalScopeV1 {
+	if x != nil {
+		return x.Scopes
+	}
+	return nil
+}
+
+func (x *MachinePrincipalV1) GetState() MachinePrincipalStateV1 {
+	if x != nil {
+		return x.State
+	}
+	return MachinePrincipalStateV1_MACHINE_PRINCIPAL_STATE_V1_UNSPECIFIED
+}
+
+func (x *MachinePrincipalV1) GetCreatedBy() *PrincipalRefV1 {
+	if x != nil {
+		return x.CreatedBy
+	}
+	return nil
+}
+
+func (x *MachinePrincipalV1) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *MachinePrincipalV1) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
+func (x *MachinePrincipalV1) GetLastUsedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.LastUsedAt
+	}
+	return nil
+}
+
+// 0a §6.3. One principal may hold SEVERAL — that is what makes zero-downtime
+// rotation possible without an atomic rotate primitive the platform does not
+// have (0a itself records that `api_tokens` has no rotation path today).
+//
+// There is no field on this message that credential material COULD travel in.
+// That is the `ProviderCredentialSecretV1` discipline (`agentic.proto:649`):
+// structural absence enforced by the type, not a redaction filter applied to a
+// type that could have leaked.
+type MachineCredentialV1 struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	CredentialId       string                 `protobuf:"bytes,1,opt,name=credential_id,json=credentialId,proto3" json:"credential_id,omitempty"`
+	MachinePrincipalId string                 `protobuf:"bytes,2,opt,name=machine_principal_id,json=machinePrincipalId,proto3" json:"machine_principal_id,omitempty"`
+	TenantId           string                 `protobuf:"bytes,3,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	OrgId              string                 `protobuf:"bytes,4,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	// A pointer, NEVER material (NN8 `:160`). It is an indirection of the form
+	// `api_token:<uuid>` — not the selector, not the selector hash, not anything
+	// derived from the secret.
+	SecretRef string `protobuf:"bytes,5,opt,name=secret_ref,json=secretRef,proto3" json:"secret_ref,omitempty"`
+	// Non-secret display fragment, so an operator can tell two credentials apart
+	// in a list: the type prefix plus a short head of the SELECTOR. Never any
+	// part of the secret.
+	TokenPrefix   string                   `protobuf:"bytes,6,opt,name=token_prefix,json=tokenPrefix,proto3" json:"token_prefix,omitempty"`
+	VersionNumber uint32                   `protobuf:"varint,7,opt,name=version_number,json=versionNumber,proto3" json:"version_number,omitempty"`
+	State         MachineCredentialStateV1 `protobuf:"varint,8,opt,name=state,proto3,enum=o11y_one.agentic.v1.MachineCredentialStateV1" json:"state,omitempty"`
+	ExpiresAt     *timestamppb.Timestamp   `protobuf:"bytes,9,opt,name=expires_at,json=expiresAt,proto3,oneof" json:"expires_at,omitempty"`
+	CreatedBy     *PrincipalRefV1          `protobuf:"bytes,10,opt,name=created_by,json=createdBy,proto3" json:"created_by,omitempty"`
+	CreatedAt     *timestamppb.Timestamp   `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	RevokedBy     *PrincipalRefV1          `protobuf:"bytes,12,opt,name=revoked_by,json=revokedBy,proto3,oneof" json:"revoked_by,omitempty"`
+	RevokedAt     *timestamppb.Timestamp   `protobuf:"bytes,13,opt,name=revoked_at,json=revokedAt,proto3,oneof" json:"revoked_at,omitempty"`
+	RevokeReason  *string                  `protobuf:"bytes,14,opt,name=revoke_reason,json=revokeReason,proto3,oneof" json:"revoke_reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MachineCredentialV1) Reset() {
+	*x = MachineCredentialV1{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[538]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MachineCredentialV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MachineCredentialV1) ProtoMessage() {}
+
+func (x *MachineCredentialV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[538]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MachineCredentialV1.ProtoReflect.Descriptor instead.
+func (*MachineCredentialV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{538}
+}
+
+func (x *MachineCredentialV1) GetCredentialId() string {
+	if x != nil {
+		return x.CredentialId
+	}
+	return ""
+}
+
+func (x *MachineCredentialV1) GetMachinePrincipalId() string {
+	if x != nil {
+		return x.MachinePrincipalId
+	}
+	return ""
+}
+
+func (x *MachineCredentialV1) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
+func (x *MachineCredentialV1) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
+func (x *MachineCredentialV1) GetSecretRef() string {
+	if x != nil {
+		return x.SecretRef
+	}
+	return ""
+}
+
+func (x *MachineCredentialV1) GetTokenPrefix() string {
+	if x != nil {
+		return x.TokenPrefix
+	}
+	return ""
+}
+
+func (x *MachineCredentialV1) GetVersionNumber() uint32 {
+	if x != nil {
+		return x.VersionNumber
+	}
+	return 0
+}
+
+func (x *MachineCredentialV1) GetState() MachineCredentialStateV1 {
+	if x != nil {
+		return x.State
+	}
+	return MachineCredentialStateV1_MACHINE_CREDENTIAL_STATE_V1_UNSPECIFIED
+}
+
+func (x *MachineCredentialV1) GetExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return nil
+}
+
+func (x *MachineCredentialV1) GetCreatedBy() *PrincipalRefV1 {
+	if x != nil {
+		return x.CreatedBy
+	}
+	return nil
+}
+
+func (x *MachineCredentialV1) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *MachineCredentialV1) GetRevokedBy() *PrincipalRefV1 {
+	if x != nil {
+		return x.RevokedBy
+	}
+	return nil
+}
+
+func (x *MachineCredentialV1) GetRevokedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.RevokedAt
+	}
+	return nil
+}
+
+func (x *MachineCredentialV1) GetRevokeReason() string {
+	if x != nil && x.RevokeReason != nil {
+		return *x.RevokeReason
+	}
+	return ""
+}
+
+type CreateMachinePrincipalRequest struct {
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	DisplayName string                 `protobuf:"bytes,1,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	Description *string                `protobuf:"bytes,2,opt,name=description,proto3,oneof" json:"description,omitempty"`
+	// An unknown discriminant here is `INVALID_ARGUMENT` (0a §6.4). An empty set
+	// is legal and produces a principal that can authenticate and introspect
+	// itself and do nothing else — useful, and the honest default.
+	Scopes        []MachinePrincipalScopeV1 `protobuf:"varint,3,rep,packed,name=scopes,proto3,enum=o11y_one.agentic.v1.MachinePrincipalScopeV1" json:"scopes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateMachinePrincipalRequest) Reset() {
+	*x = CreateMachinePrincipalRequest{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[539]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateMachinePrincipalRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateMachinePrincipalRequest) ProtoMessage() {}
+
+func (x *CreateMachinePrincipalRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[539]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateMachinePrincipalRequest.ProtoReflect.Descriptor instead.
+func (*CreateMachinePrincipalRequest) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{539}
+}
+
+func (x *CreateMachinePrincipalRequest) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+func (x *CreateMachinePrincipalRequest) GetDescription() string {
+	if x != nil && x.Description != nil {
+		return *x.Description
+	}
+	return ""
+}
+
+func (x *CreateMachinePrincipalRequest) GetScopes() []MachinePrincipalScopeV1 {
+	if x != nil {
+		return x.Scopes
+	}
+	return nil
+}
+
+type CreateMachinePrincipalResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Principal     *MachinePrincipalV1    `protobuf:"bytes,1,opt,name=principal,proto3" json:"principal,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateMachinePrincipalResponse) Reset() {
+	*x = CreateMachinePrincipalResponse{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[540]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateMachinePrincipalResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateMachinePrincipalResponse) ProtoMessage() {}
+
+func (x *CreateMachinePrincipalResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[540]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateMachinePrincipalResponse.ProtoReflect.Descriptor instead.
+func (*CreateMachinePrincipalResponse) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{540}
+}
+
+func (x *CreateMachinePrincipalResponse) GetPrincipal() *MachinePrincipalV1 {
+	if x != nil {
+		return x.Principal
+	}
+	return nil
+}
+
+type ListMachinePrincipalsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PageSize      *uint32                `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3,oneof" json:"page_size,omitempty"`
+	PageToken     *string                `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3,oneof" json:"page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListMachinePrincipalsRequest) Reset() {
+	*x = ListMachinePrincipalsRequest{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[541]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListMachinePrincipalsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListMachinePrincipalsRequest) ProtoMessage() {}
+
+func (x *ListMachinePrincipalsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[541]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListMachinePrincipalsRequest.ProtoReflect.Descriptor instead.
+func (*ListMachinePrincipalsRequest) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{541}
+}
+
+func (x *ListMachinePrincipalsRequest) GetPageSize() uint32 {
+	if x != nil && x.PageSize != nil {
+		return *x.PageSize
+	}
+	return 0
+}
+
+func (x *ListMachinePrincipalsRequest) GetPageToken() string {
+	if x != nil && x.PageToken != nil {
+		return *x.PageToken
+	}
+	return ""
+}
+
+type MachinePrincipalWithCredentialsV1 struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Principal *MachinePrincipalV1    `protobuf:"bytes,1,opt,name=principal,proto3" json:"principal,omitempty"`
+	// Metadata only. See `MachineCredentialV1`: there is no field here material
+	// could reach.
+	Credentials   []*MachineCredentialV1 `protobuf:"bytes,2,rep,name=credentials,proto3" json:"credentials,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MachinePrincipalWithCredentialsV1) Reset() {
+	*x = MachinePrincipalWithCredentialsV1{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[542]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MachinePrincipalWithCredentialsV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MachinePrincipalWithCredentialsV1) ProtoMessage() {}
+
+func (x *MachinePrincipalWithCredentialsV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[542]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MachinePrincipalWithCredentialsV1.ProtoReflect.Descriptor instead.
+func (*MachinePrincipalWithCredentialsV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{542}
+}
+
+func (x *MachinePrincipalWithCredentialsV1) GetPrincipal() *MachinePrincipalV1 {
+	if x != nil {
+		return x.Principal
+	}
+	return nil
+}
+
+func (x *MachinePrincipalWithCredentialsV1) GetCredentials() []*MachineCredentialV1 {
+	if x != nil {
+		return x.Credentials
+	}
+	return nil
+}
+
+type ListMachinePrincipalsResponse struct {
+	state         protoimpl.MessageState               `protogen:"open.v1"`
+	Principals    []*MachinePrincipalWithCredentialsV1 `protobuf:"bytes,1,rep,name=principals,proto3" json:"principals,omitempty"`
+	NextPageToken *string                              `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3,oneof" json:"next_page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListMachinePrincipalsResponse) Reset() {
+	*x = ListMachinePrincipalsResponse{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[543]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListMachinePrincipalsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListMachinePrincipalsResponse) ProtoMessage() {}
+
+func (x *ListMachinePrincipalsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[543]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListMachinePrincipalsResponse.ProtoReflect.Descriptor instead.
+func (*ListMachinePrincipalsResponse) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{543}
+}
+
+func (x *ListMachinePrincipalsResponse) GetPrincipals() []*MachinePrincipalWithCredentialsV1 {
+	if x != nil {
+		return x.Principals
+	}
+	return nil
+}
+
+func (x *ListMachinePrincipalsResponse) GetNextPageToken() string {
+	if x != nil && x.NextPageToken != nil {
+		return *x.NextPageToken
+	}
+	return ""
+}
+
+type CreateMachineCredentialRequest struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	MachinePrincipalId string                 `protobuf:"bytes,1,opt,name=machine_principal_id,json=machinePrincipalId,proto3" json:"machine_principal_id,omitempty"`
+	Description        *string                `protobuf:"bytes,2,opt,name=description,proto3,oneof" json:"description,omitempty"`
+	// Absent means the platform default. Clamped server-side by the same rule the
+	// existing token surface uses.
+	ExpiresAt     *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=expires_at,json=expiresAt,proto3,oneof" json:"expires_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateMachineCredentialRequest) Reset() {
+	*x = CreateMachineCredentialRequest{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[544]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateMachineCredentialRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateMachineCredentialRequest) ProtoMessage() {}
+
+func (x *CreateMachineCredentialRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[544]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateMachineCredentialRequest.ProtoReflect.Descriptor instead.
+func (*CreateMachineCredentialRequest) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{544}
+}
+
+func (x *CreateMachineCredentialRequest) GetMachinePrincipalId() string {
+	if x != nil {
+		return x.MachinePrincipalId
+	}
+	return ""
+}
+
+func (x *CreateMachineCredentialRequest) GetDescription() string {
+	if x != nil && x.Description != nil {
+		return *x.Description
+	}
+	return ""
+}
+
+func (x *CreateMachineCredentialRequest) GetExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return nil
+}
+
+type CreateMachineCredentialResponse struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	Credential *MachineCredentialV1   `protobuf:"bytes,1,opt,name=credential,proto3" json:"credential,omitempty"`
+	// THE ONLY PLACE RAW CREDENTIAL MATERIAL APPEARS IN THIS CONTRACT (0a §6.3,
+	// NN8 `:160`). Returned exactly once, on this response, with no read-back RPC
+	// and no recovery path. It is not on `MachineCredentialV1`, so it cannot ride
+	// along on a list, a get, an introspection, a fact, a log or an audit row —
+	// the field simply does not exist on the resource.
+	PlaintextTokenOnce string `protobuf:"bytes,2,opt,name=plaintext_token_once,json=plaintextTokenOnce,proto3" json:"plaintext_token_once,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *CreateMachineCredentialResponse) Reset() {
+	*x = CreateMachineCredentialResponse{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[545]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateMachineCredentialResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateMachineCredentialResponse) ProtoMessage() {}
+
+func (x *CreateMachineCredentialResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[545]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateMachineCredentialResponse.ProtoReflect.Descriptor instead.
+func (*CreateMachineCredentialResponse) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{545}
+}
+
+func (x *CreateMachineCredentialResponse) GetCredential() *MachineCredentialV1 {
+	if x != nil {
+		return x.Credential
+	}
+	return nil
+}
+
+func (x *CreateMachineCredentialResponse) GetPlaintextTokenOnce() string {
+	if x != nil {
+		return x.PlaintextTokenOnce
+	}
+	return ""
+}
+
+type RevokeMachineCredentialRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CredentialId  string                 `protobuf:"bytes,1,opt,name=credential_id,json=credentialId,proto3" json:"credential_id,omitempty"`
+	RevokeReason  *string                `protobuf:"bytes,2,opt,name=revoke_reason,json=revokeReason,proto3,oneof" json:"revoke_reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RevokeMachineCredentialRequest) Reset() {
+	*x = RevokeMachineCredentialRequest{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[546]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RevokeMachineCredentialRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RevokeMachineCredentialRequest) ProtoMessage() {}
+
+func (x *RevokeMachineCredentialRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[546]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RevokeMachineCredentialRequest.ProtoReflect.Descriptor instead.
+func (*RevokeMachineCredentialRequest) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{546}
+}
+
+func (x *RevokeMachineCredentialRequest) GetCredentialId() string {
+	if x != nil {
+		return x.CredentialId
+	}
+	return ""
+}
+
+func (x *RevokeMachineCredentialRequest) GetRevokeReason() string {
+	if x != nil && x.RevokeReason != nil {
+		return *x.RevokeReason
+	}
+	return ""
+}
+
+type RevokeMachineCredentialResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Credential    *MachineCredentialV1   `protobuf:"bytes,1,opt,name=credential,proto3" json:"credential,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RevokeMachineCredentialResponse) Reset() {
+	*x = RevokeMachineCredentialResponse{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[547]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RevokeMachineCredentialResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RevokeMachineCredentialResponse) ProtoMessage() {}
+
+func (x *RevokeMachineCredentialResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[547]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RevokeMachineCredentialResponse.ProtoReflect.Descriptor instead.
+func (*RevokeMachineCredentialResponse) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{547}
+}
+
+func (x *RevokeMachineCredentialResponse) GetCredential() *MachineCredentialV1 {
+	if x != nil {
+		return x.Credential
+	}
+	return nil
+}
+
+type RevokeMachinePrincipalRequest struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	MachinePrincipalId string                 `protobuf:"bytes,1,opt,name=machine_principal_id,json=machinePrincipalId,proto3" json:"machine_principal_id,omitempty"`
+	RevokeReason       *string                `protobuf:"bytes,2,opt,name=revoke_reason,json=revokeReason,proto3,oneof" json:"revoke_reason,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *RevokeMachinePrincipalRequest) Reset() {
+	*x = RevokeMachinePrincipalRequest{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[548]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RevokeMachinePrincipalRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RevokeMachinePrincipalRequest) ProtoMessage() {}
+
+func (x *RevokeMachinePrincipalRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[548]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RevokeMachinePrincipalRequest.ProtoReflect.Descriptor instead.
+func (*RevokeMachinePrincipalRequest) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{548}
+}
+
+func (x *RevokeMachinePrincipalRequest) GetMachinePrincipalId() string {
+	if x != nil {
+		return x.MachinePrincipalId
+	}
+	return ""
+}
+
+func (x *RevokeMachinePrincipalRequest) GetRevokeReason() string {
+	if x != nil && x.RevokeReason != nil {
+		return *x.RevokeReason
+	}
+	return ""
+}
+
+type RevokeMachinePrincipalResponse struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Principal *MachinePrincipalV1    `protobuf:"bytes,1,opt,name=principal,proto3" json:"principal,omitempty"`
+	// Every credential the principal held, each now REVOKED. Returned so a caller
+	// can report exactly what it just invalidated rather than inferring it.
+	RevokedCredentials []*MachineCredentialV1 `protobuf:"bytes,2,rep,name=revoked_credentials,json=revokedCredentials,proto3" json:"revoked_credentials,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *RevokeMachinePrincipalResponse) Reset() {
+	*x = RevokeMachinePrincipalResponse{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[549]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RevokeMachinePrincipalResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RevokeMachinePrincipalResponse) ProtoMessage() {}
+
+func (x *RevokeMachinePrincipalResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[549]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RevokeMachinePrincipalResponse.ProtoReflect.Descriptor instead.
+func (*RevokeMachinePrincipalResponse) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{549}
+}
+
+func (x *RevokeMachinePrincipalResponse) GetPrincipal() *MachinePrincipalV1 {
+	if x != nil {
+		return x.Principal
+	}
+	return nil
+}
+
+func (x *RevokeMachinePrincipalResponse) GetRevokedCredentials() []*MachineCredentialV1 {
+	if x != nil {
+		return x.RevokedCredentials
+	}
+	return nil
+}
+
+type GetCallerPrincipalRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetCallerPrincipalRequest) Reset() {
+	*x = GetCallerPrincipalRequest{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[550]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetCallerPrincipalRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetCallerPrincipalRequest) ProtoMessage() {}
+
+func (x *GetCallerPrincipalRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[550]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetCallerPrincipalRequest.ProtoReflect.Descriptor instead.
+func (*GetCallerPrincipalRequest) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{550}
+}
+
+// J8.1's answer. Deliberately shaped so ONE SDK code path serves both caller
+// classes: `caller` is always present and always says which kind it is, and the
+// machine-only detail hangs off `machine_principal`, absent for a browser
+// session rather than zero-valued.
+type GetCallerPrincipalResponse struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Caller   *PrincipalRefV1        `protobuf:"bytes,1,opt,name=caller,proto3" json:"caller,omitempty"`
+	TenantId string                 `protobuf:"bytes,2,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	OrgId    string                 `protobuf:"bytes,3,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	// Absent for a browser session. Present for a machine credential, carrying
+	// the ScopeSet the SDK needs in order to say "this token lacks
+	// `dataset:write`" BEFORE the run rather than after a failed one.
+	MachinePrincipal *MachinePrincipalV1 `protobuf:"bytes,4,opt,name=machine_principal,json=machinePrincipal,proto3,oneof" json:"machine_principal,omitempty"`
+	// Which credential authorized THIS request. Absent for a browser session.
+	// This is what makes a revocation post-mortem possible: it answers "which key
+	// did the thing", not merely "which principal".
+	Credential    *MachineCredentialV1 `protobuf:"bytes,5,opt,name=credential,proto3,oneof" json:"credential,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetCallerPrincipalResponse) Reset() {
+	*x = GetCallerPrincipalResponse{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[551]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetCallerPrincipalResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetCallerPrincipalResponse) ProtoMessage() {}
+
+func (x *GetCallerPrincipalResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[551]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetCallerPrincipalResponse.ProtoReflect.Descriptor instead.
+func (*GetCallerPrincipalResponse) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{551}
+}
+
+func (x *GetCallerPrincipalResponse) GetCaller() *PrincipalRefV1 {
+	if x != nil {
+		return x.Caller
+	}
+	return nil
+}
+
+func (x *GetCallerPrincipalResponse) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
+func (x *GetCallerPrincipalResponse) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
+func (x *GetCallerPrincipalResponse) GetMachinePrincipal() *MachinePrincipalV1 {
+	if x != nil {
+		return x.MachinePrincipal
+	}
+	return nil
+}
+
+func (x *GetCallerPrincipalResponse) GetCredential() *MachineCredentialV1 {
+	if x != nil {
+		return x.Credential
+	}
+	return nil
+}
+
+// A customer runtime's fenced hold on a bounded set of prepared cases.
+//
+// `lease_id` is the storage's `lease_owner` and `lease_token` is its fence:
+// the same triple, on the same columns, that the server's own executor has used
+// since wave 48-HF. A lease is not a row of its own — it is materialised across
+// the cells it holds, which is what keeps one expiry authority instead of two.
+type ExternalCaseLeaseV1 struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	LeaseId string                 `protobuf:"bytes,1,opt,name=lease_id,json=leaseId,proto3" json:"lease_id,omitempty"`
+	// Opaque to the client and repeated on every renew, submit and release. A
+	// request carrying a stale token writes nothing.
+	LeaseToken        string                 `protobuf:"bytes,2,opt,name=lease_token,json=leaseToken,proto3" json:"lease_token,omitempty"`
+	ExpiresAt         *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	RenewalsUsed      uint32                 `protobuf:"varint,4,opt,name=renewals_used,json=renewalsUsed,proto3" json:"renewals_used,omitempty"`
+	RenewalsRemaining uint32                 `protobuf:"varint,5,opt,name=renewals_remaining,json=renewalsRemaining,proto3" json:"renewals_remaining,omitempty"`
+	CaseCount         uint32                 `protobuf:"varint,6,opt,name=case_count,json=caseCount,proto3" json:"case_count,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *ExternalCaseLeaseV1) Reset() {
+	*x = ExternalCaseLeaseV1{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[552]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExternalCaseLeaseV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExternalCaseLeaseV1) ProtoMessage() {}
+
+func (x *ExternalCaseLeaseV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[552]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExternalCaseLeaseV1.ProtoReflect.Descriptor instead.
+func (*ExternalCaseLeaseV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{552}
+}
+
+func (x *ExternalCaseLeaseV1) GetLeaseId() string {
+	if x != nil {
+		return x.LeaseId
+	}
+	return ""
+}
+
+func (x *ExternalCaseLeaseV1) GetLeaseToken() string {
+	if x != nil {
+		return x.LeaseToken
+	}
+	return ""
+}
+
+func (x *ExternalCaseLeaseV1) GetExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return nil
+}
+
+func (x *ExternalCaseLeaseV1) GetRenewalsUsed() uint32 {
+	if x != nil {
+		return x.RenewalsUsed
+	}
+	return 0
+}
+
+func (x *ExternalCaseLeaseV1) GetRenewalsRemaining() uint32 {
+	if x != nil {
+		return x.RenewalsRemaining
+	}
+	return 0
+}
+
+func (x *ExternalCaseLeaseV1) GetCaseCount() uint32 {
+	if x != nil {
+		return x.CaseCount
+	}
+	return 0
+}
+
+// One prepared cell handed to a customer runtime to execute.
+type LeasedEvaluationCaseV1 struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	CohortKey      string                 `protobuf:"bytes,1,opt,name=cohort_key,json=cohortKey,proto3" json:"cohort_key,omitempty"`
+	CandidateKey   string                 `protobuf:"bytes,2,opt,name=candidate_key,json=candidateKey,proto3" json:"candidate_key,omitempty"`
+	CaseRevisionId string                 `protobuf:"bytes,3,opt,name=case_revision_id,json=caseRevisionId,proto3" json:"case_revision_id,omitempty"`
+	Trial          uint32                 `protobuf:"varint,4,opt,name=trial,proto3" json:"trial,omitempty"`
+	// Repeated back on submission. A retry mints a new generation, and an output
+	// produced for the previous one is not evidence for this one.
+	AttemptGeneration int32 `protobuf:"varint,5,opt,name=attempt_generation,json=attemptGeneration,proto3" json:"attempt_generation,omitempty"`
+	// Canonical JSON, the same bytes the content digest binds.
+	InputPayloadJson   *string `protobuf:"bytes,6,opt,name=input_payload_json,json=inputPayloadJson,proto3,oneof" json:"input_payload_json,omitempty"`
+	ExpectedOutputJson *string `protobuf:"bytes,7,opt,name=expected_output_json,json=expectedOutputJson,proto3,oneof" json:"expected_output_json,omitempty"`
+	// The runtime's own deadline for this cell. Past it, with no live lease, the
+	// cell reaches `EVALUATION_EXECUTION_STATE_V1_TIMED_OUT` — the frozen name
+	// whose comment reads "whose deadline was the work's".
+	SubmissionDeadlineAt *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=submission_deadline_at,json=submissionDeadlineAt,proto3" json:"submission_deadline_at,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *LeasedEvaluationCaseV1) Reset() {
+	*x = LeasedEvaluationCaseV1{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[553]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LeasedEvaluationCaseV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LeasedEvaluationCaseV1) ProtoMessage() {}
+
+func (x *LeasedEvaluationCaseV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[553]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LeasedEvaluationCaseV1.ProtoReflect.Descriptor instead.
+func (*LeasedEvaluationCaseV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{553}
+}
+
+func (x *LeasedEvaluationCaseV1) GetCohortKey() string {
+	if x != nil {
+		return x.CohortKey
+	}
+	return ""
+}
+
+func (x *LeasedEvaluationCaseV1) GetCandidateKey() string {
+	if x != nil {
+		return x.CandidateKey
+	}
+	return ""
+}
+
+func (x *LeasedEvaluationCaseV1) GetCaseRevisionId() string {
+	if x != nil {
+		return x.CaseRevisionId
+	}
+	return ""
+}
+
+func (x *LeasedEvaluationCaseV1) GetTrial() uint32 {
+	if x != nil {
+		return x.Trial
+	}
+	return 0
+}
+
+func (x *LeasedEvaluationCaseV1) GetAttemptGeneration() int32 {
+	if x != nil {
+		return x.AttemptGeneration
+	}
+	return 0
+}
+
+func (x *LeasedEvaluationCaseV1) GetInputPayloadJson() string {
+	if x != nil && x.InputPayloadJson != nil {
+		return *x.InputPayloadJson
+	}
+	return ""
+}
+
+func (x *LeasedEvaluationCaseV1) GetExpectedOutputJson() string {
+	if x != nil && x.ExpectedOutputJson != nil {
+		return *x.ExpectedOutputJson
+	}
+	return ""
+}
+
+func (x *LeasedEvaluationCaseV1) GetSubmissionDeadlineAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.SubmissionDeadlineAt
+	}
+	return nil
+}
+
+// What a runtime tried and could not do. A failure is evidence too: it is the
+// difference between "this candidate cannot answer this case" and silence.
+type ExternalCaseFailureV1 struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Code             string                 `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
+	SanitizedMessage string                 `protobuf:"bytes,2,opt,name=sanitized_message,json=sanitizedMessage,proto3" json:"sanitized_message,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *ExternalCaseFailureV1) Reset() {
+	*x = ExternalCaseFailureV1{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[554]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExternalCaseFailureV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExternalCaseFailureV1) ProtoMessage() {}
+
+func (x *ExternalCaseFailureV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[554]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExternalCaseFailureV1.ProtoReflect.Descriptor instead.
+func (*ExternalCaseFailureV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{554}
+}
+
+func (x *ExternalCaseFailureV1) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+func (x *ExternalCaseFailureV1) GetSanitizedMessage() string {
+	if x != nil {
+		return x.SanitizedMessage
+	}
+	return ""
+}
+
+// A submitter's own account of what its runtime spent.
+//
+// Tokens, latency and retries are folded into the run's ledger exactly as a
+// provider candidate's are. `reported_cost_micros` is CARRIED AND NEVER SUMMED:
+// this build did not buy the call and has no rate to price it with, and a
+// caller-declared figure entering the org's spend would let a caller write
+// their own bill. The capability cell publishes this as
+// `submitted_cost_is_priced = 0` rather than leaving a client to discover it.
+type ExternalCaseUsageV1 struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	InputTokens        *int64                 `protobuf:"varint,1,opt,name=input_tokens,json=inputTokens,proto3,oneof" json:"input_tokens,omitempty"`
+	OutputTokens       *int64                 `protobuf:"varint,2,opt,name=output_tokens,json=outputTokens,proto3,oneof" json:"output_tokens,omitempty"`
+	TotalTokens        *int64                 `protobuf:"varint,3,opt,name=total_tokens,json=totalTokens,proto3,oneof" json:"total_tokens,omitempty"`
+	LatencyMicros      *int64                 `protobuf:"varint,4,opt,name=latency_micros,json=latencyMicros,proto3,oneof" json:"latency_micros,omitempty"`
+	RetryCount         *int32                 `protobuf:"varint,5,opt,name=retry_count,json=retryCount,proto3,oneof" json:"retry_count,omitempty"`
+	ReportedCostMicros *int64                 `protobuf:"varint,6,opt,name=reported_cost_micros,json=reportedCostMicros,proto3,oneof" json:"reported_cost_micros,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *ExternalCaseUsageV1) Reset() {
+	*x = ExternalCaseUsageV1{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[555]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExternalCaseUsageV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExternalCaseUsageV1) ProtoMessage() {}
+
+func (x *ExternalCaseUsageV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[555]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExternalCaseUsageV1.ProtoReflect.Descriptor instead.
+func (*ExternalCaseUsageV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{555}
+}
+
+func (x *ExternalCaseUsageV1) GetInputTokens() int64 {
+	if x != nil && x.InputTokens != nil {
+		return *x.InputTokens
+	}
+	return 0
+}
+
+func (x *ExternalCaseUsageV1) GetOutputTokens() int64 {
+	if x != nil && x.OutputTokens != nil {
+		return *x.OutputTokens
+	}
+	return 0
+}
+
+func (x *ExternalCaseUsageV1) GetTotalTokens() int64 {
+	if x != nil && x.TotalTokens != nil {
+		return *x.TotalTokens
+	}
+	return 0
+}
+
+func (x *ExternalCaseUsageV1) GetLatencyMicros() int64 {
+	if x != nil && x.LatencyMicros != nil {
+		return *x.LatencyMicros
+	}
+	return 0
+}
+
+func (x *ExternalCaseUsageV1) GetRetryCount() int32 {
+	if x != nil && x.RetryCount != nil {
+		return *x.RetryCount
+	}
+	return 0
+}
+
+func (x *ExternalCaseUsageV1) GetReportedCostMicros() int64 {
+	if x != nil && x.ReportedCostMicros != nil {
+		return *x.ReportedCostMicros
+	}
+	return 0
+}
+
+type ExternalCaseOutputV1 struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	CohortKey         string                 `protobuf:"bytes,1,opt,name=cohort_key,json=cohortKey,proto3" json:"cohort_key,omitempty"`
+	CandidateKey      string                 `protobuf:"bytes,2,opt,name=candidate_key,json=candidateKey,proto3" json:"candidate_key,omitempty"`
+	CaseRevisionId    string                 `protobuf:"bytes,3,opt,name=case_revision_id,json=caseRevisionId,proto3" json:"case_revision_id,omitempty"`
+	Trial             uint32                 `protobuf:"varint,4,opt,name=trial,proto3" json:"trial,omitempty"`
+	AttemptGeneration int32                  `protobuf:"varint,5,opt,name=attempt_generation,json=attemptGeneration,proto3" json:"attempt_generation,omitempty"`
+	// Types that are valid to be assigned to Result:
+	//
+	//	*ExternalCaseOutputV1_OutputPayloadJson
+	//	*ExternalCaseOutputV1_Failure
+	Result        isExternalCaseOutputV1_Result `protobuf_oneof:"result"`
+	Usage         *ExternalCaseUsageV1          `protobuf:"bytes,8,opt,name=usage,proto3,oneof" json:"usage,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ExternalCaseOutputV1) Reset() {
+	*x = ExternalCaseOutputV1{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[556]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExternalCaseOutputV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExternalCaseOutputV1) ProtoMessage() {}
+
+func (x *ExternalCaseOutputV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[556]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExternalCaseOutputV1.ProtoReflect.Descriptor instead.
+func (*ExternalCaseOutputV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{556}
+}
+
+func (x *ExternalCaseOutputV1) GetCohortKey() string {
+	if x != nil {
+		return x.CohortKey
+	}
+	return ""
+}
+
+func (x *ExternalCaseOutputV1) GetCandidateKey() string {
+	if x != nil {
+		return x.CandidateKey
+	}
+	return ""
+}
+
+func (x *ExternalCaseOutputV1) GetCaseRevisionId() string {
+	if x != nil {
+		return x.CaseRevisionId
+	}
+	return ""
+}
+
+func (x *ExternalCaseOutputV1) GetTrial() uint32 {
+	if x != nil {
+		return x.Trial
+	}
+	return 0
+}
+
+func (x *ExternalCaseOutputV1) GetAttemptGeneration() int32 {
+	if x != nil {
+		return x.AttemptGeneration
+	}
+	return 0
+}
+
+func (x *ExternalCaseOutputV1) GetResult() isExternalCaseOutputV1_Result {
+	if x != nil {
+		return x.Result
+	}
+	return nil
+}
+
+func (x *ExternalCaseOutputV1) GetOutputPayloadJson() string {
+	if x != nil {
+		if x, ok := x.Result.(*ExternalCaseOutputV1_OutputPayloadJson); ok {
+			return x.OutputPayloadJson
+		}
+	}
+	return ""
+}
+
+func (x *ExternalCaseOutputV1) GetFailure() *ExternalCaseFailureV1 {
+	if x != nil {
+		if x, ok := x.Result.(*ExternalCaseOutputV1_Failure); ok {
+			return x.Failure
+		}
+	}
+	return nil
+}
+
+func (x *ExternalCaseOutputV1) GetUsage() *ExternalCaseUsageV1 {
+	if x != nil {
+		return x.Usage
+	}
+	return nil
+}
+
+type isExternalCaseOutputV1_Result interface {
+	isExternalCaseOutputV1_Result()
+}
+
+type ExternalCaseOutputV1_OutputPayloadJson struct {
+	// Canonical JSON. Bounded by `max_output_bytes`; refused above it with a
+	// typed per-case rejection, never truncated.
+	OutputPayloadJson string `protobuf:"bytes,6,opt,name=output_payload_json,json=outputPayloadJson,proto3,oneof"`
+}
+
+type ExternalCaseOutputV1_Failure struct {
+	Failure *ExternalCaseFailureV1 `protobuf:"bytes,7,opt,name=failure,proto3,oneof"`
+}
+
+func (*ExternalCaseOutputV1_OutputPayloadJson) isExternalCaseOutputV1_Result() {}
+
+func (*ExternalCaseOutputV1_Failure) isExternalCaseOutputV1_Result() {}
+
+// One case's answer inside a batch. A malformed case never fails its batch —
+// the other forty-nine land, which is `PLAN:1928`'s partial-batch clause read
+// onto this surface.
+type ExternalCaseOutputAckV1 struct {
+	state          protoimpl.MessageState      `protogen:"open.v1"`
+	CohortKey      string                      `protobuf:"bytes,1,opt,name=cohort_key,json=cohortKey,proto3" json:"cohort_key,omitempty"`
+	CandidateKey   string                      `protobuf:"bytes,2,opt,name=candidate_key,json=candidateKey,proto3" json:"candidate_key,omitempty"`
+	CaseRevisionId string                      `protobuf:"bytes,3,opt,name=case_revision_id,json=caseRevisionId,proto3" json:"case_revision_id,omitempty"`
+	Trial          uint32                      `protobuf:"varint,4,opt,name=trial,proto3" json:"trial,omitempty"`
+	Kind           ExternalSubmissionAckKindV1 `protobuf:"varint,5,opt,name=kind,proto3,enum=o11y_one.agentic.v1.ExternalSubmissionAckKindV1" json:"kind,omitempty"`
+	// The FROZEN execution state this coordinate is in as the server sees it.
+	// A submission whose lease died reads
+	// `EVALUATION_EXECUTION_STATE_V1_LEASE_EXPIRED` here — "reclaimable", which
+	// is exactly what the client should do next.
+	ObservedState EvaluationExecutionStateV1 `protobuf:"varint,6,opt,name=observed_state,json=observedState,proto3,enum=o11y_one.agentic.v1.EvaluationExecutionStateV1" json:"observed_state,omitempty"`
+	// Present on `_REJECTED`. `stage` is always
+	// `EVALUATION_FAILURE_STAGE_V1_EXTERNAL_LEASE`, the stage 0a §5.3 froze for
+	// this plane and nothing has written until now.
+	Rejection     *EvaluationFailureV1 `protobuf:"bytes,7,opt,name=rejection,proto3,oneof" json:"rejection,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ExternalCaseOutputAckV1) Reset() {
+	*x = ExternalCaseOutputAckV1{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[557]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExternalCaseOutputAckV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExternalCaseOutputAckV1) ProtoMessage() {}
+
+func (x *ExternalCaseOutputAckV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[557]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExternalCaseOutputAckV1.ProtoReflect.Descriptor instead.
+func (*ExternalCaseOutputAckV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{557}
+}
+
+func (x *ExternalCaseOutputAckV1) GetCohortKey() string {
+	if x != nil {
+		return x.CohortKey
+	}
+	return ""
+}
+
+func (x *ExternalCaseOutputAckV1) GetCandidateKey() string {
+	if x != nil {
+		return x.CandidateKey
+	}
+	return ""
+}
+
+func (x *ExternalCaseOutputAckV1) GetCaseRevisionId() string {
+	if x != nil {
+		return x.CaseRevisionId
+	}
+	return ""
+}
+
+func (x *ExternalCaseOutputAckV1) GetTrial() uint32 {
+	if x != nil {
+		return x.Trial
+	}
+	return 0
+}
+
+func (x *ExternalCaseOutputAckV1) GetKind() ExternalSubmissionAckKindV1 {
+	if x != nil {
+		return x.Kind
+	}
+	return ExternalSubmissionAckKindV1_EXTERNAL_SUBMISSION_ACK_KIND_V1_UNSPECIFIED
+}
+
+func (x *ExternalCaseOutputAckV1) GetObservedState() EvaluationExecutionStateV1 {
+	if x != nil {
+		return x.ObservedState
+	}
+	return EvaluationExecutionStateV1_EVALUATION_EXECUTION_STATE_V1_UNSPECIFIED
+}
+
+func (x *ExternalCaseOutputAckV1) GetRejection() *EvaluationFailureV1 {
+	if x != nil {
+		return x.Rejection
+	}
+	return nil
+}
+
+type ExternalLeaseRefusalV1 struct {
+	state   protoimpl.MessageState     `protogen:"open.v1"`
+	Kind    ExternalLeaseRefusalKindV1 `protobuf:"varint,1,opt,name=kind,proto3,enum=o11y_one.agentic.v1.ExternalLeaseRefusalKindV1" json:"kind,omitempty"`
+	Message string                     `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	// Names the missing scope, never the scopes the caller has.
+	MissingScope  *string           `protobuf:"bytes,3,opt,name=missing_scope,json=missingScope,proto3,oneof" json:"missing_scope,omitempty"`
+	Recovery      *RecoveryActionV1 `protobuf:"varint,4,opt,name=recovery,proto3,enum=o11y_one.agentic.v1.RecoveryActionV1,oneof" json:"recovery,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ExternalLeaseRefusalV1) Reset() {
+	*x = ExternalLeaseRefusalV1{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[558]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExternalLeaseRefusalV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExternalLeaseRefusalV1) ProtoMessage() {}
+
+func (x *ExternalLeaseRefusalV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[558]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExternalLeaseRefusalV1.ProtoReflect.Descriptor instead.
+func (*ExternalLeaseRefusalV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{558}
+}
+
+func (x *ExternalLeaseRefusalV1) GetKind() ExternalLeaseRefusalKindV1 {
+	if x != nil {
+		return x.Kind
+	}
+	return ExternalLeaseRefusalKindV1_EXTERNAL_LEASE_REFUSAL_KIND_V1_UNSPECIFIED
+}
+
+func (x *ExternalLeaseRefusalV1) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *ExternalLeaseRefusalV1) GetMissingScope() string {
+	if x != nil && x.MissingScope != nil {
+		return *x.MissingScope
+	}
+	return ""
+}
+
+func (x *ExternalLeaseRefusalV1) GetRecovery() RecoveryActionV1 {
+	if x != nil && x.Recovery != nil {
+		return *x.Recovery
+	}
+	return RecoveryActionV1_RECOVERY_ACTION_V1_UNSPECIFIED
+}
+
+type LeaseEvaluationCasesRequest struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	EvaluationRunId string                 `protobuf:"bytes,1,opt,name=evaluation_run_id,json=evaluationRunId,proto3" json:"evaluation_run_id,omitempty"`
+	CandidateKey    string                 `protobuf:"bytes,2,opt,name=candidate_key,json=candidateKey,proto3" json:"candidate_key,omitempty"`
+	// Must equal the `runtime_key` the launch froze on this candidate. A runtime
+	// answering for a candidate it does not implement is a configuration error
+	// the server can see and the customer cannot.
+	RuntimeKey string `protobuf:"bytes,3,opt,name=runtime_key,json=runtimeKey,proto3" json:"runtime_key,omitempty"`
+	// 0 means the server default. Clamped to `max_cases_per_lease`.
+	MaxCases uint32 `protobuf:"varint,4,opt,name=max_cases,json=maxCases,proto3" json:"max_cases,omitempty"`
+	// 0 means the candidate's own `lease_policy.lease_ttl_seconds`. Clamped to
+	// [`min_lease_seconds`, `max_lease_seconds`].
+	LeaseSeconds  uint32 `protobuf:"varint,5,opt,name=lease_seconds,json=leaseSeconds,proto3" json:"lease_seconds,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LeaseEvaluationCasesRequest) Reset() {
+	*x = LeaseEvaluationCasesRequest{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[559]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LeaseEvaluationCasesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LeaseEvaluationCasesRequest) ProtoMessage() {}
+
+func (x *LeaseEvaluationCasesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[559]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LeaseEvaluationCasesRequest.ProtoReflect.Descriptor instead.
+func (*LeaseEvaluationCasesRequest) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{559}
+}
+
+func (x *LeaseEvaluationCasesRequest) GetEvaluationRunId() string {
+	if x != nil {
+		return x.EvaluationRunId
+	}
+	return ""
+}
+
+func (x *LeaseEvaluationCasesRequest) GetCandidateKey() string {
+	if x != nil {
+		return x.CandidateKey
+	}
+	return ""
+}
+
+func (x *LeaseEvaluationCasesRequest) GetRuntimeKey() string {
+	if x != nil {
+		return x.RuntimeKey
+	}
+	return ""
+}
+
+func (x *LeaseEvaluationCasesRequest) GetMaxCases() uint32 {
+	if x != nil {
+		return x.MaxCases
+	}
+	return 0
+}
+
+func (x *LeaseEvaluationCasesRequest) GetLeaseSeconds() uint32 {
+	if x != nil {
+		return x.LeaseSeconds
+	}
+	return 0
+}
+
+type LeaseEvaluationCasesResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ABSENT means nothing was claimable. That is the "you are done" answer and
+	// it is not an error: `remaining_unleased_case_count` says whether the work
+	// is finished or merely held by another runtime.
+	Lease                      *ExternalCaseLeaseV1             `protobuf:"bytes,1,opt,name=lease,proto3,oneof" json:"lease,omitempty"`
+	Cases                      []*LeasedEvaluationCaseV1        `protobuf:"bytes,2,rep,name=cases,proto3" json:"cases,omitempty"`
+	RemainingUnleasedCaseCount uint32                           `protobuf:"varint,3,opt,name=remaining_unleased_case_count,json=remainingUnleasedCaseCount,proto3" json:"remaining_unleased_case_count,omitempty"`
+	Refusal                    *ExternalLeaseRefusalV1          `protobuf:"bytes,4,opt,name=refusal,proto3,oneof" json:"refusal,omitempty"`
+	Capabilities               *AgenticEvaluationCapabilitiesV1 `protobuf:"bytes,5,opt,name=capabilities,proto3" json:"capabilities,omitempty"`
+	Freshness                  *EvaluationFreshnessV1           `protobuf:"bytes,6,opt,name=freshness,proto3" json:"freshness,omitempty"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
+}
+
+func (x *LeaseEvaluationCasesResponse) Reset() {
+	*x = LeaseEvaluationCasesResponse{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[560]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LeaseEvaluationCasesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LeaseEvaluationCasesResponse) ProtoMessage() {}
+
+func (x *LeaseEvaluationCasesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[560]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LeaseEvaluationCasesResponse.ProtoReflect.Descriptor instead.
+func (*LeaseEvaluationCasesResponse) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{560}
+}
+
+func (x *LeaseEvaluationCasesResponse) GetLease() *ExternalCaseLeaseV1 {
+	if x != nil {
+		return x.Lease
+	}
+	return nil
+}
+
+func (x *LeaseEvaluationCasesResponse) GetCases() []*LeasedEvaluationCaseV1 {
+	if x != nil {
+		return x.Cases
+	}
+	return nil
+}
+
+func (x *LeaseEvaluationCasesResponse) GetRemainingUnleasedCaseCount() uint32 {
+	if x != nil {
+		return x.RemainingUnleasedCaseCount
+	}
+	return 0
+}
+
+func (x *LeaseEvaluationCasesResponse) GetRefusal() *ExternalLeaseRefusalV1 {
+	if x != nil {
+		return x.Refusal
+	}
+	return nil
+}
+
+func (x *LeaseEvaluationCasesResponse) GetCapabilities() *AgenticEvaluationCapabilitiesV1 {
+	if x != nil {
+		return x.Capabilities
+	}
+	return nil
+}
+
+func (x *LeaseEvaluationCasesResponse) GetFreshness() *EvaluationFreshnessV1 {
+	if x != nil {
+		return x.Freshness
+	}
+	return nil
+}
+
+type RenewEvaluationCaseLeaseRequest struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	EvaluationRunId string                 `protobuf:"bytes,1,opt,name=evaluation_run_id,json=evaluationRunId,proto3" json:"evaluation_run_id,omitempty"`
+	LeaseId         string                 `protobuf:"bytes,2,opt,name=lease_id,json=leaseId,proto3" json:"lease_id,omitempty"`
+	LeaseToken      string                 `protobuf:"bytes,3,opt,name=lease_token,json=leaseToken,proto3" json:"lease_token,omitempty"`
+	LeaseSeconds    uint32                 `protobuf:"varint,4,opt,name=lease_seconds,json=leaseSeconds,proto3" json:"lease_seconds,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *RenewEvaluationCaseLeaseRequest) Reset() {
+	*x = RenewEvaluationCaseLeaseRequest{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[561]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RenewEvaluationCaseLeaseRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RenewEvaluationCaseLeaseRequest) ProtoMessage() {}
+
+func (x *RenewEvaluationCaseLeaseRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[561]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RenewEvaluationCaseLeaseRequest.ProtoReflect.Descriptor instead.
+func (*RenewEvaluationCaseLeaseRequest) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{561}
+}
+
+func (x *RenewEvaluationCaseLeaseRequest) GetEvaluationRunId() string {
+	if x != nil {
+		return x.EvaluationRunId
+	}
+	return ""
+}
+
+func (x *RenewEvaluationCaseLeaseRequest) GetLeaseId() string {
+	if x != nil {
+		return x.LeaseId
+	}
+	return ""
+}
+
+func (x *RenewEvaluationCaseLeaseRequest) GetLeaseToken() string {
+	if x != nil {
+		return x.LeaseToken
+	}
+	return ""
+}
+
+func (x *RenewEvaluationCaseLeaseRequest) GetLeaseSeconds() uint32 {
+	if x != nil {
+		return x.LeaseSeconds
+	}
+	return 0
+}
+
+type RenewEvaluationCaseLeaseResponse struct {
+	state         protoimpl.MessageState           `protogen:"open.v1"`
+	Lease         *ExternalCaseLeaseV1             `protobuf:"bytes,1,opt,name=lease,proto3,oneof" json:"lease,omitempty"`
+	Refusal       *ExternalLeaseRefusalV1          `protobuf:"bytes,2,opt,name=refusal,proto3,oneof" json:"refusal,omitempty"`
+	Capabilities  *AgenticEvaluationCapabilitiesV1 `protobuf:"bytes,3,opt,name=capabilities,proto3" json:"capabilities,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RenewEvaluationCaseLeaseResponse) Reset() {
+	*x = RenewEvaluationCaseLeaseResponse{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[562]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RenewEvaluationCaseLeaseResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RenewEvaluationCaseLeaseResponse) ProtoMessage() {}
+
+func (x *RenewEvaluationCaseLeaseResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[562]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RenewEvaluationCaseLeaseResponse.ProtoReflect.Descriptor instead.
+func (*RenewEvaluationCaseLeaseResponse) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{562}
+}
+
+func (x *RenewEvaluationCaseLeaseResponse) GetLease() *ExternalCaseLeaseV1 {
+	if x != nil {
+		return x.Lease
+	}
+	return nil
+}
+
+func (x *RenewEvaluationCaseLeaseResponse) GetRefusal() *ExternalLeaseRefusalV1 {
+	if x != nil {
+		return x.Refusal
+	}
+	return nil
+}
+
+func (x *RenewEvaluationCaseLeaseResponse) GetCapabilities() *AgenticEvaluationCapabilitiesV1 {
+	if x != nil {
+		return x.Capabilities
+	}
+	return nil
+}
+
+type SubmitEvaluationCaseOutputsRequest struct {
+	state           protoimpl.MessageState  `protogen:"open.v1"`
+	EvaluationRunId string                  `protobuf:"bytes,1,opt,name=evaluation_run_id,json=evaluationRunId,proto3" json:"evaluation_run_id,omitempty"`
+	LeaseId         string                  `protobuf:"bytes,2,opt,name=lease_id,json=leaseId,proto3" json:"lease_id,omitempty"`
+	LeaseToken      string                  `protobuf:"bytes,3,opt,name=lease_token,json=leaseToken,proto3" json:"lease_token,omitempty"`
+	Outputs         []*ExternalCaseOutputV1 `protobuf:"bytes,4,rep,name=outputs,proto3" json:"outputs,omitempty"`
+	// Convergence is fenced by lease identity and keyed by coordinate, so this is
+	// audit provenance rather than the dedupe key. Bounded like every other
+	// idempotency key on this surface.
+	IdempotencyKey string `protobuf:"bytes,5,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *SubmitEvaluationCaseOutputsRequest) Reset() {
+	*x = SubmitEvaluationCaseOutputsRequest{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[563]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SubmitEvaluationCaseOutputsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SubmitEvaluationCaseOutputsRequest) ProtoMessage() {}
+
+func (x *SubmitEvaluationCaseOutputsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[563]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SubmitEvaluationCaseOutputsRequest.ProtoReflect.Descriptor instead.
+func (*SubmitEvaluationCaseOutputsRequest) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{563}
+}
+
+func (x *SubmitEvaluationCaseOutputsRequest) GetEvaluationRunId() string {
+	if x != nil {
+		return x.EvaluationRunId
+	}
+	return ""
+}
+
+func (x *SubmitEvaluationCaseOutputsRequest) GetLeaseId() string {
+	if x != nil {
+		return x.LeaseId
+	}
+	return ""
+}
+
+func (x *SubmitEvaluationCaseOutputsRequest) GetLeaseToken() string {
+	if x != nil {
+		return x.LeaseToken
+	}
+	return ""
+}
+
+func (x *SubmitEvaluationCaseOutputsRequest) GetOutputs() []*ExternalCaseOutputV1 {
+	if x != nil {
+		return x.Outputs
+	}
+	return nil
+}
+
+func (x *SubmitEvaluationCaseOutputsRequest) GetIdempotencyKey() string {
+	if x != nil {
+		return x.IdempotencyKey
+	}
+	return ""
+}
+
+type SubmitEvaluationCaseOutputsResponse struct {
+	state                 protoimpl.MessageState     `protogen:"open.v1"`
+	Acks                  []*ExternalCaseOutputAckV1 `protobuf:"bytes,1,rep,name=acks,proto3" json:"acks,omitempty"`
+	AcceptedCount         uint32                     `protobuf:"varint,2,opt,name=accepted_count,json=acceptedCount,proto3" json:"accepted_count,omitempty"`
+	AlreadySubmittedCount uint32                     `protobuf:"varint,3,opt,name=already_submitted_count,json=alreadySubmittedCount,proto3" json:"already_submitted_count,omitempty"`
+	RejectedCount         uint32                     `protobuf:"varint,4,opt,name=rejected_count,json=rejectedCount,proto3" json:"rejected_count,omitempty"`
+	// The lease as it stands after this batch — remaining life and how many cases
+	// it still holds. Absent when the batch emptied it.
+	Lease                    *ExternalCaseLeaseV1 `protobuf:"bytes,5,opt,name=lease,proto3,oneof" json:"lease,omitempty"`
+	RemainingLeasedCaseCount uint32               `protobuf:"varint,6,opt,name=remaining_leased_case_count,json=remainingLeasedCaseCount,proto3" json:"remaining_leased_case_count,omitempty"`
+	// A WHOLE-REQUEST refusal: the fence was lost, so no per-case answer is
+	// meaningful. Never set alongside acks.
+	Refusal       *ExternalLeaseRefusalV1          `protobuf:"bytes,7,opt,name=refusal,proto3,oneof" json:"refusal,omitempty"`
+	Capabilities  *AgenticEvaluationCapabilitiesV1 `protobuf:"bytes,8,opt,name=capabilities,proto3" json:"capabilities,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SubmitEvaluationCaseOutputsResponse) Reset() {
+	*x = SubmitEvaluationCaseOutputsResponse{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[564]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SubmitEvaluationCaseOutputsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SubmitEvaluationCaseOutputsResponse) ProtoMessage() {}
+
+func (x *SubmitEvaluationCaseOutputsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[564]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SubmitEvaluationCaseOutputsResponse.ProtoReflect.Descriptor instead.
+func (*SubmitEvaluationCaseOutputsResponse) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{564}
+}
+
+func (x *SubmitEvaluationCaseOutputsResponse) GetAcks() []*ExternalCaseOutputAckV1 {
+	if x != nil {
+		return x.Acks
+	}
+	return nil
+}
+
+func (x *SubmitEvaluationCaseOutputsResponse) GetAcceptedCount() uint32 {
+	if x != nil {
+		return x.AcceptedCount
+	}
+	return 0
+}
+
+func (x *SubmitEvaluationCaseOutputsResponse) GetAlreadySubmittedCount() uint32 {
+	if x != nil {
+		return x.AlreadySubmittedCount
+	}
+	return 0
+}
+
+func (x *SubmitEvaluationCaseOutputsResponse) GetRejectedCount() uint32 {
+	if x != nil {
+		return x.RejectedCount
+	}
+	return 0
+}
+
+func (x *SubmitEvaluationCaseOutputsResponse) GetLease() *ExternalCaseLeaseV1 {
+	if x != nil {
+		return x.Lease
+	}
+	return nil
+}
+
+func (x *SubmitEvaluationCaseOutputsResponse) GetRemainingLeasedCaseCount() uint32 {
+	if x != nil {
+		return x.RemainingLeasedCaseCount
+	}
+	return 0
+}
+
+func (x *SubmitEvaluationCaseOutputsResponse) GetRefusal() *ExternalLeaseRefusalV1 {
+	if x != nil {
+		return x.Refusal
+	}
+	return nil
+}
+
+func (x *SubmitEvaluationCaseOutputsResponse) GetCapabilities() *AgenticEvaluationCapabilitiesV1 {
+	if x != nil {
+		return x.Capabilities
+	}
+	return nil
+}
+
+type ReleaseEvaluationCaseLeaseRequest struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	EvaluationRunId string                 `protobuf:"bytes,1,opt,name=evaluation_run_id,json=evaluationRunId,proto3" json:"evaluation_run_id,omitempty"`
+	LeaseId         string                 `protobuf:"bytes,2,opt,name=lease_id,json=leaseId,proto3" json:"lease_id,omitempty"`
+	LeaseToken      string                 `protobuf:"bytes,3,opt,name=lease_token,json=leaseToken,proto3" json:"lease_token,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *ReleaseEvaluationCaseLeaseRequest) Reset() {
+	*x = ReleaseEvaluationCaseLeaseRequest{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[565]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReleaseEvaluationCaseLeaseRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReleaseEvaluationCaseLeaseRequest) ProtoMessage() {}
+
+func (x *ReleaseEvaluationCaseLeaseRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[565]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReleaseEvaluationCaseLeaseRequest.ProtoReflect.Descriptor instead.
+func (*ReleaseEvaluationCaseLeaseRequest) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{565}
+}
+
+func (x *ReleaseEvaluationCaseLeaseRequest) GetEvaluationRunId() string {
+	if x != nil {
+		return x.EvaluationRunId
+	}
+	return ""
+}
+
+func (x *ReleaseEvaluationCaseLeaseRequest) GetLeaseId() string {
+	if x != nil {
+		return x.LeaseId
+	}
+	return ""
+}
+
+func (x *ReleaseEvaluationCaseLeaseRequest) GetLeaseToken() string {
+	if x != nil {
+		return x.LeaseToken
+	}
+	return ""
+}
+
+type ReleaseEvaluationCaseLeaseResponse struct {
+	state             protoimpl.MessageState           `protogen:"open.v1"`
+	ReleasedCaseCount uint32                           `protobuf:"varint,1,opt,name=released_case_count,json=releasedCaseCount,proto3" json:"released_case_count,omitempty"`
+	Refusal           *ExternalLeaseRefusalV1          `protobuf:"bytes,2,opt,name=refusal,proto3,oneof" json:"refusal,omitempty"`
+	Capabilities      *AgenticEvaluationCapabilitiesV1 `protobuf:"bytes,3,opt,name=capabilities,proto3" json:"capabilities,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *ReleaseEvaluationCaseLeaseResponse) Reset() {
+	*x = ReleaseEvaluationCaseLeaseResponse{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[566]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReleaseEvaluationCaseLeaseResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReleaseEvaluationCaseLeaseResponse) ProtoMessage() {}
+
+func (x *ReleaseEvaluationCaseLeaseResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[566]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReleaseEvaluationCaseLeaseResponse.ProtoReflect.Descriptor instead.
+func (*ReleaseEvaluationCaseLeaseResponse) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{566}
+}
+
+func (x *ReleaseEvaluationCaseLeaseResponse) GetReleasedCaseCount() uint32 {
+	if x != nil {
+		return x.ReleasedCaseCount
+	}
+	return 0
+}
+
+func (x *ReleaseEvaluationCaseLeaseResponse) GetRefusal() *ExternalLeaseRefusalV1 {
+	if x != nil {
+		return x.Refusal
+	}
+	return nil
+}
+
+func (x *ReleaseEvaluationCaseLeaseResponse) GetCapabilities() *AgenticEvaluationCapabilitiesV1 {
+	if x != nil {
+		return x.Capabilities
+	}
+	return nil
+}
+
+// One typed reference.
+//
+// NOT RESOLVED AT WRITE, and this is a decision rather than an omission
+// (increment record §0.5). Three reasons, shortest first: resolving is a
+// cross-plane read on the write path, so a constant-cost insert becomes one
+// that varies with the link count; a trace id does not resolve in Postgres at
+// all; and — the one that settles it — this plane keeps its rows for 730 days
+// while a trace keeps its for thirty, so a link that was valid when written and
+// dangling when read is the DESIGNED end state. Validating at write would buy a
+// guarantee with a known expiry date and then have to be un-checked at read.
+//
+// A reader resolves it and renders a typed absence. The capability cell says so
+// out loud with `link_existence_validated = 0`, so an SDK does not report a
+// data-integrity bug when it meets one.
+type PlatformAnnotationLinkV1 struct {
+	state protoimpl.MessageState       `protogen:"open.v1"`
+	Kind  PlatformAnnotationLinkKindV1 `protobuf:"varint,1,opt,name=kind,proto3,enum=o11y_one.agentic.v1.PlatformAnnotationLinkKindV1" json:"kind,omitempty"`
+	// An identity. Never a URL, never a body, byte-capped (NN24).
+	Ref           string `protobuf:"bytes,2,opt,name=ref,proto3" json:"ref,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PlatformAnnotationLinkV1) Reset() {
+	*x = PlatformAnnotationLinkV1{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[567]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PlatformAnnotationLinkV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PlatformAnnotationLinkV1) ProtoMessage() {}
+
+func (x *PlatformAnnotationLinkV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[567]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PlatformAnnotationLinkV1.ProtoReflect.Descriptor instead.
+func (*PlatformAnnotationLinkV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{567}
+}
+
+func (x *PlatformAnnotationLinkV1) GetKind() PlatformAnnotationLinkKindV1 {
+	if x != nil {
+		return x.Kind
+	}
+	return PlatformAnnotationLinkKindV1_PLATFORM_ANNOTATION_LINK_KIND_V1_UNSPECIFIED
+}
+
+func (x *PlatformAnnotationLinkV1) GetRef() string {
+	if x != nil {
+		return x.Ref
+	}
+	return ""
+}
+
+// One bounded key/value. Both halves are byte-capped and the count is capped;
+// the whole map is capped again in the database. NN24 admits "identities,
+// states, leases, compact typed errors, timestamps, and fact/artifact
+// references" and this is the "short strings" end of that list, not a place to
+// put a request body.
+type PlatformAnnotationAttributeV1 struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Key           string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Value         string                 `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PlatformAnnotationAttributeV1) Reset() {
+	*x = PlatformAnnotationAttributeV1{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[568]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PlatformAnnotationAttributeV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PlatformAnnotationAttributeV1) ProtoMessage() {}
+
+func (x *PlatformAnnotationAttributeV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[568]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PlatformAnnotationAttributeV1.ProtoReflect.Descriptor instead.
+func (*PlatformAnnotationAttributeV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{568}
+}
+
+func (x *PlatformAnnotationAttributeV1) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *PlatformAnnotationAttributeV1) GetValue() string {
+	if x != nil {
+		return x.Value
+	}
+	return ""
+}
+
+type PlatformAnnotationV1 struct {
+	state        protoimpl.MessageState   `protogen:"open.v1"`
+	AnnotationId string                   `protobuf:"bytes,1,opt,name=annotation_id,json=annotationId,proto3" json:"annotation_id,omitempty"`
+	OrgId        string                   `protobuf:"bytes,2,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Kind         PlatformAnnotationKindV1 `protobuf:"varint,3,opt,name=kind,proto3,enum=o11y_one.agentic.v1.PlatformAnnotationKindV1" json:"kind,omitempty"`
+	Title        string                   `protobuf:"bytes,4,opt,name=title,proto3" json:"title,omitempty"`
+	StartAt      *timestamppb.Timestamp   `protobuf:"bytes,5,opt,name=start_at,json=startAt,proto3" json:"start_at,omitempty"`
+	// ABSENT MEANS AN INSTANT. This is a `start` plus an optional `end` and not a
+	// `oneof{instant, range}` on purpose (increment record §0.4). An instant IS a
+	// range whose end is absent; a `oneof` would assert they are different kinds
+	// of thing and then make every consumer write the same two-arm switch to
+	// conclude that they are not. It also keeps the window-overlap read to ONE
+	// predicate, which is what lets the list publish a constant statement budget.
+	//
+	// A renderer draws a line when this is absent and a band when it is present —
+	// the same discriminator a `oneof` would have given it, at no schema cost.
+	//
+	// `end_at < start_at` is refused by the database, not by a handler rule.
+	EndAt      *timestamppb.Timestamp           `protobuf:"bytes,6,opt,name=end_at,json=endAt,proto3,oneof" json:"end_at,omitempty"`
+	Attributes []*PlatformAnnotationAttributeV1 `protobuf:"bytes,7,rep,name=attributes,proto3" json:"attributes,omitempty"`
+	Links      []*PlatformAnnotationLinkV1      `protobuf:"bytes,8,rep,name=links,proto3" json:"links,omitempty"`
+	// Machine or user. Read attribution from HERE and never from a legacy
+	// `created_by_user_id` (wave 50 lane A, `w50a-auth-shape.md` §4): a marker
+	// written by a CI runner has no user, and a user id invented for it would be
+	// a fabricated identity.
+	RecordedBy *PrincipalRefV1        `protobuf:"bytes,9,opt,name=recorded_by,json=recordedBy,proto3" json:"recorded_by,omitempty"`
+	RecordedAt *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=recorded_at,json=recordedAt,proto3" json:"recorded_at,omitempty"`
+	// Echoed so a retrying CI job can match the response to the request it
+	// replayed without holding state across the retry.
+	IdempotencyKey string `protobuf:"bytes,11,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *PlatformAnnotationV1) Reset() {
+	*x = PlatformAnnotationV1{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[569]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PlatformAnnotationV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PlatformAnnotationV1) ProtoMessage() {}
+
+func (x *PlatformAnnotationV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[569]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PlatformAnnotationV1.ProtoReflect.Descriptor instead.
+func (*PlatformAnnotationV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{569}
+}
+
+func (x *PlatformAnnotationV1) GetAnnotationId() string {
+	if x != nil {
+		return x.AnnotationId
+	}
+	return ""
+}
+
+func (x *PlatformAnnotationV1) GetOrgId() string {
+	if x != nil {
+		return x.OrgId
+	}
+	return ""
+}
+
+func (x *PlatformAnnotationV1) GetKind() PlatformAnnotationKindV1 {
+	if x != nil {
+		return x.Kind
+	}
+	return PlatformAnnotationKindV1_PLATFORM_ANNOTATION_KIND_V1_UNSPECIFIED
+}
+
+func (x *PlatformAnnotationV1) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *PlatformAnnotationV1) GetStartAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.StartAt
+	}
+	return nil
+}
+
+func (x *PlatformAnnotationV1) GetEndAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.EndAt
+	}
+	return nil
+}
+
+func (x *PlatformAnnotationV1) GetAttributes() []*PlatformAnnotationAttributeV1 {
+	if x != nil {
+		return x.Attributes
+	}
+	return nil
+}
+
+func (x *PlatformAnnotationV1) GetLinks() []*PlatformAnnotationLinkV1 {
+	if x != nil {
+		return x.Links
+	}
+	return nil
+}
+
+func (x *PlatformAnnotationV1) GetRecordedBy() *PrincipalRefV1 {
+	if x != nil {
+		return x.RecordedBy
+	}
+	return nil
+}
+
+func (x *PlatformAnnotationV1) GetRecordedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.RecordedAt
+	}
+	return nil
+}
+
+func (x *PlatformAnnotationV1) GetIdempotencyKey() string {
+	if x != nil {
+		return x.IdempotencyKey
+	}
+	return ""
+}
+
+// The typed detail, carried on the `grpc-status-details-bin` envelope through
+// `status_details.rs` — the same shape the five shipped `...RejectionV1` types
+// use, and the reason a refusal can be a byte-exact fixture at all: the fixture
+// records THIS message as its response, not the RPC's response type.
+type PlatformAnnotationRejectionV1 struct {
+	state  protoimpl.MessageState              `protogen:"open.v1"`
+	Reason PlatformAnnotationRejectionReasonV1 `protobuf:"varint,1,opt,name=reason,proto3,enum=o11y_one.agentic.v1.PlatformAnnotationRejectionReasonV1" json:"reason,omitempty"`
+	// The field that was refused, so a robot need not parse prose.
+	Field *string `protobuf:"bytes,2,opt,name=field,proto3,oneof" json:"field,omitempty"`
+	// The bound that was exceeded, so a caller corrects without a round trip —
+	// the shape wave 48 established on `ProductionRulePreviewRefusalV1`.
+	LimitValue *int64 `protobuf:"varint,3,opt,name=limit_value,json=limitValue,proto3,oneof" json:"limit_value,omitempty"`
+	// 4 is UNUSED. It held `required_scope`, for a `_SCOPE_MISSING` this build
+	// cannot produce -- see the reason enum's note on 9 and docket `W50C-3`.
+	//
+	// On `_KIND_UNKNOWN`: the kinds this build DOES support, so a newer runner
+	// downgrades to `_MARKER` instead of dropping the annotation. The capability
+	// envelope on the response carries the count; this carries the names.
+	SupportedKinds []PlatformAnnotationKindV1 `protobuf:"varint,5,rep,packed,name=supported_kinds,json=supportedKinds,proto3,enum=o11y_one.agentic.v1.PlatformAnnotationKindV1" json:"supported_kinds,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *PlatformAnnotationRejectionV1) Reset() {
+	*x = PlatformAnnotationRejectionV1{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[570]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PlatformAnnotationRejectionV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PlatformAnnotationRejectionV1) ProtoMessage() {}
+
+func (x *PlatformAnnotationRejectionV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[570]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PlatformAnnotationRejectionV1.ProtoReflect.Descriptor instead.
+func (*PlatformAnnotationRejectionV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{570}
+}
+
+func (x *PlatformAnnotationRejectionV1) GetReason() PlatformAnnotationRejectionReasonV1 {
+	if x != nil {
+		return x.Reason
+	}
+	return PlatformAnnotationRejectionReasonV1_PLATFORM_ANNOTATION_REJECTION_REASON_V1_UNSPECIFIED
+}
+
+func (x *PlatformAnnotationRejectionV1) GetField() string {
+	if x != nil && x.Field != nil {
+		return *x.Field
+	}
+	return ""
+}
+
+func (x *PlatformAnnotationRejectionV1) GetLimitValue() int64 {
+	if x != nil && x.LimitValue != nil {
+		return *x.LimitValue
+	}
+	return 0
+}
+
+func (x *PlatformAnnotationRejectionV1) GetSupportedKinds() []PlatformAnnotationKindV1 {
+	if x != nil {
+		return x.SupportedKinds
+	}
+	return nil
+}
+
+// `MUTATION_ACK` (A4 S4).
+type RecordPlatformAnnotationRequest struct {
+	state   protoimpl.MessageState   `protogen:"open.v1"`
+	Kind    PlatformAnnotationKindV1 `protobuf:"varint,1,opt,name=kind,proto3,enum=o11y_one.agentic.v1.PlatformAnnotationKindV1" json:"kind,omitempty"`
+	Title   string                   `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	StartAt *timestamppb.Timestamp   `protobuf:"bytes,3,opt,name=start_at,json=startAt,proto3" json:"start_at,omitempty"`
+	// Absent for an instant. See `PlatformAnnotationV1.end_at`.
+	EndAt      *timestamppb.Timestamp           `protobuf:"bytes,4,opt,name=end_at,json=endAt,proto3,oneof" json:"end_at,omitempty"`
+	Attributes []*PlatformAnnotationAttributeV1 `protobuf:"bytes,5,rep,name=attributes,proto3" json:"attributes,omitempty"`
+	Links      []*PlatformAnnotationLinkV1      `protobuf:"bytes,6,rep,name=links,proto3" json:"links,omitempty"`
+	// Required. A CI job that retries must not create a second marker.
+	IdempotencyKey string `protobuf:"bytes,7,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *RecordPlatformAnnotationRequest) Reset() {
+	*x = RecordPlatformAnnotationRequest{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[571]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RecordPlatformAnnotationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RecordPlatformAnnotationRequest) ProtoMessage() {}
+
+func (x *RecordPlatformAnnotationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[571]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RecordPlatformAnnotationRequest.ProtoReflect.Descriptor instead.
+func (*RecordPlatformAnnotationRequest) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{571}
+}
+
+func (x *RecordPlatformAnnotationRequest) GetKind() PlatformAnnotationKindV1 {
+	if x != nil {
+		return x.Kind
+	}
+	return PlatformAnnotationKindV1_PLATFORM_ANNOTATION_KIND_V1_UNSPECIFIED
+}
+
+func (x *RecordPlatformAnnotationRequest) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *RecordPlatformAnnotationRequest) GetStartAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.StartAt
+	}
+	return nil
+}
+
+func (x *RecordPlatformAnnotationRequest) GetEndAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.EndAt
+	}
+	return nil
+}
+
+func (x *RecordPlatformAnnotationRequest) GetAttributes() []*PlatformAnnotationAttributeV1 {
+	if x != nil {
+		return x.Attributes
+	}
+	return nil
+}
+
+func (x *RecordPlatformAnnotationRequest) GetLinks() []*PlatformAnnotationLinkV1 {
+	if x != nil {
+		return x.Links
+	}
+	return nil
+}
+
+func (x *RecordPlatformAnnotationRequest) GetIdempotencyKey() string {
+	if x != nil {
+		return x.IdempotencyKey
+	}
+	return ""
+}
+
+type RecordPlatformAnnotationResponse struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	Annotation *PlatformAnnotationV1  `protobuf:"bytes,1,opt,name=annotation,proto3" json:"annotation,omitempty"`
+	// True when this call matched an existing key AND digest. A retry is a
+	// success, and it is a success the caller can tell apart from a first write.
+	IdempotentReplay bool                             `protobuf:"varint,2,opt,name=idempotent_replay,json=idempotentReplay,proto3" json:"idempotent_replay,omitempty"`
+	Capabilities     *AgenticEvaluationCapabilitiesV1 `protobuf:"bytes,3,opt,name=capabilities,proto3" json:"capabilities,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *RecordPlatformAnnotationResponse) Reset() {
+	*x = RecordPlatformAnnotationResponse{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[572]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RecordPlatformAnnotationResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RecordPlatformAnnotationResponse) ProtoMessage() {}
+
+func (x *RecordPlatformAnnotationResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[572]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RecordPlatformAnnotationResponse.ProtoReflect.Descriptor instead.
+func (*RecordPlatformAnnotationResponse) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{572}
+}
+
+func (x *RecordPlatformAnnotationResponse) GetAnnotation() *PlatformAnnotationV1 {
+	if x != nil {
+		return x.Annotation
+	}
+	return nil
+}
+
+func (x *RecordPlatformAnnotationResponse) GetIdempotentReplay() bool {
+	if x != nil {
+		return x.IdempotentReplay
+	}
+	return false
+}
+
+func (x *RecordPlatformAnnotationResponse) GetCapabilities() *AgenticEvaluationCapabilitiesV1 {
+	if x != nil {
+		return x.Capabilities
+	}
+	return nil
+}
+
+// `INITIAL_PAGE` (A4 S8).
+type ListPlatformAnnotationsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Inclusive. An annotation OVERLAPPING the window is returned, which for a
+	// range means it may have started before `window_start`.
+	WindowStart *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=window_start,json=windowStart,proto3" json:"window_start,omitempty"`
+	// Exclusive.
+	WindowEnd *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=window_end,json=windowEnd,proto3" json:"window_end,omitempty"`
+	// Empty means every kind. `_UNSPECIFIED` INSIDE it is refused rather than
+	// ignored: a filter that silently drops a term returns a page the caller
+	// believes is filtered one way and is filtered another.
+	Kinds         []PlatformAnnotationKindV1 `protobuf:"varint,3,rep,packed,name=kinds,proto3,enum=o11y_one.agentic.v1.PlatformAnnotationKindV1" json:"kinds,omitempty"`
+	Page          *v1.PageRequestV1          `protobuf:"bytes,4,opt,name=page,proto3" json:"page,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListPlatformAnnotationsRequest) Reset() {
+	*x = ListPlatformAnnotationsRequest{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[573]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListPlatformAnnotationsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListPlatformAnnotationsRequest) ProtoMessage() {}
+
+func (x *ListPlatformAnnotationsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[573]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListPlatformAnnotationsRequest.ProtoReflect.Descriptor instead.
+func (*ListPlatformAnnotationsRequest) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{573}
+}
+
+func (x *ListPlatformAnnotationsRequest) GetWindowStart() *timestamppb.Timestamp {
+	if x != nil {
+		return x.WindowStart
+	}
+	return nil
+}
+
+func (x *ListPlatformAnnotationsRequest) GetWindowEnd() *timestamppb.Timestamp {
+	if x != nil {
+		return x.WindowEnd
+	}
+	return nil
+}
+
+func (x *ListPlatformAnnotationsRequest) GetKinds() []PlatformAnnotationKindV1 {
+	if x != nil {
+		return x.Kinds
+	}
+	return nil
+}
+
+func (x *ListPlatformAnnotationsRequest) GetPage() *v1.PageRequestV1 {
+	if x != nil {
+		return x.Page
+	}
+	return nil
+}
+
+type ListPlatformAnnotationsResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Newest first, by `start_at` then by id.
+	Annotations  []*PlatformAnnotationV1          `protobuf:"bytes,1,rep,name=annotations,proto3" json:"annotations,omitempty"`
+	Page         *v1.PageResponseV1               `protobuf:"bytes,2,opt,name=page,proto3" json:"page,omitempty"`
+	Capabilities *AgenticEvaluationCapabilitiesV1 `protobuf:"bytes,3,opt,name=capabilities,proto3" json:"capabilities,omitempty"`
+	// A cursor this build cannot honour returns a typed resync directive with an
+	// empty page, never a transport error carrying prose.
+	Resync        *EvaluationCursorResyncV1 `protobuf:"bytes,4,opt,name=resync,proto3,oneof" json:"resync,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListPlatformAnnotationsResponse) Reset() {
+	*x = ListPlatformAnnotationsResponse{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[574]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListPlatformAnnotationsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListPlatformAnnotationsResponse) ProtoMessage() {}
+
+func (x *ListPlatformAnnotationsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[574]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListPlatformAnnotationsResponse.ProtoReflect.Descriptor instead.
+func (*ListPlatformAnnotationsResponse) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{574}
+}
+
+func (x *ListPlatformAnnotationsResponse) GetAnnotations() []*PlatformAnnotationV1 {
+	if x != nil {
+		return x.Annotations
+	}
+	return nil
+}
+
+func (x *ListPlatformAnnotationsResponse) GetPage() *v1.PageResponseV1 {
+	if x != nil {
+		return x.Page
+	}
+	return nil
+}
+
+func (x *ListPlatformAnnotationsResponse) GetCapabilities() *AgenticEvaluationCapabilitiesV1 {
+	if x != nil {
+		return x.Capabilities
+	}
+	return nil
+}
+
+func (x *ListPlatformAnnotationsResponse) GetResync() *EvaluationCursorResyncV1 {
+	if x != nil {
+		return x.Resync
+	}
+	return nil
+}
+
+// One library row.
+//
+// NN24: identity, state, counts, timestamps and references. **No rubric.** A
+// judge's instruction text is bounded at 8 KiB and a fifty-row page carrying
+// fifty of them is a payload on a list, which is the shape
+// `EvaluationDefinitionRevisionSummaryV1` avoids by carrying `draft_byte_size`
+// instead of the draft. The rubric is on the DETAIL read and nowhere else.
+type EvaluationScorerConfigSummaryV1 struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ScoreConfigId string                 `protobuf:"bytes,1,opt,name=score_config_id,json=scoreConfigId,proto3" json:"score_config_id,omitempty"`
+	ConfigKey     string                 `protobuf:"bytes,2,opt,name=config_key,json=configKey,proto3" json:"config_key,omitempty"`
+	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Description   *string                `protobuf:"bytes,4,opt,name=description,proto3,oneof" json:"description,omitempty"`
+	MetricName    string                 `protobuf:"bytes,5,opt,name=metric_name,json=metricName,proto3" json:"metric_name,omitempty"`
+	// Authored on a configuration created through `CreateEvaluationScorerConfig`;
+	// absent on one that predates it, because that row has no such column and
+	// deriving it from the metric name here would invent an authorship.
+	SuccessDimension *string `protobuf:"bytes,6,opt,name=success_dimension,json=successDimension,proto3,oneof" json:"success_dimension,omitempty"`
+	// `UNSPECIFIED` is a REAL ANSWER and means a scorer authored outside
+	// `CreateEvaluationScorerConfig` — the same meaning it carries on
+	// `EvaluationBuilderScorerChoiceV1.kind`. It is not "unknown".
+	Kind EvaluationScorerKindV1 `protobuf:"varint,7,opt,name=kind,proto3,enum=o11y_one.agentic.v1.EvaluationScorerKindV1" json:"kind,omitempty"`
+	// Absent for the same reason `success_dimension` is: only the v2 authoring
+	// record carries a discriminator in the `v{n}` vocabulary. A legacy row's
+	// `updated_at` micros are not a version and are not published as one.
+	VersionDiscriminator *string `protobuf:"bytes,8,opt,name=version_discriminator,json=versionDiscriminator,proto3,oneof" json:"version_discriminator,omitempty"`
+	// `v{n}` implies `n + 1` versions, because the mint is dense: wave 31 lane A
+	// writes `v0` on first authorship and `v{n+1}` on each revision, and every one
+	// leaves an `evaluator_templates` row behind.
+	VersionCount uint32 `protobuf:"varint,9,opt,name=version_count,json=versionCount,proto3" json:"version_count,omitempty"`
+	// `NOT_SUPPORTED` with `scorer_version_discriminator_unparsed` when the
+	// discriminator is absent or does not read as `v{n}` — which is exactly what
+	// a not-v2-authored scorer looks like. Missing is not zero.
+	VersionCountAvailability *MetricAvailabilityV1  `protobuf:"bytes,10,opt,name=version_count_availability,json=versionCountAvailability,proto3" json:"version_count_availability,omitempty"`
+	Weight                   *float64               `protobuf:"fixed64,11,opt,name=weight,proto3,oneof" json:"weight,omitempty"`
+	IsBlockingGate           bool                   `protobuf:"varint,12,opt,name=is_blocking_gate,json=isBlockingGate,proto3" json:"is_blocking_gate,omitempty"`
+	IsArchived               bool                   `protobuf:"varint,13,opt,name=is_archived,json=isArchived,proto3" json:"is_archived,omitempty"`
+	ArchivedAt               *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=archived_at,json=archivedAt,proto3,oneof" json:"archived_at,omitempty"`
+	// TRUE when a row exists in the v2 authoring record. FALSE means the scorer is
+	// real, runnable and freezable, and was written by the legacy control plane —
+	// dropping it from this list would hide a scorer a run can perfectly well
+	// pin, which is the defect the builder context's LEFT JOIN already avoids.
+	AuthoredOnThisSurface bool                   `protobuf:"varint,15,opt,name=authored_on_this_surface,json=authoredOnThisSurface,proto3" json:"authored_on_this_surface,omitempty"`
+	CreatedAt             *timestamppb.Timestamp `protobuf:"bytes,16,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt             *timestamppb.Timestamp `protobuf:"bytes,17,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	// Present exactly when the row records a user. `CreateEvaluationScorerConfig`
+	// is NOT on the machine surface (`required_scope` returns `None`, which is a
+	// refusal), so a recorded creator here is provably a user rather than a user
+	// by convention. ABSENT, never `UNSPECIFIED` with a bare uuid: the unkinded
+	// UUID is the shape wave 50 lane A's principal-kind column pair exists to
+	// stop.
+	CreatedBy     *PrincipalRefV1 `protobuf:"bytes,18,opt,name=created_by,json=createdBy,proto3,oneof" json:"created_by,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EvaluationScorerConfigSummaryV1) Reset() {
+	*x = EvaluationScorerConfigSummaryV1{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[575]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EvaluationScorerConfigSummaryV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EvaluationScorerConfigSummaryV1) ProtoMessage() {}
+
+func (x *EvaluationScorerConfigSummaryV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[575]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EvaluationScorerConfigSummaryV1.ProtoReflect.Descriptor instead.
+func (*EvaluationScorerConfigSummaryV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{575}
+}
+
+func (x *EvaluationScorerConfigSummaryV1) GetScoreConfigId() string {
+	if x != nil {
+		return x.ScoreConfigId
+	}
+	return ""
+}
+
+func (x *EvaluationScorerConfigSummaryV1) GetConfigKey() string {
+	if x != nil {
+		return x.ConfigKey
+	}
+	return ""
+}
+
+func (x *EvaluationScorerConfigSummaryV1) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *EvaluationScorerConfigSummaryV1) GetDescription() string {
+	if x != nil && x.Description != nil {
+		return *x.Description
+	}
+	return ""
+}
+
+func (x *EvaluationScorerConfigSummaryV1) GetMetricName() string {
+	if x != nil {
+		return x.MetricName
+	}
+	return ""
+}
+
+func (x *EvaluationScorerConfigSummaryV1) GetSuccessDimension() string {
+	if x != nil && x.SuccessDimension != nil {
+		return *x.SuccessDimension
+	}
+	return ""
+}
+
+func (x *EvaluationScorerConfigSummaryV1) GetKind() EvaluationScorerKindV1 {
+	if x != nil {
+		return x.Kind
+	}
+	return EvaluationScorerKindV1_EVALUATION_SCORER_KIND_V1_UNSPECIFIED
+}
+
+func (x *EvaluationScorerConfigSummaryV1) GetVersionDiscriminator() string {
+	if x != nil && x.VersionDiscriminator != nil {
+		return *x.VersionDiscriminator
+	}
+	return ""
+}
+
+func (x *EvaluationScorerConfigSummaryV1) GetVersionCount() uint32 {
+	if x != nil {
+		return x.VersionCount
+	}
+	return 0
+}
+
+func (x *EvaluationScorerConfigSummaryV1) GetVersionCountAvailability() *MetricAvailabilityV1 {
+	if x != nil {
+		return x.VersionCountAvailability
+	}
+	return nil
+}
+
+func (x *EvaluationScorerConfigSummaryV1) GetWeight() float64 {
+	if x != nil && x.Weight != nil {
+		return *x.Weight
+	}
+	return 0
+}
+
+func (x *EvaluationScorerConfigSummaryV1) GetIsBlockingGate() bool {
+	if x != nil {
+		return x.IsBlockingGate
+	}
+	return false
+}
+
+func (x *EvaluationScorerConfigSummaryV1) GetIsArchived() bool {
+	if x != nil {
+		return x.IsArchived
+	}
+	return false
+}
+
+func (x *EvaluationScorerConfigSummaryV1) GetArchivedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ArchivedAt
+	}
+	return nil
+}
+
+func (x *EvaluationScorerConfigSummaryV1) GetAuthoredOnThisSurface() bool {
+	if x != nil {
+		return x.AuthoredOnThisSurface
+	}
+	return false
+}
+
+func (x *EvaluationScorerConfigSummaryV1) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *EvaluationScorerConfigSummaryV1) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
+func (x *EvaluationScorerConfigSummaryV1) GetCreatedBy() *PrincipalRefV1 {
+	if x != nil {
+		return x.CreatedBy
+	}
+	return nil
+}
+
+type ListEvaluationScorerConfigsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Page  *v1.PageRequestV1      `protobuf:"bytes,1,opt,name=page,proto3" json:"page,omitempty"`
+	// Empty admits every kind. A list containing `UNSPECIFIED` selects exactly the
+	// scorers authored outside this surface, which is a question an operator
+	// migrating off the legacy plane actually asks — and it is why the filter is
+	// repeated rather than a single optional field whose zero value would have to
+	// mean both "no filter" and "that kind".
+	KindFilter     []EvaluationScorerKindV1          `protobuf:"varint,2,rep,packed,name=kind_filter,json=kindFilter,proto3,enum=o11y_one.agentic.v1.EvaluationScorerKindV1" json:"kind_filter,omitempty"`
+	ArchivedFilter *EvaluationScorerArchivedFilterV1 `protobuf:"varint,3,opt,name=archived_filter,json=archivedFilter,proto3,enum=o11y_one.agentic.v1.EvaluationScorerArchivedFilterV1,oneof" json:"archived_filter,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *ListEvaluationScorerConfigsRequest) Reset() {
+	*x = ListEvaluationScorerConfigsRequest{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[576]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListEvaluationScorerConfigsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListEvaluationScorerConfigsRequest) ProtoMessage() {}
+
+func (x *ListEvaluationScorerConfigsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[576]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListEvaluationScorerConfigsRequest.ProtoReflect.Descriptor instead.
+func (*ListEvaluationScorerConfigsRequest) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{576}
+}
+
+func (x *ListEvaluationScorerConfigsRequest) GetPage() *v1.PageRequestV1 {
+	if x != nil {
+		return x.Page
+	}
+	return nil
+}
+
+func (x *ListEvaluationScorerConfigsRequest) GetKindFilter() []EvaluationScorerKindV1 {
+	if x != nil {
+		return x.KindFilter
+	}
+	return nil
+}
+
+func (x *ListEvaluationScorerConfigsRequest) GetArchivedFilter() EvaluationScorerArchivedFilterV1 {
+	if x != nil && x.ArchivedFilter != nil {
+		return *x.ArchivedFilter
+	}
+	return EvaluationScorerArchivedFilterV1_EVALUATION_SCORER_ARCHIVED_FILTER_V1_UNSPECIFIED
+}
+
+type ListEvaluationScorerConfigsResponse struct {
+	state         protoimpl.MessageState             `protogen:"open.v1"`
+	ScorerConfigs []*EvaluationScorerConfigSummaryV1 `protobuf:"bytes,1,rep,name=scorer_configs,json=scorerConfigs,proto3" json:"scorer_configs,omitempty"`
+	Page          *v1.PageResponseV1                 `protobuf:"bytes,2,opt,name=page,proto3" json:"page,omitempty"`
+	Freshness     *EvaluationFreshnessV1             `protobuf:"bytes,3,opt,name=freshness,proto3" json:"freshness,omitempty"`
+	Capabilities  *AgenticEvaluationCapabilitiesV1   `protobuf:"bytes,4,opt,name=capabilities,proto3" json:"capabilities,omitempty"`
+	// A cursor this build cannot honour returns a typed resync with an empty page,
+	// never a transport error carrying prose.
+	Resync        *EvaluationCursorResyncV1 `protobuf:"bytes,5,opt,name=resync,proto3,oneof" json:"resync,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListEvaluationScorerConfigsResponse) Reset() {
+	*x = ListEvaluationScorerConfigsResponse{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[577]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListEvaluationScorerConfigsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListEvaluationScorerConfigsResponse) ProtoMessage() {}
+
+func (x *ListEvaluationScorerConfigsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[577]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListEvaluationScorerConfigsResponse.ProtoReflect.Descriptor instead.
+func (*ListEvaluationScorerConfigsResponse) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{577}
+}
+
+func (x *ListEvaluationScorerConfigsResponse) GetScorerConfigs() []*EvaluationScorerConfigSummaryV1 {
+	if x != nil {
+		return x.ScorerConfigs
+	}
+	return nil
+}
+
+func (x *ListEvaluationScorerConfigsResponse) GetPage() *v1.PageResponseV1 {
+	if x != nil {
+		return x.Page
+	}
+	return nil
+}
+
+func (x *ListEvaluationScorerConfigsResponse) GetFreshness() *EvaluationFreshnessV1 {
+	if x != nil {
+		return x.Freshness
+	}
+	return nil
+}
+
+func (x *ListEvaluationScorerConfigsResponse) GetCapabilities() *AgenticEvaluationCapabilitiesV1 {
+	if x != nil {
+		return x.Capabilities
+	}
+	return nil
+}
+
+func (x *ListEvaluationScorerConfigsResponse) GetResync() *EvaluationCursorResyncV1 {
+	if x != nil {
+		return x.Resync
+	}
+	return nil
+}
+
+// Exactly the four request settings that reach a provider.
+//
+// NOT `ProviderRequestSettingsV1`. That message has twenty-eight fields and
+// `execution::request_params_json` stores four of them; returning the
+// twenty-eight-field message with four filled would assert twenty-four
+// absences the storage never recorded. A four-field message named *effective*
+// says what is true: these are what the judge will be called with.
+type EvaluationScorerJudgeEffectiveSettingsV1 struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	MaxOutputTokens  *uint32                `protobuf:"varint,1,opt,name=max_output_tokens,json=maxOutputTokens,proto3,oneof" json:"max_output_tokens,omitempty"`
+	Temperature      *float64               `protobuf:"fixed64,2,opt,name=temperature,proto3,oneof" json:"temperature,omitempty"`
+	TopP             *float64               `protobuf:"fixed64,3,opt,name=top_p,json=topP,proto3,oneof" json:"top_p,omitempty"`
+	AnthropicVersion *string                `protobuf:"bytes,4,opt,name=anthropic_version,json=anthropicVersion,proto3,oneof" json:"anthropic_version,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *EvaluationScorerJudgeEffectiveSettingsV1) Reset() {
+	*x = EvaluationScorerJudgeEffectiveSettingsV1{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[578]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EvaluationScorerJudgeEffectiveSettingsV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EvaluationScorerJudgeEffectiveSettingsV1) ProtoMessage() {}
+
+func (x *EvaluationScorerJudgeEffectiveSettingsV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[578]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EvaluationScorerJudgeEffectiveSettingsV1.ProtoReflect.Descriptor instead.
+func (*EvaluationScorerJudgeEffectiveSettingsV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{578}
+}
+
+func (x *EvaluationScorerJudgeEffectiveSettingsV1) GetMaxOutputTokens() uint32 {
+	if x != nil && x.MaxOutputTokens != nil {
+		return *x.MaxOutputTokens
+	}
+	return 0
+}
+
+func (x *EvaluationScorerJudgeEffectiveSettingsV1) GetTemperature() float64 {
+	if x != nil && x.Temperature != nil {
+		return *x.Temperature
+	}
+	return 0
+}
+
+func (x *EvaluationScorerJudgeEffectiveSettingsV1) GetTopP() float64 {
+	if x != nil && x.TopP != nil {
+		return *x.TopP
+	}
+	return 0
+}
+
+func (x *EvaluationScorerJudgeEffectiveSettingsV1) GetAnthropicVersion() string {
+	if x != nil && x.AnthropicVersion != nil {
+		return *x.AnthropicVersion
+	}
+	return ""
+}
+
+// What will actually execute, resolved.
+//
+// NOT `EvaluationScorerJudgeProviderExecutionV1`. That message carries the typed
+// `ProviderModelRefV1` the caller SENT, and wave 45 declined to reconstruct it
+// on the acknowledgement because "a round trip through two string tables could
+// land on a different catalog entry than the one the caller sent". That argument
+// is correct and this message does not overturn it — it answers a DIFFERENT
+// question. Every field below is read from the same
+// `evaluator_templates.provider_execution` document `execution::resolve_judge`
+// reads at attempt time, so what a client renders here is what the run will do.
+type EvaluationScorerJudgeResolvedExecutionV1 struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Provider ProviderNameV1         `protobuf:"varint,1,opt,name=provider,proto3,enum=o11y_one.agentic.v1.ProviderNameV1" json:"provider,omitempty"`
+	// The resolved catalog model id, as the executor reads it.
+	ModelId string `protobuf:"bytes,2,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
+	// BY REFERENCE. Material never appears in this contract (non-negotiable 8).
+	// Unverified at authoring time and still unverified here — docket `W45A-1` is
+	// not closed by a read.
+	CredentialRef       string  `protobuf:"bytes,3,opt,name=credential_ref,json=credentialRef,proto3" json:"credential_ref,omitempty"`
+	ProviderEndpointRef *string `protobuf:"bytes,4,opt,name=provider_endpoint_ref,json=providerEndpointRef,proto3,oneof" json:"provider_endpoint_ref,omitempty"`
+	// ONE BIT, and not `ProviderReasoningEffortV1`. The five-arm enum the create
+	// accepts is rendered to `reasoning_enabled` or `disabled` at authoring time
+	// and the executor has only ever compared that one string. Publishing five
+	// steps here would invent four states no row ever held.
+	ReasoningEnabled         bool                                      `protobuf:"varint,5,opt,name=reasoning_enabled,json=reasoningEnabled,proto3" json:"reasoning_enabled,omitempty"`
+	EffectiveRequestSettings *EvaluationScorerJudgeEffectiveSettingsV1 `protobuf:"bytes,6,opt,name=effective_request_settings,json=effectiveRequestSettings,proto3,oneof" json:"effective_request_settings,omitempty"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
+}
+
+func (x *EvaluationScorerJudgeResolvedExecutionV1) Reset() {
+	*x = EvaluationScorerJudgeResolvedExecutionV1{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[579]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EvaluationScorerJudgeResolvedExecutionV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EvaluationScorerJudgeResolvedExecutionV1) ProtoMessage() {}
+
+func (x *EvaluationScorerJudgeResolvedExecutionV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[579]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EvaluationScorerJudgeResolvedExecutionV1.ProtoReflect.Descriptor instead.
+func (*EvaluationScorerJudgeResolvedExecutionV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{579}
+}
+
+func (x *EvaluationScorerJudgeResolvedExecutionV1) GetProvider() ProviderNameV1 {
+	if x != nil {
+		return x.Provider
+	}
+	return ProviderNameV1_PROVIDER_NAME_V1_UNSPECIFIED
+}
+
+func (x *EvaluationScorerJudgeResolvedExecutionV1) GetModelId() string {
+	if x != nil {
+		return x.ModelId
+	}
+	return ""
+}
+
+func (x *EvaluationScorerJudgeResolvedExecutionV1) GetCredentialRef() string {
+	if x != nil {
+		return x.CredentialRef
+	}
+	return ""
+}
+
+func (x *EvaluationScorerJudgeResolvedExecutionV1) GetProviderEndpointRef() string {
+	if x != nil && x.ProviderEndpointRef != nil {
+		return *x.ProviderEndpointRef
+	}
+	return ""
+}
+
+func (x *EvaluationScorerJudgeResolvedExecutionV1) GetReasoningEnabled() bool {
+	if x != nil {
+		return x.ReasoningEnabled
+	}
+	return false
+}
+
+func (x *EvaluationScorerJudgeResolvedExecutionV1) GetEffectiveRequestSettings() *EvaluationScorerJudgeEffectiveSettingsV1 {
+	if x != nil {
+		return x.EffectiveRequestSettings
+	}
+	return nil
+}
+
+// A judge's authored content, WHOLE.
+//
+// The three fields `17` §8.1 names as unreachable — `instructions`,
+// `verdict_mappings`, `subject_path` — have been written to
+// `evaluator_templates.config` on every authorship since wave 45 and read by
+// nothing. They are read here.
+//
+// Note what an EMPTY `verdict_mappings` means on THIS message: none were
+// authored. On `EvaluationScorerConfigV1.judge` the same emptiness means "not
+// echoed", which is why that message is not reused. Read `17` §8.3 before
+// rendering the mappings: a configured mapping wins outright, so a mapping table
+// beside a rubric that never names the labels is a run where every cell errors
+// at full cost.
+type EvaluationScorerJudgeDetailV1 struct {
+	state         protoimpl.MessageState         `protogen:"open.v1"`
+	RubricContent *EvaluationScorerJudgeRubricV1 `protobuf:"bytes,1,opt,name=rubric_content,json=rubricContent,proto3" json:"rubric_content,omitempty"`
+	// Absent only on a row whose judge block predates the columns that carry it,
+	// which no v2-authored judge has: the storage `CHECK` moves the three judge
+	// columns together or not at all.
+	ProviderExecution *EvaluationScorerJudgeResolvedExecutionV1 `protobuf:"bytes,2,opt,name=provider_execution,json=providerExecution,proto3,oneof" json:"provider_execution,omitempty"`
+	// Absent on a HISTORIC version. The threshold lives on `score_configs` and the
+	// revision path updates it in place, so only the current version's is
+	// knowable. See `EvaluationScorerConfigVersionV1`.
+	PassThreshold *float64 `protobuf:"fixed64,3,opt,name=pass_threshold,json=passThreshold,proto3,oneof" json:"pass_threshold,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EvaluationScorerJudgeDetailV1) Reset() {
+	*x = EvaluationScorerJudgeDetailV1{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[580]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EvaluationScorerJudgeDetailV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EvaluationScorerJudgeDetailV1) ProtoMessage() {}
+
+func (x *EvaluationScorerJudgeDetailV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[580]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EvaluationScorerJudgeDetailV1.ProtoReflect.Descriptor instead.
+func (*EvaluationScorerJudgeDetailV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{580}
+}
+
+func (x *EvaluationScorerJudgeDetailV1) GetRubricContent() *EvaluationScorerJudgeRubricV1 {
+	if x != nil {
+		return x.RubricContent
+	}
+	return nil
+}
+
+func (x *EvaluationScorerJudgeDetailV1) GetProviderExecution() *EvaluationScorerJudgeResolvedExecutionV1 {
+	if x != nil {
+		return x.ProviderExecution
+	}
+	return nil
+}
+
+func (x *EvaluationScorerJudgeDetailV1) GetPassThreshold() float64 {
+	if x != nil && x.PassThreshold != nil {
+		return *x.PassThreshold
+	}
+	return 0
+}
+
+// One authored scorer, whole.
+//
+// Its OWN message rather than a reuse of `EvaluationScorerConfigV1`, for the
+// reason `EvaluationScorerSuiteSnapshotV1` is its own message. The
+// acknowledgement message is documented to NARROW a judge to `rubric` and
+// `pass_threshold`, so a client reading an empty `verdict_mappings` off it has
+// learned "not echoed". Reading the same emptiness off a full read must mean
+// "none authored". One message cannot carry both meanings without the meaning
+// depending on which verb produced it.
+type EvaluationScorerConfigDetailV1 struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ScoreConfigId string                 `protobuf:"bytes,1,opt,name=score_config_id,json=scoreConfigId,proto3" json:"score_config_id,omitempty"`
+	ConfigKey     string                 `protobuf:"bytes,2,opt,name=config_key,json=configKey,proto3" json:"config_key,omitempty"`
+	// PER-VERSION. `insert_evaluator_template` writes the authored name onto the
+	// evaluator-template row at mint, so a superseded version's name is its own
+	// and this field is present at every version.
+	Name string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	// ABSENT on a HISTORIC version, and so are `metric_name` and
+	// `pass_threshold`. All three live on `score_configs`, which the revision path
+	// UPDATES IN PLACE, so the values a superseded version was authored with are
+	// stored nowhere. An empty string here would be indistinguishable from a
+	// scorer that was authored without one.
+	Description          *string                `protobuf:"bytes,4,opt,name=description,proto3,oneof" json:"description,omitempty"`
+	MetricName           *string                `protobuf:"bytes,5,opt,name=metric_name,json=metricName,proto3,oneof" json:"metric_name,omitempty"`
+	SuccessDimension     *string                `protobuf:"bytes,6,opt,name=success_dimension,json=successDimension,proto3,oneof" json:"success_dimension,omitempty"`
+	Kind                 EvaluationScorerKindV1 `protobuf:"varint,7,opt,name=kind,proto3,enum=o11y_one.agentic.v1.EvaluationScorerKindV1" json:"kind,omitempty"`
+	VersionDiscriminator *string                `protobuf:"bytes,8,opt,name=version_discriminator,json=versionDiscriminator,proto3,oneof" json:"version_discriminator,omitempty"`
+	Weight               *float64               `protobuf:"fixed64,9,opt,name=weight,proto3,oneof" json:"weight,omitempty"`
+	IsBlockingGate       bool                   `protobuf:"varint,10,opt,name=is_blocking_gate,json=isBlockingGate,proto3" json:"is_blocking_gate,omitempty"`
+	IsArchived           bool                   `protobuf:"varint,11,opt,name=is_archived,json=isArchived,proto3" json:"is_archived,omitempty"`
+	ArchivedAt           *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=archived_at,json=archivedAt,proto3,oneof" json:"archived_at,omitempty"`
+	// Present exactly when `kind` is DETERMINISTIC.
+	Deterministic *EvaluationScorerDeterministicSpecV1 `protobuf:"bytes,13,opt,name=deterministic,proto3,oneof" json:"deterministic,omitempty"`
+	// Present exactly when `kind` is HUMAN. Recorded and read back; per-scorer
+	// ENFORCEMENT is still run-scoped in this build, and reading it back does not
+	// change that.
+	ReviewPolicy *EvaluationScorerReviewPolicySpecV1 `protobuf:"bytes,14,opt,name=review_policy,json=reviewPolicy,proto3,oneof" json:"review_policy,omitempty"`
+	// Present exactly when `kind` is LLM_JUDGE.
+	Judge *EvaluationScorerJudgeDetailV1 `protobuf:"bytes,15,opt,name=judge,proto3,oneof" json:"judge,omitempty"`
+	// Absent on a HISTORIC version, present on the current one. See field 8 of
+	// `EvaluationScorerConfigVersionV1` for why.
+	PassThreshold            *float64              `protobuf:"fixed64,16,opt,name=pass_threshold,json=passThreshold,proto3,oneof" json:"pass_threshold,omitempty"`
+	AuthoredOnThisSurface    bool                  `protobuf:"varint,17,opt,name=authored_on_this_surface,json=authoredOnThisSurface,proto3" json:"authored_on_this_surface,omitempty"`
+	VersionCount             uint32                `protobuf:"varint,18,opt,name=version_count,json=versionCount,proto3" json:"version_count,omitempty"`
+	VersionCountAvailability *MetricAvailabilityV1 `protobuf:"bytes,19,opt,name=version_count_availability,json=versionCountAvailability,proto3" json:"version_count_availability,omitempty"`
+	// The evaluator template this version reads. The id `EvaluationScorerJudgeTemplateRefV1`
+	// would name if another scorer copied from it.
+	EvaluatorTemplateId string                 `protobuf:"bytes,20,opt,name=evaluator_template_id,json=evaluatorTemplateId,proto3" json:"evaluator_template_id,omitempty"`
+	CreatedAt           *timestamppb.Timestamp `protobuf:"bytes,21,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt           *timestamppb.Timestamp `protobuf:"bytes,22,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	CreatedBy           *PrincipalRefV1        `protobuf:"bytes,23,opt,name=created_by,json=createdBy,proto3,oneof" json:"created_by,omitempty"`
+	// THE CONFLICT IDENTITY, and the same one the edit path guards on.
+	//
+	// `CreateEvaluationScorerConfig` on this `config_key` refuses `PINNED_BY_RUN`
+	// when this count is non-zero. Publishing it here lets a revise form predict
+	// the refusal instead of meeting it. `pinned_run_count` is the true count;
+	// `pinned_run_id` is bounded by the same `max_named_pinned_runs` the authoring
+	// cell publishes and may be shorter.
+	PinnedRunCount uint32   `protobuf:"varint,24,opt,name=pinned_run_count,json=pinnedRunCount,proto3" json:"pinned_run_count,omitempty"`
+	PinnedRunId    []string `protobuf:"bytes,25,rep,name=pinned_run_id,json=pinnedRunId,proto3" json:"pinned_run_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *EvaluationScorerConfigDetailV1) Reset() {
+	*x = EvaluationScorerConfigDetailV1{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[581]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EvaluationScorerConfigDetailV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EvaluationScorerConfigDetailV1) ProtoMessage() {}
+
+func (x *EvaluationScorerConfigDetailV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[581]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EvaluationScorerConfigDetailV1.ProtoReflect.Descriptor instead.
+func (*EvaluationScorerConfigDetailV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{581}
+}
+
+func (x *EvaluationScorerConfigDetailV1) GetScoreConfigId() string {
+	if x != nil {
+		return x.ScoreConfigId
+	}
+	return ""
+}
+
+func (x *EvaluationScorerConfigDetailV1) GetConfigKey() string {
+	if x != nil {
+		return x.ConfigKey
+	}
+	return ""
+}
+
+func (x *EvaluationScorerConfigDetailV1) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *EvaluationScorerConfigDetailV1) GetDescription() string {
+	if x != nil && x.Description != nil {
+		return *x.Description
+	}
+	return ""
+}
+
+func (x *EvaluationScorerConfigDetailV1) GetMetricName() string {
+	if x != nil && x.MetricName != nil {
+		return *x.MetricName
+	}
+	return ""
+}
+
+func (x *EvaluationScorerConfigDetailV1) GetSuccessDimension() string {
+	if x != nil && x.SuccessDimension != nil {
+		return *x.SuccessDimension
+	}
+	return ""
+}
+
+func (x *EvaluationScorerConfigDetailV1) GetKind() EvaluationScorerKindV1 {
+	if x != nil {
+		return x.Kind
+	}
+	return EvaluationScorerKindV1_EVALUATION_SCORER_KIND_V1_UNSPECIFIED
+}
+
+func (x *EvaluationScorerConfigDetailV1) GetVersionDiscriminator() string {
+	if x != nil && x.VersionDiscriminator != nil {
+		return *x.VersionDiscriminator
+	}
+	return ""
+}
+
+func (x *EvaluationScorerConfigDetailV1) GetWeight() float64 {
+	if x != nil && x.Weight != nil {
+		return *x.Weight
+	}
+	return 0
+}
+
+func (x *EvaluationScorerConfigDetailV1) GetIsBlockingGate() bool {
+	if x != nil {
+		return x.IsBlockingGate
+	}
+	return false
+}
+
+func (x *EvaluationScorerConfigDetailV1) GetIsArchived() bool {
+	if x != nil {
+		return x.IsArchived
+	}
+	return false
+}
+
+func (x *EvaluationScorerConfigDetailV1) GetArchivedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ArchivedAt
+	}
+	return nil
+}
+
+func (x *EvaluationScorerConfigDetailV1) GetDeterministic() *EvaluationScorerDeterministicSpecV1 {
+	if x != nil {
+		return x.Deterministic
+	}
+	return nil
+}
+
+func (x *EvaluationScorerConfigDetailV1) GetReviewPolicy() *EvaluationScorerReviewPolicySpecV1 {
+	if x != nil {
+		return x.ReviewPolicy
+	}
+	return nil
+}
+
+func (x *EvaluationScorerConfigDetailV1) GetJudge() *EvaluationScorerJudgeDetailV1 {
+	if x != nil {
+		return x.Judge
+	}
+	return nil
+}
+
+func (x *EvaluationScorerConfigDetailV1) GetPassThreshold() float64 {
+	if x != nil && x.PassThreshold != nil {
+		return *x.PassThreshold
+	}
+	return 0
+}
+
+func (x *EvaluationScorerConfigDetailV1) GetAuthoredOnThisSurface() bool {
+	if x != nil {
+		return x.AuthoredOnThisSurface
+	}
+	return false
+}
+
+func (x *EvaluationScorerConfigDetailV1) GetVersionCount() uint32 {
+	if x != nil {
+		return x.VersionCount
+	}
+	return 0
+}
+
+func (x *EvaluationScorerConfigDetailV1) GetVersionCountAvailability() *MetricAvailabilityV1 {
+	if x != nil {
+		return x.VersionCountAvailability
+	}
+	return nil
+}
+
+func (x *EvaluationScorerConfigDetailV1) GetEvaluatorTemplateId() string {
+	if x != nil {
+		return x.EvaluatorTemplateId
+	}
+	return ""
+}
+
+func (x *EvaluationScorerConfigDetailV1) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *EvaluationScorerConfigDetailV1) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
+func (x *EvaluationScorerConfigDetailV1) GetCreatedBy() *PrincipalRefV1 {
+	if x != nil {
+		return x.CreatedBy
+	}
+	return nil
+}
+
+func (x *EvaluationScorerConfigDetailV1) GetPinnedRunCount() uint32 {
+	if x != nil {
+		return x.PinnedRunCount
+	}
+	return 0
+}
+
+func (x *EvaluationScorerConfigDetailV1) GetPinnedRunId() []string {
+	if x != nil {
+		return x.PinnedRunId
+	}
+	return nil
+}
+
+// Who depends on this scorer.
+//
+// `05` §8 calls this "the single most valuable missing read on this surface"
+// (J4 step 6, A2 `J4.4`'s `G24`). TWO halves are derivable on indexes that
+// already exist and TWO are not, and the two that are not say so by name rather
+// than returning an empty list. NN5: missing is not zero, and "nothing uses this
+// scorer" is the one wrong answer that gets a scorer deleted.
+type EvaluationScorerConfigUsageV1 struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// DERIVED — `idx_evaluation_scorer_suite_members_config`.
+	Suite             []*EvaluationScorerSuiteRefV1 `protobuf:"bytes,1,rep,name=suite,proto3" json:"suite,omitempty"`
+	SuiteCount        uint32                        `protobuf:"varint,2,opt,name=suite_count,json=suiteCount,proto3" json:"suite_count,omitempty"`
+	SuiteAvailability *MetricAvailabilityV1         `protobuf:"bytes,3,opt,name=suite_availability,json=suiteAvailability,proto3" json:"suite_availability,omitempty"`
+	// DERIVED — `idx_evaluation_run_pinned_scorer_configs_lookup`, the pin guard's
+	// own read. The true count, with the ids bounded exactly as the refusal bounds
+	// them.
+	PinnedRunCount        uint32                `protobuf:"varint,4,opt,name=pinned_run_count,json=pinnedRunCount,proto3" json:"pinned_run_count,omitempty"`
+	PinnedRunId           []string              `protobuf:"bytes,5,rep,name=pinned_run_id,json=pinnedRunId,proto3" json:"pinned_run_id,omitempty"`
+	PinnedRunAvailability *MetricAvailabilityV1 `protobuf:"bytes,6,opt,name=pinned_run_availability,json=pinnedRunAvailability,proto3" json:"pinned_run_availability,omitempty"`
+	// NOT DERIVABLE — `NOT_SUPPORTED` / `definition_scorecard_not_projected`.
+	// A definition's scorecard lives inside
+	// `evaluation_definition_revisions.draft_proto`: a BYTEA holding an encoded
+	// `EvaluationDefinitionV1`. Answering this means decoding every revision in
+	// the organisation, which is a projection this build does not have. The count
+	// beside it is 0 and the availability is what says why.
+	DefinitionCount        uint32                `protobuf:"varint,7,opt,name=definition_count,json=definitionCount,proto3" json:"definition_count,omitempty"`
+	DefinitionAvailability *MetricAvailabilityV1 `protobuf:"bytes,8,opt,name=definition_availability,json=definitionAvailability,proto3" json:"definition_availability,omitempty"`
+	// NOT DERIVABLE — `NOT_SUPPORTED` / `production_rule_scorer_reference_not_indexed`.
+	// `evaluation_production_rule_versions.score_config_id` carries no index, and
+	// a scan of every rule version in the organisation is not a read a detail page
+	// may issue. Note that the production-rule plane does NOT need this read to
+	// stay correct: it maintains its own dependency rows and disables a dependent
+	// version with `dependency_archived` on its own clock.
+	ProductionRuleCount        uint32                `protobuf:"varint,9,opt,name=production_rule_count,json=productionRuleCount,proto3" json:"production_rule_count,omitempty"`
+	ProductionRuleAvailability *MetricAvailabilityV1 `protobuf:"bytes,10,opt,name=production_rule_availability,json=productionRuleAvailability,proto3" json:"production_rule_availability,omitempty"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
+}
+
+func (x *EvaluationScorerConfigUsageV1) Reset() {
+	*x = EvaluationScorerConfigUsageV1{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[582]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EvaluationScorerConfigUsageV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EvaluationScorerConfigUsageV1) ProtoMessage() {}
+
+func (x *EvaluationScorerConfigUsageV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[582]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EvaluationScorerConfigUsageV1.ProtoReflect.Descriptor instead.
+func (*EvaluationScorerConfigUsageV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{582}
+}
+
+func (x *EvaluationScorerConfigUsageV1) GetSuite() []*EvaluationScorerSuiteRefV1 {
+	if x != nil {
+		return x.Suite
+	}
+	return nil
+}
+
+func (x *EvaluationScorerConfigUsageV1) GetSuiteCount() uint32 {
+	if x != nil {
+		return x.SuiteCount
+	}
+	return 0
+}
+
+func (x *EvaluationScorerConfigUsageV1) GetSuiteAvailability() *MetricAvailabilityV1 {
+	if x != nil {
+		return x.SuiteAvailability
+	}
+	return nil
+}
+
+func (x *EvaluationScorerConfigUsageV1) GetPinnedRunCount() uint32 {
+	if x != nil {
+		return x.PinnedRunCount
+	}
+	return 0
+}
+
+func (x *EvaluationScorerConfigUsageV1) GetPinnedRunId() []string {
+	if x != nil {
+		return x.PinnedRunId
+	}
+	return nil
+}
+
+func (x *EvaluationScorerConfigUsageV1) GetPinnedRunAvailability() *MetricAvailabilityV1 {
+	if x != nil {
+		return x.PinnedRunAvailability
+	}
+	return nil
+}
+
+func (x *EvaluationScorerConfigUsageV1) GetDefinitionCount() uint32 {
+	if x != nil {
+		return x.DefinitionCount
+	}
+	return 0
+}
+
+func (x *EvaluationScorerConfigUsageV1) GetDefinitionAvailability() *MetricAvailabilityV1 {
+	if x != nil {
+		return x.DefinitionAvailability
+	}
+	return nil
+}
+
+func (x *EvaluationScorerConfigUsageV1) GetProductionRuleCount() uint32 {
+	if x != nil {
+		return x.ProductionRuleCount
+	}
+	return 0
+}
+
+func (x *EvaluationScorerConfigUsageV1) GetProductionRuleAvailability() *MetricAvailabilityV1 {
+	if x != nil {
+		return x.ProductionRuleAvailability
+	}
+	return nil
+}
+
+type EvaluationScorerSuiteRefV1 struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ScorerSuiteId string                 `protobuf:"bytes,1,opt,name=scorer_suite_id,json=scorerSuiteId,proto3" json:"scorer_suite_id,omitempty"`
+	SuiteKey      string                 `protobuf:"bytes,2,opt,name=suite_key,json=suiteKey,proto3" json:"suite_key,omitempty"`
+	IsArchived    bool                   `protobuf:"varint,3,opt,name=is_archived,json=isArchived,proto3" json:"is_archived,omitempty"`
+	// The posture THIS suite gives the scorer, which is per-suite and not read off
+	// the configuration.
+	IsBlockingGate bool     `protobuf:"varint,4,opt,name=is_blocking_gate,json=isBlockingGate,proto3" json:"is_blocking_gate,omitempty"`
+	Weight         *float64 `protobuf:"fixed64,5,opt,name=weight,proto3,oneof" json:"weight,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *EvaluationScorerSuiteRefV1) Reset() {
+	*x = EvaluationScorerSuiteRefV1{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[583]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EvaluationScorerSuiteRefV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EvaluationScorerSuiteRefV1) ProtoMessage() {}
+
+func (x *EvaluationScorerSuiteRefV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[583]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EvaluationScorerSuiteRefV1.ProtoReflect.Descriptor instead.
+func (*EvaluationScorerSuiteRefV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{583}
+}
+
+func (x *EvaluationScorerSuiteRefV1) GetScorerSuiteId() string {
+	if x != nil {
+		return x.ScorerSuiteId
+	}
+	return ""
+}
+
+func (x *EvaluationScorerSuiteRefV1) GetSuiteKey() string {
+	if x != nil {
+		return x.SuiteKey
+	}
+	return ""
+}
+
+func (x *EvaluationScorerSuiteRefV1) GetIsArchived() bool {
+	if x != nil {
+		return x.IsArchived
+	}
+	return false
+}
+
+func (x *EvaluationScorerSuiteRefV1) GetIsBlockingGate() bool {
+	if x != nil {
+		return x.IsBlockingGate
+	}
+	return false
+}
+
+func (x *EvaluationScorerSuiteRefV1) GetWeight() float64 {
+	if x != nil && x.Weight != nil {
+		return *x.Weight
+	}
+	return 0
+}
+
+type GetEvaluationScorerConfigRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Exactly one. A key is what an author remembers; an id is what a list row
+	// carries.
+	//
+	// Types that are valid to be assigned to Identity:
+	//
+	//	*GetEvaluationScorerConfigRequest_ScoreConfigId
+	//	*GetEvaluationScorerConfigRequest_ConfigKey
+	Identity isGetEvaluationScorerConfigRequest_Identity `protobuf_oneof:"identity"`
+	// Absent reads the CURRENT version. Present reads that version's evaluator
+	// template row, which no writer on this surface ever rewrites: a revision
+	// mints a fresh template rather than mutating the old one, precisely so a
+	// pinned run's snapshot keeps quoting what it measured.
+	VersionDiscriminator *string `protobuf:"bytes,3,opt,name=version_discriminator,json=versionDiscriminator,proto3,oneof" json:"version_discriminator,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *GetEvaluationScorerConfigRequest) Reset() {
+	*x = GetEvaluationScorerConfigRequest{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[584]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetEvaluationScorerConfigRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetEvaluationScorerConfigRequest) ProtoMessage() {}
+
+func (x *GetEvaluationScorerConfigRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[584]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetEvaluationScorerConfigRequest.ProtoReflect.Descriptor instead.
+func (*GetEvaluationScorerConfigRequest) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{584}
+}
+
+func (x *GetEvaluationScorerConfigRequest) GetIdentity() isGetEvaluationScorerConfigRequest_Identity {
+	if x != nil {
+		return x.Identity
+	}
+	return nil
+}
+
+func (x *GetEvaluationScorerConfigRequest) GetScoreConfigId() string {
+	if x != nil {
+		if x, ok := x.Identity.(*GetEvaluationScorerConfigRequest_ScoreConfigId); ok {
+			return x.ScoreConfigId
+		}
+	}
+	return ""
+}
+
+func (x *GetEvaluationScorerConfigRequest) GetConfigKey() string {
+	if x != nil {
+		if x, ok := x.Identity.(*GetEvaluationScorerConfigRequest_ConfigKey); ok {
+			return x.ConfigKey
+		}
+	}
+	return ""
+}
+
+func (x *GetEvaluationScorerConfigRequest) GetVersionDiscriminator() string {
+	if x != nil && x.VersionDiscriminator != nil {
+		return *x.VersionDiscriminator
+	}
+	return ""
+}
+
+type isGetEvaluationScorerConfigRequest_Identity interface {
+	isGetEvaluationScorerConfigRequest_Identity()
+}
+
+type GetEvaluationScorerConfigRequest_ScoreConfigId struct {
+	ScoreConfigId string `protobuf:"bytes,1,opt,name=score_config_id,json=scoreConfigId,proto3,oneof"`
+}
+
+type GetEvaluationScorerConfigRequest_ConfigKey struct {
+	ConfigKey string `protobuf:"bytes,2,opt,name=config_key,json=configKey,proto3,oneof"`
+}
+
+func (*GetEvaluationScorerConfigRequest_ScoreConfigId) isGetEvaluationScorerConfigRequest_Identity() {
+}
+
+func (*GetEvaluationScorerConfigRequest_ConfigKey) isGetEvaluationScorerConfigRequest_Identity() {}
+
+type GetEvaluationScorerConfigResponse struct {
+	state        protoimpl.MessageState          `protogen:"open.v1"`
+	ScorerConfig *EvaluationScorerConfigDetailV1 `protobuf:"bytes,1,opt,name=scorer_config,json=scorerConfig,proto3" json:"scorer_config,omitempty"`
+	// Absent when a historic version was addressed: the usage halves answer "what
+	// depends on this scorer", which is a fact about the configuration and not
+	// about one of its versions.
+	Usage         *EvaluationScorerConfigUsageV1   `protobuf:"bytes,2,opt,name=usage,proto3,oneof" json:"usage,omitempty"`
+	Freshness     *EvaluationFreshnessV1           `protobuf:"bytes,3,opt,name=freshness,proto3" json:"freshness,omitempty"`
+	Capabilities  *AgenticEvaluationCapabilitiesV1 `protobuf:"bytes,4,opt,name=capabilities,proto3" json:"capabilities,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetEvaluationScorerConfigResponse) Reset() {
+	*x = GetEvaluationScorerConfigResponse{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[585]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetEvaluationScorerConfigResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetEvaluationScorerConfigResponse) ProtoMessage() {}
+
+func (x *GetEvaluationScorerConfigResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[585]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetEvaluationScorerConfigResponse.ProtoReflect.Descriptor instead.
+func (*GetEvaluationScorerConfigResponse) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{585}
+}
+
+func (x *GetEvaluationScorerConfigResponse) GetScorerConfig() *EvaluationScorerConfigDetailV1 {
+	if x != nil {
+		return x.ScorerConfig
+	}
+	return nil
+}
+
+func (x *GetEvaluationScorerConfigResponse) GetUsage() *EvaluationScorerConfigUsageV1 {
+	if x != nil {
+		return x.Usage
+	}
+	return nil
+}
+
+func (x *GetEvaluationScorerConfigResponse) GetFreshness() *EvaluationFreshnessV1 {
+	if x != nil {
+		return x.Freshness
+	}
+	return nil
+}
+
+func (x *GetEvaluationScorerConfigResponse) GetCapabilities() *AgenticEvaluationCapabilitiesV1 {
+	if x != nil {
+		return x.Capabilities
+	}
+	return nil
+}
+
+// One version of a scorer.
+//
+// The `scorer:{config_key}:{version}` evaluator-template rows ARE the history:
+// wave 31 lane A mints one per authorship and per revision, they are UNIQUE per
+// tenant, and a revision mints rather than mutates. `05` §8's "No RPC lists
+// scorer versions" was true; "not derivable" was not.
+type EvaluationScorerConfigVersionV1 struct {
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	EvaluatorTemplateId  string                 `protobuf:"bytes,1,opt,name=evaluator_template_id,json=evaluatorTemplateId,proto3" json:"evaluator_template_id,omitempty"`
+	VersionDiscriminator string                 `protobuf:"bytes,2,opt,name=version_discriminator,json=versionDiscriminator,proto3" json:"version_discriminator,omitempty"`
+	// PER-VERSION, because `insert_evaluator_template` writes the authored name
+	// onto the template row at mint.
+	Name          string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	EvaluatorKind string `protobuf:"bytes,4,opt,name=evaluator_kind,json=evaluatorKind,proto3" json:"evaluator_kind,omitempty"`
+	ExecutionMode string `protobuf:"bytes,5,opt,name=execution_mode,json=executionMode,proto3" json:"execution_mode,omitempty"`
+	IsCurrent     bool   `protobuf:"varint,6,opt,name=is_current,json=isCurrent,proto3" json:"is_current,omitempty"`
+	// The authored rubric's size, not the rubric. A version list is a list (NN24),
+	// and a byte count answers "did the rubric change between v2 and v3" without
+	// moving 8 KiB per row. Zero on a non-judge version.
+	RubricBytes         uint32                 `protobuf:"varint,7,opt,name=rubric_bytes,json=rubricBytes,proto3" json:"rubric_bytes,omitempty"`
+	VerdictMappingCount uint32                 `protobuf:"varint,8,opt,name=verdict_mapping_count,json=verdictMappingCount,proto3" json:"verdict_mapping_count,omitempty"`
+	CreatedAt           *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	CreatedBy           *PrincipalRefV1        `protobuf:"bytes,10,opt,name=created_by,json=createdBy,proto3,oneof" json:"created_by,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *EvaluationScorerConfigVersionV1) Reset() {
+	*x = EvaluationScorerConfigVersionV1{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[586]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EvaluationScorerConfigVersionV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EvaluationScorerConfigVersionV1) ProtoMessage() {}
+
+func (x *EvaluationScorerConfigVersionV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[586]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EvaluationScorerConfigVersionV1.ProtoReflect.Descriptor instead.
+func (*EvaluationScorerConfigVersionV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{586}
+}
+
+func (x *EvaluationScorerConfigVersionV1) GetEvaluatorTemplateId() string {
+	if x != nil {
+		return x.EvaluatorTemplateId
+	}
+	return ""
+}
+
+func (x *EvaluationScorerConfigVersionV1) GetVersionDiscriminator() string {
+	if x != nil {
+		return x.VersionDiscriminator
+	}
+	return ""
+}
+
+func (x *EvaluationScorerConfigVersionV1) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *EvaluationScorerConfigVersionV1) GetEvaluatorKind() string {
+	if x != nil {
+		return x.EvaluatorKind
+	}
+	return ""
+}
+
+func (x *EvaluationScorerConfigVersionV1) GetExecutionMode() string {
+	if x != nil {
+		return x.ExecutionMode
+	}
+	return ""
+}
+
+func (x *EvaluationScorerConfigVersionV1) GetIsCurrent() bool {
+	if x != nil {
+		return x.IsCurrent
+	}
+	return false
+}
+
+func (x *EvaluationScorerConfigVersionV1) GetRubricBytes() uint32 {
+	if x != nil {
+		return x.RubricBytes
+	}
+	return 0
+}
+
+func (x *EvaluationScorerConfigVersionV1) GetVerdictMappingCount() uint32 {
+	if x != nil {
+		return x.VerdictMappingCount
+	}
+	return 0
+}
+
+func (x *EvaluationScorerConfigVersionV1) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *EvaluationScorerConfigVersionV1) GetCreatedBy() *PrincipalRefV1 {
+	if x != nil {
+		return x.CreatedBy
+	}
+	return nil
+}
+
+type ListEvaluationScorerConfigVersionsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Identity:
+	//
+	//	*ListEvaluationScorerConfigVersionsRequest_ScoreConfigId
+	//	*ListEvaluationScorerConfigVersionsRequest_ConfigKey
+	Identity      isListEvaluationScorerConfigVersionsRequest_Identity `protobuf_oneof:"identity"`
+	Page          *v1.PageRequestV1                                    `protobuf:"bytes,3,opt,name=page,proto3" json:"page,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListEvaluationScorerConfigVersionsRequest) Reset() {
+	*x = ListEvaluationScorerConfigVersionsRequest{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[587]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListEvaluationScorerConfigVersionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListEvaluationScorerConfigVersionsRequest) ProtoMessage() {}
+
+func (x *ListEvaluationScorerConfigVersionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[587]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListEvaluationScorerConfigVersionsRequest.ProtoReflect.Descriptor instead.
+func (*ListEvaluationScorerConfigVersionsRequest) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{587}
+}
+
+func (x *ListEvaluationScorerConfigVersionsRequest) GetIdentity() isListEvaluationScorerConfigVersionsRequest_Identity {
+	if x != nil {
+		return x.Identity
+	}
+	return nil
+}
+
+func (x *ListEvaluationScorerConfigVersionsRequest) GetScoreConfigId() string {
+	if x != nil {
+		if x, ok := x.Identity.(*ListEvaluationScorerConfigVersionsRequest_ScoreConfigId); ok {
+			return x.ScoreConfigId
+		}
+	}
+	return ""
+}
+
+func (x *ListEvaluationScorerConfigVersionsRequest) GetConfigKey() string {
+	if x != nil {
+		if x, ok := x.Identity.(*ListEvaluationScorerConfigVersionsRequest_ConfigKey); ok {
+			return x.ConfigKey
+		}
+	}
+	return ""
+}
+
+func (x *ListEvaluationScorerConfigVersionsRequest) GetPage() *v1.PageRequestV1 {
+	if x != nil {
+		return x.Page
+	}
+	return nil
+}
+
+type isListEvaluationScorerConfigVersionsRequest_Identity interface {
+	isListEvaluationScorerConfigVersionsRequest_Identity()
+}
+
+type ListEvaluationScorerConfigVersionsRequest_ScoreConfigId struct {
+	ScoreConfigId string `protobuf:"bytes,1,opt,name=score_config_id,json=scoreConfigId,proto3,oneof"`
+}
+
+type ListEvaluationScorerConfigVersionsRequest_ConfigKey struct {
+	ConfigKey string `protobuf:"bytes,2,opt,name=config_key,json=configKey,proto3,oneof"`
+}
+
+func (*ListEvaluationScorerConfigVersionsRequest_ScoreConfigId) isListEvaluationScorerConfigVersionsRequest_Identity() {
+}
+
+func (*ListEvaluationScorerConfigVersionsRequest_ConfigKey) isListEvaluationScorerConfigVersionsRequest_Identity() {
+}
+
+type ListEvaluationScorerConfigVersionsResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Newest first.
+	Versions []*EvaluationScorerConfigVersionV1 `protobuf:"bytes,1,rep,name=versions,proto3" json:"versions,omitempty"`
+	Page     *v1.PageResponseV1                 `protobuf:"bytes,2,opt,name=page,proto3" json:"page,omitempty"`
+	// `NOT_SUPPORTED` / `scorer_version_discriminator_unparsed` when the current
+	// discriminator does not read as `v{n}` — the shape a not-v2-authored scorer
+	// has. The list then carries the current version alone rather than guessing a
+	// range.
+	HistoryAvailability *MetricAvailabilityV1            `protobuf:"bytes,3,opt,name=history_availability,json=historyAvailability,proto3" json:"history_availability,omitempty"`
+	Freshness           *EvaluationFreshnessV1           `protobuf:"bytes,4,opt,name=freshness,proto3" json:"freshness,omitempty"`
+	Capabilities        *AgenticEvaluationCapabilitiesV1 `protobuf:"bytes,5,opt,name=capabilities,proto3" json:"capabilities,omitempty"`
+	Resync              *EvaluationCursorResyncV1        `protobuf:"bytes,6,opt,name=resync,proto3,oneof" json:"resync,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *ListEvaluationScorerConfigVersionsResponse) Reset() {
+	*x = ListEvaluationScorerConfigVersionsResponse{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[588]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListEvaluationScorerConfigVersionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListEvaluationScorerConfigVersionsResponse) ProtoMessage() {}
+
+func (x *ListEvaluationScorerConfigVersionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[588]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListEvaluationScorerConfigVersionsResponse.ProtoReflect.Descriptor instead.
+func (*ListEvaluationScorerConfigVersionsResponse) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{588}
+}
+
+func (x *ListEvaluationScorerConfigVersionsResponse) GetVersions() []*EvaluationScorerConfigVersionV1 {
+	if x != nil {
+		return x.Versions
+	}
+	return nil
+}
+
+func (x *ListEvaluationScorerConfigVersionsResponse) GetPage() *v1.PageResponseV1 {
+	if x != nil {
+		return x.Page
+	}
+	return nil
+}
+
+func (x *ListEvaluationScorerConfigVersionsResponse) GetHistoryAvailability() *MetricAvailabilityV1 {
+	if x != nil {
+		return x.HistoryAvailability
+	}
+	return nil
+}
+
+func (x *ListEvaluationScorerConfigVersionsResponse) GetFreshness() *EvaluationFreshnessV1 {
+	if x != nil {
+		return x.Freshness
+	}
+	return nil
+}
+
+func (x *ListEvaluationScorerConfigVersionsResponse) GetCapabilities() *AgenticEvaluationCapabilitiesV1 {
+	if x != nil {
+		return x.Capabilities
+	}
+	return nil
+}
+
+func (x *ListEvaluationScorerConfigVersionsResponse) GetResync() *EvaluationCursorResyncV1 {
+	if x != nil {
+		return x.Resync
+	}
+	return nil
+}
+
+type EvaluationScorerSuiteSummaryV1 struct {
+	state                protoimpl.MessageState             `protogen:"open.v1"`
+	ScorerSuiteId        string                             `protobuf:"bytes,1,opt,name=scorer_suite_id,json=scorerSuiteId,proto3" json:"scorer_suite_id,omitempty"`
+	SuiteKey             string                             `protobuf:"bytes,2,opt,name=suite_key,json=suiteKey,proto3" json:"suite_key,omitempty"`
+	Name                 string                             `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	VersionDiscriminator string                             `protobuf:"bytes,4,opt,name=version_discriminator,json=versionDiscriminator,proto3" json:"version_discriminator,omitempty"`
+	CombineRule          EvaluationScorerSuiteCombineRuleV1 `protobuf:"varint,5,opt,name=combine_rule,json=combineRule,proto3,enum=o11y_one.agentic.v1.EvaluationScorerSuiteCombineRuleV1" json:"combine_rule,omitempty"`
+	MemberCount          uint32                             `protobuf:"varint,6,opt,name=member_count,json=memberCount,proto3" json:"member_count,omitempty"`
+	BlockingGateCount    uint32                             `protobuf:"varint,7,opt,name=blocking_gate_count,json=blockingGateCount,proto3" json:"blocking_gate_count,omitempty"`
+	// How many members are themselves archived. A suite whose gate is retired
+	// still launches — and then blocks on `scorer_archived`, one dependency at a
+	// time. This count is what lets a list say so before that happens.
+	ArchivedMemberCount uint32                 `protobuf:"varint,8,opt,name=archived_member_count,json=archivedMemberCount,proto3" json:"archived_member_count,omitempty"`
+	IsArchived          bool                   `protobuf:"varint,9,opt,name=is_archived,json=isArchived,proto3" json:"is_archived,omitempty"`
+	ArchivedAt          *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=archived_at,json=archivedAt,proto3,oneof" json:"archived_at,omitempty"`
+	CreatedAt           *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt           *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	CreatedBy           *PrincipalRefV1        `protobuf:"bytes,13,opt,name=created_by,json=createdBy,proto3,oneof" json:"created_by,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *EvaluationScorerSuiteSummaryV1) Reset() {
+	*x = EvaluationScorerSuiteSummaryV1{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[589]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EvaluationScorerSuiteSummaryV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EvaluationScorerSuiteSummaryV1) ProtoMessage() {}
+
+func (x *EvaluationScorerSuiteSummaryV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[589]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EvaluationScorerSuiteSummaryV1.ProtoReflect.Descriptor instead.
+func (*EvaluationScorerSuiteSummaryV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{589}
+}
+
+func (x *EvaluationScorerSuiteSummaryV1) GetScorerSuiteId() string {
+	if x != nil {
+		return x.ScorerSuiteId
+	}
+	return ""
+}
+
+func (x *EvaluationScorerSuiteSummaryV1) GetSuiteKey() string {
+	if x != nil {
+		return x.SuiteKey
+	}
+	return ""
+}
+
+func (x *EvaluationScorerSuiteSummaryV1) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *EvaluationScorerSuiteSummaryV1) GetVersionDiscriminator() string {
+	if x != nil {
+		return x.VersionDiscriminator
+	}
+	return ""
+}
+
+func (x *EvaluationScorerSuiteSummaryV1) GetCombineRule() EvaluationScorerSuiteCombineRuleV1 {
+	if x != nil {
+		return x.CombineRule
+	}
+	return EvaluationScorerSuiteCombineRuleV1_EVALUATION_SCORER_SUITE_COMBINE_RULE_V1_UNSPECIFIED
+}
+
+func (x *EvaluationScorerSuiteSummaryV1) GetMemberCount() uint32 {
+	if x != nil {
+		return x.MemberCount
+	}
+	return 0
+}
+
+func (x *EvaluationScorerSuiteSummaryV1) GetBlockingGateCount() uint32 {
+	if x != nil {
+		return x.BlockingGateCount
+	}
+	return 0
+}
+
+func (x *EvaluationScorerSuiteSummaryV1) GetArchivedMemberCount() uint32 {
+	if x != nil {
+		return x.ArchivedMemberCount
+	}
+	return 0
+}
+
+func (x *EvaluationScorerSuiteSummaryV1) GetIsArchived() bool {
+	if x != nil {
+		return x.IsArchived
+	}
+	return false
+}
+
+func (x *EvaluationScorerSuiteSummaryV1) GetArchivedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ArchivedAt
+	}
+	return nil
+}
+
+func (x *EvaluationScorerSuiteSummaryV1) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *EvaluationScorerSuiteSummaryV1) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
+func (x *EvaluationScorerSuiteSummaryV1) GetCreatedBy() *PrincipalRefV1 {
+	if x != nil {
+		return x.CreatedBy
+	}
+	return nil
+}
+
+// A suite member WITH its own posture.
+//
+// A new message beside `EvaluationScorerSuiteMemberV1` and not a widening of it:
+// that one is embedded in `EvaluationScorerSuiteSnapshotV1`, which "must never
+// gain a field that moves", and `is_archived` is exactly a field that moves.
+type EvaluationScorerSuiteMemberDetailV1 struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ScoreConfigId string                 `protobuf:"bytes,1,opt,name=score_config_id,json=scoreConfigId,proto3" json:"score_config_id,omitempty"`
+	ConfigKey     string                 `protobuf:"bytes,2,opt,name=config_key,json=configKey,proto3" json:"config_key,omitempty"`
+	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	// `UNSPECIFIED` means a member authored outside this surface, which is
+	// admissible and freezable.
+	Kind                 EvaluationScorerKindV1 `protobuf:"varint,4,opt,name=kind,proto3,enum=o11y_one.agentic.v1.EvaluationScorerKindV1" json:"kind,omitempty"`
+	VersionDiscriminator *string                `protobuf:"bytes,5,opt,name=version_discriminator,json=versionDiscriminator,proto3,oneof" json:"version_discriminator,omitempty"`
+	// The weight and gate posture THIS suite gives it. Absent weight is 1.0 at
+	// combine time; ignored entirely for a blocking gate, which is adjudicated
+	// rather than averaged.
+	Weight         *float64 `protobuf:"fixed64,6,opt,name=weight,proto3,oneof" json:"weight,omitempty"`
+	IsBlockingGate bool     `protobuf:"varint,7,opt,name=is_blocking_gate,json=isBlockingGate,proto3" json:"is_blocking_gate,omitempty"`
+	// The MEMBER's own posture, not the suite's. A launch that resolves this suite
+	// will raise `MISSING_DEPENDENCY` / `scorer_archived` for it.
+	IsArchived            bool `protobuf:"varint,8,opt,name=is_archived,json=isArchived,proto3" json:"is_archived,omitempty"`
+	AuthoredOnThisSurface bool `protobuf:"varint,9,opt,name=authored_on_this_surface,json=authoredOnThisSurface,proto3" json:"authored_on_this_surface,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
+}
+
+func (x *EvaluationScorerSuiteMemberDetailV1) Reset() {
+	*x = EvaluationScorerSuiteMemberDetailV1{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[590]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EvaluationScorerSuiteMemberDetailV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EvaluationScorerSuiteMemberDetailV1) ProtoMessage() {}
+
+func (x *EvaluationScorerSuiteMemberDetailV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[590]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EvaluationScorerSuiteMemberDetailV1.ProtoReflect.Descriptor instead.
+func (*EvaluationScorerSuiteMemberDetailV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{590}
+}
+
+func (x *EvaluationScorerSuiteMemberDetailV1) GetScoreConfigId() string {
+	if x != nil {
+		return x.ScoreConfigId
+	}
+	return ""
+}
+
+func (x *EvaluationScorerSuiteMemberDetailV1) GetConfigKey() string {
+	if x != nil {
+		return x.ConfigKey
+	}
+	return ""
+}
+
+func (x *EvaluationScorerSuiteMemberDetailV1) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *EvaluationScorerSuiteMemberDetailV1) GetKind() EvaluationScorerKindV1 {
+	if x != nil {
+		return x.Kind
+	}
+	return EvaluationScorerKindV1_EVALUATION_SCORER_KIND_V1_UNSPECIFIED
+}
+
+func (x *EvaluationScorerSuiteMemberDetailV1) GetVersionDiscriminator() string {
+	if x != nil && x.VersionDiscriminator != nil {
+		return *x.VersionDiscriminator
+	}
+	return ""
+}
+
+func (x *EvaluationScorerSuiteMemberDetailV1) GetWeight() float64 {
+	if x != nil && x.Weight != nil {
+		return *x.Weight
+	}
+	return 0
+}
+
+func (x *EvaluationScorerSuiteMemberDetailV1) GetIsBlockingGate() bool {
+	if x != nil {
+		return x.IsBlockingGate
+	}
+	return false
+}
+
+func (x *EvaluationScorerSuiteMemberDetailV1) GetIsArchived() bool {
+	if x != nil {
+		return x.IsArchived
+	}
+	return false
+}
+
+func (x *EvaluationScorerSuiteMemberDetailV1) GetAuthoredOnThisSurface() bool {
+	if x != nil {
+		return x.AuthoredOnThisSurface
+	}
+	return false
+}
+
+type EvaluationScorerSuiteDetailV1 struct {
+	state                protoimpl.MessageState             `protogen:"open.v1"`
+	ScorerSuiteId        string                             `protobuf:"bytes,1,opt,name=scorer_suite_id,json=scorerSuiteId,proto3" json:"scorer_suite_id,omitempty"`
+	SuiteKey             string                             `protobuf:"bytes,2,opt,name=suite_key,json=suiteKey,proto3" json:"suite_key,omitempty"`
+	Name                 string                             `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	VersionDiscriminator string                             `protobuf:"bytes,4,opt,name=version_discriminator,json=versionDiscriminator,proto3" json:"version_discriminator,omitempty"`
+	CombineRule          EvaluationScorerSuiteCombineRuleV1 `protobuf:"varint,5,opt,name=combine_rule,json=combineRule,proto3,enum=o11y_one.agentic.v1.EvaluationScorerSuiteCombineRuleV1" json:"combine_rule,omitempty"`
+	// In AUTHOR order, which is the order the suite was written in and not the
+	// order a uuid sorts.
+	Members    []*EvaluationScorerSuiteMemberDetailV1 `protobuf:"bytes,6,rep,name=members,proto3" json:"members,omitempty"`
+	IsArchived bool                                   `protobuf:"varint,7,opt,name=is_archived,json=isArchived,proto3" json:"is_archived,omitempty"`
+	ArchivedAt *timestamppb.Timestamp                 `protobuf:"bytes,8,opt,name=archived_at,json=archivedAt,proto3,oneof" json:"archived_at,omitempty"`
+	CreatedAt  *timestamppb.Timestamp                 `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt  *timestamppb.Timestamp                 `protobuf:"bytes,10,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	CreatedBy  *PrincipalRefV1                        `protobuf:"bytes,11,opt,name=created_by,json=createdBy,proto3,oneof" json:"created_by,omitempty"`
+	// `NOT_SUPPORTED` / `suite_revisions_are_not_retained`, always, in this build.
+	//
+	// Unlike a scorer configuration — whose every version leaves an
+	// `evaluator_templates` row behind — a suite re-author UPDATES the row in
+	// place and REPLACES the membership. `version_discriminator` is therefore a
+	// monotone counter with no history behind it, and "show me v2 of this suite"
+	// has no answer. Stated here rather than discovered from an empty list.
+	RevisionHistoryAvailability *MetricAvailabilityV1 `protobuf:"bytes,12,opt,name=revision_history_availability,json=revisionHistoryAvailability,proto3" json:"revision_history_availability,omitempty"`
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
+}
+
+func (x *EvaluationScorerSuiteDetailV1) Reset() {
+	*x = EvaluationScorerSuiteDetailV1{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[591]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EvaluationScorerSuiteDetailV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EvaluationScorerSuiteDetailV1) ProtoMessage() {}
+
+func (x *EvaluationScorerSuiteDetailV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[591]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EvaluationScorerSuiteDetailV1.ProtoReflect.Descriptor instead.
+func (*EvaluationScorerSuiteDetailV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{591}
+}
+
+func (x *EvaluationScorerSuiteDetailV1) GetScorerSuiteId() string {
+	if x != nil {
+		return x.ScorerSuiteId
+	}
+	return ""
+}
+
+func (x *EvaluationScorerSuiteDetailV1) GetSuiteKey() string {
+	if x != nil {
+		return x.SuiteKey
+	}
+	return ""
+}
+
+func (x *EvaluationScorerSuiteDetailV1) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *EvaluationScorerSuiteDetailV1) GetVersionDiscriminator() string {
+	if x != nil {
+		return x.VersionDiscriminator
+	}
+	return ""
+}
+
+func (x *EvaluationScorerSuiteDetailV1) GetCombineRule() EvaluationScorerSuiteCombineRuleV1 {
+	if x != nil {
+		return x.CombineRule
+	}
+	return EvaluationScorerSuiteCombineRuleV1_EVALUATION_SCORER_SUITE_COMBINE_RULE_V1_UNSPECIFIED
+}
+
+func (x *EvaluationScorerSuiteDetailV1) GetMembers() []*EvaluationScorerSuiteMemberDetailV1 {
+	if x != nil {
+		return x.Members
+	}
+	return nil
+}
+
+func (x *EvaluationScorerSuiteDetailV1) GetIsArchived() bool {
+	if x != nil {
+		return x.IsArchived
+	}
+	return false
+}
+
+func (x *EvaluationScorerSuiteDetailV1) GetArchivedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ArchivedAt
+	}
+	return nil
+}
+
+func (x *EvaluationScorerSuiteDetailV1) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *EvaluationScorerSuiteDetailV1) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
+func (x *EvaluationScorerSuiteDetailV1) GetCreatedBy() *PrincipalRefV1 {
+	if x != nil {
+		return x.CreatedBy
+	}
+	return nil
+}
+
+func (x *EvaluationScorerSuiteDetailV1) GetRevisionHistoryAvailability() *MetricAvailabilityV1 {
+	if x != nil {
+		return x.RevisionHistoryAvailability
+	}
+	return nil
+}
+
+type ListEvaluationScorerSuitesRequest struct {
+	state          protoimpl.MessageState            `protogen:"open.v1"`
+	Page           *v1.PageRequestV1                 `protobuf:"bytes,1,opt,name=page,proto3" json:"page,omitempty"`
+	ArchivedFilter *EvaluationScorerArchivedFilterV1 `protobuf:"varint,2,opt,name=archived_filter,json=archivedFilter,proto3,enum=o11y_one.agentic.v1.EvaluationScorerArchivedFilterV1,oneof" json:"archived_filter,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *ListEvaluationScorerSuitesRequest) Reset() {
+	*x = ListEvaluationScorerSuitesRequest{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[592]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListEvaluationScorerSuitesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListEvaluationScorerSuitesRequest) ProtoMessage() {}
+
+func (x *ListEvaluationScorerSuitesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[592]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListEvaluationScorerSuitesRequest.ProtoReflect.Descriptor instead.
+func (*ListEvaluationScorerSuitesRequest) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{592}
+}
+
+func (x *ListEvaluationScorerSuitesRequest) GetPage() *v1.PageRequestV1 {
+	if x != nil {
+		return x.Page
+	}
+	return nil
+}
+
+func (x *ListEvaluationScorerSuitesRequest) GetArchivedFilter() EvaluationScorerArchivedFilterV1 {
+	if x != nil && x.ArchivedFilter != nil {
+		return *x.ArchivedFilter
+	}
+	return EvaluationScorerArchivedFilterV1_EVALUATION_SCORER_ARCHIVED_FILTER_V1_UNSPECIFIED
+}
+
+type ListEvaluationScorerSuitesResponse struct {
+	state         protoimpl.MessageState            `protogen:"open.v1"`
+	ScorerSuites  []*EvaluationScorerSuiteSummaryV1 `protobuf:"bytes,1,rep,name=scorer_suites,json=scorerSuites,proto3" json:"scorer_suites,omitempty"`
+	Page          *v1.PageResponseV1                `protobuf:"bytes,2,opt,name=page,proto3" json:"page,omitempty"`
+	Freshness     *EvaluationFreshnessV1            `protobuf:"bytes,3,opt,name=freshness,proto3" json:"freshness,omitempty"`
+	Capabilities  *AgenticEvaluationCapabilitiesV1  `protobuf:"bytes,4,opt,name=capabilities,proto3" json:"capabilities,omitempty"`
+	Resync        *EvaluationCursorResyncV1         `protobuf:"bytes,5,opt,name=resync,proto3,oneof" json:"resync,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListEvaluationScorerSuitesResponse) Reset() {
+	*x = ListEvaluationScorerSuitesResponse{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[593]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListEvaluationScorerSuitesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListEvaluationScorerSuitesResponse) ProtoMessage() {}
+
+func (x *ListEvaluationScorerSuitesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[593]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListEvaluationScorerSuitesResponse.ProtoReflect.Descriptor instead.
+func (*ListEvaluationScorerSuitesResponse) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{593}
+}
+
+func (x *ListEvaluationScorerSuitesResponse) GetScorerSuites() []*EvaluationScorerSuiteSummaryV1 {
+	if x != nil {
+		return x.ScorerSuites
+	}
+	return nil
+}
+
+func (x *ListEvaluationScorerSuitesResponse) GetPage() *v1.PageResponseV1 {
+	if x != nil {
+		return x.Page
+	}
+	return nil
+}
+
+func (x *ListEvaluationScorerSuitesResponse) GetFreshness() *EvaluationFreshnessV1 {
+	if x != nil {
+		return x.Freshness
+	}
+	return nil
+}
+
+func (x *ListEvaluationScorerSuitesResponse) GetCapabilities() *AgenticEvaluationCapabilitiesV1 {
+	if x != nil {
+		return x.Capabilities
+	}
+	return nil
+}
+
+func (x *ListEvaluationScorerSuitesResponse) GetResync() *EvaluationCursorResyncV1 {
+	if x != nil {
+		return x.Resync
+	}
+	return nil
+}
+
+type GetEvaluationScorerSuiteRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Identity:
+	//
+	//	*GetEvaluationScorerSuiteRequest_ScorerSuiteId
+	//	*GetEvaluationScorerSuiteRequest_SuiteKey
+	Identity      isGetEvaluationScorerSuiteRequest_Identity `protobuf_oneof:"identity"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetEvaluationScorerSuiteRequest) Reset() {
+	*x = GetEvaluationScorerSuiteRequest{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[594]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetEvaluationScorerSuiteRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetEvaluationScorerSuiteRequest) ProtoMessage() {}
+
+func (x *GetEvaluationScorerSuiteRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[594]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetEvaluationScorerSuiteRequest.ProtoReflect.Descriptor instead.
+func (*GetEvaluationScorerSuiteRequest) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{594}
+}
+
+func (x *GetEvaluationScorerSuiteRequest) GetIdentity() isGetEvaluationScorerSuiteRequest_Identity {
+	if x != nil {
+		return x.Identity
+	}
+	return nil
+}
+
+func (x *GetEvaluationScorerSuiteRequest) GetScorerSuiteId() string {
+	if x != nil {
+		if x, ok := x.Identity.(*GetEvaluationScorerSuiteRequest_ScorerSuiteId); ok {
+			return x.ScorerSuiteId
+		}
+	}
+	return ""
+}
+
+func (x *GetEvaluationScorerSuiteRequest) GetSuiteKey() string {
+	if x != nil {
+		if x, ok := x.Identity.(*GetEvaluationScorerSuiteRequest_SuiteKey); ok {
+			return x.SuiteKey
+		}
+	}
+	return ""
+}
+
+type isGetEvaluationScorerSuiteRequest_Identity interface {
+	isGetEvaluationScorerSuiteRequest_Identity()
+}
+
+type GetEvaluationScorerSuiteRequest_ScorerSuiteId struct {
+	ScorerSuiteId string `protobuf:"bytes,1,opt,name=scorer_suite_id,json=scorerSuiteId,proto3,oneof"`
+}
+
+type GetEvaluationScorerSuiteRequest_SuiteKey struct {
+	SuiteKey string `protobuf:"bytes,2,opt,name=suite_key,json=suiteKey,proto3,oneof"`
+}
+
+func (*GetEvaluationScorerSuiteRequest_ScorerSuiteId) isGetEvaluationScorerSuiteRequest_Identity() {}
+
+func (*GetEvaluationScorerSuiteRequest_SuiteKey) isGetEvaluationScorerSuiteRequest_Identity() {}
+
+type GetEvaluationScorerSuiteResponse struct {
+	state         protoimpl.MessageState           `protogen:"open.v1"`
+	ScorerSuite   *EvaluationScorerSuiteDetailV1   `protobuf:"bytes,1,opt,name=scorer_suite,json=scorerSuite,proto3" json:"scorer_suite,omitempty"`
+	Freshness     *EvaluationFreshnessV1           `protobuf:"bytes,2,opt,name=freshness,proto3" json:"freshness,omitempty"`
+	Capabilities  *AgenticEvaluationCapabilitiesV1 `protobuf:"bytes,3,opt,name=capabilities,proto3" json:"capabilities,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetEvaluationScorerSuiteResponse) Reset() {
+	*x = GetEvaluationScorerSuiteResponse{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[595]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetEvaluationScorerSuiteResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetEvaluationScorerSuiteResponse) ProtoMessage() {}
+
+func (x *GetEvaluationScorerSuiteResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[595]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetEvaluationScorerSuiteResponse.ProtoReflect.Descriptor instead.
+func (*GetEvaluationScorerSuiteResponse) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{595}
+}
+
+func (x *GetEvaluationScorerSuiteResponse) GetScorerSuite() *EvaluationScorerSuiteDetailV1 {
+	if x != nil {
+		return x.ScorerSuite
+	}
+	return nil
+}
+
+func (x *GetEvaluationScorerSuiteResponse) GetFreshness() *EvaluationFreshnessV1 {
+	if x != nil {
+		return x.Freshness
+	}
+	return nil
+}
+
+func (x *GetEvaluationScorerSuiteResponse) GetCapabilities() *AgenticEvaluationCapabilitiesV1 {
+	if x != nil {
+		return x.Capabilities
+	}
+	return nil
+}
+
+type ArchiveEvaluationScorerConfigRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Identity:
+	//
+	//	*ArchiveEvaluationScorerConfigRequest_ScoreConfigId
+	//	*ArchiveEvaluationScorerConfigRequest_ConfigKey
+	Identity      isArchiveEvaluationScorerConfigRequest_Identity `protobuf_oneof:"identity"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ArchiveEvaluationScorerConfigRequest) Reset() {
+	*x = ArchiveEvaluationScorerConfigRequest{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[596]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ArchiveEvaluationScorerConfigRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ArchiveEvaluationScorerConfigRequest) ProtoMessage() {}
+
+func (x *ArchiveEvaluationScorerConfigRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[596]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ArchiveEvaluationScorerConfigRequest.ProtoReflect.Descriptor instead.
+func (*ArchiveEvaluationScorerConfigRequest) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{596}
+}
+
+func (x *ArchiveEvaluationScorerConfigRequest) GetIdentity() isArchiveEvaluationScorerConfigRequest_Identity {
+	if x != nil {
+		return x.Identity
+	}
+	return nil
+}
+
+func (x *ArchiveEvaluationScorerConfigRequest) GetScoreConfigId() string {
+	if x != nil {
+		if x, ok := x.Identity.(*ArchiveEvaluationScorerConfigRequest_ScoreConfigId); ok {
+			return x.ScoreConfigId
+		}
+	}
+	return ""
+}
+
+func (x *ArchiveEvaluationScorerConfigRequest) GetConfigKey() string {
+	if x != nil {
+		if x, ok := x.Identity.(*ArchiveEvaluationScorerConfigRequest_ConfigKey); ok {
+			return x.ConfigKey
+		}
+	}
+	return ""
+}
+
+type isArchiveEvaluationScorerConfigRequest_Identity interface {
+	isArchiveEvaluationScorerConfigRequest_Identity()
+}
+
+type ArchiveEvaluationScorerConfigRequest_ScoreConfigId struct {
+	ScoreConfigId string `protobuf:"bytes,1,opt,name=score_config_id,json=scoreConfigId,proto3,oneof"`
+}
+
+type ArchiveEvaluationScorerConfigRequest_ConfigKey struct {
+	ConfigKey string `protobuf:"bytes,2,opt,name=config_key,json=configKey,proto3,oneof"`
+}
+
+func (*ArchiveEvaluationScorerConfigRequest_ScoreConfigId) isArchiveEvaluationScorerConfigRequest_Identity() {
+}
+
+func (*ArchiveEvaluationScorerConfigRequest_ConfigKey) isArchiveEvaluationScorerConfigRequest_Identity() {
+}
+
+type ArchiveEvaluationScorerConfigResponse struct {
+	state        protoimpl.MessageState           `protogen:"open.v1"`
+	ScorerConfig *EvaluationScorerConfigSummaryV1 `protobuf:"bytes,1,opt,name=scorer_config,json=scorerConfig,proto3" json:"scorer_config,omitempty"`
+	// TRUE when this call did not move it: it was already archived. NOT an error.
+	// An append-only state flip is replayable by construction, which is also why
+	// this request carries no idempotency key.
+	AlreadyArchived bool `protobuf:"varint,2,opt,name=already_archived,json=alreadyArchived,proto3" json:"already_archived,omitempty"`
+	// What still references it, at the moment of archiving.
+	//
+	// Archiving is UNCONDITIONAL on this plane (see the RPC's own comment), so
+	// this is not a refusal's evidence — it is the blast radius, returned at the
+	// one moment it can still change a decision. The two `NOT_SUPPORTED` halves
+	// are honest here for the same reason they are on the detail read: an empty
+	// definition list would read as "no evaluation uses this", which is precisely
+	// the wrong thing to believe while archiving.
+	StandingReferences *EvaluationScorerConfigUsageV1   `protobuf:"bytes,3,opt,name=standing_references,json=standingReferences,proto3" json:"standing_references,omitempty"`
+	Capabilities       *AgenticEvaluationCapabilitiesV1 `protobuf:"bytes,4,opt,name=capabilities,proto3" json:"capabilities,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *ArchiveEvaluationScorerConfigResponse) Reset() {
+	*x = ArchiveEvaluationScorerConfigResponse{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[597]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ArchiveEvaluationScorerConfigResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ArchiveEvaluationScorerConfigResponse) ProtoMessage() {}
+
+func (x *ArchiveEvaluationScorerConfigResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[597]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ArchiveEvaluationScorerConfigResponse.ProtoReflect.Descriptor instead.
+func (*ArchiveEvaluationScorerConfigResponse) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{597}
+}
+
+func (x *ArchiveEvaluationScorerConfigResponse) GetScorerConfig() *EvaluationScorerConfigSummaryV1 {
+	if x != nil {
+		return x.ScorerConfig
+	}
+	return nil
+}
+
+func (x *ArchiveEvaluationScorerConfigResponse) GetAlreadyArchived() bool {
+	if x != nil {
+		return x.AlreadyArchived
+	}
+	return false
+}
+
+func (x *ArchiveEvaluationScorerConfigResponse) GetStandingReferences() *EvaluationScorerConfigUsageV1 {
+	if x != nil {
+		return x.StandingReferences
+	}
+	return nil
+}
+
+func (x *ArchiveEvaluationScorerConfigResponse) GetCapabilities() *AgenticEvaluationCapabilitiesV1 {
+	if x != nil {
+		return x.Capabilities
+	}
+	return nil
+}
+
+type ArchiveEvaluationScorerSuiteRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Identity:
+	//
+	//	*ArchiveEvaluationScorerSuiteRequest_ScorerSuiteId
+	//	*ArchiveEvaluationScorerSuiteRequest_SuiteKey
+	Identity      isArchiveEvaluationScorerSuiteRequest_Identity `protobuf_oneof:"identity"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ArchiveEvaluationScorerSuiteRequest) Reset() {
+	*x = ArchiveEvaluationScorerSuiteRequest{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[598]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ArchiveEvaluationScorerSuiteRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ArchiveEvaluationScorerSuiteRequest) ProtoMessage() {}
+
+func (x *ArchiveEvaluationScorerSuiteRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[598]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ArchiveEvaluationScorerSuiteRequest.ProtoReflect.Descriptor instead.
+func (*ArchiveEvaluationScorerSuiteRequest) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{598}
+}
+
+func (x *ArchiveEvaluationScorerSuiteRequest) GetIdentity() isArchiveEvaluationScorerSuiteRequest_Identity {
+	if x != nil {
+		return x.Identity
+	}
+	return nil
+}
+
+func (x *ArchiveEvaluationScorerSuiteRequest) GetScorerSuiteId() string {
+	if x != nil {
+		if x, ok := x.Identity.(*ArchiveEvaluationScorerSuiteRequest_ScorerSuiteId); ok {
+			return x.ScorerSuiteId
+		}
+	}
+	return ""
+}
+
+func (x *ArchiveEvaluationScorerSuiteRequest) GetSuiteKey() string {
+	if x != nil {
+		if x, ok := x.Identity.(*ArchiveEvaluationScorerSuiteRequest_SuiteKey); ok {
+			return x.SuiteKey
+		}
+	}
+	return ""
+}
+
+type isArchiveEvaluationScorerSuiteRequest_Identity interface {
+	isArchiveEvaluationScorerSuiteRequest_Identity()
+}
+
+type ArchiveEvaluationScorerSuiteRequest_ScorerSuiteId struct {
+	ScorerSuiteId string `protobuf:"bytes,1,opt,name=scorer_suite_id,json=scorerSuiteId,proto3,oneof"`
+}
+
+type ArchiveEvaluationScorerSuiteRequest_SuiteKey struct {
+	SuiteKey string `protobuf:"bytes,2,opt,name=suite_key,json=suiteKey,proto3,oneof"`
+}
+
+func (*ArchiveEvaluationScorerSuiteRequest_ScorerSuiteId) isArchiveEvaluationScorerSuiteRequest_Identity() {
+}
+
+func (*ArchiveEvaluationScorerSuiteRequest_SuiteKey) isArchiveEvaluationScorerSuiteRequest_Identity() {
+}
+
+type ArchiveEvaluationScorerSuiteResponse struct {
+	state           protoimpl.MessageState          `protogen:"open.v1"`
+	ScorerSuite     *EvaluationScorerSuiteSummaryV1 `protobuf:"bytes,1,opt,name=scorer_suite,json=scorerSuite,proto3" json:"scorer_suite,omitempty"`
+	AlreadyArchived bool                            `protobuf:"varint,2,opt,name=already_archived,json=alreadyArchived,proto3" json:"already_archived,omitempty"`
+	// How many production rules target this suite: `NOT_SUPPORTED` /
+	// `production_rule_suite_reference_resolves_on_the_legacy_plane`, always.
+	//
+	// The production-rule dependency validator resolves `scorer_suite` against
+	// `o11y_one.scorer_suites` — the LEGACY table — and never against
+	// `o11y_one.evaluation_scorer_suites`. A v2 suite therefore has no
+	// production-rule blast radius this build can report, and an empty list here
+	// would read as "no rule depends on this" rather than "this build cannot
+	// tell". Recorded as a docket against the production-rule plane, not fixed
+	// here.
+	ProductionRuleCount        uint32                           `protobuf:"varint,3,opt,name=production_rule_count,json=productionRuleCount,proto3" json:"production_rule_count,omitempty"`
+	ProductionRuleAvailability *MetricAvailabilityV1            `protobuf:"bytes,4,opt,name=production_rule_availability,json=productionRuleAvailability,proto3" json:"production_rule_availability,omitempty"`
+	Capabilities               *AgenticEvaluationCapabilitiesV1 `protobuf:"bytes,5,opt,name=capabilities,proto3" json:"capabilities,omitempty"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
+}
+
+func (x *ArchiveEvaluationScorerSuiteResponse) Reset() {
+	*x = ArchiveEvaluationScorerSuiteResponse{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[599]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ArchiveEvaluationScorerSuiteResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ArchiveEvaluationScorerSuiteResponse) ProtoMessage() {}
+
+func (x *ArchiveEvaluationScorerSuiteResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[599]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ArchiveEvaluationScorerSuiteResponse.ProtoReflect.Descriptor instead.
+func (*ArchiveEvaluationScorerSuiteResponse) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{599}
+}
+
+func (x *ArchiveEvaluationScorerSuiteResponse) GetScorerSuite() *EvaluationScorerSuiteSummaryV1 {
+	if x != nil {
+		return x.ScorerSuite
+	}
+	return nil
+}
+
+func (x *ArchiveEvaluationScorerSuiteResponse) GetAlreadyArchived() bool {
+	if x != nil {
+		return x.AlreadyArchived
+	}
+	return false
+}
+
+func (x *ArchiveEvaluationScorerSuiteResponse) GetProductionRuleCount() uint32 {
+	if x != nil {
+		return x.ProductionRuleCount
+	}
+	return 0
+}
+
+func (x *ArchiveEvaluationScorerSuiteResponse) GetProductionRuleAvailability() *MetricAvailabilityV1 {
+	if x != nil {
+		return x.ProductionRuleAvailability
+	}
+	return nil
+}
+
+func (x *ArchiveEvaluationScorerSuiteResponse) GetCapabilities() *AgenticEvaluationCapabilitiesV1 {
+	if x != nil {
+		return x.Capabilities
+	}
+	return nil
+}
+
+// One row of `ListDatasetCollections` (`A-52A-1`).
+//
+// A summary, not a detail: it carries what a nav list renders and what a client
+// needs to decide which collection to open, and it stops there. The Overview
+// tab's quality projection is deliberately NOT here — that projection is
+// per VERSION, and folding it per collection across a page would be one
+// projection read per row, which is exactly the cost `PLAN:1520` exists to
+// prevent. `GetDatasetOverview` is where a collection's quality lives.
+type DatasetCollectionSummaryV1 struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	DatasetCollectionId string                 `protobuf:"bytes,1,opt,name=dataset_collection_id,json=datasetCollectionId,proto3" json:"dataset_collection_id,omitempty"`
+	Name                string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Description         *string                `protobuf:"bytes,3,opt,name=description,proto3,oneof" json:"description,omitempty"`
+	IsArchived          bool                   `protobuf:"varint,4,opt,name=is_archived,json=isArchived,proto3" json:"is_archived,omitempty"`
+	CreatedAt           *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// `COALESCE(updated_at, created_at)`, which is also the sort key. A
+	// collection that has never been updated sorts by when it was made rather
+	// than falling to the bottom of every page forever.
+	UpdatedAt *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	// The newest version, which is what the Overview calls "active". Absent when
+	// the collection has none.
+	ActiveVersion *DatasetVersionSummaryV1 `protobuf:"bytes,7,opt,name=active_version,json=activeVersion,proto3" json:"active_version,omitempty"`
+	// `NOT_OBSERVED / dataset_collection_has_no_version` when there is no
+	// version. Never `_ERROR`, and never an absent block.
+	ActiveVersionAvailability *MetricAvailabilityV1 `protobuf:"bytes,8,opt,name=active_version_availability,json=activeVersionAvailability,proto3" json:"active_version_availability,omitempty"`
+	// How many versions this collection holds. Always known: it is a set-based
+	// count in the page statement, and a collection with none genuinely has
+	// zero — publishing a named absence over a fact that IS known would be NN5
+	// applied backwards.
+	VersionCount uint32 `protobuf:"varint,9,opt,name=version_count,json=versionCount,proto3" json:"version_count,omitempty"`
+	// Changesets on this collection that are not in a terminal state — the "N
+	// waiting for review" a nav row wants. Always known, same argument as
+	// `version_count`.
+	OpenChangesetCount uint32 `protobuf:"varint,10,opt,name=open_changeset_count,json=openChangesetCount,proto3" json:"open_changeset_count,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *DatasetCollectionSummaryV1) Reset() {
+	*x = DatasetCollectionSummaryV1{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[600]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DatasetCollectionSummaryV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DatasetCollectionSummaryV1) ProtoMessage() {}
+
+func (x *DatasetCollectionSummaryV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[600]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DatasetCollectionSummaryV1.ProtoReflect.Descriptor instead.
+func (*DatasetCollectionSummaryV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{600}
+}
+
+func (x *DatasetCollectionSummaryV1) GetDatasetCollectionId() string {
+	if x != nil {
+		return x.DatasetCollectionId
+	}
+	return ""
+}
+
+func (x *DatasetCollectionSummaryV1) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *DatasetCollectionSummaryV1) GetDescription() string {
+	if x != nil && x.Description != nil {
+		return *x.Description
+	}
+	return ""
+}
+
+func (x *DatasetCollectionSummaryV1) GetIsArchived() bool {
+	if x != nil {
+		return x.IsArchived
+	}
+	return false
+}
+
+func (x *DatasetCollectionSummaryV1) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *DatasetCollectionSummaryV1) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
+func (x *DatasetCollectionSummaryV1) GetActiveVersion() *DatasetVersionSummaryV1 {
+	if x != nil {
+		return x.ActiveVersion
+	}
+	return nil
+}
+
+func (x *DatasetCollectionSummaryV1) GetActiveVersionAvailability() *MetricAvailabilityV1 {
+	if x != nil {
+		return x.ActiveVersionAvailability
+	}
+	return nil
+}
+
+func (x *DatasetCollectionSummaryV1) GetVersionCount() uint32 {
+	if x != nil {
+		return x.VersionCount
+	}
+	return 0
+}
+
+func (x *DatasetCollectionSummaryV1) GetOpenChangesetCount() uint32 {
+	if x != nil {
+		return x.OpenChangesetCount
+	}
+	return 0
+}
+
+// `A-52A-1`. Org-scoped, keyset-paged, filtered.
+type ListEvaluationDatasetCollectionsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The opaque cursor from the previous page's `next_page_token`. It binds the
+	// organisation AND the filter it was minted under, so a token replayed
+	// against a different filter is refused with a typed resync rather than
+	// silently paging a different query — the same contract
+	// `ListPlatformAnnotations` holds, reached for here because this is the first
+	// dataset list that HAS a filter to change. Its siblings
+	// (`ListDatasetCases`, `ListDatasetVersions`, `ListDatasetUsage`) take a bare
+	// keyset value because they have no filter and so no way to change one.
+	PageToken *string `protobuf:"bytes,1,opt,name=page_token,json=pageToken,proto3,oneof" json:"page_token,omitempty"`
+	Limit     *uint32 `protobuf:"varint,2,opt,name=limit,proto3,oneof" json:"limit,omitempty"`
+	// Archived collections are excluded unless this is set. Live-only is the
+	// default because "the datasets I work with" is what a nav item means.
+	IncludeArchived bool `protobuf:"varint,3,opt,name=include_archived,json=includeArchived,proto3" json:"include_archived,omitempty"`
+	// Case-insensitive substring match on the name. `%` and `_` are matched
+	// LITERALLY — a customer whose collection is named `100%` searches for it by
+	// typing it.
+	NameFilter    *string `protobuf:"bytes,4,opt,name=name_filter,json=nameFilter,proto3,oneof" json:"name_filter,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListEvaluationDatasetCollectionsRequest) Reset() {
+	*x = ListEvaluationDatasetCollectionsRequest{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[601]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListEvaluationDatasetCollectionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListEvaluationDatasetCollectionsRequest) ProtoMessage() {}
+
+func (x *ListEvaluationDatasetCollectionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[601]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListEvaluationDatasetCollectionsRequest.ProtoReflect.Descriptor instead.
+func (*ListEvaluationDatasetCollectionsRequest) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{601}
+}
+
+func (x *ListEvaluationDatasetCollectionsRequest) GetPageToken() string {
+	if x != nil && x.PageToken != nil {
+		return *x.PageToken
+	}
+	return ""
+}
+
+func (x *ListEvaluationDatasetCollectionsRequest) GetLimit() uint32 {
+	if x != nil && x.Limit != nil {
+		return *x.Limit
+	}
+	return 0
+}
+
+func (x *ListEvaluationDatasetCollectionsRequest) GetIncludeArchived() bool {
+	if x != nil {
+		return x.IncludeArchived
+	}
+	return false
+}
+
+func (x *ListEvaluationDatasetCollectionsRequest) GetNameFilter() string {
+	if x != nil && x.NameFilter != nil {
+		return *x.NameFilter
+	}
+	return ""
+}
+
+type ListEvaluationDatasetCollectionsResponse struct {
+	state       protoimpl.MessageState        `protogen:"open.v1"`
+	Collections []*DatasetCollectionSummaryV1 `protobuf:"bytes,1,rep,name=collections,proto3" json:"collections,omitempty"`
+	// Exact. The page is bounded and the count is a set-based aggregate under the
+	// same predicate as the page, so there is no approximation to label.
+	TotalCount uint32 `protobuf:"varint,2,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
+	// Emitted only when the page was FULL. A short page is the last page, and
+	// handing a client a cursor for it costs them a round trip to learn what the
+	// page already told them.
+	NextPageToken *string                          `protobuf:"bytes,3,opt,name=next_page_token,json=nextPageToken,proto3,oneof" json:"next_page_token,omitempty"`
+	Freshness     *EvaluationFreshnessV1           `protobuf:"bytes,4,opt,name=freshness,proto3" json:"freshness,omitempty"`
+	Capabilities  *AgenticEvaluationCapabilitiesV1 `protobuf:"bytes,5,opt,name=capabilities,proto3" json:"capabilities,omitempty"`
+	// Present exactly when the request's `page_token` could not be honoured. The
+	// page is empty in that case — never a first page wearing a resync, which
+	// would leave a client unable to tell a restart from a continuation.
+	Resync        *EvaluationCursorResyncV1 `protobuf:"bytes,6,opt,name=resync,proto3,oneof" json:"resync,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListEvaluationDatasetCollectionsResponse) Reset() {
+	*x = ListEvaluationDatasetCollectionsResponse{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[602]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListEvaluationDatasetCollectionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListEvaluationDatasetCollectionsResponse) ProtoMessage() {}
+
+func (x *ListEvaluationDatasetCollectionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[602]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListEvaluationDatasetCollectionsResponse.ProtoReflect.Descriptor instead.
+func (*ListEvaluationDatasetCollectionsResponse) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{602}
+}
+
+func (x *ListEvaluationDatasetCollectionsResponse) GetCollections() []*DatasetCollectionSummaryV1 {
+	if x != nil {
+		return x.Collections
+	}
+	return nil
+}
+
+func (x *ListEvaluationDatasetCollectionsResponse) GetTotalCount() uint32 {
+	if x != nil {
+		return x.TotalCount
+	}
+	return 0
+}
+
+func (x *ListEvaluationDatasetCollectionsResponse) GetNextPageToken() string {
+	if x != nil && x.NextPageToken != nil {
+		return *x.NextPageToken
+	}
+	return ""
+}
+
+func (x *ListEvaluationDatasetCollectionsResponse) GetFreshness() *EvaluationFreshnessV1 {
+	if x != nil {
+		return x.Freshness
+	}
+	return nil
+}
+
+func (x *ListEvaluationDatasetCollectionsResponse) GetCapabilities() *AgenticEvaluationCapabilitiesV1 {
+	if x != nil {
+		return x.Capabilities
+	}
+	return nil
+}
+
+func (x *ListEvaluationDatasetCollectionsResponse) GetResync() *EvaluationCursorResyncV1 {
+	if x != nil {
+		return x.Resync
+	}
+	return nil
+}
+
+// `A-52A-2`. One changeset by id.
+type GetDatasetChangesetRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ChangesetId   string                 `protobuf:"bytes,1,opt,name=changeset_id,json=changesetId,proto3" json:"changeset_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetDatasetChangesetRequest) Reset() {
+	*x = GetDatasetChangesetRequest{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[603]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetDatasetChangesetRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetDatasetChangesetRequest) ProtoMessage() {}
+
+func (x *GetDatasetChangesetRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[603]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetDatasetChangesetRequest.ProtoReflect.Descriptor instead.
+func (*GetDatasetChangesetRequest) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{603}
+}
+
+func (x *GetDatasetChangesetRequest) GetChangesetId() string {
+	if x != nil {
+		return x.ChangesetId
+	}
+	return ""
+}
+
+type GetDatasetChangesetResponse struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Changeset *DatasetChangesetV1    `protobuf:"bytes,1,opt,name=changeset,proto3" json:"changeset,omitempty"`
+	// The collection's ACTIVE version right now, which is what the changeset's
+	// pinned base is compared against.
+	ActiveDatasetVersionId *string `protobuf:"bytes,2,opt,name=active_dataset_version_id,json=activeDatasetVersionId,proto3,oneof" json:"active_dataset_version_id,omitempty"`
+	// `P5-16`'s drift, decided by the server. A client that recomputed this from
+	// two ids would be a second implementation of one rule, and the two would
+	// eventually disagree about whether a publish is safe.
+	BaseVersionMoved bool `protobuf:"varint,3,opt,name=base_version_moved,json=baseVersionMoved,proto3" json:"base_version_moved,omitempty"`
+	// `NOT_OBSERVED / changeset_has_no_base_version` when the changeset pinned no
+	// base — a first publish into an empty collection. Never `false`, which would
+	// read as "checked, and it has not moved".
+	BaseVersionMovedAvailability *MetricAvailabilityV1            `protobuf:"bytes,4,opt,name=base_version_moved_availability,json=baseVersionMovedAvailability,proto3" json:"base_version_moved_availability,omitempty"`
+	Freshness                    *EvaluationFreshnessV1           `protobuf:"bytes,5,opt,name=freshness,proto3" json:"freshness,omitempty"`
+	Capabilities                 *AgenticEvaluationCapabilitiesV1 `protobuf:"bytes,6,opt,name=capabilities,proto3" json:"capabilities,omitempty"`
+	unknownFields                protoimpl.UnknownFields
+	sizeCache                    protoimpl.SizeCache
+}
+
+func (x *GetDatasetChangesetResponse) Reset() {
+	*x = GetDatasetChangesetResponse{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[604]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetDatasetChangesetResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetDatasetChangesetResponse) ProtoMessage() {}
+
+func (x *GetDatasetChangesetResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[604]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetDatasetChangesetResponse.ProtoReflect.Descriptor instead.
+func (*GetDatasetChangesetResponse) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{604}
+}
+
+func (x *GetDatasetChangesetResponse) GetChangeset() *DatasetChangesetV1 {
+	if x != nil {
+		return x.Changeset
+	}
+	return nil
+}
+
+func (x *GetDatasetChangesetResponse) GetActiveDatasetVersionId() string {
+	if x != nil && x.ActiveDatasetVersionId != nil {
+		return *x.ActiveDatasetVersionId
+	}
+	return ""
+}
+
+func (x *GetDatasetChangesetResponse) GetBaseVersionMoved() bool {
+	if x != nil {
+		return x.BaseVersionMoved
+	}
+	return false
+}
+
+func (x *GetDatasetChangesetResponse) GetBaseVersionMovedAvailability() *MetricAvailabilityV1 {
+	if x != nil {
+		return x.BaseVersionMovedAvailability
+	}
+	return nil
+}
+
+func (x *GetDatasetChangesetResponse) GetFreshness() *EvaluationFreshnessV1 {
+	if x != nil {
+		return x.Freshness
+	}
+	return nil
+}
+
+func (x *GetDatasetChangesetResponse) GetCapabilities() *AgenticEvaluationCapabilitiesV1 {
+	if x != nil {
+		return x.Capabilities
+	}
+	return nil
+}
+
+// `A-52A-3`. The changeset queue.
+type ListDatasetChangesetsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Absent lists the whole organisation's changesets.
+	DatasetCollectionId *string `protobuf:"bytes,1,opt,name=dataset_collection_id,json=datasetCollectionId,proto3,oneof" json:"dataset_collection_id,omitempty"`
+	// Empty means the LIVE set, never "all" — `_COMMITTED`, `_ABANDONED` and
+	// `_FAILED` are history, and a queue that opened on its own history would
+	// bury the work.
+	States        []DatasetChangesetStateV1 `protobuf:"varint,2,rep,packed,name=states,proto3,enum=o11y_one.agentic.v1.DatasetChangesetStateV1" json:"states,omitempty"`
+	PageSize      uint32                    `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	Offset        uint32                    `protobuf:"varint,4,opt,name=offset,proto3" json:"offset,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListDatasetChangesetsRequest) Reset() {
+	*x = ListDatasetChangesetsRequest{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[605]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListDatasetChangesetsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListDatasetChangesetsRequest) ProtoMessage() {}
+
+func (x *ListDatasetChangesetsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[605]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListDatasetChangesetsRequest.ProtoReflect.Descriptor instead.
+func (*ListDatasetChangesetsRequest) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{605}
+}
+
+func (x *ListDatasetChangesetsRequest) GetDatasetCollectionId() string {
+	if x != nil && x.DatasetCollectionId != nil {
+		return *x.DatasetCollectionId
+	}
+	return ""
+}
+
+func (x *ListDatasetChangesetsRequest) GetStates() []DatasetChangesetStateV1 {
+	if x != nil {
+		return x.States
+	}
+	return nil
+}
+
+func (x *ListDatasetChangesetsRequest) GetPageSize() uint32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListDatasetChangesetsRequest) GetOffset() uint32 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
+type ListDatasetChangesetsResponse struct {
+	state         protoimpl.MessageState           `protogen:"open.v1"`
+	Changesets    []*DatasetChangesetV1            `protobuf:"bytes,1,rep,name=changesets,proto3" json:"changesets,omitempty"`
+	TotalCount    uint64                           `protobuf:"varint,2,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
+	NextOffset    *uint32                          `protobuf:"varint,3,opt,name=next_offset,json=nextOffset,proto3,oneof" json:"next_offset,omitempty"`
+	Freshness     *EvaluationFreshnessV1           `protobuf:"bytes,4,opt,name=freshness,proto3" json:"freshness,omitempty"`
+	Capabilities  *AgenticEvaluationCapabilitiesV1 `protobuf:"bytes,5,opt,name=capabilities,proto3" json:"capabilities,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListDatasetChangesetsResponse) Reset() {
+	*x = ListDatasetChangesetsResponse{}
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[606]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListDatasetChangesetsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListDatasetChangesetsResponse) ProtoMessage() {}
+
+func (x *ListDatasetChangesetsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_evaluation_proto_msgTypes[606]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListDatasetChangesetsResponse.ProtoReflect.Descriptor instead.
+func (*ListDatasetChangesetsResponse) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP(), []int{606}
+}
+
+func (x *ListDatasetChangesetsResponse) GetChangesets() []*DatasetChangesetV1 {
+	if x != nil {
+		return x.Changesets
+	}
+	return nil
+}
+
+func (x *ListDatasetChangesetsResponse) GetTotalCount() uint64 {
+	if x != nil {
+		return x.TotalCount
+	}
+	return 0
+}
+
+func (x *ListDatasetChangesetsResponse) GetNextOffset() uint32 {
+	if x != nil && x.NextOffset != nil {
+		return *x.NextOffset
+	}
+	return 0
+}
+
+func (x *ListDatasetChangesetsResponse) GetFreshness() *EvaluationFreshnessV1 {
+	if x != nil {
+		return x.Freshness
+	}
+	return nil
+}
+
+func (x *ListDatasetChangesetsResponse) GetCapabilities() *AgenticEvaluationCapabilitiesV1 {
+	if x != nil {
+		return x.Capabilities
+	}
+	return nil
 }
 
 var File_o11y_one_agentic_v1_evaluation_proto protoreflect.FileDescriptor
@@ -64189,7 +70926,7 @@ const file_o11y_one_agentic_v1_evaluation_proto_rawDesc = "" +
 	"\tfreshness\x18\x02 \x01(\v2*.o11y_one.agentic.v1.EvaluationFreshnessV1R\tfreshness\x12X\n" +
 	"\fcapabilities\x18\x03 \x01(\v24.o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1R\fcapabilities\"O\n" +
 	"\x19GetDatasetOverviewRequest\x122\n" +
-	"\x15dataset_collection_id\x18\x01 \x01(\tR\x13datasetCollectionId\"\x90\x06\n" +
+	"\x15dataset_collection_id\x18\x01 \x01(\tR\x13datasetCollectionId\"\xb7\a\n" +
 	"\x1aGetDatasetOverviewResponse\x122\n" +
 	"\x15dataset_collection_id\x18\x01 \x01(\tR\x13datasetCollectionId\x12S\n" +
 	"\x0eactive_version\x18\x02 \x01(\v2,.o11y_one.agentic.v1.DatasetVersionSummaryV1R\ractiveVersion\x12i\n" +
@@ -64199,7 +70936,15 @@ const file_o11y_one_agentic_v1_evaluation_proto_rawDesc = "" +
 	"\aquality\x18\x06 \x01(\v2/.o11y_one.agentic.v1.DatasetQualityProjectionV1R\aquality\x12\\\n" +
 	"\x14quality_availability\x18\a \x01(\v2).o11y_one.agentic.v1.MetricAvailabilityV1R\x13qualityAvailability\x12H\n" +
 	"\tfreshness\x18\b \x01(\v2*.o11y_one.agentic.v1.EvaluationFreshnessV1R\tfreshness\x12X\n" +
-	"\fcapabilities\x18\t \x01(\v24.o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1R\fcapabilities\"\xd2\x01\n" +
+	"\fcapabilities\x18\t \x01(\v24.o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1R\fcapabilities\x12\x12\n" +
+	"\x04name\x18\n" +
+	" \x01(\tR\x04name\x12%\n" +
+	"\vdescription\x18\v \x01(\tH\x00R\vdescription\x88\x01\x01\x129\n" +
+	"\n" +
+	"created_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x1f\n" +
+	"\vis_archived\x18\r \x01(\bR\n" +
+	"isArchivedB\x0e\n" +
+	"\f_description\"\xd2\x01\n" +
 	"$ListEvaluationDatasetVersionsRequest\x122\n" +
 	"\x15dataset_collection_id\x18\x01 \x01(\tR\x13datasetCollectionId\x127\n" +
 	"\x15before_version_number\x18\x02 \x01(\rH\x00R\x13beforeVersionNumber\x88\x01\x01\x12\x19\n" +
@@ -64640,7 +71385,647 @@ const file_o11y_one_agentic_v1_evaluation_proto_rawDesc = "" +
 	"\vlimit_value\x18\x06 \x01(\x03H\x01R\n" +
 	"limitValue\x88\x01\x01B\x11\n" +
 	"\x0f_action_ordinalB\x0e\n" +
-	"\f_limit_value*\x8d\x01\n" +
+	"\f_limit_value\"\xec\x04\n" +
+	"\x12MachinePrincipalV1\x120\n" +
+	"\x14machine_principal_id\x18\x01 \x01(\tR\x12machinePrincipalId\x12\x1b\n" +
+	"\ttenant_id\x18\x02 \x01(\tR\btenantId\x12\x15\n" +
+	"\x06org_id\x18\x03 \x01(\tR\x05orgId\x12!\n" +
+	"\fdisplay_name\x18\x04 \x01(\tR\vdisplayName\x12%\n" +
+	"\vdescription\x18\x05 \x01(\tH\x00R\vdescription\x88\x01\x01\x12D\n" +
+	"\x06scopes\x18\x06 \x03(\x0e2,.o11y_one.agentic.v1.MachinePrincipalScopeV1R\x06scopes\x12B\n" +
+	"\x05state\x18\a \x01(\x0e2,.o11y_one.agentic.v1.MachinePrincipalStateV1R\x05state\x12B\n" +
+	"\n" +
+	"created_by\x18\b \x01(\v2#.o11y_one.agentic.v1.PrincipalRefV1R\tcreatedBy\x129\n" +
+	"\n" +
+	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"\n" +
+	"updated_at\x18\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12A\n" +
+	"\flast_used_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampH\x01R\n" +
+	"lastUsedAt\x88\x01\x01B\x0e\n" +
+	"\f_descriptionB\x0f\n" +
+	"\r_last_used_at\"\xff\x05\n" +
+	"\x13MachineCredentialV1\x12#\n" +
+	"\rcredential_id\x18\x01 \x01(\tR\fcredentialId\x120\n" +
+	"\x14machine_principal_id\x18\x02 \x01(\tR\x12machinePrincipalId\x12\x1b\n" +
+	"\ttenant_id\x18\x03 \x01(\tR\btenantId\x12\x15\n" +
+	"\x06org_id\x18\x04 \x01(\tR\x05orgId\x12\x1d\n" +
+	"\n" +
+	"secret_ref\x18\x05 \x01(\tR\tsecretRef\x12!\n" +
+	"\ftoken_prefix\x18\x06 \x01(\tR\vtokenPrefix\x12%\n" +
+	"\x0eversion_number\x18\a \x01(\rR\rversionNumber\x12C\n" +
+	"\x05state\x18\b \x01(\x0e2-.o11y_one.agentic.v1.MachineCredentialStateV1R\x05state\x12>\n" +
+	"\n" +
+	"expires_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampH\x00R\texpiresAt\x88\x01\x01\x12B\n" +
+	"\n" +
+	"created_by\x18\n" +
+	" \x01(\v2#.o11y_one.agentic.v1.PrincipalRefV1R\tcreatedBy\x129\n" +
+	"\n" +
+	"created_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12G\n" +
+	"\n" +
+	"revoked_by\x18\f \x01(\v2#.o11y_one.agentic.v1.PrincipalRefV1H\x01R\trevokedBy\x88\x01\x01\x12>\n" +
+	"\n" +
+	"revoked_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampH\x02R\trevokedAt\x88\x01\x01\x12(\n" +
+	"\rrevoke_reason\x18\x0e \x01(\tH\x03R\frevokeReason\x88\x01\x01B\r\n" +
+	"\v_expires_atB\r\n" +
+	"\v_revoked_byB\r\n" +
+	"\v_revoked_atB\x10\n" +
+	"\x0e_revoke_reason\"\xbf\x01\n" +
+	"\x1dCreateMachinePrincipalRequest\x12!\n" +
+	"\fdisplay_name\x18\x01 \x01(\tR\vdisplayName\x12%\n" +
+	"\vdescription\x18\x02 \x01(\tH\x00R\vdescription\x88\x01\x01\x12D\n" +
+	"\x06scopes\x18\x03 \x03(\x0e2,.o11y_one.agentic.v1.MachinePrincipalScopeV1R\x06scopesB\x0e\n" +
+	"\f_description\"g\n" +
+	"\x1eCreateMachinePrincipalResponse\x12E\n" +
+	"\tprincipal\x18\x01 \x01(\v2'.o11y_one.agentic.v1.MachinePrincipalV1R\tprincipal\"\x81\x01\n" +
+	"\x1cListMachinePrincipalsRequest\x12 \n" +
+	"\tpage_size\x18\x01 \x01(\rH\x00R\bpageSize\x88\x01\x01\x12\"\n" +
+	"\n" +
+	"page_token\x18\x02 \x01(\tH\x01R\tpageToken\x88\x01\x01B\f\n" +
+	"\n" +
+	"_page_sizeB\r\n" +
+	"\v_page_token\"\xb6\x01\n" +
+	"!MachinePrincipalWithCredentialsV1\x12E\n" +
+	"\tprincipal\x18\x01 \x01(\v2'.o11y_one.agentic.v1.MachinePrincipalV1R\tprincipal\x12J\n" +
+	"\vcredentials\x18\x02 \x03(\v2(.o11y_one.agentic.v1.MachineCredentialV1R\vcredentials\"\xb8\x01\n" +
+	"\x1dListMachinePrincipalsResponse\x12V\n" +
+	"\n" +
+	"principals\x18\x01 \x03(\v26.o11y_one.agentic.v1.MachinePrincipalWithCredentialsV1R\n" +
+	"principals\x12+\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tH\x00R\rnextPageToken\x88\x01\x01B\x12\n" +
+	"\x10_next_page_token\"\xd8\x01\n" +
+	"\x1eCreateMachineCredentialRequest\x120\n" +
+	"\x14machine_principal_id\x18\x01 \x01(\tR\x12machinePrincipalId\x12%\n" +
+	"\vdescription\x18\x02 \x01(\tH\x00R\vdescription\x88\x01\x01\x12>\n" +
+	"\n" +
+	"expires_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampH\x01R\texpiresAt\x88\x01\x01B\x0e\n" +
+	"\f_descriptionB\r\n" +
+	"\v_expires_at\"\x9d\x01\n" +
+	"\x1fCreateMachineCredentialResponse\x12H\n" +
+	"\n" +
+	"credential\x18\x01 \x01(\v2(.o11y_one.agentic.v1.MachineCredentialV1R\n" +
+	"credential\x120\n" +
+	"\x14plaintext_token_once\x18\x02 \x01(\tR\x12plaintextTokenOnce\"\x81\x01\n" +
+	"\x1eRevokeMachineCredentialRequest\x12#\n" +
+	"\rcredential_id\x18\x01 \x01(\tR\fcredentialId\x12(\n" +
+	"\rrevoke_reason\x18\x02 \x01(\tH\x00R\frevokeReason\x88\x01\x01B\x10\n" +
+	"\x0e_revoke_reason\"k\n" +
+	"\x1fRevokeMachineCredentialResponse\x12H\n" +
+	"\n" +
+	"credential\x18\x01 \x01(\v2(.o11y_one.agentic.v1.MachineCredentialV1R\n" +
+	"credential\"\x8d\x01\n" +
+	"\x1dRevokeMachinePrincipalRequest\x120\n" +
+	"\x14machine_principal_id\x18\x01 \x01(\tR\x12machinePrincipalId\x12(\n" +
+	"\rrevoke_reason\x18\x02 \x01(\tH\x00R\frevokeReason\x88\x01\x01B\x10\n" +
+	"\x0e_revoke_reason\"\xc2\x01\n" +
+	"\x1eRevokeMachinePrincipalResponse\x12E\n" +
+	"\tprincipal\x18\x01 \x01(\v2'.o11y_one.agentic.v1.MachinePrincipalV1R\tprincipal\x12Y\n" +
+	"\x13revoked_credentials\x18\x02 \x03(\v2(.o11y_one.agentic.v1.MachineCredentialV1R\x12revokedCredentials\"\x1b\n" +
+	"\x19GetCallerPrincipalRequest\"\xdc\x02\n" +
+	"\x1aGetCallerPrincipalResponse\x12;\n" +
+	"\x06caller\x18\x01 \x01(\v2#.o11y_one.agentic.v1.PrincipalRefV1R\x06caller\x12\x1b\n" +
+	"\ttenant_id\x18\x02 \x01(\tR\btenantId\x12\x15\n" +
+	"\x06org_id\x18\x03 \x01(\tR\x05orgId\x12Y\n" +
+	"\x11machine_principal\x18\x04 \x01(\v2'.o11y_one.agentic.v1.MachinePrincipalV1H\x00R\x10machinePrincipal\x88\x01\x01\x12M\n" +
+	"\n" +
+	"credential\x18\x05 \x01(\v2(.o11y_one.agentic.v1.MachineCredentialV1H\x01R\n" +
+	"credential\x88\x01\x01B\x14\n" +
+	"\x12_machine_principalB\r\n" +
+	"\v_credential\"\xff\x01\n" +
+	"\x13ExternalCaseLeaseV1\x12\x19\n" +
+	"\blease_id\x18\x01 \x01(\tR\aleaseId\x12\x1f\n" +
+	"\vlease_token\x18\x02 \x01(\tR\n" +
+	"leaseToken\x129\n" +
+	"\n" +
+	"expires_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12#\n" +
+	"\rrenewals_used\x18\x04 \x01(\rR\frenewalsUsed\x12-\n" +
+	"\x12renewals_remaining\x18\x05 \x01(\rR\x11renewalsRemaining\x12\x1d\n" +
+	"\n" +
+	"case_count\x18\x06 \x01(\rR\tcaseCount\"\xb7\x03\n" +
+	"\x16LeasedEvaluationCaseV1\x12\x1d\n" +
+	"\n" +
+	"cohort_key\x18\x01 \x01(\tR\tcohortKey\x12#\n" +
+	"\rcandidate_key\x18\x02 \x01(\tR\fcandidateKey\x12(\n" +
+	"\x10case_revision_id\x18\x03 \x01(\tR\x0ecaseRevisionId\x12\x14\n" +
+	"\x05trial\x18\x04 \x01(\rR\x05trial\x12-\n" +
+	"\x12attempt_generation\x18\x05 \x01(\x05R\x11attemptGeneration\x121\n" +
+	"\x12input_payload_json\x18\x06 \x01(\tH\x00R\x10inputPayloadJson\x88\x01\x01\x125\n" +
+	"\x14expected_output_json\x18\a \x01(\tH\x01R\x12expectedOutputJson\x88\x01\x01\x12P\n" +
+	"\x16submission_deadline_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\x14submissionDeadlineAtB\x15\n" +
+	"\x13_input_payload_jsonB\x17\n" +
+	"\x15_expected_output_json\"X\n" +
+	"\x15ExternalCaseFailureV1\x12\x12\n" +
+	"\x04code\x18\x01 \x01(\tR\x04code\x12+\n" +
+	"\x11sanitized_message\x18\x02 \x01(\tR\x10sanitizedMessage\"\x88\x03\n" +
+	"\x13ExternalCaseUsageV1\x12&\n" +
+	"\finput_tokens\x18\x01 \x01(\x03H\x00R\vinputTokens\x88\x01\x01\x12(\n" +
+	"\routput_tokens\x18\x02 \x01(\x03H\x01R\foutputTokens\x88\x01\x01\x12&\n" +
+	"\ftotal_tokens\x18\x03 \x01(\x03H\x02R\vtotalTokens\x88\x01\x01\x12*\n" +
+	"\x0elatency_micros\x18\x04 \x01(\x03H\x03R\rlatencyMicros\x88\x01\x01\x12$\n" +
+	"\vretry_count\x18\x05 \x01(\x05H\x04R\n" +
+	"retryCount\x88\x01\x01\x125\n" +
+	"\x14reported_cost_micros\x18\x06 \x01(\x03H\x05R\x12reportedCostMicros\x88\x01\x01B\x0f\n" +
+	"\r_input_tokensB\x10\n" +
+	"\x0e_output_tokensB\x0f\n" +
+	"\r_total_tokensB\x11\n" +
+	"\x0f_latency_microsB\x0e\n" +
+	"\f_retry_countB\x17\n" +
+	"\x15_reported_cost_micros\"\x9c\x03\n" +
+	"\x14ExternalCaseOutputV1\x12\x1d\n" +
+	"\n" +
+	"cohort_key\x18\x01 \x01(\tR\tcohortKey\x12#\n" +
+	"\rcandidate_key\x18\x02 \x01(\tR\fcandidateKey\x12(\n" +
+	"\x10case_revision_id\x18\x03 \x01(\tR\x0ecaseRevisionId\x12\x14\n" +
+	"\x05trial\x18\x04 \x01(\rR\x05trial\x12-\n" +
+	"\x12attempt_generation\x18\x05 \x01(\x05R\x11attemptGeneration\x120\n" +
+	"\x13output_payload_json\x18\x06 \x01(\tH\x00R\x11outputPayloadJson\x12F\n" +
+	"\afailure\x18\a \x01(\v2*.o11y_one.agentic.v1.ExternalCaseFailureV1H\x00R\afailure\x12C\n" +
+	"\x05usage\x18\b \x01(\v2(.o11y_one.agentic.v1.ExternalCaseUsageV1H\x01R\x05usage\x88\x01\x01B\b\n" +
+	"\x06resultB\b\n" +
+	"\x06_usage\"\x96\x03\n" +
+	"\x17ExternalCaseOutputAckV1\x12\x1d\n" +
+	"\n" +
+	"cohort_key\x18\x01 \x01(\tR\tcohortKey\x12#\n" +
+	"\rcandidate_key\x18\x02 \x01(\tR\fcandidateKey\x12(\n" +
+	"\x10case_revision_id\x18\x03 \x01(\tR\x0ecaseRevisionId\x12\x14\n" +
+	"\x05trial\x18\x04 \x01(\rR\x05trial\x12D\n" +
+	"\x04kind\x18\x05 \x01(\x0e20.o11y_one.agentic.v1.ExternalSubmissionAckKindV1R\x04kind\x12V\n" +
+	"\x0eobserved_state\x18\x06 \x01(\x0e2/.o11y_one.agentic.v1.EvaluationExecutionStateV1R\robservedState\x12K\n" +
+	"\trejection\x18\a \x01(\v2(.o11y_one.agentic.v1.EvaluationFailureV1H\x00R\trejection\x88\x01\x01B\f\n" +
+	"\n" +
+	"_rejection\"\x88\x02\n" +
+	"\x16ExternalLeaseRefusalV1\x12C\n" +
+	"\x04kind\x18\x01 \x01(\x0e2/.o11y_one.agentic.v1.ExternalLeaseRefusalKindV1R\x04kind\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\x12(\n" +
+	"\rmissing_scope\x18\x03 \x01(\tH\x00R\fmissingScope\x88\x01\x01\x12F\n" +
+	"\brecovery\x18\x04 \x01(\x0e2%.o11y_one.agentic.v1.RecoveryActionV1H\x01R\brecovery\x88\x01\x01B\x10\n" +
+	"\x0e_missing_scopeB\v\n" +
+	"\t_recovery\"\xd1\x01\n" +
+	"\x1bLeaseEvaluationCasesRequest\x12*\n" +
+	"\x11evaluation_run_id\x18\x01 \x01(\tR\x0fevaluationRunId\x12#\n" +
+	"\rcandidate_key\x18\x02 \x01(\tR\fcandidateKey\x12\x1f\n" +
+	"\vruntime_key\x18\x03 \x01(\tR\n" +
+	"runtimeKey\x12\x1b\n" +
+	"\tmax_cases\x18\x04 \x01(\rR\bmaxCases\x12#\n" +
+	"\rlease_seconds\x18\x05 \x01(\rR\fleaseSeconds\"\xef\x03\n" +
+	"\x1cLeaseEvaluationCasesResponse\x12C\n" +
+	"\x05lease\x18\x01 \x01(\v2(.o11y_one.agentic.v1.ExternalCaseLeaseV1H\x00R\x05lease\x88\x01\x01\x12A\n" +
+	"\x05cases\x18\x02 \x03(\v2+.o11y_one.agentic.v1.LeasedEvaluationCaseV1R\x05cases\x12A\n" +
+	"\x1dremaining_unleased_case_count\x18\x03 \x01(\rR\x1aremainingUnleasedCaseCount\x12J\n" +
+	"\arefusal\x18\x04 \x01(\v2+.o11y_one.agentic.v1.ExternalLeaseRefusalV1H\x01R\arefusal\x88\x01\x01\x12X\n" +
+	"\fcapabilities\x18\x05 \x01(\v24.o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1R\fcapabilities\x12H\n" +
+	"\tfreshness\x18\x06 \x01(\v2*.o11y_one.agentic.v1.EvaluationFreshnessV1R\tfreshnessB\b\n" +
+	"\x06_leaseB\n" +
+	"\n" +
+	"\b_refusal\"\xae\x01\n" +
+	"\x1fRenewEvaluationCaseLeaseRequest\x12*\n" +
+	"\x11evaluation_run_id\x18\x01 \x01(\tR\x0fevaluationRunId\x12\x19\n" +
+	"\blease_id\x18\x02 \x01(\tR\aleaseId\x12\x1f\n" +
+	"\vlease_token\x18\x03 \x01(\tR\n" +
+	"leaseToken\x12#\n" +
+	"\rlease_seconds\x18\x04 \x01(\rR\fleaseSeconds\"\xa3\x02\n" +
+	" RenewEvaluationCaseLeaseResponse\x12C\n" +
+	"\x05lease\x18\x01 \x01(\v2(.o11y_one.agentic.v1.ExternalCaseLeaseV1H\x00R\x05lease\x88\x01\x01\x12J\n" +
+	"\arefusal\x18\x02 \x01(\v2+.o11y_one.agentic.v1.ExternalLeaseRefusalV1H\x01R\arefusal\x88\x01\x01\x12X\n" +
+	"\fcapabilities\x18\x03 \x01(\v24.o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1R\fcapabilitiesB\b\n" +
+	"\x06_leaseB\n" +
+	"\n" +
+	"\b_refusal\"\xfa\x01\n" +
+	"\"SubmitEvaluationCaseOutputsRequest\x12*\n" +
+	"\x11evaluation_run_id\x18\x01 \x01(\tR\x0fevaluationRunId\x12\x19\n" +
+	"\blease_id\x18\x02 \x01(\tR\aleaseId\x12\x1f\n" +
+	"\vlease_token\x18\x03 \x01(\tR\n" +
+	"leaseToken\x12C\n" +
+	"\aoutputs\x18\x04 \x03(\v2).o11y_one.agentic.v1.ExternalCaseOutputV1R\aoutputs\x12'\n" +
+	"\x0fidempotency_key\x18\x05 \x01(\tR\x0eidempotencyKey\"\xad\x04\n" +
+	"#SubmitEvaluationCaseOutputsResponse\x12@\n" +
+	"\x04acks\x18\x01 \x03(\v2,.o11y_one.agentic.v1.ExternalCaseOutputAckV1R\x04acks\x12%\n" +
+	"\x0eaccepted_count\x18\x02 \x01(\rR\racceptedCount\x126\n" +
+	"\x17already_submitted_count\x18\x03 \x01(\rR\x15alreadySubmittedCount\x12%\n" +
+	"\x0erejected_count\x18\x04 \x01(\rR\rrejectedCount\x12C\n" +
+	"\x05lease\x18\x05 \x01(\v2(.o11y_one.agentic.v1.ExternalCaseLeaseV1H\x00R\x05lease\x88\x01\x01\x12=\n" +
+	"\x1bremaining_leased_case_count\x18\x06 \x01(\rR\x18remainingLeasedCaseCount\x12J\n" +
+	"\arefusal\x18\a \x01(\v2+.o11y_one.agentic.v1.ExternalLeaseRefusalV1H\x01R\arefusal\x88\x01\x01\x12X\n" +
+	"\fcapabilities\x18\b \x01(\v24.o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1R\fcapabilitiesB\b\n" +
+	"\x06_leaseB\n" +
+	"\n" +
+	"\b_refusal\"\x8b\x01\n" +
+	"!ReleaseEvaluationCaseLeaseRequest\x12*\n" +
+	"\x11evaluation_run_id\x18\x01 \x01(\tR\x0fevaluationRunId\x12\x19\n" +
+	"\blease_id\x18\x02 \x01(\tR\aleaseId\x12\x1f\n" +
+	"\vlease_token\x18\x03 \x01(\tR\n" +
+	"leaseToken\"\x86\x02\n" +
+	"\"ReleaseEvaluationCaseLeaseResponse\x12.\n" +
+	"\x13released_case_count\x18\x01 \x01(\rR\x11releasedCaseCount\x12J\n" +
+	"\arefusal\x18\x02 \x01(\v2+.o11y_one.agentic.v1.ExternalLeaseRefusalV1H\x00R\arefusal\x88\x01\x01\x12X\n" +
+	"\fcapabilities\x18\x03 \x01(\v24.o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1R\fcapabilitiesB\n" +
+	"\n" +
+	"\b_refusal\"s\n" +
+	"\x18PlatformAnnotationLinkV1\x12E\n" +
+	"\x04kind\x18\x01 \x01(\x0e21.o11y_one.agentic.v1.PlatformAnnotationLinkKindV1R\x04kind\x12\x10\n" +
+	"\x03ref\x18\x02 \x01(\tR\x03ref\"G\n" +
+	"\x1dPlatformAnnotationAttributeV1\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value\"\xea\x04\n" +
+	"\x14PlatformAnnotationV1\x12#\n" +
+	"\rannotation_id\x18\x01 \x01(\tR\fannotationId\x12\x15\n" +
+	"\x06org_id\x18\x02 \x01(\tR\x05orgId\x12A\n" +
+	"\x04kind\x18\x03 \x01(\x0e2-.o11y_one.agentic.v1.PlatformAnnotationKindV1R\x04kind\x12\x14\n" +
+	"\x05title\x18\x04 \x01(\tR\x05title\x125\n" +
+	"\bstart_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\astartAt\x126\n" +
+	"\x06end_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampH\x00R\x05endAt\x88\x01\x01\x12R\n" +
+	"\n" +
+	"attributes\x18\a \x03(\v22.o11y_one.agentic.v1.PlatformAnnotationAttributeV1R\n" +
+	"attributes\x12C\n" +
+	"\x05links\x18\b \x03(\v2-.o11y_one.agentic.v1.PlatformAnnotationLinkV1R\x05links\x12D\n" +
+	"\vrecorded_by\x18\t \x01(\v2#.o11y_one.agentic.v1.PrincipalRefV1R\n" +
+	"recordedBy\x12;\n" +
+	"\vrecorded_at\x18\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"recordedAt\x12'\n" +
+	"\x0fidempotency_key\x18\v \x01(\tR\x0eidempotencyKeyB\t\n" +
+	"\a_end_at\"\xa4\x02\n" +
+	"\x1dPlatformAnnotationRejectionV1\x12P\n" +
+	"\x06reason\x18\x01 \x01(\x0e28.o11y_one.agentic.v1.PlatformAnnotationRejectionReasonV1R\x06reason\x12\x19\n" +
+	"\x05field\x18\x02 \x01(\tH\x00R\x05field\x88\x01\x01\x12$\n" +
+	"\vlimit_value\x18\x03 \x01(\x03H\x01R\n" +
+	"limitValue\x88\x01\x01\x12V\n" +
+	"\x0fsupported_kinds\x18\x05 \x03(\x0e2-.o11y_one.agentic.v1.PlatformAnnotationKindV1R\x0esupportedKindsB\b\n" +
+	"\x06_fieldB\x0e\n" +
+	"\f_limit_value\"\xb6\x03\n" +
+	"\x1fRecordPlatformAnnotationRequest\x12A\n" +
+	"\x04kind\x18\x01 \x01(\x0e2-.o11y_one.agentic.v1.PlatformAnnotationKindV1R\x04kind\x12\x14\n" +
+	"\x05title\x18\x02 \x01(\tR\x05title\x125\n" +
+	"\bstart_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\astartAt\x126\n" +
+	"\x06end_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampH\x00R\x05endAt\x88\x01\x01\x12R\n" +
+	"\n" +
+	"attributes\x18\x05 \x03(\v22.o11y_one.agentic.v1.PlatformAnnotationAttributeV1R\n" +
+	"attributes\x12C\n" +
+	"\x05links\x18\x06 \x03(\v2-.o11y_one.agentic.v1.PlatformAnnotationLinkV1R\x05links\x12'\n" +
+	"\x0fidempotency_key\x18\a \x01(\tR\x0eidempotencyKeyB\t\n" +
+	"\a_end_at\"\xf4\x01\n" +
+	" RecordPlatformAnnotationResponse\x12I\n" +
+	"\n" +
+	"annotation\x18\x01 \x01(\v2).o11y_one.agentic.v1.PlatformAnnotationV1R\n" +
+	"annotation\x12+\n" +
+	"\x11idempotent_replay\x18\x02 \x01(\bR\x10idempotentReplay\x12X\n" +
+	"\fcapabilities\x18\x03 \x01(\v24.o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1R\fcapabilities\"\x96\x02\n" +
+	"\x1eListPlatformAnnotationsRequest\x12=\n" +
+	"\fwindow_start\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\vwindowStart\x129\n" +
+	"\n" +
+	"window_end\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\twindowEnd\x12C\n" +
+	"\x05kinds\x18\x03 \x03(\x0e2-.o11y_one.agentic.v1.PlatformAnnotationKindV1R\x05kinds\x125\n" +
+	"\x04page\x18\x04 \x01(\v2!.o11y_one.common.v1.PageRequestV1R\x04page\"\xd7\x02\n" +
+	"\x1fListPlatformAnnotationsResponse\x12K\n" +
+	"\vannotations\x18\x01 \x03(\v2).o11y_one.agentic.v1.PlatformAnnotationV1R\vannotations\x126\n" +
+	"\x04page\x18\x02 \x01(\v2\".o11y_one.common.v1.PageResponseV1R\x04page\x12X\n" +
+	"\fcapabilities\x18\x03 \x01(\v24.o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1R\fcapabilities\x12J\n" +
+	"\x06resync\x18\x04 \x01(\v2-.o11y_one.agentic.v1.EvaluationCursorResyncV1H\x00R\x06resync\x88\x01\x01B\t\n" +
+	"\a_resync\"\x8b\b\n" +
+	"\x1fEvaluationScorerConfigSummaryV1\x12&\n" +
+	"\x0fscore_config_id\x18\x01 \x01(\tR\rscoreConfigId\x12\x1d\n" +
+	"\n" +
+	"config_key\x18\x02 \x01(\tR\tconfigKey\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12%\n" +
+	"\vdescription\x18\x04 \x01(\tH\x00R\vdescription\x88\x01\x01\x12\x1f\n" +
+	"\vmetric_name\x18\x05 \x01(\tR\n" +
+	"metricName\x120\n" +
+	"\x11success_dimension\x18\x06 \x01(\tH\x01R\x10successDimension\x88\x01\x01\x12?\n" +
+	"\x04kind\x18\a \x01(\x0e2+.o11y_one.agentic.v1.EvaluationScorerKindV1R\x04kind\x128\n" +
+	"\x15version_discriminator\x18\b \x01(\tH\x02R\x14versionDiscriminator\x88\x01\x01\x12#\n" +
+	"\rversion_count\x18\t \x01(\rR\fversionCount\x12g\n" +
+	"\x1aversion_count_availability\x18\n" +
+	" \x01(\v2).o11y_one.agentic.v1.MetricAvailabilityV1R\x18versionCountAvailability\x12\x1b\n" +
+	"\x06weight\x18\v \x01(\x01H\x03R\x06weight\x88\x01\x01\x12(\n" +
+	"\x10is_blocking_gate\x18\f \x01(\bR\x0eisBlockingGate\x12\x1f\n" +
+	"\vis_archived\x18\r \x01(\bR\n" +
+	"isArchived\x12@\n" +
+	"\varchived_at\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampH\x04R\n" +
+	"archivedAt\x88\x01\x01\x127\n" +
+	"\x18authored_on_this_surface\x18\x0f \x01(\bR\x15authoredOnThisSurface\x129\n" +
+	"\n" +
+	"created_at\x18\x10 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"\n" +
+	"updated_at\x18\x11 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12G\n" +
+	"\n" +
+	"created_by\x18\x12 \x01(\v2#.o11y_one.agentic.v1.PrincipalRefV1H\x05R\tcreatedBy\x88\x01\x01B\x0e\n" +
+	"\f_descriptionB\x14\n" +
+	"\x12_success_dimensionB\x18\n" +
+	"\x16_version_discriminatorB\t\n" +
+	"\a_weightB\x0e\n" +
+	"\f_archived_atB\r\n" +
+	"\v_created_by\"\xa2\x02\n" +
+	"\"ListEvaluationScorerConfigsRequest\x125\n" +
+	"\x04page\x18\x01 \x01(\v2!.o11y_one.common.v1.PageRequestV1R\x04page\x12L\n" +
+	"\vkind_filter\x18\x02 \x03(\x0e2+.o11y_one.agentic.v1.EvaluationScorerKindV1R\n" +
+	"kindFilter\x12c\n" +
+	"\x0farchived_filter\x18\x03 \x01(\x0e25.o11y_one.agentic.v1.EvaluationScorerArchivedFilterV1H\x00R\x0earchivedFilter\x88\x01\x01B\x12\n" +
+	"\x10_archived_filter\"\xb5\x03\n" +
+	"#ListEvaluationScorerConfigsResponse\x12[\n" +
+	"\x0escorer_configs\x18\x01 \x03(\v24.o11y_one.agentic.v1.EvaluationScorerConfigSummaryV1R\rscorerConfigs\x126\n" +
+	"\x04page\x18\x02 \x01(\v2\".o11y_one.common.v1.PageResponseV1R\x04page\x12H\n" +
+	"\tfreshness\x18\x03 \x01(\v2*.o11y_one.agentic.v1.EvaluationFreshnessV1R\tfreshness\x12X\n" +
+	"\fcapabilities\x18\x04 \x01(\v24.o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1R\fcapabilities\x12J\n" +
+	"\x06resync\x18\x05 \x01(\v2-.o11y_one.agentic.v1.EvaluationCursorResyncV1H\x00R\x06resync\x88\x01\x01B\t\n" +
+	"\a_resync\"\x94\x02\n" +
+	"(EvaluationScorerJudgeEffectiveSettingsV1\x12/\n" +
+	"\x11max_output_tokens\x18\x01 \x01(\rH\x00R\x0fmaxOutputTokens\x88\x01\x01\x12%\n" +
+	"\vtemperature\x18\x02 \x01(\x01H\x01R\vtemperature\x88\x01\x01\x12\x18\n" +
+	"\x05top_p\x18\x03 \x01(\x01H\x02R\x04topP\x88\x01\x01\x120\n" +
+	"\x11anthropic_version\x18\x04 \x01(\tH\x03R\x10anthropicVersion\x88\x01\x01B\x14\n" +
+	"\x12_max_output_tokensB\x0e\n" +
+	"\f_temperatureB\b\n" +
+	"\x06_top_pB\x14\n" +
+	"\x12_anthropic_version\"\xcf\x03\n" +
+	"(EvaluationScorerJudgeResolvedExecutionV1\x12?\n" +
+	"\bprovider\x18\x01 \x01(\x0e2#.o11y_one.agentic.v1.ProviderNameV1R\bprovider\x12\x19\n" +
+	"\bmodel_id\x18\x02 \x01(\tR\amodelId\x12%\n" +
+	"\x0ecredential_ref\x18\x03 \x01(\tR\rcredentialRef\x127\n" +
+	"\x15provider_endpoint_ref\x18\x04 \x01(\tH\x00R\x13providerEndpointRef\x88\x01\x01\x12+\n" +
+	"\x11reasoning_enabled\x18\x05 \x01(\bR\x10reasoningEnabled\x12\x80\x01\n" +
+	"\x1aeffective_request_settings\x18\x06 \x01(\v2=.o11y_one.agentic.v1.EvaluationScorerJudgeEffectiveSettingsV1H\x01R\x18effectiveRequestSettings\x88\x01\x01B\x18\n" +
+	"\x16_provider_endpoint_refB\x1d\n" +
+	"\x1b_effective_request_settings\"\xc3\x02\n" +
+	"\x1dEvaluationScorerJudgeDetailV1\x12Y\n" +
+	"\x0erubric_content\x18\x01 \x01(\v22.o11y_one.agentic.v1.EvaluationScorerJudgeRubricV1R\rrubricContent\x12q\n" +
+	"\x12provider_execution\x18\x02 \x01(\v2=.o11y_one.agentic.v1.EvaluationScorerJudgeResolvedExecutionV1H\x00R\x11providerExecution\x88\x01\x01\x12*\n" +
+	"\x0epass_threshold\x18\x03 \x01(\x01H\x01R\rpassThreshold\x88\x01\x01B\x15\n" +
+	"\x13_provider_executionB\x11\n" +
+	"\x0f_pass_threshold\"\xa5\f\n" +
+	"\x1eEvaluationScorerConfigDetailV1\x12&\n" +
+	"\x0fscore_config_id\x18\x01 \x01(\tR\rscoreConfigId\x12\x1d\n" +
+	"\n" +
+	"config_key\x18\x02 \x01(\tR\tconfigKey\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12%\n" +
+	"\vdescription\x18\x04 \x01(\tH\x00R\vdescription\x88\x01\x01\x12$\n" +
+	"\vmetric_name\x18\x05 \x01(\tH\x01R\n" +
+	"metricName\x88\x01\x01\x120\n" +
+	"\x11success_dimension\x18\x06 \x01(\tH\x02R\x10successDimension\x88\x01\x01\x12?\n" +
+	"\x04kind\x18\a \x01(\x0e2+.o11y_one.agentic.v1.EvaluationScorerKindV1R\x04kind\x128\n" +
+	"\x15version_discriminator\x18\b \x01(\tH\x03R\x14versionDiscriminator\x88\x01\x01\x12\x1b\n" +
+	"\x06weight\x18\t \x01(\x01H\x04R\x06weight\x88\x01\x01\x12(\n" +
+	"\x10is_blocking_gate\x18\n" +
+	" \x01(\bR\x0eisBlockingGate\x12\x1f\n" +
+	"\vis_archived\x18\v \x01(\bR\n" +
+	"isArchived\x12@\n" +
+	"\varchived_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampH\x05R\n" +
+	"archivedAt\x88\x01\x01\x12c\n" +
+	"\rdeterministic\x18\r \x01(\v28.o11y_one.agentic.v1.EvaluationScorerDeterministicSpecV1H\x06R\rdeterministic\x88\x01\x01\x12a\n" +
+	"\rreview_policy\x18\x0e \x01(\v27.o11y_one.agentic.v1.EvaluationScorerReviewPolicySpecV1H\aR\freviewPolicy\x88\x01\x01\x12M\n" +
+	"\x05judge\x18\x0f \x01(\v22.o11y_one.agentic.v1.EvaluationScorerJudgeDetailV1H\bR\x05judge\x88\x01\x01\x12*\n" +
+	"\x0epass_threshold\x18\x10 \x01(\x01H\tR\rpassThreshold\x88\x01\x01\x127\n" +
+	"\x18authored_on_this_surface\x18\x11 \x01(\bR\x15authoredOnThisSurface\x12#\n" +
+	"\rversion_count\x18\x12 \x01(\rR\fversionCount\x12g\n" +
+	"\x1aversion_count_availability\x18\x13 \x01(\v2).o11y_one.agentic.v1.MetricAvailabilityV1R\x18versionCountAvailability\x122\n" +
+	"\x15evaluator_template_id\x18\x14 \x01(\tR\x13evaluatorTemplateId\x129\n" +
+	"\n" +
+	"created_at\x18\x15 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"\n" +
+	"updated_at\x18\x16 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12G\n" +
+	"\n" +
+	"created_by\x18\x17 \x01(\v2#.o11y_one.agentic.v1.PrincipalRefV1H\n" +
+	"R\tcreatedBy\x88\x01\x01\x12(\n" +
+	"\x10pinned_run_count\x18\x18 \x01(\rR\x0epinnedRunCount\x12\"\n" +
+	"\rpinned_run_id\x18\x19 \x03(\tR\vpinnedRunIdB\x0e\n" +
+	"\f_descriptionB\x0e\n" +
+	"\f_metric_nameB\x14\n" +
+	"\x12_success_dimensionB\x18\n" +
+	"\x16_version_discriminatorB\t\n" +
+	"\a_weightB\x0e\n" +
+	"\f_archived_atB\x10\n" +
+	"\x0e_deterministicB\x10\n" +
+	"\x0e_review_policyB\b\n" +
+	"\x06_judgeB\x11\n" +
+	"\x0f_pass_thresholdB\r\n" +
+	"\v_created_by\"\xc2\x05\n" +
+	"\x1dEvaluationScorerConfigUsageV1\x12E\n" +
+	"\x05suite\x18\x01 \x03(\v2/.o11y_one.agentic.v1.EvaluationScorerSuiteRefV1R\x05suite\x12\x1f\n" +
+	"\vsuite_count\x18\x02 \x01(\rR\n" +
+	"suiteCount\x12X\n" +
+	"\x12suite_availability\x18\x03 \x01(\v2).o11y_one.agentic.v1.MetricAvailabilityV1R\x11suiteAvailability\x12(\n" +
+	"\x10pinned_run_count\x18\x04 \x01(\rR\x0epinnedRunCount\x12\"\n" +
+	"\rpinned_run_id\x18\x05 \x03(\tR\vpinnedRunId\x12a\n" +
+	"\x17pinned_run_availability\x18\x06 \x01(\v2).o11y_one.agentic.v1.MetricAvailabilityV1R\x15pinnedRunAvailability\x12)\n" +
+	"\x10definition_count\x18\a \x01(\rR\x0fdefinitionCount\x12b\n" +
+	"\x17definition_availability\x18\b \x01(\v2).o11y_one.agentic.v1.MetricAvailabilityV1R\x16definitionAvailability\x122\n" +
+	"\x15production_rule_count\x18\t \x01(\rR\x13productionRuleCount\x12k\n" +
+	"\x1cproduction_rule_availability\x18\n" +
+	" \x01(\v2).o11y_one.agentic.v1.MetricAvailabilityV1R\x1aproductionRuleAvailability\"\xd4\x01\n" +
+	"\x1aEvaluationScorerSuiteRefV1\x12&\n" +
+	"\x0fscorer_suite_id\x18\x01 \x01(\tR\rscorerSuiteId\x12\x1b\n" +
+	"\tsuite_key\x18\x02 \x01(\tR\bsuiteKey\x12\x1f\n" +
+	"\vis_archived\x18\x03 \x01(\bR\n" +
+	"isArchived\x12(\n" +
+	"\x10is_blocking_gate\x18\x04 \x01(\bR\x0eisBlockingGate\x12\x1b\n" +
+	"\x06weight\x18\x05 \x01(\x01H\x00R\x06weight\x88\x01\x01B\t\n" +
+	"\a_weight\"\xcd\x01\n" +
+	" GetEvaluationScorerConfigRequest\x12(\n" +
+	"\x0fscore_config_id\x18\x01 \x01(\tH\x00R\rscoreConfigId\x12\x1f\n" +
+	"\n" +
+	"config_key\x18\x02 \x01(\tH\x00R\tconfigKey\x128\n" +
+	"\x15version_discriminator\x18\x03 \x01(\tH\x01R\x14versionDiscriminator\x88\x01\x01B\n" +
+	"\n" +
+	"\bidentityB\x18\n" +
+	"\x16_version_discriminator\"\xfa\x02\n" +
+	"!GetEvaluationScorerConfigResponse\x12X\n" +
+	"\rscorer_config\x18\x01 \x01(\v23.o11y_one.agentic.v1.EvaluationScorerConfigDetailV1R\fscorerConfig\x12M\n" +
+	"\x05usage\x18\x02 \x01(\v22.o11y_one.agentic.v1.EvaluationScorerConfigUsageV1H\x00R\x05usage\x88\x01\x01\x12H\n" +
+	"\tfreshness\x18\x03 \x01(\v2*.o11y_one.agentic.v1.EvaluationFreshnessV1R\tfreshness\x12X\n" +
+	"\fcapabilities\x18\x04 \x01(\v24.o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1R\fcapabilitiesB\b\n" +
+	"\x06_usage\"\xf5\x03\n" +
+	"\x1fEvaluationScorerConfigVersionV1\x122\n" +
+	"\x15evaluator_template_id\x18\x01 \x01(\tR\x13evaluatorTemplateId\x123\n" +
+	"\x15version_discriminator\x18\x02 \x01(\tR\x14versionDiscriminator\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12%\n" +
+	"\x0eevaluator_kind\x18\x04 \x01(\tR\revaluatorKind\x12%\n" +
+	"\x0eexecution_mode\x18\x05 \x01(\tR\rexecutionMode\x12\x1d\n" +
+	"\n" +
+	"is_current\x18\x06 \x01(\bR\tisCurrent\x12!\n" +
+	"\frubric_bytes\x18\a \x01(\rR\vrubricBytes\x122\n" +
+	"\x15verdict_mapping_count\x18\b \x01(\rR\x13verdictMappingCount\x129\n" +
+	"\n" +
+	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12G\n" +
+	"\n" +
+	"created_by\x18\n" +
+	" \x01(\v2#.o11y_one.agentic.v1.PrincipalRefV1H\x00R\tcreatedBy\x88\x01\x01B\r\n" +
+	"\v_created_by\"\xb9\x01\n" +
+	")ListEvaluationScorerConfigVersionsRequest\x12(\n" +
+	"\x0fscore_config_id\x18\x01 \x01(\tH\x00R\rscoreConfigId\x12\x1f\n" +
+	"\n" +
+	"config_key\x18\x02 \x01(\tH\x00R\tconfigKey\x125\n" +
+	"\x04page\x18\x03 \x01(\v2!.o11y_one.common.v1.PageRequestV1R\x04pageB\n" +
+	"\n" +
+	"\bidentity\"\x8f\x04\n" +
+	"*ListEvaluationScorerConfigVersionsResponse\x12P\n" +
+	"\bversions\x18\x01 \x03(\v24.o11y_one.agentic.v1.EvaluationScorerConfigVersionV1R\bversions\x126\n" +
+	"\x04page\x18\x02 \x01(\v2\".o11y_one.common.v1.PageResponseV1R\x04page\x12\\\n" +
+	"\x14history_availability\x18\x03 \x01(\v2).o11y_one.agentic.v1.MetricAvailabilityV1R\x13historyAvailability\x12H\n" +
+	"\tfreshness\x18\x04 \x01(\v2*.o11y_one.agentic.v1.EvaluationFreshnessV1R\tfreshness\x12X\n" +
+	"\fcapabilities\x18\x05 \x01(\v24.o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1R\fcapabilities\x12J\n" +
+	"\x06resync\x18\x06 \x01(\v2-.o11y_one.agentic.v1.EvaluationCursorResyncV1H\x00R\x06resync\x88\x01\x01B\t\n" +
+	"\a_resync\"\xd2\x05\n" +
+	"\x1eEvaluationScorerSuiteSummaryV1\x12&\n" +
+	"\x0fscorer_suite_id\x18\x01 \x01(\tR\rscorerSuiteId\x12\x1b\n" +
+	"\tsuite_key\x18\x02 \x01(\tR\bsuiteKey\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x123\n" +
+	"\x15version_discriminator\x18\x04 \x01(\tR\x14versionDiscriminator\x12Z\n" +
+	"\fcombine_rule\x18\x05 \x01(\x0e27.o11y_one.agentic.v1.EvaluationScorerSuiteCombineRuleV1R\vcombineRule\x12!\n" +
+	"\fmember_count\x18\x06 \x01(\rR\vmemberCount\x12.\n" +
+	"\x13blocking_gate_count\x18\a \x01(\rR\x11blockingGateCount\x122\n" +
+	"\x15archived_member_count\x18\b \x01(\rR\x13archivedMemberCount\x12\x1f\n" +
+	"\vis_archived\x18\t \x01(\bR\n" +
+	"isArchived\x12@\n" +
+	"\varchived_at\x18\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampH\x00R\n" +
+	"archivedAt\x88\x01\x01\x129\n" +
+	"\n" +
+	"created_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"\n" +
+	"updated_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12G\n" +
+	"\n" +
+	"created_by\x18\r \x01(\v2#.o11y_one.agentic.v1.PrincipalRefV1H\x01R\tcreatedBy\x88\x01\x01B\x0e\n" +
+	"\f_archived_atB\r\n" +
+	"\v_created_by\"\xc1\x03\n" +
+	"#EvaluationScorerSuiteMemberDetailV1\x12&\n" +
+	"\x0fscore_config_id\x18\x01 \x01(\tR\rscoreConfigId\x12\x1d\n" +
+	"\n" +
+	"config_key\x18\x02 \x01(\tR\tconfigKey\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12?\n" +
+	"\x04kind\x18\x04 \x01(\x0e2+.o11y_one.agentic.v1.EvaluationScorerKindV1R\x04kind\x128\n" +
+	"\x15version_discriminator\x18\x05 \x01(\tH\x00R\x14versionDiscriminator\x88\x01\x01\x12\x1b\n" +
+	"\x06weight\x18\x06 \x01(\x01H\x01R\x06weight\x88\x01\x01\x12(\n" +
+	"\x10is_blocking_gate\x18\a \x01(\bR\x0eisBlockingGate\x12\x1f\n" +
+	"\vis_archived\x18\b \x01(\bR\n" +
+	"isArchived\x127\n" +
+	"\x18authored_on_this_surface\x18\t \x01(\bR\x15authoredOnThisSurfaceB\x18\n" +
+	"\x16_version_discriminatorB\t\n" +
+	"\a_weight\"\x8d\x06\n" +
+	"\x1dEvaluationScorerSuiteDetailV1\x12&\n" +
+	"\x0fscorer_suite_id\x18\x01 \x01(\tR\rscorerSuiteId\x12\x1b\n" +
+	"\tsuite_key\x18\x02 \x01(\tR\bsuiteKey\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x123\n" +
+	"\x15version_discriminator\x18\x04 \x01(\tR\x14versionDiscriminator\x12Z\n" +
+	"\fcombine_rule\x18\x05 \x01(\x0e27.o11y_one.agentic.v1.EvaluationScorerSuiteCombineRuleV1R\vcombineRule\x12R\n" +
+	"\amembers\x18\x06 \x03(\v28.o11y_one.agentic.v1.EvaluationScorerSuiteMemberDetailV1R\amembers\x12\x1f\n" +
+	"\vis_archived\x18\a \x01(\bR\n" +
+	"isArchived\x12@\n" +
+	"\varchived_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampH\x00R\n" +
+	"archivedAt\x88\x01\x01\x129\n" +
+	"\n" +
+	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"\n" +
+	"updated_at\x18\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12G\n" +
+	"\n" +
+	"created_by\x18\v \x01(\v2#.o11y_one.agentic.v1.PrincipalRefV1H\x01R\tcreatedBy\x88\x01\x01\x12m\n" +
+	"\x1drevision_history_availability\x18\f \x01(\v2).o11y_one.agentic.v1.MetricAvailabilityV1R\x1brevisionHistoryAvailabilityB\x0e\n" +
+	"\f_archived_atB\r\n" +
+	"\v_created_by\"\xd3\x01\n" +
+	"!ListEvaluationScorerSuitesRequest\x125\n" +
+	"\x04page\x18\x01 \x01(\v2!.o11y_one.common.v1.PageRequestV1R\x04page\x12c\n" +
+	"\x0farchived_filter\x18\x02 \x01(\x0e25.o11y_one.agentic.v1.EvaluationScorerArchivedFilterV1H\x00R\x0earchivedFilter\x88\x01\x01B\x12\n" +
+	"\x10_archived_filter\"\xb1\x03\n" +
+	"\"ListEvaluationScorerSuitesResponse\x12X\n" +
+	"\rscorer_suites\x18\x01 \x03(\v23.o11y_one.agentic.v1.EvaluationScorerSuiteSummaryV1R\fscorerSuites\x126\n" +
+	"\x04page\x18\x02 \x01(\v2\".o11y_one.common.v1.PageResponseV1R\x04page\x12H\n" +
+	"\tfreshness\x18\x03 \x01(\v2*.o11y_one.agentic.v1.EvaluationFreshnessV1R\tfreshness\x12X\n" +
+	"\fcapabilities\x18\x04 \x01(\v24.o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1R\fcapabilities\x12J\n" +
+	"\x06resync\x18\x05 \x01(\v2-.o11y_one.agentic.v1.EvaluationCursorResyncV1H\x00R\x06resync\x88\x01\x01B\t\n" +
+	"\a_resync\"v\n" +
+	"\x1fGetEvaluationScorerSuiteRequest\x12(\n" +
+	"\x0fscorer_suite_id\x18\x01 \x01(\tH\x00R\rscorerSuiteId\x12\x1d\n" +
+	"\tsuite_key\x18\x02 \x01(\tH\x00R\bsuiteKeyB\n" +
+	"\n" +
+	"\bidentity\"\x9d\x02\n" +
+	" GetEvaluationScorerSuiteResponse\x12U\n" +
+	"\fscorer_suite\x18\x01 \x01(\v22.o11y_one.agentic.v1.EvaluationScorerSuiteDetailV1R\vscorerSuite\x12H\n" +
+	"\tfreshness\x18\x02 \x01(\v2*.o11y_one.agentic.v1.EvaluationFreshnessV1R\tfreshness\x12X\n" +
+	"\fcapabilities\x18\x03 \x01(\v24.o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1R\fcapabilities\"}\n" +
+	"$ArchiveEvaluationScorerConfigRequest\x12(\n" +
+	"\x0fscore_config_id\x18\x01 \x01(\tH\x00R\rscoreConfigId\x12\x1f\n" +
+	"\n" +
+	"config_key\x18\x02 \x01(\tH\x00R\tconfigKeyB\n" +
+	"\n" +
+	"\bidentity\"\xec\x02\n" +
+	"%ArchiveEvaluationScorerConfigResponse\x12Y\n" +
+	"\rscorer_config\x18\x01 \x01(\v24.o11y_one.agentic.v1.EvaluationScorerConfigSummaryV1R\fscorerConfig\x12)\n" +
+	"\x10already_archived\x18\x02 \x01(\bR\x0falreadyArchived\x12c\n" +
+	"\x13standing_references\x18\x03 \x01(\v22.o11y_one.agentic.v1.EvaluationScorerConfigUsageV1R\x12standingReferences\x12X\n" +
+	"\fcapabilities\x18\x04 \x01(\v24.o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1R\fcapabilities\"z\n" +
+	"#ArchiveEvaluationScorerSuiteRequest\x12(\n" +
+	"\x0fscorer_suite_id\x18\x01 \x01(\tH\x00R\rscorerSuiteId\x12\x1d\n" +
+	"\tsuite_key\x18\x02 \x01(\tH\x00R\bsuiteKeyB\n" +
+	"\n" +
+	"\bidentity\"\xa4\x03\n" +
+	"$ArchiveEvaluationScorerSuiteResponse\x12V\n" +
+	"\fscorer_suite\x18\x01 \x01(\v23.o11y_one.agentic.v1.EvaluationScorerSuiteSummaryV1R\vscorerSuite\x12)\n" +
+	"\x10already_archived\x18\x02 \x01(\bR\x0falreadyArchived\x122\n" +
+	"\x15production_rule_count\x18\x03 \x01(\rR\x13productionRuleCount\x12k\n" +
+	"\x1cproduction_rule_availability\x18\x04 \x01(\v2).o11y_one.agentic.v1.MetricAvailabilityV1R\x1aproductionRuleAvailability\x12X\n" +
+	"\fcapabilities\x18\x05 \x01(\v24.o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1R\fcapabilities\"\xc9\x04\n" +
+	"\x1aDatasetCollectionSummaryV1\x122\n" +
+	"\x15dataset_collection_id\x18\x01 \x01(\tR\x13datasetCollectionId\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12%\n" +
+	"\vdescription\x18\x03 \x01(\tH\x00R\vdescription\x88\x01\x01\x12\x1f\n" +
+	"\vis_archived\x18\x04 \x01(\bR\n" +
+	"isArchived\x129\n" +
+	"\n" +
+	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"\n" +
+	"updated_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12S\n" +
+	"\x0eactive_version\x18\a \x01(\v2,.o11y_one.agentic.v1.DatasetVersionSummaryV1R\ractiveVersion\x12i\n" +
+	"\x1bactive_version_availability\x18\b \x01(\v2).o11y_one.agentic.v1.MetricAvailabilityV1R\x19activeVersionAvailability\x12#\n" +
+	"\rversion_count\x18\t \x01(\rR\fversionCount\x120\n" +
+	"\x14open_changeset_count\x18\n" +
+	" \x01(\rR\x12openChangesetCountB\x0e\n" +
+	"\f_description\"\xe2\x01\n" +
+	"'ListEvaluationDatasetCollectionsRequest\x12\"\n" +
+	"\n" +
+	"page_token\x18\x01 \x01(\tH\x00R\tpageToken\x88\x01\x01\x12\x19\n" +
+	"\x05limit\x18\x02 \x01(\rH\x01R\x05limit\x88\x01\x01\x12)\n" +
+	"\x10include_archived\x18\x03 \x01(\bR\x0fincludeArchived\x12$\n" +
+	"\vname_filter\x18\x04 \x01(\tH\x02R\n" +
+	"nameFilter\x88\x01\x01B\r\n" +
+	"\v_page_tokenB\b\n" +
+	"\x06_limitB\x0e\n" +
+	"\f_name_filter\"\xda\x03\n" +
+	"(ListEvaluationDatasetCollectionsResponse\x12Q\n" +
+	"\vcollections\x18\x01 \x03(\v2/.o11y_one.agentic.v1.DatasetCollectionSummaryV1R\vcollections\x12\x1f\n" +
+	"\vtotal_count\x18\x02 \x01(\rR\n" +
+	"totalCount\x12+\n" +
+	"\x0fnext_page_token\x18\x03 \x01(\tH\x00R\rnextPageToken\x88\x01\x01\x12H\n" +
+	"\tfreshness\x18\x04 \x01(\v2*.o11y_one.agentic.v1.EvaluationFreshnessV1R\tfreshness\x12X\n" +
+	"\fcapabilities\x18\x05 \x01(\v24.o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1R\fcapabilities\x12J\n" +
+	"\x06resync\x18\x06 \x01(\v2-.o11y_one.agentic.v1.EvaluationCursorResyncV1H\x01R\x06resync\x88\x01\x01B\x12\n" +
+	"\x10_next_page_tokenB\t\n" +
+	"\a_resync\"?\n" +
+	"\x1aGetDatasetChangesetRequest\x12!\n" +
+	"\fchangeset_id\x18\x01 \x01(\tR\vchangesetId\"\x86\x04\n" +
+	"\x1bGetDatasetChangesetResponse\x12E\n" +
+	"\tchangeset\x18\x01 \x01(\v2'.o11y_one.agentic.v1.DatasetChangesetV1R\tchangeset\x12>\n" +
+	"\x19active_dataset_version_id\x18\x02 \x01(\tH\x00R\x16activeDatasetVersionId\x88\x01\x01\x12,\n" +
+	"\x12base_version_moved\x18\x03 \x01(\bR\x10baseVersionMoved\x12p\n" +
+	"\x1fbase_version_moved_availability\x18\x04 \x01(\v2).o11y_one.agentic.v1.MetricAvailabilityV1R\x1cbaseVersionMovedAvailability\x12H\n" +
+	"\tfreshness\x18\x05 \x01(\v2*.o11y_one.agentic.v1.EvaluationFreshnessV1R\tfreshness\x12X\n" +
+	"\fcapabilities\x18\x06 \x01(\v24.o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1R\fcapabilitiesB\x1c\n" +
+	"\x1a_active_dataset_version_id\"\xec\x01\n" +
+	"\x1cListDatasetChangesetsRequest\x127\n" +
+	"\x15dataset_collection_id\x18\x01 \x01(\tH\x00R\x13datasetCollectionId\x88\x01\x01\x12D\n" +
+	"\x06states\x18\x02 \x03(\x0e2,.o11y_one.agentic.v1.DatasetChangesetStateV1R\x06states\x12\x1b\n" +
+	"\tpage_size\x18\x03 \x01(\rR\bpageSize\x12\x16\n" +
+	"\x06offset\x18\x04 \x01(\rR\x06offsetB\x18\n" +
+	"\x16_dataset_collection_id\"\xe3\x02\n" +
+	"\x1dListDatasetChangesetsResponse\x12G\n" +
+	"\n" +
+	"changesets\x18\x01 \x03(\v2'.o11y_one.agentic.v1.DatasetChangesetV1R\n" +
+	"changesets\x12\x1f\n" +
+	"\vtotal_count\x18\x02 \x01(\x04R\n" +
+	"totalCount\x12$\n" +
+	"\vnext_offset\x18\x03 \x01(\rH\x00R\n" +
+	"nextOffset\x88\x01\x01\x12H\n" +
+	"\tfreshness\x18\x04 \x01(\v2*.o11y_one.agentic.v1.EvaluationFreshnessV1R\tfreshness\x12X\n" +
+	"\fcapabilities\x18\x05 \x01(\v24.o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1R\fcapabilitiesB\x0e\n" +
+	"\f_next_offset*\x8d\x01\n" +
 	"\x0fPrincipalKindV1\x12!\n" +
 	"\x1dPRINCIPAL_KIND_V1_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16PRINCIPAL_KIND_V1_USER\x10\x01\x12\x1d\n" +
@@ -65751,7 +73136,66 @@ const file_o11y_one_agentic_v1_evaluation_proto_rawDesc = "" +
 	"\x1eReleaseObservationConfidenceV1\x121\n" +
 	"-RELEASE_OBSERVATION_CONFIDENCE_V1_UNSPECIFIED\x10\x00\x12+\n" +
 	"'RELEASE_OBSERVATION_CONFIDENCE_V1_EXACT\x10\x01\x12,\n" +
-	"(RELEASE_OBSERVATION_CONFIDENCE_V1_WINDOW\x10\x022\xd5g\n" +
+	"(RELEASE_OBSERVATION_CONFIDENCE_V1_WINDOW\x10\x02*\xb0\x02\n" +
+	"\x17MachinePrincipalScopeV1\x12*\n" +
+	"&MACHINE_PRINCIPAL_SCOPE_V1_UNSPECIFIED\x10\x00\x12(\n" +
+	"$MACHINE_PRINCIPAL_SCOPE_V1_EVAL_READ\x10\x01\x12*\n" +
+	"&MACHINE_PRINCIPAL_SCOPE_V1_RUN_EXECUTE\x10\x02\x12,\n" +
+	"(MACHINE_PRINCIPAL_SCOPE_V1_DATASET_WRITE\x10\x03\x12+\n" +
+	"'MACHINE_PRINCIPAL_SCOPE_V1_LEASE_SUBMIT\x10\x04\x128\n" +
+	"4MACHINE_PRINCIPAL_SCOPE_V1_PLATFORM_ANNOTATION_WRITE\x10\x05*\xbd\x01\n" +
+	"\x17MachinePrincipalStateV1\x12*\n" +
+	"&MACHINE_PRINCIPAL_STATE_V1_UNSPECIFIED\x10\x00\x12%\n" +
+	"!MACHINE_PRINCIPAL_STATE_V1_ACTIVE\x10\x01\x12'\n" +
+	"#MACHINE_PRINCIPAL_STATE_V1_DISABLED\x10\x02\x12&\n" +
+	"\"MACHINE_PRINCIPAL_STATE_V1_REVOKED\x10\x03*\xc2\x01\n" +
+	"\x18MachineCredentialStateV1\x12+\n" +
+	"'MACHINE_CREDENTIAL_STATE_V1_UNSPECIFIED\x10\x00\x12&\n" +
+	"\"MACHINE_CREDENTIAL_STATE_V1_ACTIVE\x10\x01\x12(\n" +
+	"$MACHINE_CREDENTIAL_STATE_V1_ROTATING\x10\x02\x12'\n" +
+	"#MACHINE_CREDENTIAL_STATE_V1_REVOKED\x10\x03*\xe1\x01\n" +
+	"\x1bExternalSubmissionAckKindV1\x12/\n" +
+	"+EXTERNAL_SUBMISSION_ACK_KIND_V1_UNSPECIFIED\x10\x00\x12,\n" +
+	"(EXTERNAL_SUBMISSION_ACK_KIND_V1_ACCEPTED\x10\x01\x125\n" +
+	"1EXTERNAL_SUBMISSION_ACK_KIND_V1_ALREADY_SUBMITTED\x10\x02\x12,\n" +
+	"(EXTERNAL_SUBMISSION_ACK_KIND_V1_REJECTED\x10\x03*\xd1\x03\n" +
+	"\x1aExternalLeaseRefusalKindV1\x12.\n" +
+	"*EXTERNAL_LEASE_REFUSAL_KIND_V1_UNSPECIFIED\x10\x00\x125\n" +
+	"1EXTERNAL_LEASE_REFUSAL_KIND_V1_RUN_NOT_EXECUTABLE\x10\x01\x12D\n" +
+	"@EXTERNAL_LEASE_REFUSAL_KIND_V1_CANDIDATE_NOT_EXTERNALLY_EXECUTED\x10\x02\x121\n" +
+	"-EXTERNAL_LEASE_REFUSAL_KIND_V1_LEASE_NOT_HELD\x10\x03\x120\n" +
+	",EXTERNAL_LEASE_REFUSAL_KIND_V1_LEASE_EXPIRED\x10\x04\x12;\n" +
+	"7EXTERNAL_LEASE_REFUSAL_KIND_V1_RENEWAL_BUDGET_EXHAUSTED\x10\x05\x122\n" +
+	".EXTERNAL_LEASE_REFUSAL_KIND_V1_BOUNDS_EXCEEDED\x10\x06\x120\n" +
+	",EXTERNAL_LEASE_REFUSAL_KIND_V1_SCOPE_MISSING\x10\a*\xc6\x01\n" +
+	"\x18PlatformAnnotationKindV1\x12+\n" +
+	"'PLATFORM_ANNOTATION_KIND_V1_UNSPECIFIED\x10\x00\x12*\n" +
+	"&PLATFORM_ANNOTATION_KIND_V1_DEPLOYMENT\x10\x01\x12&\n" +
+	"\"PLATFORM_ANNOTATION_KIND_V1_MARKER\x10\x02\x12)\n" +
+	"%PLATFORM_ANNOTATION_KIND_V1_HIGHLIGHT\x10\x03*\x8f\x02\n" +
+	"\x1cPlatformAnnotationLinkKindV1\x120\n" +
+	",PLATFORM_ANNOTATION_LINK_KIND_V1_UNSPECIFIED\x10\x00\x12,\n" +
+	"(PLATFORM_ANNOTATION_LINK_KIND_V1_RELEASE\x10\x01\x123\n" +
+	"/PLATFORM_ANNOTATION_LINK_KIND_V1_EVALUATION_RUN\x10\x02\x12.\n" +
+	"*PLATFORM_ANNOTATION_LINK_KIND_V1_AGENT_RUN\x10\x03\x12*\n" +
+	"&PLATFORM_ANNOTATION_LINK_KIND_V1_TRACE\x10\x04*\x8f\x05\n" +
+	"#PlatformAnnotationRejectionReasonV1\x127\n" +
+	"3PLATFORM_ANNOTATION_REJECTION_REASON_V1_UNSPECIFIED\x10\x00\x128\n" +
+	"4PLATFORM_ANNOTATION_REJECTION_REASON_V1_KIND_UNKNOWN\x10\x01\x12;\n" +
+	"7PLATFORM_ANNOTATION_REJECTION_REASON_V1_TITLE_TOO_LARGE\x10\x02\x12?\n" +
+	";PLATFORM_ANNOTATION_REJECTION_REASON_V1_ATTRIBUTE_TOO_LARGE\x10\x03\x12?\n" +
+	";PLATFORM_ANNOTATION_REJECTION_REASON_V1_TOO_MANY_ATTRIBUTES\x10\x04\x12:\n" +
+	"6PLATFORM_ANNOTATION_REJECTION_REASON_V1_TOO_MANY_LINKS\x10\x05\x12>\n" +
+	":PLATFORM_ANNOTATION_REJECTION_REASON_V1_LINK_REF_TOO_LARGE\x10\x06\x12:\n" +
+	"6PLATFORM_ANNOTATION_REJECTION_REASON_V1_RANGE_INVERTED\x10\a\x12B\n" +
+	">PLATFORM_ANNOTATION_REJECTION_REASON_V1_IDEMPOTENCY_KEY_REUSED\x10\b\x12:\n" +
+	"6PLATFORM_ANNOTATION_REJECTION_REASON_V1_WINDOW_INVALID\x10\n" +
+	"*\xf4\x01\n" +
+	" EvaluationScorerArchivedFilterV1\x124\n" +
+	"0EVALUATION_SCORER_ARCHIVED_FILTER_V1_UNSPECIFIED\x10\x00\x124\n" +
+	"0EVALUATION_SCORER_ARCHIVED_FILTER_V1_ACTIVE_ONLY\x10\x01\x126\n" +
+	"2EVALUATION_SCORER_ARCHIVED_FILTER_V1_ARCHIVED_ONLY\x10\x02\x12,\n" +
+	"(EVALUATION_SCORER_ARCHIVED_FILTER_V1_ALL\x10\x032\xc0\x7f\n" +
 	"\x18AgenticEvaluationService\x12\x8d\x01\n" +
 	"\x1aCreateEvaluationDefinition\x126.o11y_one.agentic.v1.CreateEvaluationDefinitionRequest\x1a7.o11y_one.agentic.v1.CreateEvaluationDefinitionResponse\x12\x8d\x01\n" +
 	"\x1aUpdateEvaluationDefinition\x126.o11y_one.agentic.v1.UpdateEvaluationDefinitionRequest\x1a7.o11y_one.agentic.v1.UpdateEvaluationDefinitionResponse\x12\x84\x01\n" +
@@ -65847,7 +73291,29 @@ const file_o11y_one_agentic_v1_evaluation_proto_rawDesc = "" +
 	"\x16RejectDatasetCaseDraft\x122.o11y_one.agentic.v1.RejectDatasetCaseDraftRequest\x1a3.o11y_one.agentic.v1.RejectDatasetCaseDraftResponse\x12~\n" +
 	"\x15MergeDatasetCaseDraft\x121.o11y_one.agentic.v1.MergeDatasetCaseDraftRequest\x1a2.o11y_one.agentic.v1.MergeDatasetCaseDraftResponse\x12\x99\x01\n" +
 	"\x1ePreviewPublishDatasetChangeset\x12:.o11y_one.agentic.v1.PreviewPublishDatasetChangesetRequest\x1a;.o11y_one.agentic.v1.PreviewPublishDatasetChangesetResponse\x12\x87\x01\n" +
-	"\x18PublishDatasetCaseDrafts\x124.o11y_one.agentic.v1.PublishDatasetCaseDraftsRequest\x1a5.o11y_one.agentic.v1.PublishDatasetCaseDraftsResponseB\xdb\x01\n" +
+	"\x18PublishDatasetCaseDrafts\x124.o11y_one.agentic.v1.PublishDatasetCaseDraftsRequest\x1a5.o11y_one.agentic.v1.PublishDatasetCaseDraftsResponse\x12\x81\x01\n" +
+	"\x16CreateMachinePrincipal\x122.o11y_one.agentic.v1.CreateMachinePrincipalRequest\x1a3.o11y_one.agentic.v1.CreateMachinePrincipalResponse\x12~\n" +
+	"\x15ListMachinePrincipals\x121.o11y_one.agentic.v1.ListMachinePrincipalsRequest\x1a2.o11y_one.agentic.v1.ListMachinePrincipalsResponse\x12\x84\x01\n" +
+	"\x17CreateMachineCredential\x123.o11y_one.agentic.v1.CreateMachineCredentialRequest\x1a4.o11y_one.agentic.v1.CreateMachineCredentialResponse\x12\x84\x01\n" +
+	"\x17RevokeMachineCredential\x123.o11y_one.agentic.v1.RevokeMachineCredentialRequest\x1a4.o11y_one.agentic.v1.RevokeMachineCredentialResponse\x12\x81\x01\n" +
+	"\x16RevokeMachinePrincipal\x122.o11y_one.agentic.v1.RevokeMachinePrincipalRequest\x1a3.o11y_one.agentic.v1.RevokeMachinePrincipalResponse\x12u\n" +
+	"\x12GetCallerPrincipal\x12..o11y_one.agentic.v1.GetCallerPrincipalRequest\x1a/.o11y_one.agentic.v1.GetCallerPrincipalResponse\x12{\n" +
+	"\x14LeaseEvaluationCases\x120.o11y_one.agentic.v1.LeaseEvaluationCasesRequest\x1a1.o11y_one.agentic.v1.LeaseEvaluationCasesResponse\x12\x87\x01\n" +
+	"\x18RenewEvaluationCaseLease\x124.o11y_one.agentic.v1.RenewEvaluationCaseLeaseRequest\x1a5.o11y_one.agentic.v1.RenewEvaluationCaseLeaseResponse\x12\x90\x01\n" +
+	"\x1bSubmitEvaluationCaseOutputs\x127.o11y_one.agentic.v1.SubmitEvaluationCaseOutputsRequest\x1a8.o11y_one.agentic.v1.SubmitEvaluationCaseOutputsResponse\x12\x8d\x01\n" +
+	"\x1aReleaseEvaluationCaseLease\x126.o11y_one.agentic.v1.ReleaseEvaluationCaseLeaseRequest\x1a7.o11y_one.agentic.v1.ReleaseEvaluationCaseLeaseResponse\x12\x87\x01\n" +
+	"\x18RecordPlatformAnnotation\x124.o11y_one.agentic.v1.RecordPlatformAnnotationRequest\x1a5.o11y_one.agentic.v1.RecordPlatformAnnotationResponse\x12\x84\x01\n" +
+	"\x17ListPlatformAnnotations\x123.o11y_one.agentic.v1.ListPlatformAnnotationsRequest\x1a4.o11y_one.agentic.v1.ListPlatformAnnotationsResponse\x12\x90\x01\n" +
+	"\x1bListEvaluationScorerConfigs\x127.o11y_one.agentic.v1.ListEvaluationScorerConfigsRequest\x1a8.o11y_one.agentic.v1.ListEvaluationScorerConfigsResponse\x12\x8a\x01\n" +
+	"\x19GetEvaluationScorerConfig\x125.o11y_one.agentic.v1.GetEvaluationScorerConfigRequest\x1a6.o11y_one.agentic.v1.GetEvaluationScorerConfigResponse\x12\xa5\x01\n" +
+	"\"ListEvaluationScorerConfigVersions\x12>.o11y_one.agentic.v1.ListEvaluationScorerConfigVersionsRequest\x1a?.o11y_one.agentic.v1.ListEvaluationScorerConfigVersionsResponse\x12\x8d\x01\n" +
+	"\x1aListEvaluationScorerSuites\x126.o11y_one.agentic.v1.ListEvaluationScorerSuitesRequest\x1a7.o11y_one.agentic.v1.ListEvaluationScorerSuitesResponse\x12\x87\x01\n" +
+	"\x18GetEvaluationScorerSuite\x124.o11y_one.agentic.v1.GetEvaluationScorerSuiteRequest\x1a5.o11y_one.agentic.v1.GetEvaluationScorerSuiteResponse\x12\x96\x01\n" +
+	"\x1dArchiveEvaluationScorerConfig\x129.o11y_one.agentic.v1.ArchiveEvaluationScorerConfigRequest\x1a:.o11y_one.agentic.v1.ArchiveEvaluationScorerConfigResponse\x12\x93\x01\n" +
+	"\x1cArchiveEvaluationScorerSuite\x128.o11y_one.agentic.v1.ArchiveEvaluationScorerSuiteRequest\x1a9.o11y_one.agentic.v1.ArchiveEvaluationScorerSuiteResponse\x12\x95\x01\n" +
+	"\x16ListDatasetCollections\x12<.o11y_one.agentic.v1.ListEvaluationDatasetCollectionsRequest\x1a=.o11y_one.agentic.v1.ListEvaluationDatasetCollectionsResponse\x12x\n" +
+	"\x13GetDatasetChangeset\x12/.o11y_one.agentic.v1.GetDatasetChangesetRequest\x1a0.o11y_one.agentic.v1.GetDatasetChangesetResponse\x12~\n" +
+	"\x15ListDatasetChangesets\x121.o11y_one.agentic.v1.ListDatasetChangesetsRequest\x1a2.o11y_one.agentic.v1.ListDatasetChangesetsResponseB\xdb\x01\n" +
 	"\x17com.o11y_one.agentic.v1B\x0fEvaluationProtoP\x01ZEgithub.com/o11y-one/o11y-one-sdk/gen/go/o11y_one/agentic/v1;agenticv1\xa2\x02\x03OAX\xaa\x02\x12O11yOne.Agentic.V1\xca\x02\x12O11yOne\\Agentic\\V1\xe2\x02\x1eO11yOne\\Agentic\\V1\\GPBMetadata\xea\x02\x14O11yOne::Agentic::V1b\x06proto3"
 
 var (
@@ -65862,8 +73328,8 @@ func file_o11y_one_agentic_v1_evaluation_proto_rawDescGZIP() []byte {
 	return file_o11y_one_agentic_v1_evaluation_proto_rawDescData
 }
 
-var file_o11y_one_agentic_v1_evaluation_proto_enumTypes = make([]protoimpl.EnumInfo, 158)
-var file_o11y_one_agentic_v1_evaluation_proto_msgTypes = make([]protoimpl.MessageInfo, 537)
+var file_o11y_one_agentic_v1_evaluation_proto_enumTypes = make([]protoimpl.EnumInfo, 167)
+var file_o11y_one_agentic_v1_evaluation_proto_msgTypes = make([]protoimpl.MessageInfo, 607)
 var file_o11y_one_agentic_v1_evaluation_proto_goTypes = []any{
 	(PrincipalKindV1)(0),                                       // 0: o11y_one.agentic.v1.PrincipalKindV1
 	(CompletenessStateV1)(0),                                   // 1: o11y_one.agentic.v1.CompletenessStateV1
@@ -66023,2131 +73489,2419 @@ var file_o11y_one_agentic_v1_evaluation_proto_goTypes = []any{
 	(ProductionRulePreviewZeroMatchReasonV1)(0),                // 155: o11y_one.agentic.v1.ProductionRulePreviewZeroMatchReasonV1
 	(ProductionRulePreviewRefusalKindV1)(0),                    // 156: o11y_one.agentic.v1.ProductionRulePreviewRefusalKindV1
 	(ReleaseObservationConfidenceV1)(0),                        // 157: o11y_one.agentic.v1.ReleaseObservationConfidenceV1
-	(*StringListV1)(nil),                                       // 158: o11y_one.agentic.v1.StringListV1
-	(*Int64ListV1)(nil),                                        // 159: o11y_one.agentic.v1.Int64ListV1
-	(*DoubleListV1)(nil),                                       // 160: o11y_one.agentic.v1.DoubleListV1
-	(*MetadataValueV1)(nil),                                    // 161: o11y_one.agentic.v1.MetadataValueV1
-	(*MetadataEntryV1)(nil),                                    // 162: o11y_one.agentic.v1.MetadataEntryV1
-	(*PrincipalRefV1)(nil),                                     // 163: o11y_one.agentic.v1.PrincipalRefV1
-	(*EvaluationFreshnessV1)(nil),                              // 164: o11y_one.agentic.v1.EvaluationFreshnessV1
-	(*MetricAvailabilityV1)(nil),                               // 165: o11y_one.agentic.v1.MetricAvailabilityV1
-	(*SemanticConventionProvenanceV1)(nil),                     // 166: o11y_one.agentic.v1.SemanticConventionProvenanceV1
-	(*AllowedActionV1)(nil),                                    // 167: o11y_one.agentic.v1.AllowedActionV1
-	(*CapabilityLimitV1)(nil),                                  // 168: o11y_one.agentic.v1.CapabilityLimitV1
-	(*CapabilityPostureV1)(nil),                                // 169: o11y_one.agentic.v1.CapabilityPostureV1
-	(*AgenticEvaluationCapabilitiesV1)(nil),                    // 170: o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	(*CostAmountV1)(nil),                                       // 171: o11y_one.agentic.v1.CostAmountV1
-	(*DatasetFieldMappingV1)(nil),                              // 172: o11y_one.agentic.v1.DatasetFieldMappingV1
-	(*CohortNormalizationPolicyV1)(nil),                        // 173: o11y_one.agentic.v1.CohortNormalizationPolicyV1
-	(*EvaluationCohortSpecV1)(nil),                             // 174: o11y_one.agentic.v1.EvaluationCohortSpecV1
-	(*RecordedOutputCandidateV1)(nil),                          // 175: o11y_one.agentic.v1.RecordedOutputCandidateV1
-	(*ProviderPromptCandidateV1)(nil),                          // 176: o11y_one.agentic.v1.ProviderPromptCandidateV1
-	(*HttpJsonEndpointCandidateV1)(nil),                        // 177: o11y_one.agentic.v1.HttpJsonEndpointCandidateV1
-	(*ExperimentTargetRefCandidateV1)(nil),                     // 178: o11y_one.agentic.v1.ExperimentTargetRefCandidateV1
-	(*AgentReleaseRevisionCandidateV1)(nil),                    // 179: o11y_one.agentic.v1.AgentReleaseRevisionCandidateV1
-	(*ExternalExecutionLeasePolicyV1)(nil),                     // 180: o11y_one.agentic.v1.ExternalExecutionLeasePolicyV1
-	(*ExternallyExecutedCandidateV1)(nil),                      // 181: o11y_one.agentic.v1.ExternallyExecutedCandidateV1
-	(*ConversationTerminationPolicyV1)(nil),                    // 182: o11y_one.agentic.v1.ConversationTerminationPolicyV1
-	(*ConversationSimulationCandidateV1)(nil),                  // 183: o11y_one.agentic.v1.ConversationSimulationCandidateV1
-	(*EvaluationRequestMappingV1)(nil),                         // 184: o11y_one.agentic.v1.EvaluationRequestMappingV1
-	(*EvaluationResponseMappingV1)(nil),                        // 185: o11y_one.agentic.v1.EvaluationResponseMappingV1
-	(*EvaluationTimeoutRetryPolicyV1)(nil),                     // 186: o11y_one.agentic.v1.EvaluationTimeoutRetryPolicyV1
-	(*ProviderCapabilitySnapshotV1)(nil),                       // 187: o11y_one.agentic.v1.ProviderCapabilitySnapshotV1
-	(*CandidateSideEffectAttestationV1)(nil),                   // 188: o11y_one.agentic.v1.CandidateSideEffectAttestationV1
-	(*EvaluationCandidateV1)(nil),                              // 189: o11y_one.agentic.v1.EvaluationCandidateV1
-	(*EvaluationScorerSelectionV1)(nil),                        // 190: o11y_one.agentic.v1.EvaluationScorerSelectionV1
-	(*EvaluationScorerTargetV1)(nil),                           // 191: o11y_one.agentic.v1.EvaluationScorerTargetV1
-	(*EvaluationScorerSuiteMemberV1)(nil),                      // 192: o11y_one.agentic.v1.EvaluationScorerSuiteMemberV1
-	(*EvaluationScorerSuiteV1)(nil),                            // 193: o11y_one.agentic.v1.EvaluationScorerSuiteV1
-	(*EvaluationScorerSuiteSnapshotV1)(nil),                    // 194: o11y_one.agentic.v1.EvaluationScorerSuiteSnapshotV1
-	(*EvaluationScorerSuiteRollupV1)(nil),                      // 195: o11y_one.agentic.v1.EvaluationScorerSuiteRollupV1
-	(*EvaluationScorerSuiteCellV1)(nil),                        // 196: o11y_one.agentic.v1.EvaluationScorerSuiteCellV1
-	(*EvaluationExecutionPolicyV1)(nil),                        // 197: o11y_one.agentic.v1.EvaluationExecutionPolicyV1
-	(*EvaluationBudgetV1)(nil),                                 // 198: o11y_one.agentic.v1.EvaluationBudgetV1
-	(*EvaluationDecisionRuleV1)(nil),                           // 199: o11y_one.agentic.v1.EvaluationDecisionRuleV1
-	(*EvaluationDecisionPolicyV1)(nil),                         // 200: o11y_one.agentic.v1.EvaluationDecisionPolicyV1
-	(*EvaluationReviewSamplingPolicyV1)(nil),                   // 201: o11y_one.agentic.v1.EvaluationReviewSamplingPolicyV1
-	(*EvaluationHumanReviewPolicyV1)(nil),                      // 202: o11y_one.agentic.v1.EvaluationHumanReviewPolicyV1
-	(*EvaluationDefinitionDraftV1)(nil),                        // 203: o11y_one.agentic.v1.EvaluationDefinitionDraftV1
-	(*EvaluationRunSummaryRefV1)(nil),                          // 204: o11y_one.agentic.v1.EvaluationRunSummaryRefV1
-	(*EvaluationDefinitionV1)(nil),                             // 205: o11y_one.agentic.v1.EvaluationDefinitionV1
-	(*EvaluationDefinitionRevisionV1)(nil),                     // 206: o11y_one.agentic.v1.EvaluationDefinitionRevisionV1
-	(*EvaluationDefinitionSummaryV1)(nil),                      // 207: o11y_one.agentic.v1.EvaluationDefinitionSummaryV1
-	(*CreateEvaluationDefinitionRequest)(nil),                  // 208: o11y_one.agentic.v1.CreateEvaluationDefinitionRequest
-	(*CreateEvaluationDefinitionResponse)(nil),                 // 209: o11y_one.agentic.v1.CreateEvaluationDefinitionResponse
-	(*EvaluationDefinitionConflictV1)(nil),                     // 210: o11y_one.agentic.v1.EvaluationDefinitionConflictV1
-	(*UpdateEvaluationDefinitionRequest)(nil),                  // 211: o11y_one.agentic.v1.UpdateEvaluationDefinitionRequest
-	(*UpdateEvaluationDefinitionResponse)(nil),                 // 212: o11y_one.agentic.v1.UpdateEvaluationDefinitionResponse
-	(*GetEvaluationDefinitionRequest)(nil),                     // 213: o11y_one.agentic.v1.GetEvaluationDefinitionRequest
-	(*GetEvaluationDefinitionResponse)(nil),                    // 214: o11y_one.agentic.v1.GetEvaluationDefinitionResponse
-	(*ListEvaluationDefinitionsRequest)(nil),                   // 215: o11y_one.agentic.v1.ListEvaluationDefinitionsRequest
-	(*ListEvaluationDefinitionsResponse)(nil),                  // 216: o11y_one.agentic.v1.ListEvaluationDefinitionsResponse
-	(*NewDraftEntryV1)(nil),                                    // 217: o11y_one.agentic.v1.NewDraftEntryV1
-	(*EditDefinitionEntryV1)(nil),                              // 218: o11y_one.agentic.v1.EditDefinitionEntryV1
-	(*DuplicateDefinitionEntryV1)(nil),                         // 219: o11y_one.agentic.v1.DuplicateDefinitionEntryV1
-	(*RerunDefinitionEntryV1)(nil),                             // 220: o11y_one.agentic.v1.RerunDefinitionEntryV1
-	(*FromDatasetEntryV1)(nil),                                 // 221: o11y_one.agentic.v1.FromDatasetEntryV1
-	(*FromProductionEvidenceEntryV1)(nil),                      // 222: o11y_one.agentic.v1.FromProductionEvidenceEntryV1
-	(*FromReleaseEntryV1)(nil),                                 // 223: o11y_one.agentic.v1.FromReleaseEntryV1
-	(*GetEvaluationBuilderContextRequest)(nil),                 // 224: o11y_one.agentic.v1.GetEvaluationBuilderContextRequest
-	(*EvaluationBuilderDatasetVersionOptionV1)(nil),            // 225: o11y_one.agentic.v1.EvaluationBuilderDatasetVersionOptionV1
-	(*EvaluationBuilderDatasetOptionV1)(nil),                   // 226: o11y_one.agentic.v1.EvaluationBuilderDatasetOptionV1
-	(*EvaluationBuilderModelOptionV1)(nil),                     // 227: o11y_one.agentic.v1.EvaluationBuilderModelOptionV1
-	(*EvaluationBuilderCandidateSourcesV1)(nil),                // 228: o11y_one.agentic.v1.EvaluationBuilderCandidateSourcesV1
-	(*EvaluationBuilderScorerChoiceV1)(nil),                    // 229: o11y_one.agentic.v1.EvaluationBuilderScorerChoiceV1
-	(*EvaluationBuilderRecommendedMeasureV1)(nil),              // 230: o11y_one.agentic.v1.EvaluationBuilderRecommendedMeasureV1
-	(*EvaluationBuilderScorecardRecommendationV1)(nil),         // 231: o11y_one.agentic.v1.EvaluationBuilderScorecardRecommendationV1
-	(*EvaluationBuilderCredentialRefV1)(nil),                   // 232: o11y_one.agentic.v1.EvaluationBuilderCredentialRefV1
-	(*EvaluationBuilderExecutionDefaultsV1)(nil),               // 233: o11y_one.agentic.v1.EvaluationBuilderExecutionDefaultsV1
-	(*EvaluationBuilderReadinessFindingV1)(nil),                // 234: o11y_one.agentic.v1.EvaluationBuilderReadinessFindingV1
-	(*EvaluationBuilderInferredSubjectV1)(nil),                 // 235: o11y_one.agentic.v1.EvaluationBuilderInferredSubjectV1
-	(*GetEvaluationBuilderContextResponse)(nil),                // 236: o11y_one.agentic.v1.GetEvaluationBuilderContextResponse
-	(*EvaluationFailureV1)(nil),                                // 237: o11y_one.agentic.v1.EvaluationFailureV1
-	(*EvaluationCohortSnapshotV1)(nil),                         // 238: o11y_one.agentic.v1.EvaluationCohortSnapshotV1
-	(*EvaluationScorerVersionSnapshotV1)(nil),                  // 239: o11y_one.agentic.v1.EvaluationScorerVersionSnapshotV1
-	(*EvaluationCredentialReferenceV1)(nil),                    // 240: o11y_one.agentic.v1.EvaluationCredentialReferenceV1
-	(*EvaluationModelRateV1)(nil),                              // 241: o11y_one.agentic.v1.EvaluationModelRateV1
-	(*EvaluationSupersededRateV1)(nil),                         // 242: o11y_one.agentic.v1.EvaluationSupersededRateV1
-	(*EvaluationRateModifierV1)(nil),                           // 243: o11y_one.agentic.v1.EvaluationRateModifierV1
-	(*EvaluationRateEffectV1)(nil),                             // 244: o11y_one.agentic.v1.EvaluationRateEffectV1
-	(*EvaluationRateScaleV1)(nil),                              // 245: o11y_one.agentic.v1.EvaluationRateScaleV1
-	(*EvaluationRateReplacementV1)(nil),                        // 246: o11y_one.agentic.v1.EvaluationRateReplacementV1
-	(*EvaluationRateProvenanceV1)(nil),                         // 247: o11y_one.agentic.v1.EvaluationRateProvenanceV1
-	(*EvaluationTokenAccountingV1)(nil),                        // 248: o11y_one.agentic.v1.EvaluationTokenAccountingV1
-	(*EvaluationRateDimensionNoteV1)(nil),                      // 249: o11y_one.agentic.v1.EvaluationRateDimensionNoteV1
-	(*EvaluationCostAssumptionV1)(nil),                         // 250: o11y_one.agentic.v1.EvaluationCostAssumptionV1
-	(*EvaluationPricingSourceV1)(nil),                          // 251: o11y_one.agentic.v1.EvaluationPricingSourceV1
-	(*EvaluationCostReservationV1)(nil),                        // 252: o11y_one.agentic.v1.EvaluationCostReservationV1
-	(*EvaluationRunLimitsV1)(nil),                              // 253: o11y_one.agentic.v1.EvaluationRunLimitsV1
-	(*EvaluationRunManifestV1)(nil),                            // 254: o11y_one.agentic.v1.EvaluationRunManifestV1
-	(*EvaluationFrozenEvaluatorRefV1)(nil),                     // 255: o11y_one.agentic.v1.EvaluationFrozenEvaluatorRefV1
-	(*EvaluationRunProgressV1)(nil),                            // 256: o11y_one.agentic.v1.EvaluationRunProgressV1
-	(*EvaluationRunV1)(nil),                                    // 257: o11y_one.agentic.v1.EvaluationRunV1
-	(*EvaluationOperationV1)(nil),                              // 258: o11y_one.agentic.v1.EvaluationOperationV1
-	(*EvaluationCohortEstimateV1)(nil),                         // 259: o11y_one.agentic.v1.EvaluationCohortEstimateV1
-	(*EvaluationPreviewEstimatesV1)(nil),                       // 260: o11y_one.agentic.v1.EvaluationPreviewEstimatesV1
-	(*EvaluationBlastRadiusV1)(nil),                            // 261: o11y_one.agentic.v1.EvaluationBlastRadiusV1
-	(*EvaluationPreviewBlockerV1)(nil),                         // 262: o11y_one.agentic.v1.EvaluationPreviewBlockerV1
-	(*PreviewEvaluationRunRequest)(nil),                        // 263: o11y_one.agentic.v1.PreviewEvaluationRunRequest
-	(*PreviewEvaluationRunResponse)(nil),                       // 264: o11y_one.agentic.v1.PreviewEvaluationRunResponse
-	(*CreateEvaluationRunRequest)(nil),                         // 265: o11y_one.agentic.v1.CreateEvaluationRunRequest
-	(*CreateEvaluationRunResponse)(nil),                        // 266: o11y_one.agentic.v1.CreateEvaluationRunResponse
-	(*EvaluationLaunchRejectionV1)(nil),                        // 267: o11y_one.agentic.v1.EvaluationLaunchRejectionV1
-	(*GetEvaluationOperationRequest)(nil),                      // 268: o11y_one.agentic.v1.GetEvaluationOperationRequest
-	(*GetEvaluationOperationResponse)(nil),                     // 269: o11y_one.agentic.v1.GetEvaluationOperationResponse
-	(*CancelEvaluationRunRequest)(nil),                         // 270: o11y_one.agentic.v1.CancelEvaluationRunRequest
-	(*CancelEvaluationRunResponse)(nil),                        // 271: o11y_one.agentic.v1.CancelEvaluationRunResponse
-	(*EvaluationCellRefV1)(nil),                                // 272: o11y_one.agentic.v1.EvaluationCellRefV1
-	(*EvaluationRetryCellStatusV1)(nil),                        // 273: o11y_one.agentic.v1.EvaluationRetryCellStatusV1
-	(*EvaluationRetryEstimateV1)(nil),                          // 274: o11y_one.agentic.v1.EvaluationRetryEstimateV1
-	(*PreviewRetryEvaluationCellsRequest)(nil),                 // 275: o11y_one.agentic.v1.PreviewRetryEvaluationCellsRequest
-	(*PreviewRetryEvaluationCellsResponse)(nil),                // 276: o11y_one.agentic.v1.PreviewRetryEvaluationCellsResponse
-	(*RetryEvaluationCellsRequest)(nil),                        // 277: o11y_one.agentic.v1.RetryEvaluationCellsRequest
-	(*RetryEvaluationCellsResponse)(nil),                       // 278: o11y_one.agentic.v1.RetryEvaluationCellsResponse
-	(*EvaluationScorerCoordinateV1)(nil),                       // 279: o11y_one.agentic.v1.EvaluationScorerCoordinateV1
-	(*EvaluationScorerRetryStatusV1)(nil),                      // 280: o11y_one.agentic.v1.EvaluationScorerRetryStatusV1
-	(*EvaluationScorerRetryRejectionV1)(nil),                   // 281: o11y_one.agentic.v1.EvaluationScorerRetryRejectionV1
-	(*PreviewRetryEvaluationScorersRequest)(nil),               // 282: o11y_one.agentic.v1.PreviewRetryEvaluationScorersRequest
-	(*PreviewRetryEvaluationScorersResponse)(nil),              // 283: o11y_one.agentic.v1.PreviewRetryEvaluationScorersResponse
-	(*RetryEvaluationScorersRequest)(nil),                      // 284: o11y_one.agentic.v1.RetryEvaluationScorersRequest
-	(*EvaluationScorerRetryAppliedV1)(nil),                     // 285: o11y_one.agentic.v1.EvaluationScorerRetryAppliedV1
-	(*RetryEvaluationScorersResponse)(nil),                     // 286: o11y_one.agentic.v1.RetryEvaluationScorersResponse
-	(*TokenUsageV1)(nil),                                       // 287: o11y_one.agentic.v1.TokenUsageV1
-	(*ProviderUsageRecordV1)(nil),                              // 288: o11y_one.agentic.v1.ProviderUsageRecordV1
-	(*ProviderUsageFieldV1)(nil),                               // 289: o11y_one.agentic.v1.ProviderUsageFieldV1
-	(*CostLineItemV1)(nil),                                     // 290: o11y_one.agentic.v1.CostLineItemV1
-	(*CostBreakdownV1)(nil),                                    // 291: o11y_one.agentic.v1.CostBreakdownV1
-	(*LatencyMetricsV1)(nil),                                   // 292: o11y_one.agentic.v1.LatencyMetricsV1
-	(*ProviderStatusV1)(nil),                                   // 293: o11y_one.agentic.v1.ProviderStatusV1
-	(*InstrumentationCompletenessV1)(nil),                      // 294: o11y_one.agentic.v1.InstrumentationCompletenessV1
-	(*ExecutionMetricsV1)(nil),                                 // 295: o11y_one.agentic.v1.ExecutionMetricsV1
-	(*EvaluationScorerResultV1)(nil),                           // 296: o11y_one.agentic.v1.EvaluationScorerResultV1
-	(*EvaluationCellResultV1)(nil),                             // 297: o11y_one.agentic.v1.EvaluationCellResultV1
-	(*EvaluationVerdictCountsV1)(nil),                          // 298: o11y_one.agentic.v1.EvaluationVerdictCountsV1
-	(*EvaluationScorerRollupV1)(nil),                           // 299: o11y_one.agentic.v1.EvaluationScorerRollupV1
-	(*EvaluationScorerCompletionV1)(nil),                       // 300: o11y_one.agentic.v1.EvaluationScorerCompletionV1
-	(*EvaluationFailureStageCountV1)(nil),                      // 301: o11y_one.agentic.v1.EvaluationFailureStageCountV1
-	(*EvaluationRunFailureRollupV1)(nil),                       // 302: o11y_one.agentic.v1.EvaluationRunFailureRollupV1
-	(*EvaluationRunRecoveryV1)(nil),                            // 303: o11y_one.agentic.v1.EvaluationRunRecoveryV1
-	(*EvaluationCursorResyncV1)(nil),                           // 304: o11y_one.agentic.v1.EvaluationCursorResyncV1
-	(*EvaluationDecisionDriverV1)(nil),                         // 305: o11y_one.agentic.v1.EvaluationDecisionDriverV1
-	(*EvaluationDecisionDriversV1)(nil),                        // 306: o11y_one.agentic.v1.EvaluationDecisionDriversV1
-	(*RepeatSampleCheckV1)(nil),                                // 307: o11y_one.agentic.v1.RepeatSampleCheckV1
-	(*MinimumDetectableEffectV1)(nil),                          // 308: o11y_one.agentic.v1.MinimumDetectableEffectV1
-	(*ComparisonRepeatAlignmentV1)(nil),                        // 309: o11y_one.agentic.v1.ComparisonRepeatAlignmentV1
-	(*MinimumSampleCheckV1)(nil),                               // 310: o11y_one.agentic.v1.MinimumSampleCheckV1
-	(*ConfidenceIntervalV1)(nil),                               // 311: o11y_one.agentic.v1.ConfidenceIntervalV1
-	(*StatisticalResultV1)(nil),                                // 312: o11y_one.agentic.v1.StatisticalResultV1
-	(*CandidatePairComparisonV1)(nil),                          // 313: o11y_one.agentic.v1.CandidatePairComparisonV1
-	(*EvaluationCandidateComparisonV1)(nil),                    // 314: o11y_one.agentic.v1.EvaluationCandidateComparisonV1
-	(*EvaluationSliceCandidateRowV1)(nil),                      // 315: o11y_one.agentic.v1.EvaluationSliceCandidateRowV1
-	(*EvaluationSliceV1)(nil),                                  // 316: o11y_one.agentic.v1.EvaluationSliceV1
-	(*EvaluationSliceAnalysisV1)(nil),                          // 317: o11y_one.agentic.v1.EvaluationSliceAnalysisV1
-	(*DataQualityFindingV1)(nil),                               // 318: o11y_one.agentic.v1.DataQualityFindingV1
-	(*EvaluationDataQualityV1)(nil),                            // 319: o11y_one.agentic.v1.EvaluationDataQualityV1
-	(*TotalMatchingV1)(nil),                                    // 320: o11y_one.agentic.v1.TotalMatchingV1
-	(*RegressionSeriesPointV1)(nil),                            // 321: o11y_one.agentic.v1.RegressionSeriesPointV1
-	(*EvaluationRegressionHistoryV1)(nil),                      // 322: o11y_one.agentic.v1.EvaluationRegressionHistoryV1
-	(*DecisionBlockerV1)(nil),                                  // 323: o11y_one.agentic.v1.DecisionBlockerV1
-	(*CandidateTradeoffV1)(nil),                                // 324: o11y_one.agentic.v1.CandidateTradeoffV1
-	(*EvidencePostureV1)(nil),                                  // 325: o11y_one.agentic.v1.EvidencePostureV1
-	(*EvaluationDecisionV1)(nil),                               // 326: o11y_one.agentic.v1.EvaluationDecisionV1
-	(*EvaluationDecisionRevisionV1)(nil),                       // 327: o11y_one.agentic.v1.EvaluationDecisionRevisionV1
-	(*EvaluationAdoptedDecisionV1)(nil),                        // 328: o11y_one.agentic.v1.EvaluationAdoptedDecisionV1
-	(*ReleaseAdoptionWarningV1)(nil),                           // 329: o11y_one.agentic.v1.ReleaseAdoptionWarningV1
-	(*EvaluationCostDriftV1)(nil),                              // 330: o11y_one.agentic.v1.EvaluationCostDriftV1
-	(*GetEvaluationRunOverviewRequest)(nil),                    // 331: o11y_one.agentic.v1.GetEvaluationRunOverviewRequest
-	(*GetEvaluationRunOverviewResponse)(nil),                   // 332: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse
-	(*PreviewEvaluationDecisionRequest)(nil),                   // 333: o11y_one.agentic.v1.PreviewEvaluationDecisionRequest
-	(*PreviewEvaluationDecisionResponse)(nil),                  // 334: o11y_one.agentic.v1.PreviewEvaluationDecisionResponse
-	(*AdoptEvaluationDecisionRevisionRequest)(nil),             // 335: o11y_one.agentic.v1.AdoptEvaluationDecisionRevisionRequest
-	(*AdoptEvaluationDecisionRevisionResponse)(nil),            // 336: o11y_one.agentic.v1.AdoptEvaluationDecisionRevisionResponse
-	(*EvaluationMatrixFilterV1)(nil),                           // 337: o11y_one.agentic.v1.EvaluationMatrixFilterV1
-	(*EvaluationMatrixCellV1)(nil),                             // 338: o11y_one.agentic.v1.EvaluationMatrixCellV1
-	(*EvaluationMatrixRowV1)(nil),                              // 339: o11y_one.agentic.v1.EvaluationMatrixRowV1
-	(*EvaluationMatrixFacetV1)(nil),                            // 340: o11y_one.agentic.v1.EvaluationMatrixFacetV1
-	(*EvaluationMatrixAlignmentV1)(nil),                        // 341: o11y_one.agentic.v1.EvaluationMatrixAlignmentV1
-	(*MatrixSelectionExplicitIdsV1)(nil),                       // 342: o11y_one.agentic.v1.MatrixSelectionExplicitIdsV1
-	(*MatrixSelectionV1)(nil),                                  // 343: o11y_one.agentic.v1.MatrixSelectionV1
-	(*ListEvaluationMatrixRowsRequest)(nil),                    // 344: o11y_one.agentic.v1.ListEvaluationMatrixRowsRequest
-	(*ListEvaluationMatrixRowsResponse)(nil),                   // 345: o11y_one.agentic.v1.ListEvaluationMatrixRowsResponse
-	(*EvaluationCaseContextV1)(nil),                            // 346: o11y_one.agentic.v1.EvaluationCaseContextV1
-	(*EvaluationCandidateAttemptDetailV1)(nil),                 // 347: o11y_one.agentic.v1.EvaluationCandidateAttemptDetailV1
-	(*EvaluationCandidateExecutionDetailV1)(nil),               // 348: o11y_one.agentic.v1.EvaluationCandidateExecutionDetailV1
-	(*EvaluationScorerEvidenceV1)(nil),                         // 349: o11y_one.agentic.v1.EvaluationScorerEvidenceV1
-	(*EvaluationScorerAttemptEconomicsV1)(nil),                 // 350: o11y_one.agentic.v1.EvaluationScorerAttemptEconomicsV1
-	(*EvaluationArtifactSummaryV1)(nil),                        // 351: o11y_one.agentic.v1.EvaluationArtifactSummaryV1
-	(*EvaluationCellDetailV1)(nil),                             // 352: o11y_one.agentic.v1.EvaluationCellDetailV1
-	(*BatchGetEvaluationCellDetailsRequest)(nil),               // 353: o11y_one.agentic.v1.BatchGetEvaluationCellDetailsRequest
-	(*BatchGetEvaluationCellDetailsResponse)(nil),              // 354: o11y_one.agentic.v1.BatchGetEvaluationCellDetailsResponse
-	(*EvaluationRunProgressChangeV1)(nil),                      // 355: o11y_one.agentic.v1.EvaluationRunProgressChangeV1
-	(*EvaluationCellDeltaV1)(nil),                              // 356: o11y_one.agentic.v1.EvaluationCellDeltaV1
-	(*EvaluationCellBatchChangeV1)(nil),                        // 357: o11y_one.agentic.v1.EvaluationCellBatchChangeV1
-	(*EvaluationSectionRefreshedChangeV1)(nil),                 // 358: o11y_one.agentic.v1.EvaluationSectionRefreshedChangeV1
-	(*EvaluationDecisionRevisionChangeV1)(nil),                 // 359: o11y_one.agentic.v1.EvaluationDecisionRevisionChangeV1
-	(*EvaluationTerminalChangeV1)(nil),                         // 360: o11y_one.agentic.v1.EvaluationTerminalChangeV1
-	(*EvaluationChangeResyncV1)(nil),                           // 361: o11y_one.agentic.v1.EvaluationChangeResyncV1
-	(*EvaluationChangeReplayGapV1)(nil),                        // 362: o11y_one.agentic.v1.EvaluationChangeReplayGapV1
-	(*EvaluationRunChangeV1)(nil),                              // 363: o11y_one.agentic.v1.EvaluationRunChangeV1
-	(*ListEvaluationRunChangesRequest)(nil),                    // 364: o11y_one.agentic.v1.ListEvaluationRunChangesRequest
-	(*ListEvaluationRunChangesResponse)(nil),                   // 365: o11y_one.agentic.v1.ListEvaluationRunChangesResponse
-	(*EvaluationArtifactContentRefV1)(nil),                     // 366: o11y_one.agentic.v1.EvaluationArtifactContentRefV1
-	(*EvaluationArtifactRemediationV1)(nil),                    // 367: o11y_one.agentic.v1.EvaluationArtifactRemediationV1
-	(*EvaluationArtifactContentV1)(nil),                        // 368: o11y_one.agentic.v1.EvaluationArtifactContentV1
-	(*GetEvaluationArtifactContentRequest)(nil),                // 369: o11y_one.agentic.v1.GetEvaluationArtifactContentRequest
-	(*GetEvaluationArtifactContentResponse)(nil),               // 370: o11y_one.agentic.v1.GetEvaluationArtifactContentResponse
-	(*BatchGetEvaluationArtifactContentsRequest)(nil),          // 371: o11y_one.agentic.v1.BatchGetEvaluationArtifactContentsRequest
-	(*BatchGetEvaluationArtifactContentsResponse)(nil),         // 372: o11y_one.agentic.v1.BatchGetEvaluationArtifactContentsResponse
-	(*ConfigurationDiffEntryV1)(nil),                           // 373: o11y_one.agentic.v1.ConfigurationDiffEntryV1
-	(*EvaluationConfigurationDiffV1)(nil),                      // 374: o11y_one.agentic.v1.EvaluationConfigurationDiffV1
-	(*EvaluationAuditEntryV1)(nil),                             // 375: o11y_one.agentic.v1.EvaluationAuditEntryV1
-	(*EvaluationRunManifestSectionV1)(nil),                     // 376: o11y_one.agentic.v1.EvaluationRunManifestSectionV1
-	(*EvaluationReviewUnitV1)(nil),                             // 377: o11y_one.agentic.v1.EvaluationReviewUnitV1
-	(*EvaluationReviewTaskV1)(nil),                             // 378: o11y_one.agentic.v1.EvaluationReviewTaskV1
-	(*EvaluationReviewSubjectV1)(nil),                          // 379: o11y_one.agentic.v1.EvaluationReviewSubjectV1
-	(*EvaluationReviewRubricFieldV1)(nil),                      // 380: o11y_one.agentic.v1.EvaluationReviewRubricFieldV1
-	(*EvaluationReviewRubricV1)(nil),                           // 381: o11y_one.agentic.v1.EvaluationReviewRubricV1
-	(*EvaluationReviewSubmissionV1)(nil),                       // 382: o11y_one.agentic.v1.EvaluationReviewSubmissionV1
-	(*EvaluationReviewRubricFieldErrorV1)(nil),                 // 383: o11y_one.agentic.v1.EvaluationReviewRubricFieldErrorV1
-	(*ListEvaluationReviewTasksRequest)(nil),                   // 384: o11y_one.agentic.v1.ListEvaluationReviewTasksRequest
-	(*ListEvaluationReviewTasksResponse)(nil),                  // 385: o11y_one.agentic.v1.ListEvaluationReviewTasksResponse
-	(*ClaimEvaluationReviewTasksRequest)(nil),                  // 386: o11y_one.agentic.v1.ClaimEvaluationReviewTasksRequest
-	(*ClaimEvaluationReviewTasksResponse)(nil),                 // 387: o11y_one.agentic.v1.ClaimEvaluationReviewTasksResponse
-	(*GetEvaluationReviewTaskRequest)(nil),                     // 388: o11y_one.agentic.v1.GetEvaluationReviewTaskRequest
-	(*GetEvaluationReviewTaskResponse)(nil),                    // 389: o11y_one.agentic.v1.GetEvaluationReviewTaskResponse
-	(*SubmitEvaluationReviewRequest)(nil),                      // 390: o11y_one.agentic.v1.SubmitEvaluationReviewRequest
-	(*SubmitEvaluationReviewResponse)(nil),                     // 391: o11y_one.agentic.v1.SubmitEvaluationReviewResponse
-	(*EvaluationExportV1)(nil),                                 // 392: o11y_one.agentic.v1.EvaluationExportV1
-	(*CreateEvaluationExportRequest)(nil),                      // 393: o11y_one.agentic.v1.CreateEvaluationExportRequest
-	(*CreateEvaluationExportResponse)(nil),                     // 394: o11y_one.agentic.v1.CreateEvaluationExportResponse
-	(*GetEvaluationExportRequest)(nil),                         // 395: o11y_one.agentic.v1.GetEvaluationExportRequest
-	(*GetEvaluationExportResponse)(nil),                        // 396: o11y_one.agentic.v1.GetEvaluationExportResponse
-	(*EvaluationShareV1)(nil),                                  // 397: o11y_one.agentic.v1.EvaluationShareV1
-	(*CreateEvaluationShareRequest)(nil),                       // 398: o11y_one.agentic.v1.CreateEvaluationShareRequest
-	(*CreateEvaluationShareResponse)(nil),                      // 399: o11y_one.agentic.v1.CreateEvaluationShareResponse
-	(*GetEvaluationShareRequest)(nil),                          // 400: o11y_one.agentic.v1.GetEvaluationShareRequest
-	(*GetEvaluationShareResponse)(nil),                         // 401: o11y_one.agentic.v1.GetEvaluationShareResponse
-	(*RevokeEvaluationShareRequest)(nil),                       // 402: o11y_one.agentic.v1.RevokeEvaluationShareRequest
-	(*RevokeEvaluationShareResponse)(nil),                      // 403: o11y_one.agentic.v1.RevokeEvaluationShareResponse
-	(*EvaluationOperationBoundaryV1)(nil),                      // 404: o11y_one.agentic.v1.EvaluationOperationBoundaryV1
-	(*EvaluationOperationGroupV1)(nil),                         // 405: o11y_one.agentic.v1.EvaluationOperationGroupV1
-	(*EvaluationOperationTotalsV1)(nil),                        // 406: o11y_one.agentic.v1.EvaluationOperationTotalsV1
-	(*GetEvaluationOperationBreakdownRequest)(nil),             // 407: o11y_one.agentic.v1.GetEvaluationOperationBreakdownRequest
-	(*GetEvaluationOperationBreakdownResponse)(nil),            // 408: o11y_one.agentic.v1.GetEvaluationOperationBreakdownResponse
-	(*EvaluationDefinitionRevisionSummaryV1)(nil),              // 409: o11y_one.agentic.v1.EvaluationDefinitionRevisionSummaryV1
-	(*ListEvaluationDefinitionRevisionsRequest)(nil),           // 410: o11y_one.agentic.v1.ListEvaluationDefinitionRevisionsRequest
-	(*ListEvaluationDefinitionRevisionsResponse)(nil),          // 411: o11y_one.agentic.v1.ListEvaluationDefinitionRevisionsResponse
-	(*EvaluationReviewAdjudicationV1)(nil),                     // 412: o11y_one.agentic.v1.EvaluationReviewAdjudicationV1
-	(*AdjudicateEvaluationReviewConflictRequest)(nil),          // 413: o11y_one.agentic.v1.AdjudicateEvaluationReviewConflictRequest
-	(*AdjudicateEvaluationReviewConflictResponse)(nil),         // 414: o11y_one.agentic.v1.AdjudicateEvaluationReviewConflictResponse
-	(*EvaluationOrgNegotiatedRateV1)(nil),                      // 415: o11y_one.agentic.v1.EvaluationOrgNegotiatedRateV1
-	(*RecordEvaluationOrgNegotiatedRateRequest)(nil),           // 416: o11y_one.agentic.v1.RecordEvaluationOrgNegotiatedRateRequest
-	(*RecordEvaluationOrgNegotiatedRateResponse)(nil),          // 417: o11y_one.agentic.v1.RecordEvaluationOrgNegotiatedRateResponse
-	(*ListEvaluationOrgNegotiatedRatesRequest)(nil),            // 418: o11y_one.agentic.v1.ListEvaluationOrgNegotiatedRatesRequest
-	(*ListEvaluationOrgNegotiatedRatesResponse)(nil),           // 419: o11y_one.agentic.v1.ListEvaluationOrgNegotiatedRatesResponse
-	(*EndEvaluationOrgNegotiatedRateRequest)(nil),              // 420: o11y_one.agentic.v1.EndEvaluationOrgNegotiatedRateRequest
-	(*EndEvaluationOrgNegotiatedRateResponse)(nil),             // 421: o11y_one.agentic.v1.EndEvaluationOrgNegotiatedRateResponse
-	(*VoidEvaluationOrgNegotiatedRateRequest)(nil),             // 422: o11y_one.agentic.v1.VoidEvaluationOrgNegotiatedRateRequest
-	(*VoidEvaluationOrgNegotiatedRateResponse)(nil),            // 423: o11y_one.agentic.v1.VoidEvaluationOrgNegotiatedRateResponse
-	(*EvaluationSeriesKeyV1)(nil),                              // 424: o11y_one.agentic.v1.EvaluationSeriesKeyV1
-	(*EvaluationSeriesPointV1)(nil),                            // 425: o11y_one.agentic.v1.EvaluationSeriesPointV1
-	(*EvaluationScoreSeriesV1)(nil),                            // 426: o11y_one.agentic.v1.EvaluationScoreSeriesV1
-	(*EvaluationSeriesClampV1)(nil),                            // 427: o11y_one.agentic.v1.EvaluationSeriesClampV1
-	(*ListEvaluationScoreSeriesRequest)(nil),                   // 428: o11y_one.agentic.v1.ListEvaluationScoreSeriesRequest
-	(*ListEvaluationScoreSeriesResponse)(nil),                  // 429: o11y_one.agentic.v1.ListEvaluationScoreSeriesResponse
-	(*EvaluationCaptureSpanSourceV1)(nil),                      // 430: o11y_one.agentic.v1.EvaluationCaptureSpanSourceV1
-	(*EvaluationCaptureCellSourceV1)(nil),                      // 431: o11y_one.agentic.v1.EvaluationCaptureCellSourceV1
-	(*EvaluationCaptureProvenanceV1)(nil),                      // 432: o11y_one.agentic.v1.EvaluationCaptureProvenanceV1
-	(*EvaluationCaptureFieldSelectionV1)(nil),                  // 433: o11y_one.agentic.v1.EvaluationCaptureFieldSelectionV1
-	(*EvaluationProposedCaseV1)(nil),                           // 434: o11y_one.agentic.v1.EvaluationProposedCaseV1
-	(*EvaluationDatasetVersionDraftV1)(nil),                    // 435: o11y_one.agentic.v1.EvaluationDatasetVersionDraftV1
-	(*EvaluationCaptureRefusalV1)(nil),                         // 436: o11y_one.agentic.v1.EvaluationCaptureRefusalV1
-	(*CaptureEvaluationCaseRequest)(nil),                       // 437: o11y_one.agentic.v1.CaptureEvaluationCaseRequest
-	(*CaptureEvaluationCaseResponse)(nil),                      // 438: o11y_one.agentic.v1.CaptureEvaluationCaseResponse
-	(*EvaluationSpanContentHydrationV1)(nil),                   // 439: o11y_one.agentic.v1.EvaluationSpanContentHydrationV1
-	(*EvaluationCapturePreviewFieldV1)(nil),                    // 440: o11y_one.agentic.v1.EvaluationCapturePreviewFieldV1
-	(*PreviewEvaluationCaseCaptureRequest)(nil),                // 441: o11y_one.agentic.v1.PreviewEvaluationCaseCaptureRequest
-	(*PreviewEvaluationCaseCaptureResponse)(nil),               // 442: o11y_one.agentic.v1.PreviewEvaluationCaseCaptureResponse
-	(*EvaluationProviderCredentialV1)(nil),                     // 443: o11y_one.agentic.v1.EvaluationProviderCredentialV1
-	(*EvaluationProviderCredentialRejectionV1)(nil),            // 444: o11y_one.agentic.v1.EvaluationProviderCredentialRejectionV1
-	(*RegisterEvaluationProviderCredentialRequest)(nil),        // 445: o11y_one.agentic.v1.RegisterEvaluationProviderCredentialRequest
-	(*RegisterEvaluationProviderCredentialResponse)(nil),       // 446: o11y_one.agentic.v1.RegisterEvaluationProviderCredentialResponse
-	(*EvaluationScorerDeterministicSpecV1)(nil),                // 447: o11y_one.agentic.v1.EvaluationScorerDeterministicSpecV1
-	(*EvaluationScorerReviewPolicySpecV1)(nil),                 // 448: o11y_one.agentic.v1.EvaluationScorerReviewPolicySpecV1
-	(*EvaluationScorerConfigV1)(nil),                           // 449: o11y_one.agentic.v1.EvaluationScorerConfigV1
-	(*EvaluationScorerConfigRejectionV1)(nil),                  // 450: o11y_one.agentic.v1.EvaluationScorerConfigRejectionV1
-	(*EvaluationScorerJudgeVerdictMappingV1)(nil),              // 451: o11y_one.agentic.v1.EvaluationScorerJudgeVerdictMappingV1
-	(*EvaluationScorerJudgeRubricV1)(nil),                      // 452: o11y_one.agentic.v1.EvaluationScorerJudgeRubricV1
-	(*EvaluationScorerJudgeTemplateRefV1)(nil),                 // 453: o11y_one.agentic.v1.EvaluationScorerJudgeTemplateRefV1
-	(*EvaluationScorerJudgeProviderExecutionV1)(nil),           // 454: o11y_one.agentic.v1.EvaluationScorerJudgeProviderExecutionV1
-	(*EvaluationScorerJudgeSpecV1)(nil),                        // 455: o11y_one.agentic.v1.EvaluationScorerJudgeSpecV1
-	(*CreateEvaluationScorerConfigRequest)(nil),                // 456: o11y_one.agentic.v1.CreateEvaluationScorerConfigRequest
-	(*CreateEvaluationScorerConfigResponse)(nil),               // 457: o11y_one.agentic.v1.CreateEvaluationScorerConfigResponse
-	(*EvaluationDatasetCaseAbsenceV1)(nil),                     // 458: o11y_one.agentic.v1.EvaluationDatasetCaseAbsenceV1
-	(*EvaluationDatasetVersionV1)(nil),                         // 459: o11y_one.agentic.v1.EvaluationDatasetVersionV1
-	(*EvaluationDatasetRolloverV1)(nil),                        // 460: o11y_one.agentic.v1.EvaluationDatasetRolloverV1
-	(*EvaluationDatasetVersionRejectionV1)(nil),                // 461: o11y_one.agentic.v1.EvaluationDatasetVersionRejectionV1
-	(*CreateEvaluationDatasetVersionRequest)(nil),              // 462: o11y_one.agentic.v1.CreateEvaluationDatasetVersionRequest
-	(*CreateEvaluationDatasetVersionResponse)(nil),             // 463: o11y_one.agentic.v1.CreateEvaluationDatasetVersionResponse
-	(*SetEvaluationProviderCredentialEnabledRequest)(nil),      // 464: o11y_one.agentic.v1.SetEvaluationProviderCredentialEnabledRequest
-	(*EvaluationCredentialBlastRadiusV1)(nil),                  // 465: o11y_one.agentic.v1.EvaluationCredentialBlastRadiusV1
-	(*SetEvaluationProviderCredentialEnabledResponse)(nil),     // 466: o11y_one.agentic.v1.SetEvaluationProviderCredentialEnabledResponse
-	(*EvaluationScorerSuiteMemberRefusalV1)(nil),               // 467: o11y_one.agentic.v1.EvaluationScorerSuiteMemberRefusalV1
-	(*EvaluationScorerSuiteRejectionV1)(nil),                   // 468: o11y_one.agentic.v1.EvaluationScorerSuiteRejectionV1
-	(*CreateEvaluationScorerSuiteRequest)(nil),                 // 469: o11y_one.agentic.v1.CreateEvaluationScorerSuiteRequest
-	(*EvaluationDerivedSuiteCoordinateV1)(nil),                 // 470: o11y_one.agentic.v1.EvaluationDerivedSuiteCoordinateV1
-	(*CreateEvaluationScorerSuiteResponse)(nil),                // 471: o11y_one.agentic.v1.CreateEvaluationScorerSuiteResponse
-	(*EvaluationJudgeRegradeScorerPinV1)(nil),                  // 472: o11y_one.agentic.v1.EvaluationJudgeRegradeScorerPinV1
-	(*EvaluationJudgeRegradeCandidateFieldV1)(nil),             // 473: o11y_one.agentic.v1.EvaluationJudgeRegradeCandidateFieldV1
-	(*EvaluationJudgeRegradePinV1)(nil),                        // 474: o11y_one.agentic.v1.EvaluationJudgeRegradePinV1
-	(*EvaluationJudgeRegradeCellStatusV1)(nil),                 // 475: o11y_one.agentic.v1.EvaluationJudgeRegradeCellStatusV1
-	(*EvaluationJudgeRegradeCellProgressV1)(nil),               // 476: o11y_one.agentic.v1.EvaluationJudgeRegradeCellProgressV1
-	(*EvaluationJudgeRegradeJobV1)(nil),                        // 477: o11y_one.agentic.v1.EvaluationJudgeRegradeJobV1
-	(*EvaluationJudgeRegradeRejectionV1)(nil),                  // 478: o11y_one.agentic.v1.EvaluationJudgeRegradeRejectionV1
-	(*RequestEvaluationJudgeRegradeRequest)(nil),               // 479: o11y_one.agentic.v1.RequestEvaluationJudgeRegradeRequest
-	(*RequestEvaluationJudgeRegradeResponse)(nil),              // 480: o11y_one.agentic.v1.RequestEvaluationJudgeRegradeResponse
-	(*GetEvaluationJudgeRegradeJobRequest)(nil),                // 481: o11y_one.agentic.v1.GetEvaluationJudgeRegradeJobRequest
-	(*GetEvaluationJudgeRegradeJobResponse)(nil),               // 482: o11y_one.agentic.v1.GetEvaluationJudgeRegradeJobResponse
-	(*EvaluationJudgeRegradeEstimateV1)(nil),                   // 483: o11y_one.agentic.v1.EvaluationJudgeRegradeEstimateV1
-	(*PreviewEvaluationJudgeRegradeRequest)(nil),               // 484: o11y_one.agentic.v1.PreviewEvaluationJudgeRegradeRequest
-	(*PreviewEvaluationJudgeRegradeResponse)(nil),              // 485: o11y_one.agentic.v1.PreviewEvaluationJudgeRegradeResponse
-	(*EvaluationJudgeRegradePinnedRateV1)(nil),                 // 486: o11y_one.agentic.v1.EvaluationJudgeRegradePinnedRateV1
-	(*EvaluationJudgeRegradeQueueDepthV1)(nil),                 // 487: o11y_one.agentic.v1.EvaluationJudgeRegradeQueueDepthV1
-	(*CancelEvaluationJudgeRegradeJobRequest)(nil),             // 488: o11y_one.agentic.v1.CancelEvaluationJudgeRegradeJobRequest
-	(*CancelEvaluationJudgeRegradeJobResponse)(nil),            // 489: o11y_one.agentic.v1.CancelEvaluationJudgeRegradeJobResponse
-	(*EvaluationRunSummaryV1)(nil),                             // 490: o11y_one.agentic.v1.EvaluationRunSummaryV1
-	(*EvaluationRunListFilterV1)(nil),                          // 491: o11y_one.agentic.v1.EvaluationRunListFilterV1
-	(*ListEvaluationRunsRequest)(nil),                          // 492: o11y_one.agentic.v1.ListEvaluationRunsRequest
-	(*ListEvaluationRunsResponse)(nil),                         // 493: o11y_one.agentic.v1.ListEvaluationRunsResponse
-	(*EvaluationReviewTaskRefusalV1)(nil),                      // 494: o11y_one.agentic.v1.EvaluationReviewTaskRefusalV1
-	(*ReleaseEvaluationReviewTasksRequest)(nil),                // 495: o11y_one.agentic.v1.ReleaseEvaluationReviewTasksRequest
-	(*ReleaseEvaluationReviewTasksResponse)(nil),               // 496: o11y_one.agentic.v1.ReleaseEvaluationReviewTasksResponse
-	(*RequeueEvaluationReviewTasksRequest)(nil),                // 497: o11y_one.agentic.v1.RequeueEvaluationReviewTasksRequest
-	(*RequeueEvaluationReviewTasksResponse)(nil),               // 498: o11y_one.agentic.v1.RequeueEvaluationReviewTasksResponse
-	(*EvaluationScorerTargetRefV1)(nil),                        // 499: o11y_one.agentic.v1.EvaluationScorerTargetRefV1
-	(*ProductionRuleActionConditionV1)(nil),                    // 500: o11y_one.agentic.v1.ProductionRuleActionConditionV1
-	(*ProductionRuleActionV1)(nil),                             // 501: o11y_one.agentic.v1.ProductionRuleActionV1
-	(*ProductionRuleBudgetPolicyV1)(nil),                       // 502: o11y_one.agentic.v1.ProductionRuleBudgetPolicyV1
-	(*ProductionRuleDependencyRefV1)(nil),                      // 503: o11y_one.agentic.v1.ProductionRuleDependencyRefV1
-	(*ProductionRuleVersionDraftV1)(nil),                       // 504: o11y_one.agentic.v1.ProductionRuleVersionDraftV1
-	(*ProductionRuleVersionV1)(nil),                            // 505: o11y_one.agentic.v1.ProductionRuleVersionV1
-	(*ProductionRuleHealthV1)(nil),                             // 506: o11y_one.agentic.v1.ProductionRuleHealthV1
-	(*ProductionRuleExecutionCountsV1)(nil),                    // 507: o11y_one.agentic.v1.ProductionRuleExecutionCountsV1
-	(*ProductionRuleDownstreamCountsV1)(nil),                   // 508: o11y_one.agentic.v1.ProductionRuleDownstreamCountsV1
-	(*ProductionRuleWorkflowTimingsV1)(nil),                    // 509: o11y_one.agentic.v1.ProductionRuleWorkflowTimingsV1
-	(*ProductionRuleV1)(nil),                                   // 510: o11y_one.agentic.v1.ProductionRuleV1
-	(*ProductionRuleListItemV1)(nil),                           // 511: o11y_one.agentic.v1.ProductionRuleListItemV1
-	(*CreateProductionEvaluationRuleRequest)(nil),              // 512: o11y_one.agentic.v1.CreateProductionEvaluationRuleRequest
-	(*CreateProductionEvaluationRuleResponse)(nil),             // 513: o11y_one.agentic.v1.CreateProductionEvaluationRuleResponse
-	(*CreateProductionEvaluationRuleVersionRequest)(nil),       // 514: o11y_one.agentic.v1.CreateProductionEvaluationRuleVersionRequest
-	(*CreateProductionEvaluationRuleVersionResponse)(nil),      // 515: o11y_one.agentic.v1.CreateProductionEvaluationRuleVersionResponse
-	(*SetProductionEvaluationRuleVersionStateRequest)(nil),     // 516: o11y_one.agentic.v1.SetProductionEvaluationRuleVersionStateRequest
-	(*SetProductionEvaluationRuleVersionStateResponse)(nil),    // 517: o11y_one.agentic.v1.SetProductionEvaluationRuleVersionStateResponse
-	(*ListProductionEvaluationRulesRequest)(nil),               // 518: o11y_one.agentic.v1.ListProductionEvaluationRulesRequest
-	(*ListProductionEvaluationRulesResponse)(nil),              // 519: o11y_one.agentic.v1.ListProductionEvaluationRulesResponse
-	(*GetProductionEvaluationRuleRequest)(nil),                 // 520: o11y_one.agentic.v1.GetProductionEvaluationRuleRequest
-	(*GetProductionEvaluationRuleResponse)(nil),                // 521: o11y_one.agentic.v1.GetProductionEvaluationRuleResponse
-	(*ProductionWorkflowScoreOutcomeV1)(nil),                   // 522: o11y_one.agentic.v1.ProductionWorkflowScoreOutcomeV1
-	(*ProductionWorkflowCorrelationV1)(nil),                    // 523: o11y_one.agentic.v1.ProductionWorkflowCorrelationV1
-	(*ProductionWorkflowStepAttemptV1)(nil),                    // 524: o11y_one.agentic.v1.ProductionWorkflowStepAttemptV1
-	(*ProductionWorkflowStepEffectV1)(nil),                     // 525: o11y_one.agentic.v1.ProductionWorkflowStepEffectV1
-	(*ProductionWorkflowStepV1)(nil),                           // 526: o11y_one.agentic.v1.ProductionWorkflowStepV1
-	(*ProductionWorkflowExecutionV1)(nil),                      // 527: o11y_one.agentic.v1.ProductionWorkflowExecutionV1
-	(*ProductionReleaseBlockEvidenceRefV1)(nil),                // 528: o11y_one.agentic.v1.ProductionReleaseBlockEvidenceRefV1
-	(*ProductionReleaseBlockV1)(nil),                           // 529: o11y_one.agentic.v1.ProductionReleaseBlockV1
-	(*StartProductionEvaluationWorkflowRequest)(nil),           // 530: o11y_one.agentic.v1.StartProductionEvaluationWorkflowRequest
-	(*StartProductionEvaluationWorkflowResponse)(nil),          // 531: o11y_one.agentic.v1.StartProductionEvaluationWorkflowResponse
-	(*ProductionWorkflowExecutionListFilterV1)(nil),            // 532: o11y_one.agentic.v1.ProductionWorkflowExecutionListFilterV1
-	(*ListProductionEvaluationWorkflowExecutionsRequest)(nil),  // 533: o11y_one.agentic.v1.ListProductionEvaluationWorkflowExecutionsRequest
-	(*ListProductionEvaluationWorkflowExecutionsResponse)(nil), // 534: o11y_one.agentic.v1.ListProductionEvaluationWorkflowExecutionsResponse
-	(*GetProductionEvaluationWorkflowExecutionRequest)(nil),    // 535: o11y_one.agentic.v1.GetProductionEvaluationWorkflowExecutionRequest
-	(*GetProductionEvaluationWorkflowExecutionResponse)(nil),   // 536: o11y_one.agentic.v1.GetProductionEvaluationWorkflowExecutionResponse
-	(*RetryProductionEvaluationWorkflowStepRequest)(nil),       // 537: o11y_one.agentic.v1.RetryProductionEvaluationWorkflowStepRequest
-	(*RetryProductionEvaluationWorkflowStepResponse)(nil),      // 538: o11y_one.agentic.v1.RetryProductionEvaluationWorkflowStepResponse
-	(*ProductionReleaseBlockListFilterV1)(nil),                 // 539: o11y_one.agentic.v1.ProductionReleaseBlockListFilterV1
-	(*ListProductionEvaluationReleaseBlocksRequest)(nil),       // 540: o11y_one.agentic.v1.ListProductionEvaluationReleaseBlocksRequest
-	(*ListProductionEvaluationReleaseBlocksResponse)(nil),      // 541: o11y_one.agentic.v1.ListProductionEvaluationReleaseBlocksResponse
-	(*OverrideProductionEvaluationReleaseBlockRequest)(nil),    // 542: o11y_one.agentic.v1.OverrideProductionEvaluationReleaseBlockRequest
-	(*OverrideProductionEvaluationReleaseBlockResponse)(nil),   // 543: o11y_one.agentic.v1.OverrideProductionEvaluationReleaseBlockResponse
-	(*ReleaseVerificationOverrideV1)(nil),                      // 544: o11y_one.agentic.v1.ReleaseVerificationOverrideV1
-	(*ReleaseTargetV1)(nil),                                    // 545: o11y_one.agentic.v1.ReleaseTargetV1
-	(*ReleaseSigningKeyRefV1)(nil),                             // 546: o11y_one.agentic.v1.ReleaseSigningKeyRefV1
-	(*ReleaseIntegrationV1)(nil),                               // 547: o11y_one.agentic.v1.ReleaseIntegrationV1
-	(*ReleaseIntegrationCredentialRefV1)(nil),                  // 548: o11y_one.agentic.v1.ReleaseIntegrationCredentialRefV1
-	(*ReleaseEvidenceSnapshotV1)(nil),                          // 549: o11y_one.agentic.v1.ReleaseEvidenceSnapshotV1
-	(*ReleasePolicyV1)(nil),                                    // 550: o11y_one.agentic.v1.ReleasePolicyV1
-	(*ReleaseValidationV1)(nil),                                // 551: o11y_one.agentic.v1.ReleaseValidationV1
-	(*ReleasePostureV1)(nil),                                   // 552: o11y_one.agentic.v1.ReleasePostureV1
-	(*ReleaseBlockedActionV1)(nil),                             // 553: o11y_one.agentic.v1.ReleaseBlockedActionV1
-	(*ReleaseV1)(nil),                                          // 554: o11y_one.agentic.v1.ReleaseV1
-	(*ReleaseActionV1)(nil),                                    // 555: o11y_one.agentic.v1.ReleaseActionV1
-	(*ReleaseActivityEntryV1)(nil),                             // 556: o11y_one.agentic.v1.ReleaseActivityEntryV1
-	(*ReleaseStageHistoryEntryV1)(nil),                         // 557: o11y_one.agentic.v1.ReleaseStageHistoryEntryV1
-	(*ReleaseIntegrationDraftV1)(nil),                          // 558: o11y_one.agentic.v1.ReleaseIntegrationDraftV1
-	(*CreateReleaseIntegrationRequest)(nil),                    // 559: o11y_one.agentic.v1.CreateReleaseIntegrationRequest
-	(*CreateReleaseIntegrationResponse)(nil),                   // 560: o11y_one.agentic.v1.CreateReleaseIntegrationResponse
-	(*GetReleaseIntegrationRequest)(nil),                       // 561: o11y_one.agentic.v1.GetReleaseIntegrationRequest
-	(*GetReleaseIntegrationResponse)(nil),                      // 562: o11y_one.agentic.v1.GetReleaseIntegrationResponse
-	(*ReleaseIntegrationListFilterV1)(nil),                     // 563: o11y_one.agentic.v1.ReleaseIntegrationListFilterV1
-	(*ListReleaseIntegrationsRequest)(nil),                     // 564: o11y_one.agentic.v1.ListReleaseIntegrationsRequest
-	(*ListReleaseIntegrationsResponse)(nil),                    // 565: o11y_one.agentic.v1.ListReleaseIntegrationsResponse
-	(*ReleaseIntegrationPatchV1)(nil),                          // 566: o11y_one.agentic.v1.ReleaseIntegrationPatchV1
-	(*UpdateReleaseIntegrationRequest)(nil),                    // 567: o11y_one.agentic.v1.UpdateReleaseIntegrationRequest
-	(*UpdateReleaseIntegrationResponse)(nil),                   // 568: o11y_one.agentic.v1.UpdateReleaseIntegrationResponse
-	(*ArchiveReleaseIntegrationRequest)(nil),                   // 569: o11y_one.agentic.v1.ArchiveReleaseIntegrationRequest
-	(*ArchiveReleaseIntegrationResponse)(nil),                  // 570: o11y_one.agentic.v1.ArchiveReleaseIntegrationResponse
-	(*ReleaseCandidateRefV1)(nil),                              // 571: o11y_one.agentic.v1.ReleaseCandidateRefV1
-	(*ReleaseDraftV1)(nil),                                     // 572: o11y_one.agentic.v1.ReleaseDraftV1
-	(*CreateReleaseRequest)(nil),                               // 573: o11y_one.agentic.v1.CreateReleaseRequest
-	(*CreateReleaseResponse)(nil),                              // 574: o11y_one.agentic.v1.CreateReleaseResponse
-	(*PreviewReleaseRequest)(nil),                              // 575: o11y_one.agentic.v1.PreviewReleaseRequest
-	(*PreviewReleaseResponse)(nil),                             // 576: o11y_one.agentic.v1.PreviewReleaseResponse
-	(*GetReleaseRequest)(nil),                                  // 577: o11y_one.agentic.v1.GetReleaseRequest
-	(*GetReleaseResponse)(nil),                                 // 578: o11y_one.agentic.v1.GetReleaseResponse
-	(*ReleaseListFilterV1)(nil),                                // 579: o11y_one.agentic.v1.ReleaseListFilterV1
-	(*ListReleasesRequest)(nil),                                // 580: o11y_one.agentic.v1.ListReleasesRequest
-	(*ListReleasesResponse)(nil),                               // 581: o11y_one.agentic.v1.ListReleasesResponse
-	(*StartReleaseCanaryRequest)(nil),                          // 582: o11y_one.agentic.v1.StartReleaseCanaryRequest
-	(*StartReleaseCanaryResponse)(nil),                         // 583: o11y_one.agentic.v1.StartReleaseCanaryResponse
-	(*PromoteReleaseRequest)(nil),                              // 584: o11y_one.agentic.v1.PromoteReleaseRequest
-	(*PromoteReleaseResponse)(nil),                             // 585: o11y_one.agentic.v1.PromoteReleaseResponse
-	(*HoldReleaseRequest)(nil),                                 // 586: o11y_one.agentic.v1.HoldReleaseRequest
-	(*HoldReleaseResponse)(nil),                                // 587: o11y_one.agentic.v1.HoldReleaseResponse
-	(*AbortReleaseRequest)(nil),                                // 588: o11y_one.agentic.v1.AbortReleaseRequest
-	(*AbortReleaseResponse)(nil),                               // 589: o11y_one.agentic.v1.AbortReleaseResponse
-	(*RollbackReleaseRequest)(nil),                             // 590: o11y_one.agentic.v1.RollbackReleaseRequest
-	(*RollbackReleaseResponse)(nil),                            // 591: o11y_one.agentic.v1.RollbackReleaseResponse
-	(*GetReleaseActionRequest)(nil),                            // 592: o11y_one.agentic.v1.GetReleaseActionRequest
-	(*GetReleaseActionResponse)(nil),                           // 593: o11y_one.agentic.v1.GetReleaseActionResponse
-	(*ReleaseActionListFilterV1)(nil),                          // 594: o11y_one.agentic.v1.ReleaseActionListFilterV1
-	(*ListReleaseActionsRequest)(nil),                          // 595: o11y_one.agentic.v1.ListReleaseActionsRequest
-	(*ListReleaseActionsResponse)(nil),                         // 596: o11y_one.agentic.v1.ListReleaseActionsResponse
-	(*ReleaseHealthConditionV1)(nil),                           // 597: o11y_one.agentic.v1.ReleaseHealthConditionV1
-	(*ReleaseHealthSnapshotV1)(nil),                            // 598: o11y_one.agentic.v1.ReleaseHealthSnapshotV1
-	(*ReleaseDriftPostureV1)(nil),                              // 599: o11y_one.agentic.v1.ReleaseDriftPostureV1
-	(*ReleaseObservationV1)(nil),                               // 600: o11y_one.agentic.v1.ReleaseObservationV1
-	(*ProductionRuleActionTargetV1)(nil),                       // 601: o11y_one.agentic.v1.ProductionRuleActionTargetV1
-	(*ProductionRuleDatasetDraftTargetV1)(nil),                 // 602: o11y_one.agentic.v1.ProductionRuleDatasetDraftTargetV1
-	(*ProductionRuleReviewTargetV1)(nil),                       // 603: o11y_one.agentic.v1.ProductionRuleReviewTargetV1
-	(*ProductionRuleLinkedEvaluationTargetV1)(nil),             // 604: o11y_one.agentic.v1.ProductionRuleLinkedEvaluationTargetV1
-	(*ProductionRuleNotifyTargetV1)(nil),                       // 605: o11y_one.agentic.v1.ProductionRuleNotifyTargetV1
-	(*DatasetRedactionOutcomeV1)(nil),                          // 606: o11y_one.agentic.v1.DatasetRedactionOutcomeV1
-	(*DatasetRedactionSectionV1)(nil),                          // 607: o11y_one.agentic.v1.DatasetRedactionSectionV1
-	(*DatasetDuplicationCandidateV1)(nil),                      // 608: o11y_one.agentic.v1.DatasetDuplicationCandidateV1
-	(*DatasetDuplicationSectionV1)(nil),                        // 609: o11y_one.agentic.v1.DatasetDuplicationSectionV1
-	(*DedupeResolutionV1)(nil),                                 // 610: o11y_one.agentic.v1.DedupeResolutionV1
-	(*DatasetLeakageSourceSignalV1)(nil),                       // 611: o11y_one.agentic.v1.DatasetLeakageSourceSignalV1
-	(*DatasetLeakageSectionV1)(nil),                            // 612: o11y_one.agentic.v1.DatasetLeakageSectionV1
-	(*DatasetSliceObservationV1)(nil),                          // 613: o11y_one.agentic.v1.DatasetSliceObservationV1
-	(*DatasetSliceSectionV1)(nil),                              // 614: o11y_one.agentic.v1.DatasetSliceSectionV1
-	(*DatasetCaseQualitySignalsV1)(nil),                        // 615: o11y_one.agentic.v1.DatasetCaseQualitySignalsV1
-	(*ChangesetQualitySignalsV1)(nil),                          // 616: o11y_one.agentic.v1.ChangesetQualitySignalsV1
-	(*DatasetSchemaFieldV1)(nil),                               // 617: o11y_one.agentic.v1.DatasetSchemaFieldV1
-	(*DatasetSliceDimensionV1)(nil),                            // 618: o11y_one.agentic.v1.DatasetSliceDimensionV1
-	(*DatasetSchemaMetadataKeyV1)(nil),                         // 619: o11y_one.agentic.v1.DatasetSchemaMetadataKeyV1
-	(*DatasetSchemaMappingRuleV1)(nil),                         // 620: o11y_one.agentic.v1.DatasetSchemaMappingRuleV1
-	(*DatasetSchemaShapeV1)(nil),                               // 621: o11y_one.agentic.v1.DatasetSchemaShapeV1
-	(*DatasetSchemaRevisionV1)(nil),                            // 622: o11y_one.agentic.v1.DatasetSchemaRevisionV1
-	(*DatasetSchemaChangeV1)(nil),                              // 623: o11y_one.agentic.v1.DatasetSchemaChangeV1
-	(*DatasetSchemaCompatibilityVerdictV1)(nil),                // 624: o11y_one.agentic.v1.DatasetSchemaCompatibilityVerdictV1
-	(*DatasetCaseRecentPerformanceV1)(nil),                     // 625: o11y_one.agentic.v1.DatasetCaseRecentPerformanceV1
-	(*DatasetCaseContentRefV1)(nil),                            // 626: o11y_one.agentic.v1.DatasetCaseContentRefV1
-	(*DatasetCaseLineageV1)(nil),                               // 627: o11y_one.agentic.v1.DatasetCaseLineageV1
-	(*DatasetCaseArtifactSourceCoverageV1)(nil),                // 628: o11y_one.agentic.v1.DatasetCaseArtifactSourceCoverageV1
-	(*DatasetCaseArtifactSummaryV1)(nil),                       // 629: o11y_one.agentic.v1.DatasetCaseArtifactSummaryV1
-	(*DatasetCaseArtifactPostureV1)(nil),                       // 630: o11y_one.agentic.v1.DatasetCaseArtifactPostureV1
-	(*DatasetCaseSummaryV1)(nil),                               // 631: o11y_one.agentic.v1.DatasetCaseSummaryV1
-	(*DatasetCaseMembershipV1)(nil),                            // 632: o11y_one.agentic.v1.DatasetCaseMembershipV1
-	(*DatasetCaseV1)(nil),                                      // 633: o11y_one.agentic.v1.DatasetCaseV1
-	(*DatasetQualitySliceCoverageV1)(nil),                      // 634: o11y_one.agentic.v1.DatasetQualitySliceCoverageV1
-	(*DatasetQualityProjectionV1)(nil),                         // 635: o11y_one.agentic.v1.DatasetQualityProjectionV1
-	(*DatasetVersionSummaryV1)(nil),                            // 636: o11y_one.agentic.v1.DatasetVersionSummaryV1
-	(*DatasetUsageRowV1)(nil),                                  // 637: o11y_one.agentic.v1.DatasetUsageRowV1
-	(*GetDatasetSchemaRevisionRequest)(nil),                    // 638: o11y_one.agentic.v1.GetDatasetSchemaRevisionRequest
-	(*GetDatasetSchemaRevisionResponse)(nil),                   // 639: o11y_one.agentic.v1.GetDatasetSchemaRevisionResponse
-	(*ListDatasetCasesRequest)(nil),                            // 640: o11y_one.agentic.v1.ListDatasetCasesRequest
-	(*ListDatasetCasesResponse)(nil),                           // 641: o11y_one.agentic.v1.ListDatasetCasesResponse
-	(*GetDatasetCaseRequest)(nil),                              // 642: o11y_one.agentic.v1.GetDatasetCaseRequest
-	(*GetDatasetCaseResponse)(nil),                             // 643: o11y_one.agentic.v1.GetDatasetCaseResponse
-	(*GetDatasetOverviewRequest)(nil),                          // 644: o11y_one.agentic.v1.GetDatasetOverviewRequest
-	(*GetDatasetOverviewResponse)(nil),                         // 645: o11y_one.agentic.v1.GetDatasetOverviewResponse
-	(*ListEvaluationDatasetVersionsRequest)(nil),               // 646: o11y_one.agentic.v1.ListEvaluationDatasetVersionsRequest
-	(*ListEvaluationDatasetVersionsResponse)(nil),              // 647: o11y_one.agentic.v1.ListEvaluationDatasetVersionsResponse
-	(*ListDatasetUsageRequest)(nil),                            // 648: o11y_one.agentic.v1.ListDatasetUsageRequest
-	(*ListDatasetUsageResponse)(nil),                           // 649: o11y_one.agentic.v1.ListDatasetUsageResponse
-	(*DatasetCaseDraftConflictV1)(nil),                         // 650: o11y_one.agentic.v1.DatasetCaseDraftConflictV1
-	(*DatasetDraftRefusalV1)(nil),                              // 651: o11y_one.agentic.v1.DatasetDraftRefusalV1
-	(*DatasetCaseDraftLineageV1)(nil),                          // 652: o11y_one.agentic.v1.DatasetCaseDraftLineageV1
-	(*DatasetCaseDraftV1)(nil),                                 // 653: o11y_one.agentic.v1.DatasetCaseDraftV1
-	(*DatasetChangesetV1)(nil),                                 // 654: o11y_one.agentic.v1.DatasetChangesetV1
-	(*DatasetPublishLinkedEvaluationV1)(nil),                   // 655: o11y_one.agentic.v1.DatasetPublishLinkedEvaluationV1
-	(*DatasetChangesetPreviewV1)(nil),                          // 656: o11y_one.agentic.v1.DatasetChangesetPreviewV1
-	(*DatasetPublishResultV1)(nil),                             // 657: o11y_one.agentic.v1.DatasetPublishResultV1
-	(*GetDatasetCaseDraftRequest)(nil),                         // 658: o11y_one.agentic.v1.GetDatasetCaseDraftRequest
-	(*GetDatasetCaseDraftResponse)(nil),                        // 659: o11y_one.agentic.v1.GetDatasetCaseDraftResponse
-	(*ListDatasetCaseDraftsRequest)(nil),                       // 660: o11y_one.agentic.v1.ListDatasetCaseDraftsRequest
-	(*ListDatasetCaseDraftsResponse)(nil),                      // 661: o11y_one.agentic.v1.ListDatasetCaseDraftsResponse
-	(*UpdateDatasetCaseDraftRequest)(nil),                      // 662: o11y_one.agentic.v1.UpdateDatasetCaseDraftRequest
-	(*UpdateDatasetCaseDraftResponse)(nil),                     // 663: o11y_one.agentic.v1.UpdateDatasetCaseDraftResponse
-	(*ApproveDatasetCaseDraftRequest)(nil),                     // 664: o11y_one.agentic.v1.ApproveDatasetCaseDraftRequest
-	(*ApproveDatasetCaseDraftResponse)(nil),                    // 665: o11y_one.agentic.v1.ApproveDatasetCaseDraftResponse
-	(*RejectDatasetCaseDraftRequest)(nil),                      // 666: o11y_one.agentic.v1.RejectDatasetCaseDraftRequest
-	(*RejectDatasetCaseDraftResponse)(nil),                     // 667: o11y_one.agentic.v1.RejectDatasetCaseDraftResponse
-	(*MergeDatasetCaseDraftRequest)(nil),                       // 668: o11y_one.agentic.v1.MergeDatasetCaseDraftRequest
-	(*MergeDatasetCaseDraftResponse)(nil),                      // 669: o11y_one.agentic.v1.MergeDatasetCaseDraftResponse
-	(*PreviewPublishDatasetChangesetRequest)(nil),              // 670: o11y_one.agentic.v1.PreviewPublishDatasetChangesetRequest
-	(*PreviewPublishDatasetChangesetResponse)(nil),             // 671: o11y_one.agentic.v1.PreviewPublishDatasetChangesetResponse
-	(*PublishDatasetCaseDraftsRequest)(nil),                    // 672: o11y_one.agentic.v1.PublishDatasetCaseDraftsRequest
-	(*PublishDatasetCaseDraftsResponse)(nil),                   // 673: o11y_one.agentic.v1.PublishDatasetCaseDraftsResponse
-	(*PreviewProductionEvaluationRuleRequest)(nil),             // 674: o11y_one.agentic.v1.PreviewProductionEvaluationRuleRequest
-	(*ProductionRulePreviewDraftSubjectV1)(nil),                // 675: o11y_one.agentic.v1.ProductionRulePreviewDraftSubjectV1
-	(*ProductionRulePreviewWindowV1)(nil),                      // 676: o11y_one.agentic.v1.ProductionRulePreviewWindowV1
-	(*ProductionRulePreviewCumulativeCountsV1)(nil),            // 677: o11y_one.agentic.v1.ProductionRulePreviewCumulativeCountsV1
-	(*ProductionRulePreviewBucketV1)(nil),                      // 678: o11y_one.agentic.v1.ProductionRulePreviewBucketV1
-	(*ProductionRulePreviewIdleBucketV1)(nil),                  // 679: o11y_one.agentic.v1.ProductionRulePreviewIdleBucketV1
-	(*ProductionRulePreviewBucketsV1)(nil),                     // 680: o11y_one.agentic.v1.ProductionRulePreviewBucketsV1
-	(*ProductionRulePreviewEstimateV1)(nil),                    // 681: o11y_one.agentic.v1.ProductionRulePreviewEstimateV1
-	(*ProductionRulePreviewBudgetPostureV1)(nil),               // 682: o11y_one.agentic.v1.ProductionRulePreviewBudgetPostureV1
-	(*ProductionRulePreviewPromotionImplicationV1)(nil),        // 683: o11y_one.agentic.v1.ProductionRulePreviewPromotionImplicationV1
-	(*ProductionRulePreviewReviewImplicationV1)(nil),           // 684: o11y_one.agentic.v1.ProductionRulePreviewReviewImplicationV1
-	(*ProductionRulePreviewLinkedEvaluationImplicationV1)(nil), // 685: o11y_one.agentic.v1.ProductionRulePreviewLinkedEvaluationImplicationV1
-	(*ProductionRulePreviewNotifyImplicationV1)(nil),           // 686: o11y_one.agentic.v1.ProductionRulePreviewNotifyImplicationV1
-	(*ProductionRulePreviewReleaseBlockImplicationV1)(nil),     // 687: o11y_one.agentic.v1.ProductionRulePreviewReleaseBlockImplicationV1
-	(*ProductionRulePreviewActionCandidateV1)(nil),             // 688: o11y_one.agentic.v1.ProductionRulePreviewActionCandidateV1
-	(*ProductionRulePreviewZeroMatchV1)(nil),                   // 689: o11y_one.agentic.v1.ProductionRulePreviewZeroMatchV1
-	(*ProductionRulePreviewWarningV1)(nil),                     // 690: o11y_one.agentic.v1.ProductionRulePreviewWarningV1
-	(*ProductionRulePreviewSubjectV1)(nil),                     // 691: o11y_one.agentic.v1.ProductionRulePreviewSubjectV1
-	(*ProductionRulePreviewOfferV1)(nil),                       // 692: o11y_one.agentic.v1.ProductionRulePreviewOfferV1
-	(*PreviewProductionEvaluationRuleResponse)(nil),            // 693: o11y_one.agentic.v1.PreviewProductionEvaluationRuleResponse
-	(*ProductionRulePreviewRefusalV1)(nil),                     // 694: o11y_one.agentic.v1.ProductionRulePreviewRefusalV1
-	(*timestamppb.Timestamp)(nil),                              // 695: google.protobuf.Timestamp
-	(*ProviderModelRefV1)(nil),                                 // 696: o11y_one.agentic.v1.ProviderModelRefV1
-	(*ProviderRequestSettingsV1)(nil),                          // 697: o11y_one.agentic.v1.ProviderRequestSettingsV1
-	(*v1.PageRequestV1)(nil),                                   // 698: o11y_one.common.v1.PageRequestV1
-	(v1.SortDirectionV1)(0),                                    // 699: o11y_one.common.v1.SortDirectionV1
-	(*v1.PageResponseV1)(nil),                                  // 700: o11y_one.common.v1.PageResponseV1
-	(ProviderNameV1)(0),                                        // 701: o11y_one.agentic.v1.ProviderNameV1
-	(ProviderReasoningEffortV1)(0),                             // 702: o11y_one.agentic.v1.ProviderReasoningEffortV1
-	(AnnotationPairwiseWinnerV1)(0),                            // 703: o11y_one.agentic.v1.AnnotationPairwiseWinnerV1
+	(MachinePrincipalScopeV1)(0),                               // 158: o11y_one.agentic.v1.MachinePrincipalScopeV1
+	(MachinePrincipalStateV1)(0),                               // 159: o11y_one.agentic.v1.MachinePrincipalStateV1
+	(MachineCredentialStateV1)(0),                              // 160: o11y_one.agentic.v1.MachineCredentialStateV1
+	(ExternalSubmissionAckKindV1)(0),                           // 161: o11y_one.agentic.v1.ExternalSubmissionAckKindV1
+	(ExternalLeaseRefusalKindV1)(0),                            // 162: o11y_one.agentic.v1.ExternalLeaseRefusalKindV1
+	(PlatformAnnotationKindV1)(0),                              // 163: o11y_one.agentic.v1.PlatformAnnotationKindV1
+	(PlatformAnnotationLinkKindV1)(0),                          // 164: o11y_one.agentic.v1.PlatformAnnotationLinkKindV1
+	(PlatformAnnotationRejectionReasonV1)(0),                   // 165: o11y_one.agentic.v1.PlatformAnnotationRejectionReasonV1
+	(EvaluationScorerArchivedFilterV1)(0),                      // 166: o11y_one.agentic.v1.EvaluationScorerArchivedFilterV1
+	(*StringListV1)(nil),                                       // 167: o11y_one.agentic.v1.StringListV1
+	(*Int64ListV1)(nil),                                        // 168: o11y_one.agentic.v1.Int64ListV1
+	(*DoubleListV1)(nil),                                       // 169: o11y_one.agentic.v1.DoubleListV1
+	(*MetadataValueV1)(nil),                                    // 170: o11y_one.agentic.v1.MetadataValueV1
+	(*MetadataEntryV1)(nil),                                    // 171: o11y_one.agentic.v1.MetadataEntryV1
+	(*PrincipalRefV1)(nil),                                     // 172: o11y_one.agentic.v1.PrincipalRefV1
+	(*EvaluationFreshnessV1)(nil),                              // 173: o11y_one.agentic.v1.EvaluationFreshnessV1
+	(*MetricAvailabilityV1)(nil),                               // 174: o11y_one.agentic.v1.MetricAvailabilityV1
+	(*SemanticConventionProvenanceV1)(nil),                     // 175: o11y_one.agentic.v1.SemanticConventionProvenanceV1
+	(*AllowedActionV1)(nil),                                    // 176: o11y_one.agentic.v1.AllowedActionV1
+	(*CapabilityLimitV1)(nil),                                  // 177: o11y_one.agentic.v1.CapabilityLimitV1
+	(*CapabilityPostureV1)(nil),                                // 178: o11y_one.agentic.v1.CapabilityPostureV1
+	(*AgenticEvaluationCapabilitiesV1)(nil),                    // 179: o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	(*CostAmountV1)(nil),                                       // 180: o11y_one.agentic.v1.CostAmountV1
+	(*DatasetFieldMappingV1)(nil),                              // 181: o11y_one.agentic.v1.DatasetFieldMappingV1
+	(*CohortNormalizationPolicyV1)(nil),                        // 182: o11y_one.agentic.v1.CohortNormalizationPolicyV1
+	(*EvaluationCohortSpecV1)(nil),                             // 183: o11y_one.agentic.v1.EvaluationCohortSpecV1
+	(*RecordedOutputCandidateV1)(nil),                          // 184: o11y_one.agentic.v1.RecordedOutputCandidateV1
+	(*ProviderPromptCandidateV1)(nil),                          // 185: o11y_one.agentic.v1.ProviderPromptCandidateV1
+	(*HttpJsonEndpointCandidateV1)(nil),                        // 186: o11y_one.agentic.v1.HttpJsonEndpointCandidateV1
+	(*ExperimentTargetRefCandidateV1)(nil),                     // 187: o11y_one.agentic.v1.ExperimentTargetRefCandidateV1
+	(*AgentReleaseRevisionCandidateV1)(nil),                    // 188: o11y_one.agentic.v1.AgentReleaseRevisionCandidateV1
+	(*ExternalExecutionLeasePolicyV1)(nil),                     // 189: o11y_one.agentic.v1.ExternalExecutionLeasePolicyV1
+	(*ExternallyExecutedCandidateV1)(nil),                      // 190: o11y_one.agentic.v1.ExternallyExecutedCandidateV1
+	(*ConversationTerminationPolicyV1)(nil),                    // 191: o11y_one.agentic.v1.ConversationTerminationPolicyV1
+	(*ConversationSimulationCandidateV1)(nil),                  // 192: o11y_one.agentic.v1.ConversationSimulationCandidateV1
+	(*EvaluationRequestMappingV1)(nil),                         // 193: o11y_one.agentic.v1.EvaluationRequestMappingV1
+	(*EvaluationResponseMappingV1)(nil),                        // 194: o11y_one.agentic.v1.EvaluationResponseMappingV1
+	(*EvaluationTimeoutRetryPolicyV1)(nil),                     // 195: o11y_one.agentic.v1.EvaluationTimeoutRetryPolicyV1
+	(*ProviderCapabilitySnapshotV1)(nil),                       // 196: o11y_one.agentic.v1.ProviderCapabilitySnapshotV1
+	(*CandidateSideEffectAttestationV1)(nil),                   // 197: o11y_one.agentic.v1.CandidateSideEffectAttestationV1
+	(*EvaluationCandidateV1)(nil),                              // 198: o11y_one.agentic.v1.EvaluationCandidateV1
+	(*EvaluationScorerSelectionV1)(nil),                        // 199: o11y_one.agentic.v1.EvaluationScorerSelectionV1
+	(*EvaluationScorerTargetV1)(nil),                           // 200: o11y_one.agentic.v1.EvaluationScorerTargetV1
+	(*EvaluationScorerSuiteMemberV1)(nil),                      // 201: o11y_one.agentic.v1.EvaluationScorerSuiteMemberV1
+	(*EvaluationScorerSuiteV1)(nil),                            // 202: o11y_one.agentic.v1.EvaluationScorerSuiteV1
+	(*EvaluationScorerSuiteSnapshotV1)(nil),                    // 203: o11y_one.agentic.v1.EvaluationScorerSuiteSnapshotV1
+	(*EvaluationScorerSuiteRollupV1)(nil),                      // 204: o11y_one.agentic.v1.EvaluationScorerSuiteRollupV1
+	(*EvaluationScorerSuiteCellV1)(nil),                        // 205: o11y_one.agentic.v1.EvaluationScorerSuiteCellV1
+	(*EvaluationExecutionPolicyV1)(nil),                        // 206: o11y_one.agentic.v1.EvaluationExecutionPolicyV1
+	(*EvaluationBudgetV1)(nil),                                 // 207: o11y_one.agentic.v1.EvaluationBudgetV1
+	(*EvaluationDecisionRuleV1)(nil),                           // 208: o11y_one.agentic.v1.EvaluationDecisionRuleV1
+	(*EvaluationDecisionPolicyV1)(nil),                         // 209: o11y_one.agentic.v1.EvaluationDecisionPolicyV1
+	(*EvaluationReviewSamplingPolicyV1)(nil),                   // 210: o11y_one.agentic.v1.EvaluationReviewSamplingPolicyV1
+	(*EvaluationHumanReviewPolicyV1)(nil),                      // 211: o11y_one.agentic.v1.EvaluationHumanReviewPolicyV1
+	(*EvaluationDefinitionDraftV1)(nil),                        // 212: o11y_one.agentic.v1.EvaluationDefinitionDraftV1
+	(*EvaluationRunSummaryRefV1)(nil),                          // 213: o11y_one.agentic.v1.EvaluationRunSummaryRefV1
+	(*EvaluationDefinitionV1)(nil),                             // 214: o11y_one.agentic.v1.EvaluationDefinitionV1
+	(*EvaluationDefinitionRevisionV1)(nil),                     // 215: o11y_one.agentic.v1.EvaluationDefinitionRevisionV1
+	(*EvaluationDefinitionSummaryV1)(nil),                      // 216: o11y_one.agentic.v1.EvaluationDefinitionSummaryV1
+	(*CreateEvaluationDefinitionRequest)(nil),                  // 217: o11y_one.agentic.v1.CreateEvaluationDefinitionRequest
+	(*CreateEvaluationDefinitionResponse)(nil),                 // 218: o11y_one.agentic.v1.CreateEvaluationDefinitionResponse
+	(*EvaluationDefinitionConflictV1)(nil),                     // 219: o11y_one.agentic.v1.EvaluationDefinitionConflictV1
+	(*UpdateEvaluationDefinitionRequest)(nil),                  // 220: o11y_one.agentic.v1.UpdateEvaluationDefinitionRequest
+	(*UpdateEvaluationDefinitionResponse)(nil),                 // 221: o11y_one.agentic.v1.UpdateEvaluationDefinitionResponse
+	(*GetEvaluationDefinitionRequest)(nil),                     // 222: o11y_one.agentic.v1.GetEvaluationDefinitionRequest
+	(*GetEvaluationDefinitionResponse)(nil),                    // 223: o11y_one.agentic.v1.GetEvaluationDefinitionResponse
+	(*ListEvaluationDefinitionsRequest)(nil),                   // 224: o11y_one.agentic.v1.ListEvaluationDefinitionsRequest
+	(*ListEvaluationDefinitionsResponse)(nil),                  // 225: o11y_one.agentic.v1.ListEvaluationDefinitionsResponse
+	(*NewDraftEntryV1)(nil),                                    // 226: o11y_one.agentic.v1.NewDraftEntryV1
+	(*EditDefinitionEntryV1)(nil),                              // 227: o11y_one.agentic.v1.EditDefinitionEntryV1
+	(*DuplicateDefinitionEntryV1)(nil),                         // 228: o11y_one.agentic.v1.DuplicateDefinitionEntryV1
+	(*RerunDefinitionEntryV1)(nil),                             // 229: o11y_one.agentic.v1.RerunDefinitionEntryV1
+	(*FromDatasetEntryV1)(nil),                                 // 230: o11y_one.agentic.v1.FromDatasetEntryV1
+	(*FromProductionEvidenceEntryV1)(nil),                      // 231: o11y_one.agentic.v1.FromProductionEvidenceEntryV1
+	(*FromReleaseEntryV1)(nil),                                 // 232: o11y_one.agentic.v1.FromReleaseEntryV1
+	(*GetEvaluationBuilderContextRequest)(nil),                 // 233: o11y_one.agentic.v1.GetEvaluationBuilderContextRequest
+	(*EvaluationBuilderDatasetVersionOptionV1)(nil),            // 234: o11y_one.agentic.v1.EvaluationBuilderDatasetVersionOptionV1
+	(*EvaluationBuilderDatasetOptionV1)(nil),                   // 235: o11y_one.agentic.v1.EvaluationBuilderDatasetOptionV1
+	(*EvaluationBuilderModelOptionV1)(nil),                     // 236: o11y_one.agentic.v1.EvaluationBuilderModelOptionV1
+	(*EvaluationBuilderCandidateSourcesV1)(nil),                // 237: o11y_one.agentic.v1.EvaluationBuilderCandidateSourcesV1
+	(*EvaluationBuilderScorerChoiceV1)(nil),                    // 238: o11y_one.agentic.v1.EvaluationBuilderScorerChoiceV1
+	(*EvaluationBuilderRecommendedMeasureV1)(nil),              // 239: o11y_one.agentic.v1.EvaluationBuilderRecommendedMeasureV1
+	(*EvaluationBuilderScorecardRecommendationV1)(nil),         // 240: o11y_one.agentic.v1.EvaluationBuilderScorecardRecommendationV1
+	(*EvaluationBuilderCredentialRefV1)(nil),                   // 241: o11y_one.agentic.v1.EvaluationBuilderCredentialRefV1
+	(*EvaluationBuilderExecutionDefaultsV1)(nil),               // 242: o11y_one.agentic.v1.EvaluationBuilderExecutionDefaultsV1
+	(*EvaluationBuilderReadinessFindingV1)(nil),                // 243: o11y_one.agentic.v1.EvaluationBuilderReadinessFindingV1
+	(*EvaluationBuilderInferredSubjectV1)(nil),                 // 244: o11y_one.agentic.v1.EvaluationBuilderInferredSubjectV1
+	(*GetEvaluationBuilderContextResponse)(nil),                // 245: o11y_one.agentic.v1.GetEvaluationBuilderContextResponse
+	(*EvaluationFailureV1)(nil),                                // 246: o11y_one.agentic.v1.EvaluationFailureV1
+	(*EvaluationCohortSnapshotV1)(nil),                         // 247: o11y_one.agentic.v1.EvaluationCohortSnapshotV1
+	(*EvaluationScorerVersionSnapshotV1)(nil),                  // 248: o11y_one.agentic.v1.EvaluationScorerVersionSnapshotV1
+	(*EvaluationCredentialReferenceV1)(nil),                    // 249: o11y_one.agentic.v1.EvaluationCredentialReferenceV1
+	(*EvaluationModelRateV1)(nil),                              // 250: o11y_one.agentic.v1.EvaluationModelRateV1
+	(*EvaluationSupersededRateV1)(nil),                         // 251: o11y_one.agentic.v1.EvaluationSupersededRateV1
+	(*EvaluationRateModifierV1)(nil),                           // 252: o11y_one.agentic.v1.EvaluationRateModifierV1
+	(*EvaluationRateEffectV1)(nil),                             // 253: o11y_one.agentic.v1.EvaluationRateEffectV1
+	(*EvaluationRateScaleV1)(nil),                              // 254: o11y_one.agentic.v1.EvaluationRateScaleV1
+	(*EvaluationRateReplacementV1)(nil),                        // 255: o11y_one.agentic.v1.EvaluationRateReplacementV1
+	(*EvaluationRateProvenanceV1)(nil),                         // 256: o11y_one.agentic.v1.EvaluationRateProvenanceV1
+	(*EvaluationTokenAccountingV1)(nil),                        // 257: o11y_one.agentic.v1.EvaluationTokenAccountingV1
+	(*EvaluationRateDimensionNoteV1)(nil),                      // 258: o11y_one.agentic.v1.EvaluationRateDimensionNoteV1
+	(*EvaluationCostAssumptionV1)(nil),                         // 259: o11y_one.agentic.v1.EvaluationCostAssumptionV1
+	(*EvaluationPricingSourceV1)(nil),                          // 260: o11y_one.agentic.v1.EvaluationPricingSourceV1
+	(*EvaluationCostReservationV1)(nil),                        // 261: o11y_one.agentic.v1.EvaluationCostReservationV1
+	(*EvaluationRunLimitsV1)(nil),                              // 262: o11y_one.agentic.v1.EvaluationRunLimitsV1
+	(*EvaluationRunManifestV1)(nil),                            // 263: o11y_one.agentic.v1.EvaluationRunManifestV1
+	(*EvaluationFrozenEvaluatorRefV1)(nil),                     // 264: o11y_one.agentic.v1.EvaluationFrozenEvaluatorRefV1
+	(*EvaluationRunProgressV1)(nil),                            // 265: o11y_one.agentic.v1.EvaluationRunProgressV1
+	(*EvaluationRunV1)(nil),                                    // 266: o11y_one.agentic.v1.EvaluationRunV1
+	(*EvaluationOperationV1)(nil),                              // 267: o11y_one.agentic.v1.EvaluationOperationV1
+	(*EvaluationCohortEstimateV1)(nil),                         // 268: o11y_one.agentic.v1.EvaluationCohortEstimateV1
+	(*EvaluationPreviewEstimatesV1)(nil),                       // 269: o11y_one.agentic.v1.EvaluationPreviewEstimatesV1
+	(*EvaluationBlastRadiusV1)(nil),                            // 270: o11y_one.agentic.v1.EvaluationBlastRadiusV1
+	(*EvaluationPreviewBlockerV1)(nil),                         // 271: o11y_one.agentic.v1.EvaluationPreviewBlockerV1
+	(*PreviewEvaluationRunRequest)(nil),                        // 272: o11y_one.agentic.v1.PreviewEvaluationRunRequest
+	(*PreviewEvaluationRunResponse)(nil),                       // 273: o11y_one.agentic.v1.PreviewEvaluationRunResponse
+	(*CreateEvaluationRunRequest)(nil),                         // 274: o11y_one.agentic.v1.CreateEvaluationRunRequest
+	(*CreateEvaluationRunResponse)(nil),                        // 275: o11y_one.agentic.v1.CreateEvaluationRunResponse
+	(*EvaluationLaunchRejectionV1)(nil),                        // 276: o11y_one.agentic.v1.EvaluationLaunchRejectionV1
+	(*GetEvaluationOperationRequest)(nil),                      // 277: o11y_one.agentic.v1.GetEvaluationOperationRequest
+	(*GetEvaluationOperationResponse)(nil),                     // 278: o11y_one.agentic.v1.GetEvaluationOperationResponse
+	(*CancelEvaluationRunRequest)(nil),                         // 279: o11y_one.agentic.v1.CancelEvaluationRunRequest
+	(*CancelEvaluationRunResponse)(nil),                        // 280: o11y_one.agentic.v1.CancelEvaluationRunResponse
+	(*EvaluationCellRefV1)(nil),                                // 281: o11y_one.agentic.v1.EvaluationCellRefV1
+	(*EvaluationRetryCellStatusV1)(nil),                        // 282: o11y_one.agentic.v1.EvaluationRetryCellStatusV1
+	(*EvaluationRetryEstimateV1)(nil),                          // 283: o11y_one.agentic.v1.EvaluationRetryEstimateV1
+	(*PreviewRetryEvaluationCellsRequest)(nil),                 // 284: o11y_one.agentic.v1.PreviewRetryEvaluationCellsRequest
+	(*PreviewRetryEvaluationCellsResponse)(nil),                // 285: o11y_one.agentic.v1.PreviewRetryEvaluationCellsResponse
+	(*RetryEvaluationCellsRequest)(nil),                        // 286: o11y_one.agentic.v1.RetryEvaluationCellsRequest
+	(*RetryEvaluationCellsResponse)(nil),                       // 287: o11y_one.agentic.v1.RetryEvaluationCellsResponse
+	(*EvaluationScorerCoordinateV1)(nil),                       // 288: o11y_one.agentic.v1.EvaluationScorerCoordinateV1
+	(*EvaluationScorerRetryStatusV1)(nil),                      // 289: o11y_one.agentic.v1.EvaluationScorerRetryStatusV1
+	(*EvaluationScorerRetryRejectionV1)(nil),                   // 290: o11y_one.agentic.v1.EvaluationScorerRetryRejectionV1
+	(*PreviewRetryEvaluationScorersRequest)(nil),               // 291: o11y_one.agentic.v1.PreviewRetryEvaluationScorersRequest
+	(*PreviewRetryEvaluationScorersResponse)(nil),              // 292: o11y_one.agentic.v1.PreviewRetryEvaluationScorersResponse
+	(*RetryEvaluationScorersRequest)(nil),                      // 293: o11y_one.agentic.v1.RetryEvaluationScorersRequest
+	(*EvaluationScorerRetryAppliedV1)(nil),                     // 294: o11y_one.agentic.v1.EvaluationScorerRetryAppliedV1
+	(*RetryEvaluationScorersResponse)(nil),                     // 295: o11y_one.agentic.v1.RetryEvaluationScorersResponse
+	(*TokenUsageV1)(nil),                                       // 296: o11y_one.agentic.v1.TokenUsageV1
+	(*ProviderUsageRecordV1)(nil),                              // 297: o11y_one.agentic.v1.ProviderUsageRecordV1
+	(*ProviderUsageFieldV1)(nil),                               // 298: o11y_one.agentic.v1.ProviderUsageFieldV1
+	(*CostLineItemV1)(nil),                                     // 299: o11y_one.agentic.v1.CostLineItemV1
+	(*CostBreakdownV1)(nil),                                    // 300: o11y_one.agentic.v1.CostBreakdownV1
+	(*LatencyMetricsV1)(nil),                                   // 301: o11y_one.agentic.v1.LatencyMetricsV1
+	(*ProviderStatusV1)(nil),                                   // 302: o11y_one.agentic.v1.ProviderStatusV1
+	(*InstrumentationCompletenessV1)(nil),                      // 303: o11y_one.agentic.v1.InstrumentationCompletenessV1
+	(*ExecutionMetricsV1)(nil),                                 // 304: o11y_one.agentic.v1.ExecutionMetricsV1
+	(*EvaluationScorerResultV1)(nil),                           // 305: o11y_one.agentic.v1.EvaluationScorerResultV1
+	(*EvaluationCellResultV1)(nil),                             // 306: o11y_one.agentic.v1.EvaluationCellResultV1
+	(*EvaluationVerdictCountsV1)(nil),                          // 307: o11y_one.agentic.v1.EvaluationVerdictCountsV1
+	(*EvaluationScorerRollupV1)(nil),                           // 308: o11y_one.agentic.v1.EvaluationScorerRollupV1
+	(*EvaluationScorerCompletionV1)(nil),                       // 309: o11y_one.agentic.v1.EvaluationScorerCompletionV1
+	(*EvaluationFailureStageCountV1)(nil),                      // 310: o11y_one.agentic.v1.EvaluationFailureStageCountV1
+	(*EvaluationRunFailureRollupV1)(nil),                       // 311: o11y_one.agentic.v1.EvaluationRunFailureRollupV1
+	(*EvaluationRunRecoveryV1)(nil),                            // 312: o11y_one.agentic.v1.EvaluationRunRecoveryV1
+	(*EvaluationCursorResyncV1)(nil),                           // 313: o11y_one.agentic.v1.EvaluationCursorResyncV1
+	(*EvaluationDecisionDriverV1)(nil),                         // 314: o11y_one.agentic.v1.EvaluationDecisionDriverV1
+	(*EvaluationDecisionDriversV1)(nil),                        // 315: o11y_one.agentic.v1.EvaluationDecisionDriversV1
+	(*RepeatSampleCheckV1)(nil),                                // 316: o11y_one.agentic.v1.RepeatSampleCheckV1
+	(*MinimumDetectableEffectV1)(nil),                          // 317: o11y_one.agentic.v1.MinimumDetectableEffectV1
+	(*ComparisonRepeatAlignmentV1)(nil),                        // 318: o11y_one.agentic.v1.ComparisonRepeatAlignmentV1
+	(*MinimumSampleCheckV1)(nil),                               // 319: o11y_one.agentic.v1.MinimumSampleCheckV1
+	(*ConfidenceIntervalV1)(nil),                               // 320: o11y_one.agentic.v1.ConfidenceIntervalV1
+	(*StatisticalResultV1)(nil),                                // 321: o11y_one.agentic.v1.StatisticalResultV1
+	(*CandidatePairComparisonV1)(nil),                          // 322: o11y_one.agentic.v1.CandidatePairComparisonV1
+	(*EvaluationCandidateComparisonV1)(nil),                    // 323: o11y_one.agentic.v1.EvaluationCandidateComparisonV1
+	(*EvaluationSliceCandidateRowV1)(nil),                      // 324: o11y_one.agentic.v1.EvaluationSliceCandidateRowV1
+	(*EvaluationSliceV1)(nil),                                  // 325: o11y_one.agentic.v1.EvaluationSliceV1
+	(*EvaluationSliceAnalysisV1)(nil),                          // 326: o11y_one.agentic.v1.EvaluationSliceAnalysisV1
+	(*DataQualityFindingV1)(nil),                               // 327: o11y_one.agentic.v1.DataQualityFindingV1
+	(*EvaluationDataQualityV1)(nil),                            // 328: o11y_one.agentic.v1.EvaluationDataQualityV1
+	(*TotalMatchingV1)(nil),                                    // 329: o11y_one.agentic.v1.TotalMatchingV1
+	(*RegressionSeriesPointV1)(nil),                            // 330: o11y_one.agentic.v1.RegressionSeriesPointV1
+	(*EvaluationRegressionHistoryV1)(nil),                      // 331: o11y_one.agentic.v1.EvaluationRegressionHistoryV1
+	(*DecisionBlockerV1)(nil),                                  // 332: o11y_one.agentic.v1.DecisionBlockerV1
+	(*CandidateTradeoffV1)(nil),                                // 333: o11y_one.agentic.v1.CandidateTradeoffV1
+	(*EvidencePostureV1)(nil),                                  // 334: o11y_one.agentic.v1.EvidencePostureV1
+	(*EvaluationDecisionV1)(nil),                               // 335: o11y_one.agentic.v1.EvaluationDecisionV1
+	(*EvaluationDecisionRevisionV1)(nil),                       // 336: o11y_one.agentic.v1.EvaluationDecisionRevisionV1
+	(*EvaluationAdoptedDecisionV1)(nil),                        // 337: o11y_one.agentic.v1.EvaluationAdoptedDecisionV1
+	(*ReleaseAdoptionWarningV1)(nil),                           // 338: o11y_one.agentic.v1.ReleaseAdoptionWarningV1
+	(*EvaluationCostDriftV1)(nil),                              // 339: o11y_one.agentic.v1.EvaluationCostDriftV1
+	(*GetEvaluationRunOverviewRequest)(nil),                    // 340: o11y_one.agentic.v1.GetEvaluationRunOverviewRequest
+	(*GetEvaluationRunOverviewResponse)(nil),                   // 341: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse
+	(*PreviewEvaluationDecisionRequest)(nil),                   // 342: o11y_one.agentic.v1.PreviewEvaluationDecisionRequest
+	(*PreviewEvaluationDecisionResponse)(nil),                  // 343: o11y_one.agentic.v1.PreviewEvaluationDecisionResponse
+	(*AdoptEvaluationDecisionRevisionRequest)(nil),             // 344: o11y_one.agentic.v1.AdoptEvaluationDecisionRevisionRequest
+	(*AdoptEvaluationDecisionRevisionResponse)(nil),            // 345: o11y_one.agentic.v1.AdoptEvaluationDecisionRevisionResponse
+	(*EvaluationMatrixFilterV1)(nil),                           // 346: o11y_one.agentic.v1.EvaluationMatrixFilterV1
+	(*EvaluationMatrixCellV1)(nil),                             // 347: o11y_one.agentic.v1.EvaluationMatrixCellV1
+	(*EvaluationMatrixRowV1)(nil),                              // 348: o11y_one.agentic.v1.EvaluationMatrixRowV1
+	(*EvaluationMatrixFacetV1)(nil),                            // 349: o11y_one.agentic.v1.EvaluationMatrixFacetV1
+	(*EvaluationMatrixAlignmentV1)(nil),                        // 350: o11y_one.agentic.v1.EvaluationMatrixAlignmentV1
+	(*MatrixSelectionExplicitIdsV1)(nil),                       // 351: o11y_one.agentic.v1.MatrixSelectionExplicitIdsV1
+	(*MatrixSelectionV1)(nil),                                  // 352: o11y_one.agentic.v1.MatrixSelectionV1
+	(*ListEvaluationMatrixRowsRequest)(nil),                    // 353: o11y_one.agentic.v1.ListEvaluationMatrixRowsRequest
+	(*ListEvaluationMatrixRowsResponse)(nil),                   // 354: o11y_one.agentic.v1.ListEvaluationMatrixRowsResponse
+	(*EvaluationCaseContextV1)(nil),                            // 355: o11y_one.agentic.v1.EvaluationCaseContextV1
+	(*EvaluationCandidateAttemptDetailV1)(nil),                 // 356: o11y_one.agentic.v1.EvaluationCandidateAttemptDetailV1
+	(*EvaluationCandidateExecutionDetailV1)(nil),               // 357: o11y_one.agentic.v1.EvaluationCandidateExecutionDetailV1
+	(*EvaluationScorerEvidenceV1)(nil),                         // 358: o11y_one.agentic.v1.EvaluationScorerEvidenceV1
+	(*EvaluationScorerAttemptEconomicsV1)(nil),                 // 359: o11y_one.agentic.v1.EvaluationScorerAttemptEconomicsV1
+	(*EvaluationArtifactSummaryV1)(nil),                        // 360: o11y_one.agentic.v1.EvaluationArtifactSummaryV1
+	(*EvaluationCellDetailV1)(nil),                             // 361: o11y_one.agentic.v1.EvaluationCellDetailV1
+	(*BatchGetEvaluationCellDetailsRequest)(nil),               // 362: o11y_one.agentic.v1.BatchGetEvaluationCellDetailsRequest
+	(*BatchGetEvaluationCellDetailsResponse)(nil),              // 363: o11y_one.agentic.v1.BatchGetEvaluationCellDetailsResponse
+	(*EvaluationRunProgressChangeV1)(nil),                      // 364: o11y_one.agentic.v1.EvaluationRunProgressChangeV1
+	(*EvaluationCellDeltaV1)(nil),                              // 365: o11y_one.agentic.v1.EvaluationCellDeltaV1
+	(*EvaluationCellBatchChangeV1)(nil),                        // 366: o11y_one.agentic.v1.EvaluationCellBatchChangeV1
+	(*EvaluationSectionRefreshedChangeV1)(nil),                 // 367: o11y_one.agentic.v1.EvaluationSectionRefreshedChangeV1
+	(*EvaluationDecisionRevisionChangeV1)(nil),                 // 368: o11y_one.agentic.v1.EvaluationDecisionRevisionChangeV1
+	(*EvaluationTerminalChangeV1)(nil),                         // 369: o11y_one.agentic.v1.EvaluationTerminalChangeV1
+	(*EvaluationChangeResyncV1)(nil),                           // 370: o11y_one.agentic.v1.EvaluationChangeResyncV1
+	(*EvaluationChangeReplayGapV1)(nil),                        // 371: o11y_one.agentic.v1.EvaluationChangeReplayGapV1
+	(*EvaluationRunChangeV1)(nil),                              // 372: o11y_one.agentic.v1.EvaluationRunChangeV1
+	(*ListEvaluationRunChangesRequest)(nil),                    // 373: o11y_one.agentic.v1.ListEvaluationRunChangesRequest
+	(*ListEvaluationRunChangesResponse)(nil),                   // 374: o11y_one.agentic.v1.ListEvaluationRunChangesResponse
+	(*EvaluationArtifactContentRefV1)(nil),                     // 375: o11y_one.agentic.v1.EvaluationArtifactContentRefV1
+	(*EvaluationArtifactRemediationV1)(nil),                    // 376: o11y_one.agentic.v1.EvaluationArtifactRemediationV1
+	(*EvaluationArtifactContentV1)(nil),                        // 377: o11y_one.agentic.v1.EvaluationArtifactContentV1
+	(*GetEvaluationArtifactContentRequest)(nil),                // 378: o11y_one.agentic.v1.GetEvaluationArtifactContentRequest
+	(*GetEvaluationArtifactContentResponse)(nil),               // 379: o11y_one.agentic.v1.GetEvaluationArtifactContentResponse
+	(*BatchGetEvaluationArtifactContentsRequest)(nil),          // 380: o11y_one.agentic.v1.BatchGetEvaluationArtifactContentsRequest
+	(*BatchGetEvaluationArtifactContentsResponse)(nil),         // 381: o11y_one.agentic.v1.BatchGetEvaluationArtifactContentsResponse
+	(*ConfigurationDiffEntryV1)(nil),                           // 382: o11y_one.agentic.v1.ConfigurationDiffEntryV1
+	(*EvaluationConfigurationDiffV1)(nil),                      // 383: o11y_one.agentic.v1.EvaluationConfigurationDiffV1
+	(*EvaluationAuditEntryV1)(nil),                             // 384: o11y_one.agentic.v1.EvaluationAuditEntryV1
+	(*EvaluationRunManifestSectionV1)(nil),                     // 385: o11y_one.agentic.v1.EvaluationRunManifestSectionV1
+	(*EvaluationReviewUnitV1)(nil),                             // 386: o11y_one.agentic.v1.EvaluationReviewUnitV1
+	(*EvaluationReviewTaskV1)(nil),                             // 387: o11y_one.agentic.v1.EvaluationReviewTaskV1
+	(*EvaluationReviewSubjectV1)(nil),                          // 388: o11y_one.agentic.v1.EvaluationReviewSubjectV1
+	(*EvaluationReviewRubricFieldV1)(nil),                      // 389: o11y_one.agentic.v1.EvaluationReviewRubricFieldV1
+	(*EvaluationReviewRubricV1)(nil),                           // 390: o11y_one.agentic.v1.EvaluationReviewRubricV1
+	(*EvaluationReviewSubmissionV1)(nil),                       // 391: o11y_one.agentic.v1.EvaluationReviewSubmissionV1
+	(*EvaluationReviewRubricFieldErrorV1)(nil),                 // 392: o11y_one.agentic.v1.EvaluationReviewRubricFieldErrorV1
+	(*ListEvaluationReviewTasksRequest)(nil),                   // 393: o11y_one.agentic.v1.ListEvaluationReviewTasksRequest
+	(*ListEvaluationReviewTasksResponse)(nil),                  // 394: o11y_one.agentic.v1.ListEvaluationReviewTasksResponse
+	(*ClaimEvaluationReviewTasksRequest)(nil),                  // 395: o11y_one.agentic.v1.ClaimEvaluationReviewTasksRequest
+	(*ClaimEvaluationReviewTasksResponse)(nil),                 // 396: o11y_one.agentic.v1.ClaimEvaluationReviewTasksResponse
+	(*GetEvaluationReviewTaskRequest)(nil),                     // 397: o11y_one.agentic.v1.GetEvaluationReviewTaskRequest
+	(*GetEvaluationReviewTaskResponse)(nil),                    // 398: o11y_one.agentic.v1.GetEvaluationReviewTaskResponse
+	(*SubmitEvaluationReviewRequest)(nil),                      // 399: o11y_one.agentic.v1.SubmitEvaluationReviewRequest
+	(*SubmitEvaluationReviewResponse)(nil),                     // 400: o11y_one.agentic.v1.SubmitEvaluationReviewResponse
+	(*EvaluationExportV1)(nil),                                 // 401: o11y_one.agentic.v1.EvaluationExportV1
+	(*CreateEvaluationExportRequest)(nil),                      // 402: o11y_one.agentic.v1.CreateEvaluationExportRequest
+	(*CreateEvaluationExportResponse)(nil),                     // 403: o11y_one.agentic.v1.CreateEvaluationExportResponse
+	(*GetEvaluationExportRequest)(nil),                         // 404: o11y_one.agentic.v1.GetEvaluationExportRequest
+	(*GetEvaluationExportResponse)(nil),                        // 405: o11y_one.agentic.v1.GetEvaluationExportResponse
+	(*EvaluationShareV1)(nil),                                  // 406: o11y_one.agentic.v1.EvaluationShareV1
+	(*CreateEvaluationShareRequest)(nil),                       // 407: o11y_one.agentic.v1.CreateEvaluationShareRequest
+	(*CreateEvaluationShareResponse)(nil),                      // 408: o11y_one.agentic.v1.CreateEvaluationShareResponse
+	(*GetEvaluationShareRequest)(nil),                          // 409: o11y_one.agentic.v1.GetEvaluationShareRequest
+	(*GetEvaluationShareResponse)(nil),                         // 410: o11y_one.agentic.v1.GetEvaluationShareResponse
+	(*RevokeEvaluationShareRequest)(nil),                       // 411: o11y_one.agentic.v1.RevokeEvaluationShareRequest
+	(*RevokeEvaluationShareResponse)(nil),                      // 412: o11y_one.agentic.v1.RevokeEvaluationShareResponse
+	(*EvaluationOperationBoundaryV1)(nil),                      // 413: o11y_one.agentic.v1.EvaluationOperationBoundaryV1
+	(*EvaluationOperationGroupV1)(nil),                         // 414: o11y_one.agentic.v1.EvaluationOperationGroupV1
+	(*EvaluationOperationTotalsV1)(nil),                        // 415: o11y_one.agentic.v1.EvaluationOperationTotalsV1
+	(*GetEvaluationOperationBreakdownRequest)(nil),             // 416: o11y_one.agentic.v1.GetEvaluationOperationBreakdownRequest
+	(*GetEvaluationOperationBreakdownResponse)(nil),            // 417: o11y_one.agentic.v1.GetEvaluationOperationBreakdownResponse
+	(*EvaluationDefinitionRevisionSummaryV1)(nil),              // 418: o11y_one.agentic.v1.EvaluationDefinitionRevisionSummaryV1
+	(*ListEvaluationDefinitionRevisionsRequest)(nil),           // 419: o11y_one.agentic.v1.ListEvaluationDefinitionRevisionsRequest
+	(*ListEvaluationDefinitionRevisionsResponse)(nil),          // 420: o11y_one.agentic.v1.ListEvaluationDefinitionRevisionsResponse
+	(*EvaluationReviewAdjudicationV1)(nil),                     // 421: o11y_one.agentic.v1.EvaluationReviewAdjudicationV1
+	(*AdjudicateEvaluationReviewConflictRequest)(nil),          // 422: o11y_one.agentic.v1.AdjudicateEvaluationReviewConflictRequest
+	(*AdjudicateEvaluationReviewConflictResponse)(nil),         // 423: o11y_one.agentic.v1.AdjudicateEvaluationReviewConflictResponse
+	(*EvaluationOrgNegotiatedRateV1)(nil),                      // 424: o11y_one.agentic.v1.EvaluationOrgNegotiatedRateV1
+	(*RecordEvaluationOrgNegotiatedRateRequest)(nil),           // 425: o11y_one.agentic.v1.RecordEvaluationOrgNegotiatedRateRequest
+	(*RecordEvaluationOrgNegotiatedRateResponse)(nil),          // 426: o11y_one.agentic.v1.RecordEvaluationOrgNegotiatedRateResponse
+	(*ListEvaluationOrgNegotiatedRatesRequest)(nil),            // 427: o11y_one.agentic.v1.ListEvaluationOrgNegotiatedRatesRequest
+	(*ListEvaluationOrgNegotiatedRatesResponse)(nil),           // 428: o11y_one.agentic.v1.ListEvaluationOrgNegotiatedRatesResponse
+	(*EndEvaluationOrgNegotiatedRateRequest)(nil),              // 429: o11y_one.agentic.v1.EndEvaluationOrgNegotiatedRateRequest
+	(*EndEvaluationOrgNegotiatedRateResponse)(nil),             // 430: o11y_one.agentic.v1.EndEvaluationOrgNegotiatedRateResponse
+	(*VoidEvaluationOrgNegotiatedRateRequest)(nil),             // 431: o11y_one.agentic.v1.VoidEvaluationOrgNegotiatedRateRequest
+	(*VoidEvaluationOrgNegotiatedRateResponse)(nil),            // 432: o11y_one.agentic.v1.VoidEvaluationOrgNegotiatedRateResponse
+	(*EvaluationSeriesKeyV1)(nil),                              // 433: o11y_one.agentic.v1.EvaluationSeriesKeyV1
+	(*EvaluationSeriesPointV1)(nil),                            // 434: o11y_one.agentic.v1.EvaluationSeriesPointV1
+	(*EvaluationScoreSeriesV1)(nil),                            // 435: o11y_one.agentic.v1.EvaluationScoreSeriesV1
+	(*EvaluationSeriesClampV1)(nil),                            // 436: o11y_one.agentic.v1.EvaluationSeriesClampV1
+	(*ListEvaluationScoreSeriesRequest)(nil),                   // 437: o11y_one.agentic.v1.ListEvaluationScoreSeriesRequest
+	(*ListEvaluationScoreSeriesResponse)(nil),                  // 438: o11y_one.agentic.v1.ListEvaluationScoreSeriesResponse
+	(*EvaluationCaptureSpanSourceV1)(nil),                      // 439: o11y_one.agentic.v1.EvaluationCaptureSpanSourceV1
+	(*EvaluationCaptureCellSourceV1)(nil),                      // 440: o11y_one.agentic.v1.EvaluationCaptureCellSourceV1
+	(*EvaluationCaptureProvenanceV1)(nil),                      // 441: o11y_one.agentic.v1.EvaluationCaptureProvenanceV1
+	(*EvaluationCaptureFieldSelectionV1)(nil),                  // 442: o11y_one.agentic.v1.EvaluationCaptureFieldSelectionV1
+	(*EvaluationProposedCaseV1)(nil),                           // 443: o11y_one.agentic.v1.EvaluationProposedCaseV1
+	(*EvaluationDatasetVersionDraftV1)(nil),                    // 444: o11y_one.agentic.v1.EvaluationDatasetVersionDraftV1
+	(*EvaluationCaptureRefusalV1)(nil),                         // 445: o11y_one.agentic.v1.EvaluationCaptureRefusalV1
+	(*CaptureEvaluationCaseRequest)(nil),                       // 446: o11y_one.agentic.v1.CaptureEvaluationCaseRequest
+	(*CaptureEvaluationCaseResponse)(nil),                      // 447: o11y_one.agentic.v1.CaptureEvaluationCaseResponse
+	(*EvaluationSpanContentHydrationV1)(nil),                   // 448: o11y_one.agentic.v1.EvaluationSpanContentHydrationV1
+	(*EvaluationCapturePreviewFieldV1)(nil),                    // 449: o11y_one.agentic.v1.EvaluationCapturePreviewFieldV1
+	(*PreviewEvaluationCaseCaptureRequest)(nil),                // 450: o11y_one.agentic.v1.PreviewEvaluationCaseCaptureRequest
+	(*PreviewEvaluationCaseCaptureResponse)(nil),               // 451: o11y_one.agentic.v1.PreviewEvaluationCaseCaptureResponse
+	(*EvaluationProviderCredentialV1)(nil),                     // 452: o11y_one.agentic.v1.EvaluationProviderCredentialV1
+	(*EvaluationProviderCredentialRejectionV1)(nil),            // 453: o11y_one.agentic.v1.EvaluationProviderCredentialRejectionV1
+	(*RegisterEvaluationProviderCredentialRequest)(nil),        // 454: o11y_one.agentic.v1.RegisterEvaluationProviderCredentialRequest
+	(*RegisterEvaluationProviderCredentialResponse)(nil),       // 455: o11y_one.agentic.v1.RegisterEvaluationProviderCredentialResponse
+	(*EvaluationScorerDeterministicSpecV1)(nil),                // 456: o11y_one.agentic.v1.EvaluationScorerDeterministicSpecV1
+	(*EvaluationScorerReviewPolicySpecV1)(nil),                 // 457: o11y_one.agentic.v1.EvaluationScorerReviewPolicySpecV1
+	(*EvaluationScorerConfigV1)(nil),                           // 458: o11y_one.agentic.v1.EvaluationScorerConfigV1
+	(*EvaluationScorerConfigRejectionV1)(nil),                  // 459: o11y_one.agentic.v1.EvaluationScorerConfigRejectionV1
+	(*EvaluationScorerJudgeVerdictMappingV1)(nil),              // 460: o11y_one.agentic.v1.EvaluationScorerJudgeVerdictMappingV1
+	(*EvaluationScorerJudgeRubricV1)(nil),                      // 461: o11y_one.agentic.v1.EvaluationScorerJudgeRubricV1
+	(*EvaluationScorerJudgeTemplateRefV1)(nil),                 // 462: o11y_one.agentic.v1.EvaluationScorerJudgeTemplateRefV1
+	(*EvaluationScorerJudgeProviderExecutionV1)(nil),           // 463: o11y_one.agentic.v1.EvaluationScorerJudgeProviderExecutionV1
+	(*EvaluationScorerJudgeSpecV1)(nil),                        // 464: o11y_one.agentic.v1.EvaluationScorerJudgeSpecV1
+	(*CreateEvaluationScorerConfigRequest)(nil),                // 465: o11y_one.agentic.v1.CreateEvaluationScorerConfigRequest
+	(*CreateEvaluationScorerConfigResponse)(nil),               // 466: o11y_one.agentic.v1.CreateEvaluationScorerConfigResponse
+	(*EvaluationDatasetCaseAbsenceV1)(nil),                     // 467: o11y_one.agentic.v1.EvaluationDatasetCaseAbsenceV1
+	(*EvaluationDatasetVersionV1)(nil),                         // 468: o11y_one.agentic.v1.EvaluationDatasetVersionV1
+	(*EvaluationDatasetRolloverV1)(nil),                        // 469: o11y_one.agentic.v1.EvaluationDatasetRolloverV1
+	(*EvaluationDatasetVersionRejectionV1)(nil),                // 470: o11y_one.agentic.v1.EvaluationDatasetVersionRejectionV1
+	(*CreateEvaluationDatasetVersionRequest)(nil),              // 471: o11y_one.agentic.v1.CreateEvaluationDatasetVersionRequest
+	(*CreateEvaluationDatasetVersionResponse)(nil),             // 472: o11y_one.agentic.v1.CreateEvaluationDatasetVersionResponse
+	(*SetEvaluationProviderCredentialEnabledRequest)(nil),      // 473: o11y_one.agentic.v1.SetEvaluationProviderCredentialEnabledRequest
+	(*EvaluationCredentialBlastRadiusV1)(nil),                  // 474: o11y_one.agentic.v1.EvaluationCredentialBlastRadiusV1
+	(*SetEvaluationProviderCredentialEnabledResponse)(nil),     // 475: o11y_one.agentic.v1.SetEvaluationProviderCredentialEnabledResponse
+	(*EvaluationScorerSuiteMemberRefusalV1)(nil),               // 476: o11y_one.agentic.v1.EvaluationScorerSuiteMemberRefusalV1
+	(*EvaluationScorerSuiteRejectionV1)(nil),                   // 477: o11y_one.agentic.v1.EvaluationScorerSuiteRejectionV1
+	(*CreateEvaluationScorerSuiteRequest)(nil),                 // 478: o11y_one.agentic.v1.CreateEvaluationScorerSuiteRequest
+	(*EvaluationDerivedSuiteCoordinateV1)(nil),                 // 479: o11y_one.agentic.v1.EvaluationDerivedSuiteCoordinateV1
+	(*CreateEvaluationScorerSuiteResponse)(nil),                // 480: o11y_one.agentic.v1.CreateEvaluationScorerSuiteResponse
+	(*EvaluationJudgeRegradeScorerPinV1)(nil),                  // 481: o11y_one.agentic.v1.EvaluationJudgeRegradeScorerPinV1
+	(*EvaluationJudgeRegradeCandidateFieldV1)(nil),             // 482: o11y_one.agentic.v1.EvaluationJudgeRegradeCandidateFieldV1
+	(*EvaluationJudgeRegradePinV1)(nil),                        // 483: o11y_one.agentic.v1.EvaluationJudgeRegradePinV1
+	(*EvaluationJudgeRegradeCellStatusV1)(nil),                 // 484: o11y_one.agentic.v1.EvaluationJudgeRegradeCellStatusV1
+	(*EvaluationJudgeRegradeCellProgressV1)(nil),               // 485: o11y_one.agentic.v1.EvaluationJudgeRegradeCellProgressV1
+	(*EvaluationJudgeRegradeJobV1)(nil),                        // 486: o11y_one.agentic.v1.EvaluationJudgeRegradeJobV1
+	(*EvaluationJudgeRegradeRejectionV1)(nil),                  // 487: o11y_one.agentic.v1.EvaluationJudgeRegradeRejectionV1
+	(*RequestEvaluationJudgeRegradeRequest)(nil),               // 488: o11y_one.agentic.v1.RequestEvaluationJudgeRegradeRequest
+	(*RequestEvaluationJudgeRegradeResponse)(nil),              // 489: o11y_one.agentic.v1.RequestEvaluationJudgeRegradeResponse
+	(*GetEvaluationJudgeRegradeJobRequest)(nil),                // 490: o11y_one.agentic.v1.GetEvaluationJudgeRegradeJobRequest
+	(*GetEvaluationJudgeRegradeJobResponse)(nil),               // 491: o11y_one.agentic.v1.GetEvaluationJudgeRegradeJobResponse
+	(*EvaluationJudgeRegradeEstimateV1)(nil),                   // 492: o11y_one.agentic.v1.EvaluationJudgeRegradeEstimateV1
+	(*PreviewEvaluationJudgeRegradeRequest)(nil),               // 493: o11y_one.agentic.v1.PreviewEvaluationJudgeRegradeRequest
+	(*PreviewEvaluationJudgeRegradeResponse)(nil),              // 494: o11y_one.agentic.v1.PreviewEvaluationJudgeRegradeResponse
+	(*EvaluationJudgeRegradePinnedRateV1)(nil),                 // 495: o11y_one.agentic.v1.EvaluationJudgeRegradePinnedRateV1
+	(*EvaluationJudgeRegradeQueueDepthV1)(nil),                 // 496: o11y_one.agentic.v1.EvaluationJudgeRegradeQueueDepthV1
+	(*CancelEvaluationJudgeRegradeJobRequest)(nil),             // 497: o11y_one.agentic.v1.CancelEvaluationJudgeRegradeJobRequest
+	(*CancelEvaluationJudgeRegradeJobResponse)(nil),            // 498: o11y_one.agentic.v1.CancelEvaluationJudgeRegradeJobResponse
+	(*EvaluationRunSummaryV1)(nil),                             // 499: o11y_one.agentic.v1.EvaluationRunSummaryV1
+	(*EvaluationRunListFilterV1)(nil),                          // 500: o11y_one.agentic.v1.EvaluationRunListFilterV1
+	(*ListEvaluationRunsRequest)(nil),                          // 501: o11y_one.agentic.v1.ListEvaluationRunsRequest
+	(*ListEvaluationRunsResponse)(nil),                         // 502: o11y_one.agentic.v1.ListEvaluationRunsResponse
+	(*EvaluationReviewTaskRefusalV1)(nil),                      // 503: o11y_one.agentic.v1.EvaluationReviewTaskRefusalV1
+	(*ReleaseEvaluationReviewTasksRequest)(nil),                // 504: o11y_one.agentic.v1.ReleaseEvaluationReviewTasksRequest
+	(*ReleaseEvaluationReviewTasksResponse)(nil),               // 505: o11y_one.agentic.v1.ReleaseEvaluationReviewTasksResponse
+	(*RequeueEvaluationReviewTasksRequest)(nil),                // 506: o11y_one.agentic.v1.RequeueEvaluationReviewTasksRequest
+	(*RequeueEvaluationReviewTasksResponse)(nil),               // 507: o11y_one.agentic.v1.RequeueEvaluationReviewTasksResponse
+	(*EvaluationScorerTargetRefV1)(nil),                        // 508: o11y_one.agentic.v1.EvaluationScorerTargetRefV1
+	(*ProductionRuleActionConditionV1)(nil),                    // 509: o11y_one.agentic.v1.ProductionRuleActionConditionV1
+	(*ProductionRuleActionV1)(nil),                             // 510: o11y_one.agentic.v1.ProductionRuleActionV1
+	(*ProductionRuleBudgetPolicyV1)(nil),                       // 511: o11y_one.agentic.v1.ProductionRuleBudgetPolicyV1
+	(*ProductionRuleDependencyRefV1)(nil),                      // 512: o11y_one.agentic.v1.ProductionRuleDependencyRefV1
+	(*ProductionRuleVersionDraftV1)(nil),                       // 513: o11y_one.agentic.v1.ProductionRuleVersionDraftV1
+	(*ProductionRuleVersionV1)(nil),                            // 514: o11y_one.agentic.v1.ProductionRuleVersionV1
+	(*ProductionRuleHealthV1)(nil),                             // 515: o11y_one.agentic.v1.ProductionRuleHealthV1
+	(*ProductionRuleExecutionCountsV1)(nil),                    // 516: o11y_one.agentic.v1.ProductionRuleExecutionCountsV1
+	(*ProductionRuleDownstreamCountsV1)(nil),                   // 517: o11y_one.agentic.v1.ProductionRuleDownstreamCountsV1
+	(*ProductionRuleWorkflowTimingsV1)(nil),                    // 518: o11y_one.agentic.v1.ProductionRuleWorkflowTimingsV1
+	(*ProductionRuleV1)(nil),                                   // 519: o11y_one.agentic.v1.ProductionRuleV1
+	(*ProductionRuleListItemV1)(nil),                           // 520: o11y_one.agentic.v1.ProductionRuleListItemV1
+	(*CreateProductionEvaluationRuleRequest)(nil),              // 521: o11y_one.agentic.v1.CreateProductionEvaluationRuleRequest
+	(*CreateProductionEvaluationRuleResponse)(nil),             // 522: o11y_one.agentic.v1.CreateProductionEvaluationRuleResponse
+	(*CreateProductionEvaluationRuleVersionRequest)(nil),       // 523: o11y_one.agentic.v1.CreateProductionEvaluationRuleVersionRequest
+	(*CreateProductionEvaluationRuleVersionResponse)(nil),      // 524: o11y_one.agentic.v1.CreateProductionEvaluationRuleVersionResponse
+	(*SetProductionEvaluationRuleVersionStateRequest)(nil),     // 525: o11y_one.agentic.v1.SetProductionEvaluationRuleVersionStateRequest
+	(*SetProductionEvaluationRuleVersionStateResponse)(nil),    // 526: o11y_one.agentic.v1.SetProductionEvaluationRuleVersionStateResponse
+	(*ListProductionEvaluationRulesRequest)(nil),               // 527: o11y_one.agentic.v1.ListProductionEvaluationRulesRequest
+	(*ListProductionEvaluationRulesResponse)(nil),              // 528: o11y_one.agentic.v1.ListProductionEvaluationRulesResponse
+	(*GetProductionEvaluationRuleRequest)(nil),                 // 529: o11y_one.agentic.v1.GetProductionEvaluationRuleRequest
+	(*GetProductionEvaluationRuleResponse)(nil),                // 530: o11y_one.agentic.v1.GetProductionEvaluationRuleResponse
+	(*ProductionWorkflowScoreOutcomeV1)(nil),                   // 531: o11y_one.agentic.v1.ProductionWorkflowScoreOutcomeV1
+	(*ProductionWorkflowCorrelationV1)(nil),                    // 532: o11y_one.agentic.v1.ProductionWorkflowCorrelationV1
+	(*ProductionWorkflowStepAttemptV1)(nil),                    // 533: o11y_one.agentic.v1.ProductionWorkflowStepAttemptV1
+	(*ProductionWorkflowStepEffectV1)(nil),                     // 534: o11y_one.agentic.v1.ProductionWorkflowStepEffectV1
+	(*ProductionWorkflowStepV1)(nil),                           // 535: o11y_one.agentic.v1.ProductionWorkflowStepV1
+	(*ProductionWorkflowExecutionV1)(nil),                      // 536: o11y_one.agentic.v1.ProductionWorkflowExecutionV1
+	(*ProductionReleaseBlockEvidenceRefV1)(nil),                // 537: o11y_one.agentic.v1.ProductionReleaseBlockEvidenceRefV1
+	(*ProductionReleaseBlockV1)(nil),                           // 538: o11y_one.agentic.v1.ProductionReleaseBlockV1
+	(*StartProductionEvaluationWorkflowRequest)(nil),           // 539: o11y_one.agentic.v1.StartProductionEvaluationWorkflowRequest
+	(*StartProductionEvaluationWorkflowResponse)(nil),          // 540: o11y_one.agentic.v1.StartProductionEvaluationWorkflowResponse
+	(*ProductionWorkflowExecutionListFilterV1)(nil),            // 541: o11y_one.agentic.v1.ProductionWorkflowExecutionListFilterV1
+	(*ListProductionEvaluationWorkflowExecutionsRequest)(nil),  // 542: o11y_one.agentic.v1.ListProductionEvaluationWorkflowExecutionsRequest
+	(*ListProductionEvaluationWorkflowExecutionsResponse)(nil), // 543: o11y_one.agentic.v1.ListProductionEvaluationWorkflowExecutionsResponse
+	(*GetProductionEvaluationWorkflowExecutionRequest)(nil),    // 544: o11y_one.agentic.v1.GetProductionEvaluationWorkflowExecutionRequest
+	(*GetProductionEvaluationWorkflowExecutionResponse)(nil),   // 545: o11y_one.agentic.v1.GetProductionEvaluationWorkflowExecutionResponse
+	(*RetryProductionEvaluationWorkflowStepRequest)(nil),       // 546: o11y_one.agentic.v1.RetryProductionEvaluationWorkflowStepRequest
+	(*RetryProductionEvaluationWorkflowStepResponse)(nil),      // 547: o11y_one.agentic.v1.RetryProductionEvaluationWorkflowStepResponse
+	(*ProductionReleaseBlockListFilterV1)(nil),                 // 548: o11y_one.agentic.v1.ProductionReleaseBlockListFilterV1
+	(*ListProductionEvaluationReleaseBlocksRequest)(nil),       // 549: o11y_one.agentic.v1.ListProductionEvaluationReleaseBlocksRequest
+	(*ListProductionEvaluationReleaseBlocksResponse)(nil),      // 550: o11y_one.agentic.v1.ListProductionEvaluationReleaseBlocksResponse
+	(*OverrideProductionEvaluationReleaseBlockRequest)(nil),    // 551: o11y_one.agentic.v1.OverrideProductionEvaluationReleaseBlockRequest
+	(*OverrideProductionEvaluationReleaseBlockResponse)(nil),   // 552: o11y_one.agentic.v1.OverrideProductionEvaluationReleaseBlockResponse
+	(*ReleaseVerificationOverrideV1)(nil),                      // 553: o11y_one.agentic.v1.ReleaseVerificationOverrideV1
+	(*ReleaseTargetV1)(nil),                                    // 554: o11y_one.agentic.v1.ReleaseTargetV1
+	(*ReleaseSigningKeyRefV1)(nil),                             // 555: o11y_one.agentic.v1.ReleaseSigningKeyRefV1
+	(*ReleaseIntegrationV1)(nil),                               // 556: o11y_one.agentic.v1.ReleaseIntegrationV1
+	(*ReleaseIntegrationCredentialRefV1)(nil),                  // 557: o11y_one.agentic.v1.ReleaseIntegrationCredentialRefV1
+	(*ReleaseEvidenceSnapshotV1)(nil),                          // 558: o11y_one.agentic.v1.ReleaseEvidenceSnapshotV1
+	(*ReleasePolicyV1)(nil),                                    // 559: o11y_one.agentic.v1.ReleasePolicyV1
+	(*ReleaseValidationV1)(nil),                                // 560: o11y_one.agentic.v1.ReleaseValidationV1
+	(*ReleasePostureV1)(nil),                                   // 561: o11y_one.agentic.v1.ReleasePostureV1
+	(*ReleaseBlockedActionV1)(nil),                             // 562: o11y_one.agentic.v1.ReleaseBlockedActionV1
+	(*ReleaseV1)(nil),                                          // 563: o11y_one.agentic.v1.ReleaseV1
+	(*ReleaseActionV1)(nil),                                    // 564: o11y_one.agentic.v1.ReleaseActionV1
+	(*ReleaseActivityEntryV1)(nil),                             // 565: o11y_one.agentic.v1.ReleaseActivityEntryV1
+	(*ReleaseStageHistoryEntryV1)(nil),                         // 566: o11y_one.agentic.v1.ReleaseStageHistoryEntryV1
+	(*ReleaseIntegrationDraftV1)(nil),                          // 567: o11y_one.agentic.v1.ReleaseIntegrationDraftV1
+	(*CreateReleaseIntegrationRequest)(nil),                    // 568: o11y_one.agentic.v1.CreateReleaseIntegrationRequest
+	(*CreateReleaseIntegrationResponse)(nil),                   // 569: o11y_one.agentic.v1.CreateReleaseIntegrationResponse
+	(*GetReleaseIntegrationRequest)(nil),                       // 570: o11y_one.agentic.v1.GetReleaseIntegrationRequest
+	(*GetReleaseIntegrationResponse)(nil),                      // 571: o11y_one.agentic.v1.GetReleaseIntegrationResponse
+	(*ReleaseIntegrationListFilterV1)(nil),                     // 572: o11y_one.agentic.v1.ReleaseIntegrationListFilterV1
+	(*ListReleaseIntegrationsRequest)(nil),                     // 573: o11y_one.agentic.v1.ListReleaseIntegrationsRequest
+	(*ListReleaseIntegrationsResponse)(nil),                    // 574: o11y_one.agentic.v1.ListReleaseIntegrationsResponse
+	(*ReleaseIntegrationPatchV1)(nil),                          // 575: o11y_one.agentic.v1.ReleaseIntegrationPatchV1
+	(*UpdateReleaseIntegrationRequest)(nil),                    // 576: o11y_one.agentic.v1.UpdateReleaseIntegrationRequest
+	(*UpdateReleaseIntegrationResponse)(nil),                   // 577: o11y_one.agentic.v1.UpdateReleaseIntegrationResponse
+	(*ArchiveReleaseIntegrationRequest)(nil),                   // 578: o11y_one.agentic.v1.ArchiveReleaseIntegrationRequest
+	(*ArchiveReleaseIntegrationResponse)(nil),                  // 579: o11y_one.agentic.v1.ArchiveReleaseIntegrationResponse
+	(*ReleaseCandidateRefV1)(nil),                              // 580: o11y_one.agentic.v1.ReleaseCandidateRefV1
+	(*ReleaseDraftV1)(nil),                                     // 581: o11y_one.agentic.v1.ReleaseDraftV1
+	(*CreateReleaseRequest)(nil),                               // 582: o11y_one.agentic.v1.CreateReleaseRequest
+	(*CreateReleaseResponse)(nil),                              // 583: o11y_one.agentic.v1.CreateReleaseResponse
+	(*PreviewReleaseRequest)(nil),                              // 584: o11y_one.agentic.v1.PreviewReleaseRequest
+	(*PreviewReleaseResponse)(nil),                             // 585: o11y_one.agentic.v1.PreviewReleaseResponse
+	(*GetReleaseRequest)(nil),                                  // 586: o11y_one.agentic.v1.GetReleaseRequest
+	(*GetReleaseResponse)(nil),                                 // 587: o11y_one.agentic.v1.GetReleaseResponse
+	(*ReleaseListFilterV1)(nil),                                // 588: o11y_one.agentic.v1.ReleaseListFilterV1
+	(*ListReleasesRequest)(nil),                                // 589: o11y_one.agentic.v1.ListReleasesRequest
+	(*ListReleasesResponse)(nil),                               // 590: o11y_one.agentic.v1.ListReleasesResponse
+	(*StartReleaseCanaryRequest)(nil),                          // 591: o11y_one.agentic.v1.StartReleaseCanaryRequest
+	(*StartReleaseCanaryResponse)(nil),                         // 592: o11y_one.agentic.v1.StartReleaseCanaryResponse
+	(*PromoteReleaseRequest)(nil),                              // 593: o11y_one.agentic.v1.PromoteReleaseRequest
+	(*PromoteReleaseResponse)(nil),                             // 594: o11y_one.agentic.v1.PromoteReleaseResponse
+	(*HoldReleaseRequest)(nil),                                 // 595: o11y_one.agentic.v1.HoldReleaseRequest
+	(*HoldReleaseResponse)(nil),                                // 596: o11y_one.agentic.v1.HoldReleaseResponse
+	(*AbortReleaseRequest)(nil),                                // 597: o11y_one.agentic.v1.AbortReleaseRequest
+	(*AbortReleaseResponse)(nil),                               // 598: o11y_one.agentic.v1.AbortReleaseResponse
+	(*RollbackReleaseRequest)(nil),                             // 599: o11y_one.agentic.v1.RollbackReleaseRequest
+	(*RollbackReleaseResponse)(nil),                            // 600: o11y_one.agentic.v1.RollbackReleaseResponse
+	(*GetReleaseActionRequest)(nil),                            // 601: o11y_one.agentic.v1.GetReleaseActionRequest
+	(*GetReleaseActionResponse)(nil),                           // 602: o11y_one.agentic.v1.GetReleaseActionResponse
+	(*ReleaseActionListFilterV1)(nil),                          // 603: o11y_one.agentic.v1.ReleaseActionListFilterV1
+	(*ListReleaseActionsRequest)(nil),                          // 604: o11y_one.agentic.v1.ListReleaseActionsRequest
+	(*ListReleaseActionsResponse)(nil),                         // 605: o11y_one.agentic.v1.ListReleaseActionsResponse
+	(*ReleaseHealthConditionV1)(nil),                           // 606: o11y_one.agentic.v1.ReleaseHealthConditionV1
+	(*ReleaseHealthSnapshotV1)(nil),                            // 607: o11y_one.agentic.v1.ReleaseHealthSnapshotV1
+	(*ReleaseDriftPostureV1)(nil),                              // 608: o11y_one.agentic.v1.ReleaseDriftPostureV1
+	(*ReleaseObservationV1)(nil),                               // 609: o11y_one.agentic.v1.ReleaseObservationV1
+	(*ProductionRuleActionTargetV1)(nil),                       // 610: o11y_one.agentic.v1.ProductionRuleActionTargetV1
+	(*ProductionRuleDatasetDraftTargetV1)(nil),                 // 611: o11y_one.agentic.v1.ProductionRuleDatasetDraftTargetV1
+	(*ProductionRuleReviewTargetV1)(nil),                       // 612: o11y_one.agentic.v1.ProductionRuleReviewTargetV1
+	(*ProductionRuleLinkedEvaluationTargetV1)(nil),             // 613: o11y_one.agentic.v1.ProductionRuleLinkedEvaluationTargetV1
+	(*ProductionRuleNotifyTargetV1)(nil),                       // 614: o11y_one.agentic.v1.ProductionRuleNotifyTargetV1
+	(*DatasetRedactionOutcomeV1)(nil),                          // 615: o11y_one.agentic.v1.DatasetRedactionOutcomeV1
+	(*DatasetRedactionSectionV1)(nil),                          // 616: o11y_one.agentic.v1.DatasetRedactionSectionV1
+	(*DatasetDuplicationCandidateV1)(nil),                      // 617: o11y_one.agentic.v1.DatasetDuplicationCandidateV1
+	(*DatasetDuplicationSectionV1)(nil),                        // 618: o11y_one.agentic.v1.DatasetDuplicationSectionV1
+	(*DedupeResolutionV1)(nil),                                 // 619: o11y_one.agentic.v1.DedupeResolutionV1
+	(*DatasetLeakageSourceSignalV1)(nil),                       // 620: o11y_one.agentic.v1.DatasetLeakageSourceSignalV1
+	(*DatasetLeakageSectionV1)(nil),                            // 621: o11y_one.agentic.v1.DatasetLeakageSectionV1
+	(*DatasetSliceObservationV1)(nil),                          // 622: o11y_one.agentic.v1.DatasetSliceObservationV1
+	(*DatasetSliceSectionV1)(nil),                              // 623: o11y_one.agentic.v1.DatasetSliceSectionV1
+	(*DatasetCaseQualitySignalsV1)(nil),                        // 624: o11y_one.agentic.v1.DatasetCaseQualitySignalsV1
+	(*ChangesetQualitySignalsV1)(nil),                          // 625: o11y_one.agentic.v1.ChangesetQualitySignalsV1
+	(*DatasetSchemaFieldV1)(nil),                               // 626: o11y_one.agentic.v1.DatasetSchemaFieldV1
+	(*DatasetSliceDimensionV1)(nil),                            // 627: o11y_one.agentic.v1.DatasetSliceDimensionV1
+	(*DatasetSchemaMetadataKeyV1)(nil),                         // 628: o11y_one.agentic.v1.DatasetSchemaMetadataKeyV1
+	(*DatasetSchemaMappingRuleV1)(nil),                         // 629: o11y_one.agentic.v1.DatasetSchemaMappingRuleV1
+	(*DatasetSchemaShapeV1)(nil),                               // 630: o11y_one.agentic.v1.DatasetSchemaShapeV1
+	(*DatasetSchemaRevisionV1)(nil),                            // 631: o11y_one.agentic.v1.DatasetSchemaRevisionV1
+	(*DatasetSchemaChangeV1)(nil),                              // 632: o11y_one.agentic.v1.DatasetSchemaChangeV1
+	(*DatasetSchemaCompatibilityVerdictV1)(nil),                // 633: o11y_one.agentic.v1.DatasetSchemaCompatibilityVerdictV1
+	(*DatasetCaseRecentPerformanceV1)(nil),                     // 634: o11y_one.agentic.v1.DatasetCaseRecentPerformanceV1
+	(*DatasetCaseContentRefV1)(nil),                            // 635: o11y_one.agentic.v1.DatasetCaseContentRefV1
+	(*DatasetCaseLineageV1)(nil),                               // 636: o11y_one.agentic.v1.DatasetCaseLineageV1
+	(*DatasetCaseArtifactSourceCoverageV1)(nil),                // 637: o11y_one.agentic.v1.DatasetCaseArtifactSourceCoverageV1
+	(*DatasetCaseArtifactSummaryV1)(nil),                       // 638: o11y_one.agentic.v1.DatasetCaseArtifactSummaryV1
+	(*DatasetCaseArtifactPostureV1)(nil),                       // 639: o11y_one.agentic.v1.DatasetCaseArtifactPostureV1
+	(*DatasetCaseSummaryV1)(nil),                               // 640: o11y_one.agentic.v1.DatasetCaseSummaryV1
+	(*DatasetCaseMembershipV1)(nil),                            // 641: o11y_one.agentic.v1.DatasetCaseMembershipV1
+	(*DatasetCaseV1)(nil),                                      // 642: o11y_one.agentic.v1.DatasetCaseV1
+	(*DatasetQualitySliceCoverageV1)(nil),                      // 643: o11y_one.agentic.v1.DatasetQualitySliceCoverageV1
+	(*DatasetQualityProjectionV1)(nil),                         // 644: o11y_one.agentic.v1.DatasetQualityProjectionV1
+	(*DatasetVersionSummaryV1)(nil),                            // 645: o11y_one.agentic.v1.DatasetVersionSummaryV1
+	(*DatasetUsageRowV1)(nil),                                  // 646: o11y_one.agentic.v1.DatasetUsageRowV1
+	(*GetDatasetSchemaRevisionRequest)(nil),                    // 647: o11y_one.agentic.v1.GetDatasetSchemaRevisionRequest
+	(*GetDatasetSchemaRevisionResponse)(nil),                   // 648: o11y_one.agentic.v1.GetDatasetSchemaRevisionResponse
+	(*ListDatasetCasesRequest)(nil),                            // 649: o11y_one.agentic.v1.ListDatasetCasesRequest
+	(*ListDatasetCasesResponse)(nil),                           // 650: o11y_one.agentic.v1.ListDatasetCasesResponse
+	(*GetDatasetCaseRequest)(nil),                              // 651: o11y_one.agentic.v1.GetDatasetCaseRequest
+	(*GetDatasetCaseResponse)(nil),                             // 652: o11y_one.agentic.v1.GetDatasetCaseResponse
+	(*GetDatasetOverviewRequest)(nil),                          // 653: o11y_one.agentic.v1.GetDatasetOverviewRequest
+	(*GetDatasetOverviewResponse)(nil),                         // 654: o11y_one.agentic.v1.GetDatasetOverviewResponse
+	(*ListEvaluationDatasetVersionsRequest)(nil),               // 655: o11y_one.agentic.v1.ListEvaluationDatasetVersionsRequest
+	(*ListEvaluationDatasetVersionsResponse)(nil),              // 656: o11y_one.agentic.v1.ListEvaluationDatasetVersionsResponse
+	(*ListDatasetUsageRequest)(nil),                            // 657: o11y_one.agentic.v1.ListDatasetUsageRequest
+	(*ListDatasetUsageResponse)(nil),                           // 658: o11y_one.agentic.v1.ListDatasetUsageResponse
+	(*DatasetCaseDraftConflictV1)(nil),                         // 659: o11y_one.agentic.v1.DatasetCaseDraftConflictV1
+	(*DatasetDraftRefusalV1)(nil),                              // 660: o11y_one.agentic.v1.DatasetDraftRefusalV1
+	(*DatasetCaseDraftLineageV1)(nil),                          // 661: o11y_one.agentic.v1.DatasetCaseDraftLineageV1
+	(*DatasetCaseDraftV1)(nil),                                 // 662: o11y_one.agentic.v1.DatasetCaseDraftV1
+	(*DatasetChangesetV1)(nil),                                 // 663: o11y_one.agentic.v1.DatasetChangesetV1
+	(*DatasetPublishLinkedEvaluationV1)(nil),                   // 664: o11y_one.agentic.v1.DatasetPublishLinkedEvaluationV1
+	(*DatasetChangesetPreviewV1)(nil),                          // 665: o11y_one.agentic.v1.DatasetChangesetPreviewV1
+	(*DatasetPublishResultV1)(nil),                             // 666: o11y_one.agentic.v1.DatasetPublishResultV1
+	(*GetDatasetCaseDraftRequest)(nil),                         // 667: o11y_one.agentic.v1.GetDatasetCaseDraftRequest
+	(*GetDatasetCaseDraftResponse)(nil),                        // 668: o11y_one.agentic.v1.GetDatasetCaseDraftResponse
+	(*ListDatasetCaseDraftsRequest)(nil),                       // 669: o11y_one.agentic.v1.ListDatasetCaseDraftsRequest
+	(*ListDatasetCaseDraftsResponse)(nil),                      // 670: o11y_one.agentic.v1.ListDatasetCaseDraftsResponse
+	(*UpdateDatasetCaseDraftRequest)(nil),                      // 671: o11y_one.agentic.v1.UpdateDatasetCaseDraftRequest
+	(*UpdateDatasetCaseDraftResponse)(nil),                     // 672: o11y_one.agentic.v1.UpdateDatasetCaseDraftResponse
+	(*ApproveDatasetCaseDraftRequest)(nil),                     // 673: o11y_one.agentic.v1.ApproveDatasetCaseDraftRequest
+	(*ApproveDatasetCaseDraftResponse)(nil),                    // 674: o11y_one.agentic.v1.ApproveDatasetCaseDraftResponse
+	(*RejectDatasetCaseDraftRequest)(nil),                      // 675: o11y_one.agentic.v1.RejectDatasetCaseDraftRequest
+	(*RejectDatasetCaseDraftResponse)(nil),                     // 676: o11y_one.agentic.v1.RejectDatasetCaseDraftResponse
+	(*MergeDatasetCaseDraftRequest)(nil),                       // 677: o11y_one.agentic.v1.MergeDatasetCaseDraftRequest
+	(*MergeDatasetCaseDraftResponse)(nil),                      // 678: o11y_one.agentic.v1.MergeDatasetCaseDraftResponse
+	(*PreviewPublishDatasetChangesetRequest)(nil),              // 679: o11y_one.agentic.v1.PreviewPublishDatasetChangesetRequest
+	(*PreviewPublishDatasetChangesetResponse)(nil),             // 680: o11y_one.agentic.v1.PreviewPublishDatasetChangesetResponse
+	(*PublishDatasetCaseDraftsRequest)(nil),                    // 681: o11y_one.agentic.v1.PublishDatasetCaseDraftsRequest
+	(*PublishDatasetCaseDraftsResponse)(nil),                   // 682: o11y_one.agentic.v1.PublishDatasetCaseDraftsResponse
+	(*PreviewProductionEvaluationRuleRequest)(nil),             // 683: o11y_one.agentic.v1.PreviewProductionEvaluationRuleRequest
+	(*ProductionRulePreviewDraftSubjectV1)(nil),                // 684: o11y_one.agentic.v1.ProductionRulePreviewDraftSubjectV1
+	(*ProductionRulePreviewWindowV1)(nil),                      // 685: o11y_one.agentic.v1.ProductionRulePreviewWindowV1
+	(*ProductionRulePreviewCumulativeCountsV1)(nil),            // 686: o11y_one.agentic.v1.ProductionRulePreviewCumulativeCountsV1
+	(*ProductionRulePreviewBucketV1)(nil),                      // 687: o11y_one.agentic.v1.ProductionRulePreviewBucketV1
+	(*ProductionRulePreviewIdleBucketV1)(nil),                  // 688: o11y_one.agentic.v1.ProductionRulePreviewIdleBucketV1
+	(*ProductionRulePreviewBucketsV1)(nil),                     // 689: o11y_one.agentic.v1.ProductionRulePreviewBucketsV1
+	(*ProductionRulePreviewEstimateV1)(nil),                    // 690: o11y_one.agentic.v1.ProductionRulePreviewEstimateV1
+	(*ProductionRulePreviewBudgetPostureV1)(nil),               // 691: o11y_one.agentic.v1.ProductionRulePreviewBudgetPostureV1
+	(*ProductionRulePreviewPromotionImplicationV1)(nil),        // 692: o11y_one.agentic.v1.ProductionRulePreviewPromotionImplicationV1
+	(*ProductionRulePreviewReviewImplicationV1)(nil),           // 693: o11y_one.agentic.v1.ProductionRulePreviewReviewImplicationV1
+	(*ProductionRulePreviewLinkedEvaluationImplicationV1)(nil), // 694: o11y_one.agentic.v1.ProductionRulePreviewLinkedEvaluationImplicationV1
+	(*ProductionRulePreviewNotifyImplicationV1)(nil),           // 695: o11y_one.agentic.v1.ProductionRulePreviewNotifyImplicationV1
+	(*ProductionRulePreviewReleaseBlockImplicationV1)(nil),     // 696: o11y_one.agentic.v1.ProductionRulePreviewReleaseBlockImplicationV1
+	(*ProductionRulePreviewActionCandidateV1)(nil),             // 697: o11y_one.agentic.v1.ProductionRulePreviewActionCandidateV1
+	(*ProductionRulePreviewZeroMatchV1)(nil),                   // 698: o11y_one.agentic.v1.ProductionRulePreviewZeroMatchV1
+	(*ProductionRulePreviewWarningV1)(nil),                     // 699: o11y_one.agentic.v1.ProductionRulePreviewWarningV1
+	(*ProductionRulePreviewSubjectV1)(nil),                     // 700: o11y_one.agentic.v1.ProductionRulePreviewSubjectV1
+	(*ProductionRulePreviewOfferV1)(nil),                       // 701: o11y_one.agentic.v1.ProductionRulePreviewOfferV1
+	(*PreviewProductionEvaluationRuleResponse)(nil),            // 702: o11y_one.agentic.v1.PreviewProductionEvaluationRuleResponse
+	(*ProductionRulePreviewRefusalV1)(nil),                     // 703: o11y_one.agentic.v1.ProductionRulePreviewRefusalV1
+	(*MachinePrincipalV1)(nil),                                 // 704: o11y_one.agentic.v1.MachinePrincipalV1
+	(*MachineCredentialV1)(nil),                                // 705: o11y_one.agentic.v1.MachineCredentialV1
+	(*CreateMachinePrincipalRequest)(nil),                      // 706: o11y_one.agentic.v1.CreateMachinePrincipalRequest
+	(*CreateMachinePrincipalResponse)(nil),                     // 707: o11y_one.agentic.v1.CreateMachinePrincipalResponse
+	(*ListMachinePrincipalsRequest)(nil),                       // 708: o11y_one.agentic.v1.ListMachinePrincipalsRequest
+	(*MachinePrincipalWithCredentialsV1)(nil),                  // 709: o11y_one.agentic.v1.MachinePrincipalWithCredentialsV1
+	(*ListMachinePrincipalsResponse)(nil),                      // 710: o11y_one.agentic.v1.ListMachinePrincipalsResponse
+	(*CreateMachineCredentialRequest)(nil),                     // 711: o11y_one.agentic.v1.CreateMachineCredentialRequest
+	(*CreateMachineCredentialResponse)(nil),                    // 712: o11y_one.agentic.v1.CreateMachineCredentialResponse
+	(*RevokeMachineCredentialRequest)(nil),                     // 713: o11y_one.agentic.v1.RevokeMachineCredentialRequest
+	(*RevokeMachineCredentialResponse)(nil),                    // 714: o11y_one.agentic.v1.RevokeMachineCredentialResponse
+	(*RevokeMachinePrincipalRequest)(nil),                      // 715: o11y_one.agentic.v1.RevokeMachinePrincipalRequest
+	(*RevokeMachinePrincipalResponse)(nil),                     // 716: o11y_one.agentic.v1.RevokeMachinePrincipalResponse
+	(*GetCallerPrincipalRequest)(nil),                          // 717: o11y_one.agentic.v1.GetCallerPrincipalRequest
+	(*GetCallerPrincipalResponse)(nil),                         // 718: o11y_one.agentic.v1.GetCallerPrincipalResponse
+	(*ExternalCaseLeaseV1)(nil),                                // 719: o11y_one.agentic.v1.ExternalCaseLeaseV1
+	(*LeasedEvaluationCaseV1)(nil),                             // 720: o11y_one.agentic.v1.LeasedEvaluationCaseV1
+	(*ExternalCaseFailureV1)(nil),                              // 721: o11y_one.agentic.v1.ExternalCaseFailureV1
+	(*ExternalCaseUsageV1)(nil),                                // 722: o11y_one.agentic.v1.ExternalCaseUsageV1
+	(*ExternalCaseOutputV1)(nil),                               // 723: o11y_one.agentic.v1.ExternalCaseOutputV1
+	(*ExternalCaseOutputAckV1)(nil),                            // 724: o11y_one.agentic.v1.ExternalCaseOutputAckV1
+	(*ExternalLeaseRefusalV1)(nil),                             // 725: o11y_one.agentic.v1.ExternalLeaseRefusalV1
+	(*LeaseEvaluationCasesRequest)(nil),                        // 726: o11y_one.agentic.v1.LeaseEvaluationCasesRequest
+	(*LeaseEvaluationCasesResponse)(nil),                       // 727: o11y_one.agentic.v1.LeaseEvaluationCasesResponse
+	(*RenewEvaluationCaseLeaseRequest)(nil),                    // 728: o11y_one.agentic.v1.RenewEvaluationCaseLeaseRequest
+	(*RenewEvaluationCaseLeaseResponse)(nil),                   // 729: o11y_one.agentic.v1.RenewEvaluationCaseLeaseResponse
+	(*SubmitEvaluationCaseOutputsRequest)(nil),                 // 730: o11y_one.agentic.v1.SubmitEvaluationCaseOutputsRequest
+	(*SubmitEvaluationCaseOutputsResponse)(nil),                // 731: o11y_one.agentic.v1.SubmitEvaluationCaseOutputsResponse
+	(*ReleaseEvaluationCaseLeaseRequest)(nil),                  // 732: o11y_one.agentic.v1.ReleaseEvaluationCaseLeaseRequest
+	(*ReleaseEvaluationCaseLeaseResponse)(nil),                 // 733: o11y_one.agentic.v1.ReleaseEvaluationCaseLeaseResponse
+	(*PlatformAnnotationLinkV1)(nil),                           // 734: o11y_one.agentic.v1.PlatformAnnotationLinkV1
+	(*PlatformAnnotationAttributeV1)(nil),                      // 735: o11y_one.agentic.v1.PlatformAnnotationAttributeV1
+	(*PlatformAnnotationV1)(nil),                               // 736: o11y_one.agentic.v1.PlatformAnnotationV1
+	(*PlatformAnnotationRejectionV1)(nil),                      // 737: o11y_one.agentic.v1.PlatformAnnotationRejectionV1
+	(*RecordPlatformAnnotationRequest)(nil),                    // 738: o11y_one.agentic.v1.RecordPlatformAnnotationRequest
+	(*RecordPlatformAnnotationResponse)(nil),                   // 739: o11y_one.agentic.v1.RecordPlatformAnnotationResponse
+	(*ListPlatformAnnotationsRequest)(nil),                     // 740: o11y_one.agentic.v1.ListPlatformAnnotationsRequest
+	(*ListPlatformAnnotationsResponse)(nil),                    // 741: o11y_one.agentic.v1.ListPlatformAnnotationsResponse
+	(*EvaluationScorerConfigSummaryV1)(nil),                    // 742: o11y_one.agentic.v1.EvaluationScorerConfigSummaryV1
+	(*ListEvaluationScorerConfigsRequest)(nil),                 // 743: o11y_one.agentic.v1.ListEvaluationScorerConfigsRequest
+	(*ListEvaluationScorerConfigsResponse)(nil),                // 744: o11y_one.agentic.v1.ListEvaluationScorerConfigsResponse
+	(*EvaluationScorerJudgeEffectiveSettingsV1)(nil),           // 745: o11y_one.agentic.v1.EvaluationScorerJudgeEffectiveSettingsV1
+	(*EvaluationScorerJudgeResolvedExecutionV1)(nil),           // 746: o11y_one.agentic.v1.EvaluationScorerJudgeResolvedExecutionV1
+	(*EvaluationScorerJudgeDetailV1)(nil),                      // 747: o11y_one.agentic.v1.EvaluationScorerJudgeDetailV1
+	(*EvaluationScorerConfigDetailV1)(nil),                     // 748: o11y_one.agentic.v1.EvaluationScorerConfigDetailV1
+	(*EvaluationScorerConfigUsageV1)(nil),                      // 749: o11y_one.agentic.v1.EvaluationScorerConfigUsageV1
+	(*EvaluationScorerSuiteRefV1)(nil),                         // 750: o11y_one.agentic.v1.EvaluationScorerSuiteRefV1
+	(*GetEvaluationScorerConfigRequest)(nil),                   // 751: o11y_one.agentic.v1.GetEvaluationScorerConfigRequest
+	(*GetEvaluationScorerConfigResponse)(nil),                  // 752: o11y_one.agentic.v1.GetEvaluationScorerConfigResponse
+	(*EvaluationScorerConfigVersionV1)(nil),                    // 753: o11y_one.agentic.v1.EvaluationScorerConfigVersionV1
+	(*ListEvaluationScorerConfigVersionsRequest)(nil),          // 754: o11y_one.agentic.v1.ListEvaluationScorerConfigVersionsRequest
+	(*ListEvaluationScorerConfigVersionsResponse)(nil),         // 755: o11y_one.agentic.v1.ListEvaluationScorerConfigVersionsResponse
+	(*EvaluationScorerSuiteSummaryV1)(nil),                     // 756: o11y_one.agentic.v1.EvaluationScorerSuiteSummaryV1
+	(*EvaluationScorerSuiteMemberDetailV1)(nil),                // 757: o11y_one.agentic.v1.EvaluationScorerSuiteMemberDetailV1
+	(*EvaluationScorerSuiteDetailV1)(nil),                      // 758: o11y_one.agentic.v1.EvaluationScorerSuiteDetailV1
+	(*ListEvaluationScorerSuitesRequest)(nil),                  // 759: o11y_one.agentic.v1.ListEvaluationScorerSuitesRequest
+	(*ListEvaluationScorerSuitesResponse)(nil),                 // 760: o11y_one.agentic.v1.ListEvaluationScorerSuitesResponse
+	(*GetEvaluationScorerSuiteRequest)(nil),                    // 761: o11y_one.agentic.v1.GetEvaluationScorerSuiteRequest
+	(*GetEvaluationScorerSuiteResponse)(nil),                   // 762: o11y_one.agentic.v1.GetEvaluationScorerSuiteResponse
+	(*ArchiveEvaluationScorerConfigRequest)(nil),               // 763: o11y_one.agentic.v1.ArchiveEvaluationScorerConfigRequest
+	(*ArchiveEvaluationScorerConfigResponse)(nil),              // 764: o11y_one.agentic.v1.ArchiveEvaluationScorerConfigResponse
+	(*ArchiveEvaluationScorerSuiteRequest)(nil),                // 765: o11y_one.agentic.v1.ArchiveEvaluationScorerSuiteRequest
+	(*ArchiveEvaluationScorerSuiteResponse)(nil),               // 766: o11y_one.agentic.v1.ArchiveEvaluationScorerSuiteResponse
+	(*DatasetCollectionSummaryV1)(nil),                         // 767: o11y_one.agentic.v1.DatasetCollectionSummaryV1
+	(*ListEvaluationDatasetCollectionsRequest)(nil),            // 768: o11y_one.agentic.v1.ListEvaluationDatasetCollectionsRequest
+	(*ListEvaluationDatasetCollectionsResponse)(nil),           // 769: o11y_one.agentic.v1.ListEvaluationDatasetCollectionsResponse
+	(*GetDatasetChangesetRequest)(nil),                         // 770: o11y_one.agentic.v1.GetDatasetChangesetRequest
+	(*GetDatasetChangesetResponse)(nil),                        // 771: o11y_one.agentic.v1.GetDatasetChangesetResponse
+	(*ListDatasetChangesetsRequest)(nil),                       // 772: o11y_one.agentic.v1.ListDatasetChangesetsRequest
+	(*ListDatasetChangesetsResponse)(nil),                      // 773: o11y_one.agentic.v1.ListDatasetChangesetsResponse
+	(*timestamppb.Timestamp)(nil),                              // 774: google.protobuf.Timestamp
+	(*ProviderModelRefV1)(nil),                                 // 775: o11y_one.agentic.v1.ProviderModelRefV1
+	(*ProviderRequestSettingsV1)(nil),                          // 776: o11y_one.agentic.v1.ProviderRequestSettingsV1
+	(*v1.PageRequestV1)(nil),                                   // 777: o11y_one.common.v1.PageRequestV1
+	(v1.SortDirectionV1)(0),                                    // 778: o11y_one.common.v1.SortDirectionV1
+	(*v1.PageResponseV1)(nil),                                  // 779: o11y_one.common.v1.PageResponseV1
+	(ProviderNameV1)(0),                                        // 780: o11y_one.agentic.v1.ProviderNameV1
+	(ProviderReasoningEffortV1)(0),                             // 781: o11y_one.agentic.v1.ProviderReasoningEffortV1
+	(AnnotationPairwiseWinnerV1)(0),                            // 782: o11y_one.agentic.v1.AnnotationPairwiseWinnerV1
 }
 var file_o11y_one_agentic_v1_evaluation_proto_depIdxs = []int32{
-	695,  // 0: o11y_one.agentic.v1.MetadataValueV1.timestamp_value:type_name -> google.protobuf.Timestamp
-	158,  // 1: o11y_one.agentic.v1.MetadataValueV1.string_list:type_name -> o11y_one.agentic.v1.StringListV1
-	159,  // 2: o11y_one.agentic.v1.MetadataValueV1.int_list:type_name -> o11y_one.agentic.v1.Int64ListV1
-	160,  // 3: o11y_one.agentic.v1.MetadataValueV1.double_list:type_name -> o11y_one.agentic.v1.DoubleListV1
-	161,  // 4: o11y_one.agentic.v1.MetadataEntryV1.value:type_name -> o11y_one.agentic.v1.MetadataValueV1
+	774,  // 0: o11y_one.agentic.v1.MetadataValueV1.timestamp_value:type_name -> google.protobuf.Timestamp
+	167,  // 1: o11y_one.agentic.v1.MetadataValueV1.string_list:type_name -> o11y_one.agentic.v1.StringListV1
+	168,  // 2: o11y_one.agentic.v1.MetadataValueV1.int_list:type_name -> o11y_one.agentic.v1.Int64ListV1
+	169,  // 3: o11y_one.agentic.v1.MetadataValueV1.double_list:type_name -> o11y_one.agentic.v1.DoubleListV1
+	170,  // 4: o11y_one.agentic.v1.MetadataEntryV1.value:type_name -> o11y_one.agentic.v1.MetadataValueV1
 	0,    // 5: o11y_one.agentic.v1.PrincipalRefV1.kind:type_name -> o11y_one.agentic.v1.PrincipalKindV1
-	695,  // 6: o11y_one.agentic.v1.EvaluationFreshnessV1.complete_through:type_name -> google.protobuf.Timestamp
-	695,  // 7: o11y_one.agentic.v1.EvaluationFreshnessV1.updated_at:type_name -> google.protobuf.Timestamp
+	774,  // 6: o11y_one.agentic.v1.EvaluationFreshnessV1.complete_through:type_name -> google.protobuf.Timestamp
+	774,  // 7: o11y_one.agentic.v1.EvaluationFreshnessV1.updated_at:type_name -> google.protobuf.Timestamp
 	1,    // 8: o11y_one.agentic.v1.EvaluationFreshnessV1.completeness:type_name -> o11y_one.agentic.v1.CompletenessStateV1
 	2,    // 9: o11y_one.agentic.v1.MetricAvailabilityV1.state:type_name -> o11y_one.agentic.v1.MetricAvailabilityStateV1
-	166,  // 10: o11y_one.agentic.v1.MetricAvailabilityV1.provenance:type_name -> o11y_one.agentic.v1.SemanticConventionProvenanceV1
+	175,  // 10: o11y_one.agentic.v1.MetricAvailabilityV1.provenance:type_name -> o11y_one.agentic.v1.SemanticConventionProvenanceV1
 	3,    // 11: o11y_one.agentic.v1.AllowedActionV1.kind:type_name -> o11y_one.agentic.v1.EvaluationActionKindV1
 	4,    // 12: o11y_one.agentic.v1.AllowedActionV1.blocked_reason:type_name -> o11y_one.agentic.v1.ActionBlockedReasonV1
 	5,    // 13: o11y_one.agentic.v1.CapabilityPostureV1.state:type_name -> o11y_one.agentic.v1.CapabilityStateV1
-	168,  // 14: o11y_one.agentic.v1.CapabilityPostureV1.limits:type_name -> o11y_one.agentic.v1.CapabilityLimitV1
-	169,  // 15: o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1.postures:type_name -> o11y_one.agentic.v1.CapabilityPostureV1
-	695,  // 16: o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1.checked_at:type_name -> google.protobuf.Timestamp
+	177,  // 14: o11y_one.agentic.v1.CapabilityPostureV1.limits:type_name -> o11y_one.agentic.v1.CapabilityLimitV1
+	178,  // 15: o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1.postures:type_name -> o11y_one.agentic.v1.CapabilityPostureV1
+	774,  // 16: o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1.checked_at:type_name -> google.protobuf.Timestamp
 	11,   // 17: o11y_one.agentic.v1.CohortNormalizationPolicyV1.mode:type_name -> o11y_one.agentic.v1.CohortNormalizationModeV1
-	172,  // 18: o11y_one.agentic.v1.EvaluationCohortSpecV1.field_mappings:type_name -> o11y_one.agentic.v1.DatasetFieldMappingV1
-	173,  // 19: o11y_one.agentic.v1.EvaluationCohortSpecV1.normalization:type_name -> o11y_one.agentic.v1.CohortNormalizationPolicyV1
-	696,  // 20: o11y_one.agentic.v1.ProviderPromptCandidateV1.model:type_name -> o11y_one.agentic.v1.ProviderModelRefV1
-	697,  // 21: o11y_one.agentic.v1.ProviderPromptCandidateV1.request_settings:type_name -> o11y_one.agentic.v1.ProviderRequestSettingsV1
-	180,  // 22: o11y_one.agentic.v1.ExternallyExecutedCandidateV1.lease_policy:type_name -> o11y_one.agentic.v1.ExternalExecutionLeasePolicyV1
+	181,  // 18: o11y_one.agentic.v1.EvaluationCohortSpecV1.field_mappings:type_name -> o11y_one.agentic.v1.DatasetFieldMappingV1
+	182,  // 19: o11y_one.agentic.v1.EvaluationCohortSpecV1.normalization:type_name -> o11y_one.agentic.v1.CohortNormalizationPolicyV1
+	775,  // 20: o11y_one.agentic.v1.ProviderPromptCandidateV1.model:type_name -> o11y_one.agentic.v1.ProviderModelRefV1
+	776,  // 21: o11y_one.agentic.v1.ProviderPromptCandidateV1.request_settings:type_name -> o11y_one.agentic.v1.ProviderRequestSettingsV1
+	189,  // 22: o11y_one.agentic.v1.ExternallyExecutedCandidateV1.lease_policy:type_name -> o11y_one.agentic.v1.ExternalExecutionLeasePolicyV1
 	13,   // 23: o11y_one.agentic.v1.ConversationTerminationPolicyV1.kind:type_name -> o11y_one.agentic.v1.ConversationTerminationKindV1
-	182,  // 24: o11y_one.agentic.v1.ConversationSimulationCandidateV1.termination:type_name -> o11y_one.agentic.v1.ConversationTerminationPolicyV1
-	172,  // 25: o11y_one.agentic.v1.EvaluationRequestMappingV1.field_mappings:type_name -> o11y_one.agentic.v1.DatasetFieldMappingV1
-	169,  // 26: o11y_one.agentic.v1.ProviderCapabilitySnapshotV1.postures:type_name -> o11y_one.agentic.v1.CapabilityPostureV1
+	191,  // 24: o11y_one.agentic.v1.ConversationSimulationCandidateV1.termination:type_name -> o11y_one.agentic.v1.ConversationTerminationPolicyV1
+	181,  // 25: o11y_one.agentic.v1.EvaluationRequestMappingV1.field_mappings:type_name -> o11y_one.agentic.v1.DatasetFieldMappingV1
+	178,  // 26: o11y_one.agentic.v1.ProviderCapabilitySnapshotV1.postures:type_name -> o11y_one.agentic.v1.CapabilityPostureV1
 	14,   // 27: o11y_one.agentic.v1.CandidateSideEffectAttestationV1.posture:type_name -> o11y_one.agentic.v1.SideEffectPostureV1
-	695,  // 28: o11y_one.agentic.v1.CandidateSideEffectAttestationV1.attested_at:type_name -> google.protobuf.Timestamp
+	774,  // 28: o11y_one.agentic.v1.CandidateSideEffectAttestationV1.attested_at:type_name -> google.protobuf.Timestamp
 	12,   // 29: o11y_one.agentic.v1.EvaluationCandidateV1.kind:type_name -> o11y_one.agentic.v1.EvaluationCandidateKindV1
-	175,  // 30: o11y_one.agentic.v1.EvaluationCandidateV1.recorded_output:type_name -> o11y_one.agentic.v1.RecordedOutputCandidateV1
-	176,  // 31: o11y_one.agentic.v1.EvaluationCandidateV1.provider_prompt:type_name -> o11y_one.agentic.v1.ProviderPromptCandidateV1
-	177,  // 32: o11y_one.agentic.v1.EvaluationCandidateV1.http_json_endpoint:type_name -> o11y_one.agentic.v1.HttpJsonEndpointCandidateV1
-	178,  // 33: o11y_one.agentic.v1.EvaluationCandidateV1.experiment_target_ref:type_name -> o11y_one.agentic.v1.ExperimentTargetRefCandidateV1
-	179,  // 34: o11y_one.agentic.v1.EvaluationCandidateV1.agent_release_revision:type_name -> o11y_one.agentic.v1.AgentReleaseRevisionCandidateV1
-	181,  // 35: o11y_one.agentic.v1.EvaluationCandidateV1.externally_executed:type_name -> o11y_one.agentic.v1.ExternallyExecutedCandidateV1
-	183,  // 36: o11y_one.agentic.v1.EvaluationCandidateV1.conversation_simulation:type_name -> o11y_one.agentic.v1.ConversationSimulationCandidateV1
-	184,  // 37: o11y_one.agentic.v1.EvaluationCandidateV1.request_mapping:type_name -> o11y_one.agentic.v1.EvaluationRequestMappingV1
-	185,  // 38: o11y_one.agentic.v1.EvaluationCandidateV1.response_mapping:type_name -> o11y_one.agentic.v1.EvaluationResponseMappingV1
-	186,  // 39: o11y_one.agentic.v1.EvaluationCandidateV1.timeout_retry:type_name -> o11y_one.agentic.v1.EvaluationTimeoutRetryPolicyV1
-	187,  // 40: o11y_one.agentic.v1.EvaluationCandidateV1.provider_capabilities:type_name -> o11y_one.agentic.v1.ProviderCapabilitySnapshotV1
-	188,  // 41: o11y_one.agentic.v1.EvaluationCandidateV1.side_effects:type_name -> o11y_one.agentic.v1.CandidateSideEffectAttestationV1
+	184,  // 30: o11y_one.agentic.v1.EvaluationCandidateV1.recorded_output:type_name -> o11y_one.agentic.v1.RecordedOutputCandidateV1
+	185,  // 31: o11y_one.agentic.v1.EvaluationCandidateV1.provider_prompt:type_name -> o11y_one.agentic.v1.ProviderPromptCandidateV1
+	186,  // 32: o11y_one.agentic.v1.EvaluationCandidateV1.http_json_endpoint:type_name -> o11y_one.agentic.v1.HttpJsonEndpointCandidateV1
+	187,  // 33: o11y_one.agentic.v1.EvaluationCandidateV1.experiment_target_ref:type_name -> o11y_one.agentic.v1.ExperimentTargetRefCandidateV1
+	188,  // 34: o11y_one.agentic.v1.EvaluationCandidateV1.agent_release_revision:type_name -> o11y_one.agentic.v1.AgentReleaseRevisionCandidateV1
+	190,  // 35: o11y_one.agentic.v1.EvaluationCandidateV1.externally_executed:type_name -> o11y_one.agentic.v1.ExternallyExecutedCandidateV1
+	192,  // 36: o11y_one.agentic.v1.EvaluationCandidateV1.conversation_simulation:type_name -> o11y_one.agentic.v1.ConversationSimulationCandidateV1
+	193,  // 37: o11y_one.agentic.v1.EvaluationCandidateV1.request_mapping:type_name -> o11y_one.agentic.v1.EvaluationRequestMappingV1
+	194,  // 38: o11y_one.agentic.v1.EvaluationCandidateV1.response_mapping:type_name -> o11y_one.agentic.v1.EvaluationResponseMappingV1
+	195,  // 39: o11y_one.agentic.v1.EvaluationCandidateV1.timeout_retry:type_name -> o11y_one.agentic.v1.EvaluationTimeoutRetryPolicyV1
+	196,  // 40: o11y_one.agentic.v1.EvaluationCandidateV1.provider_capabilities:type_name -> o11y_one.agentic.v1.ProviderCapabilitySnapshotV1
+	197,  // 41: o11y_one.agentic.v1.EvaluationCandidateV1.side_effects:type_name -> o11y_one.agentic.v1.CandidateSideEffectAttestationV1
 	15,   // 42: o11y_one.agentic.v1.EvaluationScorerTargetV1.kind:type_name -> o11y_one.agentic.v1.EvaluationScorerTargetKindV1
-	190,  // 43: o11y_one.agentic.v1.EvaluationScorerTargetV1.scorers:type_name -> o11y_one.agentic.v1.EvaluationScorerSelectionV1
+	199,  // 43: o11y_one.agentic.v1.EvaluationScorerTargetV1.scorers:type_name -> o11y_one.agentic.v1.EvaluationScorerSelectionV1
 	16,   // 44: o11y_one.agentic.v1.EvaluationScorerSuiteV1.combine_rule:type_name -> o11y_one.agentic.v1.EvaluationScorerSuiteCombineRuleV1
-	192,  // 45: o11y_one.agentic.v1.EvaluationScorerSuiteV1.members:type_name -> o11y_one.agentic.v1.EvaluationScorerSuiteMemberV1
-	695,  // 46: o11y_one.agentic.v1.EvaluationScorerSuiteV1.created_at:type_name -> google.protobuf.Timestamp
+	201,  // 45: o11y_one.agentic.v1.EvaluationScorerSuiteV1.members:type_name -> o11y_one.agentic.v1.EvaluationScorerSuiteMemberV1
+	774,  // 46: o11y_one.agentic.v1.EvaluationScorerSuiteV1.created_at:type_name -> google.protobuf.Timestamp
 	16,   // 47: o11y_one.agentic.v1.EvaluationScorerSuiteSnapshotV1.combine_rule:type_name -> o11y_one.agentic.v1.EvaluationScorerSuiteCombineRuleV1
-	192,  // 48: o11y_one.agentic.v1.EvaluationScorerSuiteSnapshotV1.members:type_name -> o11y_one.agentic.v1.EvaluationScorerSuiteMemberV1
+	201,  // 48: o11y_one.agentic.v1.EvaluationScorerSuiteSnapshotV1.members:type_name -> o11y_one.agentic.v1.EvaluationScorerSuiteMemberV1
 	16,   // 49: o11y_one.agentic.v1.EvaluationScorerSuiteRollupV1.combine_rule:type_name -> o11y_one.agentic.v1.EvaluationScorerSuiteCombineRuleV1
-	165,  // 50: o11y_one.agentic.v1.EvaluationScorerSuiteRollupV1.gates_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	165,  // 51: o11y_one.agentic.v1.EvaluationScorerSuiteRollupV1.weighted_mean_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 50: o11y_one.agentic.v1.EvaluationScorerSuiteRollupV1.gates_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 51: o11y_one.agentic.v1.EvaluationScorerSuiteRollupV1.weighted_mean_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
 	40,   // 52: o11y_one.agentic.v1.EvaluationScorerSuiteRollupV1.verdict:type_name -> o11y_one.agentic.v1.EvaluationVerdictV1
-	164,  // 53: o11y_one.agentic.v1.EvaluationScorerSuiteRollupV1.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	165,  // 54: o11y_one.agentic.v1.EvaluationScorerSuiteCellV1.weighted_mean_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	173,  // 53: o11y_one.agentic.v1.EvaluationScorerSuiteRollupV1.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	174,  // 54: o11y_one.agentic.v1.EvaluationScorerSuiteCellV1.weighted_mean_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
 	40,   // 55: o11y_one.agentic.v1.EvaluationScorerSuiteCellV1.verdict:type_name -> o11y_one.agentic.v1.EvaluationVerdictV1
-	171,  // 56: o11y_one.agentic.v1.EvaluationBudgetV1.candidate_budget:type_name -> o11y_one.agentic.v1.CostAmountV1
-	171,  // 57: o11y_one.agentic.v1.EvaluationBudgetV1.evaluator_budget:type_name -> o11y_one.agentic.v1.CostAmountV1
-	171,  // 58: o11y_one.agentic.v1.EvaluationBudgetV1.total_budget:type_name -> o11y_one.agentic.v1.CostAmountV1
+	180,  // 56: o11y_one.agentic.v1.EvaluationBudgetV1.candidate_budget:type_name -> o11y_one.agentic.v1.CostAmountV1
+	180,  // 57: o11y_one.agentic.v1.EvaluationBudgetV1.evaluator_budget:type_name -> o11y_one.agentic.v1.CostAmountV1
+	180,  // 58: o11y_one.agentic.v1.EvaluationBudgetV1.total_budget:type_name -> o11y_one.agentic.v1.CostAmountV1
 	17,   // 59: o11y_one.agentic.v1.EvaluationDecisionRuleV1.kind:type_name -> o11y_one.agentic.v1.EvaluationDecisionRuleKindV1
-	171,  // 60: o11y_one.agentic.v1.EvaluationDecisionRuleV1.cost_threshold:type_name -> o11y_one.agentic.v1.CostAmountV1
-	199,  // 61: o11y_one.agentic.v1.EvaluationDecisionPolicyV1.rules:type_name -> o11y_one.agentic.v1.EvaluationDecisionRuleV1
-	201,  // 62: o11y_one.agentic.v1.EvaluationHumanReviewPolicyV1.sampling:type_name -> o11y_one.agentic.v1.EvaluationReviewSamplingPolicyV1
-	174,  // 63: o11y_one.agentic.v1.EvaluationDefinitionDraftV1.cohorts:type_name -> o11y_one.agentic.v1.EvaluationCohortSpecV1
-	189,  // 64: o11y_one.agentic.v1.EvaluationDefinitionDraftV1.candidates:type_name -> o11y_one.agentic.v1.EvaluationCandidateV1
-	191,  // 65: o11y_one.agentic.v1.EvaluationDefinitionDraftV1.scorer_target:type_name -> o11y_one.agentic.v1.EvaluationScorerTargetV1
-	197,  // 66: o11y_one.agentic.v1.EvaluationDefinitionDraftV1.execution_policy:type_name -> o11y_one.agentic.v1.EvaluationExecutionPolicyV1
-	198,  // 67: o11y_one.agentic.v1.EvaluationDefinitionDraftV1.budget:type_name -> o11y_one.agentic.v1.EvaluationBudgetV1
-	200,  // 68: o11y_one.agentic.v1.EvaluationDefinitionDraftV1.decision_policy:type_name -> o11y_one.agentic.v1.EvaluationDecisionPolicyV1
+	180,  // 60: o11y_one.agentic.v1.EvaluationDecisionRuleV1.cost_threshold:type_name -> o11y_one.agentic.v1.CostAmountV1
+	208,  // 61: o11y_one.agentic.v1.EvaluationDecisionPolicyV1.rules:type_name -> o11y_one.agentic.v1.EvaluationDecisionRuleV1
+	210,  // 62: o11y_one.agentic.v1.EvaluationHumanReviewPolicyV1.sampling:type_name -> o11y_one.agentic.v1.EvaluationReviewSamplingPolicyV1
+	183,  // 63: o11y_one.agentic.v1.EvaluationDefinitionDraftV1.cohorts:type_name -> o11y_one.agentic.v1.EvaluationCohortSpecV1
+	198,  // 64: o11y_one.agentic.v1.EvaluationDefinitionDraftV1.candidates:type_name -> o11y_one.agentic.v1.EvaluationCandidateV1
+	200,  // 65: o11y_one.agentic.v1.EvaluationDefinitionDraftV1.scorer_target:type_name -> o11y_one.agentic.v1.EvaluationScorerTargetV1
+	206,  // 66: o11y_one.agentic.v1.EvaluationDefinitionDraftV1.execution_policy:type_name -> o11y_one.agentic.v1.EvaluationExecutionPolicyV1
+	207,  // 67: o11y_one.agentic.v1.EvaluationDefinitionDraftV1.budget:type_name -> o11y_one.agentic.v1.EvaluationBudgetV1
+	209,  // 68: o11y_one.agentic.v1.EvaluationDefinitionDraftV1.decision_policy:type_name -> o11y_one.agentic.v1.EvaluationDecisionPolicyV1
 	9,    // 69: o11y_one.agentic.v1.EvaluationDefinitionDraftV1.launch_mode:type_name -> o11y_one.agentic.v1.EvaluationLaunchModeV1
-	202,  // 70: o11y_one.agentic.v1.EvaluationDefinitionDraftV1.human_review_policy:type_name -> o11y_one.agentic.v1.EvaluationHumanReviewPolicyV1
-	162,  // 71: o11y_one.agentic.v1.EvaluationDefinitionDraftV1.metadata:type_name -> o11y_one.agentic.v1.MetadataEntryV1
+	211,  // 70: o11y_one.agentic.v1.EvaluationDefinitionDraftV1.human_review_policy:type_name -> o11y_one.agentic.v1.EvaluationHumanReviewPolicyV1
+	171,  // 71: o11y_one.agentic.v1.EvaluationDefinitionDraftV1.metadata:type_name -> o11y_one.agentic.v1.MetadataEntryV1
 	18,   // 72: o11y_one.agentic.v1.EvaluationDefinitionDraftV1.trials_source:type_name -> o11y_one.agentic.v1.EvaluationTrialsSourceV1
 	7,    // 73: o11y_one.agentic.v1.EvaluationRunSummaryRefV1.state:type_name -> o11y_one.agentic.v1.EvaluationRunStateV1
-	695,  // 74: o11y_one.agentic.v1.EvaluationRunSummaryRefV1.created_at:type_name -> google.protobuf.Timestamp
-	695,  // 75: o11y_one.agentic.v1.EvaluationRunSummaryRefV1.finished_at:type_name -> google.protobuf.Timestamp
+	774,  // 74: o11y_one.agentic.v1.EvaluationRunSummaryRefV1.created_at:type_name -> google.protobuf.Timestamp
+	774,  // 75: o11y_one.agentic.v1.EvaluationRunSummaryRefV1.finished_at:type_name -> google.protobuf.Timestamp
 	6,    // 76: o11y_one.agentic.v1.EvaluationDefinitionV1.state:type_name -> o11y_one.agentic.v1.EvaluationDefinitionStateV1
-	162,  // 77: o11y_one.agentic.v1.EvaluationDefinitionV1.metadata:type_name -> o11y_one.agentic.v1.MetadataEntryV1
-	163,  // 78: o11y_one.agentic.v1.EvaluationDefinitionV1.created_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
-	695,  // 79: o11y_one.agentic.v1.EvaluationDefinitionV1.created_at:type_name -> google.protobuf.Timestamp
-	695,  // 80: o11y_one.agentic.v1.EvaluationDefinitionV1.updated_at:type_name -> google.protobuf.Timestamp
-	204,  // 81: o11y_one.agentic.v1.EvaluationDefinitionV1.latest_run:type_name -> o11y_one.agentic.v1.EvaluationRunSummaryRefV1
-	165,  // 82: o11y_one.agentic.v1.EvaluationDefinitionV1.latest_run_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	167,  // 83: o11y_one.agentic.v1.EvaluationDefinitionV1.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
-	203,  // 84: o11y_one.agentic.v1.EvaluationDefinitionRevisionV1.draft:type_name -> o11y_one.agentic.v1.EvaluationDefinitionDraftV1
-	163,  // 85: o11y_one.agentic.v1.EvaluationDefinitionRevisionV1.created_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
-	695,  // 86: o11y_one.agentic.v1.EvaluationDefinitionRevisionV1.created_at:type_name -> google.protobuf.Timestamp
+	171,  // 77: o11y_one.agentic.v1.EvaluationDefinitionV1.metadata:type_name -> o11y_one.agentic.v1.MetadataEntryV1
+	172,  // 78: o11y_one.agentic.v1.EvaluationDefinitionV1.created_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
+	774,  // 79: o11y_one.agentic.v1.EvaluationDefinitionV1.created_at:type_name -> google.protobuf.Timestamp
+	774,  // 80: o11y_one.agentic.v1.EvaluationDefinitionV1.updated_at:type_name -> google.protobuf.Timestamp
+	213,  // 81: o11y_one.agentic.v1.EvaluationDefinitionV1.latest_run:type_name -> o11y_one.agentic.v1.EvaluationRunSummaryRefV1
+	174,  // 82: o11y_one.agentic.v1.EvaluationDefinitionV1.latest_run_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	176,  // 83: o11y_one.agentic.v1.EvaluationDefinitionV1.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
+	212,  // 84: o11y_one.agentic.v1.EvaluationDefinitionRevisionV1.draft:type_name -> o11y_one.agentic.v1.EvaluationDefinitionDraftV1
+	172,  // 85: o11y_one.agentic.v1.EvaluationDefinitionRevisionV1.created_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
+	774,  // 86: o11y_one.agentic.v1.EvaluationDefinitionRevisionV1.created_at:type_name -> google.protobuf.Timestamp
 	6,    // 87: o11y_one.agentic.v1.EvaluationDefinitionSummaryV1.state:type_name -> o11y_one.agentic.v1.EvaluationDefinitionStateV1
-	163,  // 88: o11y_one.agentic.v1.EvaluationDefinitionSummaryV1.created_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
-	695,  // 89: o11y_one.agentic.v1.EvaluationDefinitionSummaryV1.created_at:type_name -> google.protobuf.Timestamp
-	695,  // 90: o11y_one.agentic.v1.EvaluationDefinitionSummaryV1.updated_at:type_name -> google.protobuf.Timestamp
-	204,  // 91: o11y_one.agentic.v1.EvaluationDefinitionSummaryV1.latest_run:type_name -> o11y_one.agentic.v1.EvaluationRunSummaryRefV1
-	165,  // 92: o11y_one.agentic.v1.EvaluationDefinitionSummaryV1.latest_run_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	167,  // 93: o11y_one.agentic.v1.EvaluationDefinitionSummaryV1.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
-	164,  // 94: o11y_one.agentic.v1.EvaluationDefinitionSummaryV1.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	203,  // 95: o11y_one.agentic.v1.CreateEvaluationDefinitionRequest.draft:type_name -> o11y_one.agentic.v1.EvaluationDefinitionDraftV1
-	205,  // 96: o11y_one.agentic.v1.CreateEvaluationDefinitionResponse.definition:type_name -> o11y_one.agentic.v1.EvaluationDefinitionV1
-	206,  // 97: o11y_one.agentic.v1.CreateEvaluationDefinitionResponse.revision:type_name -> o11y_one.agentic.v1.EvaluationDefinitionRevisionV1
+	172,  // 88: o11y_one.agentic.v1.EvaluationDefinitionSummaryV1.created_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
+	774,  // 89: o11y_one.agentic.v1.EvaluationDefinitionSummaryV1.created_at:type_name -> google.protobuf.Timestamp
+	774,  // 90: o11y_one.agentic.v1.EvaluationDefinitionSummaryV1.updated_at:type_name -> google.protobuf.Timestamp
+	213,  // 91: o11y_one.agentic.v1.EvaluationDefinitionSummaryV1.latest_run:type_name -> o11y_one.agentic.v1.EvaluationRunSummaryRefV1
+	174,  // 92: o11y_one.agentic.v1.EvaluationDefinitionSummaryV1.latest_run_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	176,  // 93: o11y_one.agentic.v1.EvaluationDefinitionSummaryV1.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
+	173,  // 94: o11y_one.agentic.v1.EvaluationDefinitionSummaryV1.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	212,  // 95: o11y_one.agentic.v1.CreateEvaluationDefinitionRequest.draft:type_name -> o11y_one.agentic.v1.EvaluationDefinitionDraftV1
+	214,  // 96: o11y_one.agentic.v1.CreateEvaluationDefinitionResponse.definition:type_name -> o11y_one.agentic.v1.EvaluationDefinitionV1
+	215,  // 97: o11y_one.agentic.v1.CreateEvaluationDefinitionResponse.revision:type_name -> o11y_one.agentic.v1.EvaluationDefinitionRevisionV1
 	19,   // 98: o11y_one.agentic.v1.EvaluationDefinitionConflictV1.changed_sections:type_name -> o11y_one.agentic.v1.EvaluationDefinitionConflictSectionV1
-	206,  // 99: o11y_one.agentic.v1.EvaluationDefinitionConflictV1.server_revision:type_name -> o11y_one.agentic.v1.EvaluationDefinitionRevisionV1
-	203,  // 100: o11y_one.agentic.v1.UpdateEvaluationDefinitionRequest.draft:type_name -> o11y_one.agentic.v1.EvaluationDefinitionDraftV1
+	215,  // 99: o11y_one.agentic.v1.EvaluationDefinitionConflictV1.server_revision:type_name -> o11y_one.agentic.v1.EvaluationDefinitionRevisionV1
+	212,  // 100: o11y_one.agentic.v1.UpdateEvaluationDefinitionRequest.draft:type_name -> o11y_one.agentic.v1.EvaluationDefinitionDraftV1
 	6,    // 101: o11y_one.agentic.v1.UpdateEvaluationDefinitionRequest.state:type_name -> o11y_one.agentic.v1.EvaluationDefinitionStateV1
-	205,  // 102: o11y_one.agentic.v1.UpdateEvaluationDefinitionResponse.definition:type_name -> o11y_one.agentic.v1.EvaluationDefinitionV1
-	206,  // 103: o11y_one.agentic.v1.UpdateEvaluationDefinitionResponse.revision:type_name -> o11y_one.agentic.v1.EvaluationDefinitionRevisionV1
-	210,  // 104: o11y_one.agentic.v1.UpdateEvaluationDefinitionResponse.conflict:type_name -> o11y_one.agentic.v1.EvaluationDefinitionConflictV1
-	205,  // 105: o11y_one.agentic.v1.GetEvaluationDefinitionResponse.definition:type_name -> o11y_one.agentic.v1.EvaluationDefinitionV1
-	206,  // 106: o11y_one.agentic.v1.GetEvaluationDefinitionResponse.revision:type_name -> o11y_one.agentic.v1.EvaluationDefinitionRevisionV1
-	164,  // 107: o11y_one.agentic.v1.GetEvaluationDefinitionResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	698,  // 108: o11y_one.agentic.v1.ListEvaluationDefinitionsRequest.page:type_name -> o11y_one.common.v1.PageRequestV1
+	214,  // 102: o11y_one.agentic.v1.UpdateEvaluationDefinitionResponse.definition:type_name -> o11y_one.agentic.v1.EvaluationDefinitionV1
+	215,  // 103: o11y_one.agentic.v1.UpdateEvaluationDefinitionResponse.revision:type_name -> o11y_one.agentic.v1.EvaluationDefinitionRevisionV1
+	219,  // 104: o11y_one.agentic.v1.UpdateEvaluationDefinitionResponse.conflict:type_name -> o11y_one.agentic.v1.EvaluationDefinitionConflictV1
+	214,  // 105: o11y_one.agentic.v1.GetEvaluationDefinitionResponse.definition:type_name -> o11y_one.agentic.v1.EvaluationDefinitionV1
+	215,  // 106: o11y_one.agentic.v1.GetEvaluationDefinitionResponse.revision:type_name -> o11y_one.agentic.v1.EvaluationDefinitionRevisionV1
+	173,  // 107: o11y_one.agentic.v1.GetEvaluationDefinitionResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	777,  // 108: o11y_one.agentic.v1.ListEvaluationDefinitionsRequest.page:type_name -> o11y_one.common.v1.PageRequestV1
 	6,    // 109: o11y_one.agentic.v1.ListEvaluationDefinitionsRequest.state_filter:type_name -> o11y_one.agentic.v1.EvaluationDefinitionStateV1
 	20,   // 110: o11y_one.agentic.v1.ListEvaluationDefinitionsRequest.sort_key:type_name -> o11y_one.agentic.v1.EvaluationDefinitionSortKeyV1
-	699,  // 111: o11y_one.agentic.v1.ListEvaluationDefinitionsRequest.sort_direction:type_name -> o11y_one.common.v1.SortDirectionV1
-	207,  // 112: o11y_one.agentic.v1.ListEvaluationDefinitionsResponse.definitions:type_name -> o11y_one.agentic.v1.EvaluationDefinitionSummaryV1
-	700,  // 113: o11y_one.agentic.v1.ListEvaluationDefinitionsResponse.page:type_name -> o11y_one.common.v1.PageResponseV1
-	164,  // 114: o11y_one.agentic.v1.ListEvaluationDefinitionsResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	170,  // 115: o11y_one.agentic.v1.ListEvaluationDefinitionsResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	304,  // 116: o11y_one.agentic.v1.ListEvaluationDefinitionsResponse.resync:type_name -> o11y_one.agentic.v1.EvaluationCursorResyncV1
-	217,  // 117: o11y_one.agentic.v1.GetEvaluationBuilderContextRequest.new_draft:type_name -> o11y_one.agentic.v1.NewDraftEntryV1
-	218,  // 118: o11y_one.agentic.v1.GetEvaluationBuilderContextRequest.edit_definition:type_name -> o11y_one.agentic.v1.EditDefinitionEntryV1
-	219,  // 119: o11y_one.agentic.v1.GetEvaluationBuilderContextRequest.duplicate_definition:type_name -> o11y_one.agentic.v1.DuplicateDefinitionEntryV1
-	220,  // 120: o11y_one.agentic.v1.GetEvaluationBuilderContextRequest.rerun_definition:type_name -> o11y_one.agentic.v1.RerunDefinitionEntryV1
-	221,  // 121: o11y_one.agentic.v1.GetEvaluationBuilderContextRequest.from_dataset:type_name -> o11y_one.agentic.v1.FromDatasetEntryV1
-	222,  // 122: o11y_one.agentic.v1.GetEvaluationBuilderContextRequest.from_production:type_name -> o11y_one.agentic.v1.FromProductionEvidenceEntryV1
-	223,  // 123: o11y_one.agentic.v1.GetEvaluationBuilderContextRequest.from_release:type_name -> o11y_one.agentic.v1.FromReleaseEntryV1
-	165,  // 124: o11y_one.agentic.v1.EvaluationBuilderDatasetVersionOptionV1.case_count_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	165,  // 125: o11y_one.agentic.v1.EvaluationBuilderDatasetVersionOptionV1.schema_fingerprint_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	695,  // 126: o11y_one.agentic.v1.EvaluationBuilderDatasetVersionOptionV1.created_at:type_name -> google.protobuf.Timestamp
-	225,  // 127: o11y_one.agentic.v1.EvaluationBuilderDatasetOptionV1.versions:type_name -> o11y_one.agentic.v1.EvaluationBuilderDatasetVersionOptionV1
-	695,  // 128: o11y_one.agentic.v1.EvaluationBuilderDatasetOptionV1.updated_at:type_name -> google.protobuf.Timestamp
-	696,  // 129: o11y_one.agentic.v1.EvaluationBuilderModelOptionV1.model:type_name -> o11y_one.agentic.v1.ProviderModelRefV1
-	701,  // 130: o11y_one.agentic.v1.EvaluationBuilderModelOptionV1.provider:type_name -> o11y_one.agentic.v1.ProviderNameV1
-	169,  // 131: o11y_one.agentic.v1.EvaluationBuilderModelOptionV1.posture:type_name -> o11y_one.agentic.v1.CapabilityPostureV1
-	227,  // 132: o11y_one.agentic.v1.EvaluationBuilderCandidateSourcesV1.models:type_name -> o11y_one.agentic.v1.EvaluationBuilderModelOptionV1
-	169,  // 133: o11y_one.agentic.v1.EvaluationBuilderCandidateSourcesV1.agent_endpoints:type_name -> o11y_one.agentic.v1.CapabilityPostureV1
-	169,  // 134: o11y_one.agentic.v1.EvaluationBuilderCandidateSourcesV1.release_revisions:type_name -> o11y_one.agentic.v1.CapabilityPostureV1
-	169,  // 135: o11y_one.agentic.v1.EvaluationBuilderCandidateSourcesV1.recorded_outputs:type_name -> o11y_one.agentic.v1.CapabilityPostureV1
+	778,  // 111: o11y_one.agentic.v1.ListEvaluationDefinitionsRequest.sort_direction:type_name -> o11y_one.common.v1.SortDirectionV1
+	216,  // 112: o11y_one.agentic.v1.ListEvaluationDefinitionsResponse.definitions:type_name -> o11y_one.agentic.v1.EvaluationDefinitionSummaryV1
+	779,  // 113: o11y_one.agentic.v1.ListEvaluationDefinitionsResponse.page:type_name -> o11y_one.common.v1.PageResponseV1
+	173,  // 114: o11y_one.agentic.v1.ListEvaluationDefinitionsResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	179,  // 115: o11y_one.agentic.v1.ListEvaluationDefinitionsResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	313,  // 116: o11y_one.agentic.v1.ListEvaluationDefinitionsResponse.resync:type_name -> o11y_one.agentic.v1.EvaluationCursorResyncV1
+	226,  // 117: o11y_one.agentic.v1.GetEvaluationBuilderContextRequest.new_draft:type_name -> o11y_one.agentic.v1.NewDraftEntryV1
+	227,  // 118: o11y_one.agentic.v1.GetEvaluationBuilderContextRequest.edit_definition:type_name -> o11y_one.agentic.v1.EditDefinitionEntryV1
+	228,  // 119: o11y_one.agentic.v1.GetEvaluationBuilderContextRequest.duplicate_definition:type_name -> o11y_one.agentic.v1.DuplicateDefinitionEntryV1
+	229,  // 120: o11y_one.agentic.v1.GetEvaluationBuilderContextRequest.rerun_definition:type_name -> o11y_one.agentic.v1.RerunDefinitionEntryV1
+	230,  // 121: o11y_one.agentic.v1.GetEvaluationBuilderContextRequest.from_dataset:type_name -> o11y_one.agentic.v1.FromDatasetEntryV1
+	231,  // 122: o11y_one.agentic.v1.GetEvaluationBuilderContextRequest.from_production:type_name -> o11y_one.agentic.v1.FromProductionEvidenceEntryV1
+	232,  // 123: o11y_one.agentic.v1.GetEvaluationBuilderContextRequest.from_release:type_name -> o11y_one.agentic.v1.FromReleaseEntryV1
+	174,  // 124: o11y_one.agentic.v1.EvaluationBuilderDatasetVersionOptionV1.case_count_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 125: o11y_one.agentic.v1.EvaluationBuilderDatasetVersionOptionV1.schema_fingerprint_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	774,  // 126: o11y_one.agentic.v1.EvaluationBuilderDatasetVersionOptionV1.created_at:type_name -> google.protobuf.Timestamp
+	234,  // 127: o11y_one.agentic.v1.EvaluationBuilderDatasetOptionV1.versions:type_name -> o11y_one.agentic.v1.EvaluationBuilderDatasetVersionOptionV1
+	774,  // 128: o11y_one.agentic.v1.EvaluationBuilderDatasetOptionV1.updated_at:type_name -> google.protobuf.Timestamp
+	775,  // 129: o11y_one.agentic.v1.EvaluationBuilderModelOptionV1.model:type_name -> o11y_one.agentic.v1.ProviderModelRefV1
+	780,  // 130: o11y_one.agentic.v1.EvaluationBuilderModelOptionV1.provider:type_name -> o11y_one.agentic.v1.ProviderNameV1
+	178,  // 131: o11y_one.agentic.v1.EvaluationBuilderModelOptionV1.posture:type_name -> o11y_one.agentic.v1.CapabilityPostureV1
+	236,  // 132: o11y_one.agentic.v1.EvaluationBuilderCandidateSourcesV1.models:type_name -> o11y_one.agentic.v1.EvaluationBuilderModelOptionV1
+	178,  // 133: o11y_one.agentic.v1.EvaluationBuilderCandidateSourcesV1.agent_endpoints:type_name -> o11y_one.agentic.v1.CapabilityPostureV1
+	178,  // 134: o11y_one.agentic.v1.EvaluationBuilderCandidateSourcesV1.release_revisions:type_name -> o11y_one.agentic.v1.CapabilityPostureV1
+	178,  // 135: o11y_one.agentic.v1.EvaluationBuilderCandidateSourcesV1.recorded_outputs:type_name -> o11y_one.agentic.v1.CapabilityPostureV1
 	10,   // 136: o11y_one.agentic.v1.EvaluationBuilderScorerChoiceV1.compatible_subject_kinds:type_name -> o11y_one.agentic.v1.EvaluationSubjectKindV1
 	88,   // 137: o11y_one.agentic.v1.EvaluationBuilderScorerChoiceV1.kind:type_name -> o11y_one.agentic.v1.EvaluationScorerKindV1
-	230,  // 138: o11y_one.agentic.v1.EvaluationBuilderScorecardRecommendationV1.measures:type_name -> o11y_one.agentic.v1.EvaluationBuilderRecommendedMeasureV1
-	165,  // 139: o11y_one.agentic.v1.EvaluationBuilderScorecardRecommendationV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	701,  // 140: o11y_one.agentic.v1.EvaluationBuilderCredentialRefV1.provider:type_name -> o11y_one.agentic.v1.ProviderNameV1
-	197,  // 141: o11y_one.agentic.v1.EvaluationBuilderExecutionDefaultsV1.execution_policy:type_name -> o11y_one.agentic.v1.EvaluationExecutionPolicyV1
-	198,  // 142: o11y_one.agentic.v1.EvaluationBuilderExecutionDefaultsV1.budget:type_name -> o11y_one.agentic.v1.EvaluationBudgetV1
+	239,  // 138: o11y_one.agentic.v1.EvaluationBuilderScorecardRecommendationV1.measures:type_name -> o11y_one.agentic.v1.EvaluationBuilderRecommendedMeasureV1
+	174,  // 139: o11y_one.agentic.v1.EvaluationBuilderScorecardRecommendationV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	780,  // 140: o11y_one.agentic.v1.EvaluationBuilderCredentialRefV1.provider:type_name -> o11y_one.agentic.v1.ProviderNameV1
+	206,  // 141: o11y_one.agentic.v1.EvaluationBuilderExecutionDefaultsV1.execution_policy:type_name -> o11y_one.agentic.v1.EvaluationExecutionPolicyV1
+	207,  // 142: o11y_one.agentic.v1.EvaluationBuilderExecutionDefaultsV1.budget:type_name -> o11y_one.agentic.v1.EvaluationBudgetV1
 	21,   // 143: o11y_one.agentic.v1.EvaluationBuilderReadinessFindingV1.severity:type_name -> o11y_one.agentic.v1.EvaluationBuilderReadinessSeverityV1
 	22,   // 144: o11y_one.agentic.v1.EvaluationBuilderReadinessFindingV1.resolving_section:type_name -> o11y_one.agentic.v1.EvaluationBuilderSectionV1
 	10,   // 145: o11y_one.agentic.v1.EvaluationBuilderInferredSubjectV1.kind:type_name -> o11y_one.agentic.v1.EvaluationSubjectKindV1
 	10,   // 146: o11y_one.agentic.v1.EvaluationBuilderInferredSubjectV1.alternatives:type_name -> o11y_one.agentic.v1.EvaluationSubjectKindV1
-	165,  // 147: o11y_one.agentic.v1.EvaluationBuilderInferredSubjectV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	203,  // 148: o11y_one.agentic.v1.GetEvaluationBuilderContextResponse.draft:type_name -> o11y_one.agentic.v1.EvaluationDefinitionDraftV1
-	226,  // 149: o11y_one.agentic.v1.GetEvaluationBuilderContextResponse.datasets:type_name -> o11y_one.agentic.v1.EvaluationBuilderDatasetOptionV1
-	228,  // 150: o11y_one.agentic.v1.GetEvaluationBuilderContextResponse.candidate_sources:type_name -> o11y_one.agentic.v1.EvaluationBuilderCandidateSourcesV1
-	229,  // 151: o11y_one.agentic.v1.GetEvaluationBuilderContextResponse.scorer_choices:type_name -> o11y_one.agentic.v1.EvaluationBuilderScorerChoiceV1
-	231,  // 152: o11y_one.agentic.v1.GetEvaluationBuilderContextResponse.scorecard_recommendation:type_name -> o11y_one.agentic.v1.EvaluationBuilderScorecardRecommendationV1
-	232,  // 153: o11y_one.agentic.v1.GetEvaluationBuilderContextResponse.credentials:type_name -> o11y_one.agentic.v1.EvaluationBuilderCredentialRefV1
-	233,  // 154: o11y_one.agentic.v1.GetEvaluationBuilderContextResponse.execution_defaults:type_name -> o11y_one.agentic.v1.EvaluationBuilderExecutionDefaultsV1
-	170,  // 155: o11y_one.agentic.v1.GetEvaluationBuilderContextResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	234,  // 156: o11y_one.agentic.v1.GetEvaluationBuilderContextResponse.readiness:type_name -> o11y_one.agentic.v1.EvaluationBuilderReadinessFindingV1
-	235,  // 157: o11y_one.agentic.v1.GetEvaluationBuilderContextResponse.inferred_subject:type_name -> o11y_one.agentic.v1.EvaluationBuilderInferredSubjectV1
-	167,  // 158: o11y_one.agentic.v1.GetEvaluationBuilderContextResponse.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
-	164,  // 159: o11y_one.agentic.v1.GetEvaluationBuilderContextResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	174,  // 147: o11y_one.agentic.v1.EvaluationBuilderInferredSubjectV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	212,  // 148: o11y_one.agentic.v1.GetEvaluationBuilderContextResponse.draft:type_name -> o11y_one.agentic.v1.EvaluationDefinitionDraftV1
+	235,  // 149: o11y_one.agentic.v1.GetEvaluationBuilderContextResponse.datasets:type_name -> o11y_one.agentic.v1.EvaluationBuilderDatasetOptionV1
+	237,  // 150: o11y_one.agentic.v1.GetEvaluationBuilderContextResponse.candidate_sources:type_name -> o11y_one.agentic.v1.EvaluationBuilderCandidateSourcesV1
+	238,  // 151: o11y_one.agentic.v1.GetEvaluationBuilderContextResponse.scorer_choices:type_name -> o11y_one.agentic.v1.EvaluationBuilderScorerChoiceV1
+	240,  // 152: o11y_one.agentic.v1.GetEvaluationBuilderContextResponse.scorecard_recommendation:type_name -> o11y_one.agentic.v1.EvaluationBuilderScorecardRecommendationV1
+	241,  // 153: o11y_one.agentic.v1.GetEvaluationBuilderContextResponse.credentials:type_name -> o11y_one.agentic.v1.EvaluationBuilderCredentialRefV1
+	242,  // 154: o11y_one.agentic.v1.GetEvaluationBuilderContextResponse.execution_defaults:type_name -> o11y_one.agentic.v1.EvaluationBuilderExecutionDefaultsV1
+	179,  // 155: o11y_one.agentic.v1.GetEvaluationBuilderContextResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	243,  // 156: o11y_one.agentic.v1.GetEvaluationBuilderContextResponse.readiness:type_name -> o11y_one.agentic.v1.EvaluationBuilderReadinessFindingV1
+	244,  // 157: o11y_one.agentic.v1.GetEvaluationBuilderContextResponse.inferred_subject:type_name -> o11y_one.agentic.v1.EvaluationBuilderInferredSubjectV1
+	176,  // 158: o11y_one.agentic.v1.GetEvaluationBuilderContextResponse.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
+	173,  // 159: o11y_one.agentic.v1.GetEvaluationBuilderContextResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
 	23,   // 160: o11y_one.agentic.v1.EvaluationFailureV1.stage:type_name -> o11y_one.agentic.v1.EvaluationFailureStageV1
 	24,   // 161: o11y_one.agentic.v1.EvaluationFailureV1.retryability:type_name -> o11y_one.agentic.v1.RetryabilityV1
 	25,   // 162: o11y_one.agentic.v1.EvaluationFailureV1.recovery:type_name -> o11y_one.agentic.v1.RecoveryActionV1
-	695,  // 163: o11y_one.agentic.v1.EvaluationFailureV1.last_attempt_at:type_name -> google.protobuf.Timestamp
-	174,  // 164: o11y_one.agentic.v1.EvaluationCohortSnapshotV1.spec:type_name -> o11y_one.agentic.v1.EvaluationCohortSpecV1
-	165,  // 165: o11y_one.agentic.v1.EvaluationCohortSnapshotV1.schema_fingerprint_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	774,  // 163: o11y_one.agentic.v1.EvaluationFailureV1.last_attempt_at:type_name -> google.protobuf.Timestamp
+	183,  // 164: o11y_one.agentic.v1.EvaluationCohortSnapshotV1.spec:type_name -> o11y_one.agentic.v1.EvaluationCohortSpecV1
+	174,  // 165: o11y_one.agentic.v1.EvaluationCohortSnapshotV1.schema_fingerprint_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
 	10,   // 166: o11y_one.agentic.v1.EvaluationScorerVersionSnapshotV1.compatible_subject_kinds:type_name -> o11y_one.agentic.v1.EvaluationSubjectKindV1
-	165,  // 167: o11y_one.agentic.v1.EvaluationScorerVersionSnapshotV1.compatible_subject_kinds_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	165,  // 168: o11y_one.agentic.v1.EvaluationScorerVersionSnapshotV1.required_context_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	701,  // 169: o11y_one.agentic.v1.EvaluationCredentialReferenceV1.provider:type_name -> o11y_one.agentic.v1.ProviderNameV1
-	701,  // 170: o11y_one.agentic.v1.EvaluationModelRateV1.provider:type_name -> o11y_one.agentic.v1.ProviderNameV1
+	174,  // 167: o11y_one.agentic.v1.EvaluationScorerVersionSnapshotV1.compatible_subject_kinds_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 168: o11y_one.agentic.v1.EvaluationScorerVersionSnapshotV1.required_context_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	780,  // 169: o11y_one.agentic.v1.EvaluationCredentialReferenceV1.provider:type_name -> o11y_one.agentic.v1.ProviderNameV1
+	780,  // 170: o11y_one.agentic.v1.EvaluationModelRateV1.provider:type_name -> o11y_one.agentic.v1.ProviderNameV1
 	26,   // 171: o11y_one.agentic.v1.EvaluationModelRateV1.rate_source:type_name -> o11y_one.agentic.v1.EvaluationRateSourceV1
-	165,  // 172: o11y_one.agentic.v1.EvaluationModelRateV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	248,  // 173: o11y_one.agentic.v1.EvaluationModelRateV1.token_accounting:type_name -> o11y_one.agentic.v1.EvaluationTokenAccountingV1
-	249,  // 174: o11y_one.agentic.v1.EvaluationModelRateV1.dimension_notes:type_name -> o11y_one.agentic.v1.EvaluationRateDimensionNoteV1
-	243,  // 175: o11y_one.agentic.v1.EvaluationModelRateV1.modifiers:type_name -> o11y_one.agentic.v1.EvaluationRateModifierV1
-	242,  // 176: o11y_one.agentic.v1.EvaluationModelRateV1.superseded_rate:type_name -> o11y_one.agentic.v1.EvaluationSupersededRateV1
+	174,  // 172: o11y_one.agentic.v1.EvaluationModelRateV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	257,  // 173: o11y_one.agentic.v1.EvaluationModelRateV1.token_accounting:type_name -> o11y_one.agentic.v1.EvaluationTokenAccountingV1
+	258,  // 174: o11y_one.agentic.v1.EvaluationModelRateV1.dimension_notes:type_name -> o11y_one.agentic.v1.EvaluationRateDimensionNoteV1
+	252,  // 175: o11y_one.agentic.v1.EvaluationModelRateV1.modifiers:type_name -> o11y_one.agentic.v1.EvaluationRateModifierV1
+	251,  // 176: o11y_one.agentic.v1.EvaluationModelRateV1.superseded_rate:type_name -> o11y_one.agentic.v1.EvaluationSupersededRateV1
 	26,   // 177: o11y_one.agentic.v1.EvaluationSupersededRateV1.rate_source:type_name -> o11y_one.agentic.v1.EvaluationRateSourceV1
 	27,   // 178: o11y_one.agentic.v1.EvaluationRateModifierV1.kind:type_name -> o11y_one.agentic.v1.EvaluationRateModifierKindV1
-	244,  // 179: o11y_one.agentic.v1.EvaluationRateModifierV1.effect:type_name -> o11y_one.agentic.v1.EvaluationRateEffectV1
-	247,  // 180: o11y_one.agentic.v1.EvaluationRateModifierV1.provenance:type_name -> o11y_one.agentic.v1.EvaluationRateProvenanceV1
-	245,  // 181: o11y_one.agentic.v1.EvaluationRateEffectV1.scales:type_name -> o11y_one.agentic.v1.EvaluationRateScaleV1
-	246,  // 182: o11y_one.agentic.v1.EvaluationRateEffectV1.replacements:type_name -> o11y_one.agentic.v1.EvaluationRateReplacementV1
-	701,  // 183: o11y_one.agentic.v1.EvaluationTokenAccountingV1.provider:type_name -> o11y_one.agentic.v1.ProviderNameV1
-	241,  // 184: o11y_one.agentic.v1.EvaluationPricingSourceV1.model_rates:type_name -> o11y_one.agentic.v1.EvaluationModelRateV1
+	253,  // 179: o11y_one.agentic.v1.EvaluationRateModifierV1.effect:type_name -> o11y_one.agentic.v1.EvaluationRateEffectV1
+	256,  // 180: o11y_one.agentic.v1.EvaluationRateModifierV1.provenance:type_name -> o11y_one.agentic.v1.EvaluationRateProvenanceV1
+	254,  // 181: o11y_one.agentic.v1.EvaluationRateEffectV1.scales:type_name -> o11y_one.agentic.v1.EvaluationRateScaleV1
+	255,  // 182: o11y_one.agentic.v1.EvaluationRateEffectV1.replacements:type_name -> o11y_one.agentic.v1.EvaluationRateReplacementV1
+	780,  // 183: o11y_one.agentic.v1.EvaluationTokenAccountingV1.provider:type_name -> o11y_one.agentic.v1.ProviderNameV1
+	250,  // 184: o11y_one.agentic.v1.EvaluationPricingSourceV1.model_rates:type_name -> o11y_one.agentic.v1.EvaluationModelRateV1
 	28,   // 185: o11y_one.agentic.v1.EvaluationPricingSourceV1.rate_staleness:type_name -> o11y_one.agentic.v1.EvaluationRateStalenessV1
-	247,  // 186: o11y_one.agentic.v1.EvaluationPricingSourceV1.provenance:type_name -> o11y_one.agentic.v1.EvaluationRateProvenanceV1
-	171,  // 187: o11y_one.agentic.v1.EvaluationCostReservationV1.reserved_candidate_cost:type_name -> o11y_one.agentic.v1.CostAmountV1
-	165,  // 188: o11y_one.agentic.v1.EvaluationCostReservationV1.reserved_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	171,  // 189: o11y_one.agentic.v1.EvaluationCostReservationV1.budget_ceiling:type_name -> o11y_one.agentic.v1.CostAmountV1
-	250,  // 190: o11y_one.agentic.v1.EvaluationCostReservationV1.assumption:type_name -> o11y_one.agentic.v1.EvaluationCostAssumptionV1
-	238,  // 191: o11y_one.agentic.v1.EvaluationRunManifestV1.cohorts:type_name -> o11y_one.agentic.v1.EvaluationCohortSnapshotV1
-	189,  // 192: o11y_one.agentic.v1.EvaluationRunManifestV1.candidates:type_name -> o11y_one.agentic.v1.EvaluationCandidateV1
-	239,  // 193: o11y_one.agentic.v1.EvaluationRunManifestV1.scorers:type_name -> o11y_one.agentic.v1.EvaluationScorerVersionSnapshotV1
-	240,  // 194: o11y_one.agentic.v1.EvaluationRunManifestV1.credentials:type_name -> o11y_one.agentic.v1.EvaluationCredentialReferenceV1
-	251,  // 195: o11y_one.agentic.v1.EvaluationRunManifestV1.pricing_source:type_name -> o11y_one.agentic.v1.EvaluationPricingSourceV1
-	165,  // 196: o11y_one.agentic.v1.EvaluationRunManifestV1.pricing_source_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	197,  // 197: o11y_one.agentic.v1.EvaluationRunManifestV1.execution_policy:type_name -> o11y_one.agentic.v1.EvaluationExecutionPolicyV1
-	198,  // 198: o11y_one.agentic.v1.EvaluationRunManifestV1.budget:type_name -> o11y_one.agentic.v1.EvaluationBudgetV1
-	253,  // 199: o11y_one.agentic.v1.EvaluationRunManifestV1.limits:type_name -> o11y_one.agentic.v1.EvaluationRunLimitsV1
-	202,  // 200: o11y_one.agentic.v1.EvaluationRunManifestV1.human_review_policy:type_name -> o11y_one.agentic.v1.EvaluationHumanReviewPolicyV1
-	200,  // 201: o11y_one.agentic.v1.EvaluationRunManifestV1.decision_policy:type_name -> o11y_one.agentic.v1.EvaluationDecisionPolicyV1
-	170,  // 202: o11y_one.agentic.v1.EvaluationRunManifestV1.capability_set:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	256,  // 186: o11y_one.agentic.v1.EvaluationPricingSourceV1.provenance:type_name -> o11y_one.agentic.v1.EvaluationRateProvenanceV1
+	180,  // 187: o11y_one.agentic.v1.EvaluationCostReservationV1.reserved_candidate_cost:type_name -> o11y_one.agentic.v1.CostAmountV1
+	174,  // 188: o11y_one.agentic.v1.EvaluationCostReservationV1.reserved_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	180,  // 189: o11y_one.agentic.v1.EvaluationCostReservationV1.budget_ceiling:type_name -> o11y_one.agentic.v1.CostAmountV1
+	259,  // 190: o11y_one.agentic.v1.EvaluationCostReservationV1.assumption:type_name -> o11y_one.agentic.v1.EvaluationCostAssumptionV1
+	247,  // 191: o11y_one.agentic.v1.EvaluationRunManifestV1.cohorts:type_name -> o11y_one.agentic.v1.EvaluationCohortSnapshotV1
+	198,  // 192: o11y_one.agentic.v1.EvaluationRunManifestV1.candidates:type_name -> o11y_one.agentic.v1.EvaluationCandidateV1
+	248,  // 193: o11y_one.agentic.v1.EvaluationRunManifestV1.scorers:type_name -> o11y_one.agentic.v1.EvaluationScorerVersionSnapshotV1
+	249,  // 194: o11y_one.agentic.v1.EvaluationRunManifestV1.credentials:type_name -> o11y_one.agentic.v1.EvaluationCredentialReferenceV1
+	260,  // 195: o11y_one.agentic.v1.EvaluationRunManifestV1.pricing_source:type_name -> o11y_one.agentic.v1.EvaluationPricingSourceV1
+	174,  // 196: o11y_one.agentic.v1.EvaluationRunManifestV1.pricing_source_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	206,  // 197: o11y_one.agentic.v1.EvaluationRunManifestV1.execution_policy:type_name -> o11y_one.agentic.v1.EvaluationExecutionPolicyV1
+	207,  // 198: o11y_one.agentic.v1.EvaluationRunManifestV1.budget:type_name -> o11y_one.agentic.v1.EvaluationBudgetV1
+	262,  // 199: o11y_one.agentic.v1.EvaluationRunManifestV1.limits:type_name -> o11y_one.agentic.v1.EvaluationRunLimitsV1
+	211,  // 200: o11y_one.agentic.v1.EvaluationRunManifestV1.human_review_policy:type_name -> o11y_one.agentic.v1.EvaluationHumanReviewPolicyV1
+	209,  // 201: o11y_one.agentic.v1.EvaluationRunManifestV1.decision_policy:type_name -> o11y_one.agentic.v1.EvaluationDecisionPolicyV1
+	179,  // 202: o11y_one.agentic.v1.EvaluationRunManifestV1.capability_set:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
 	9,    // 203: o11y_one.agentic.v1.EvaluationRunManifestV1.launch_mode:type_name -> o11y_one.agentic.v1.EvaluationLaunchModeV1
-	252,  // 204: o11y_one.agentic.v1.EvaluationRunManifestV1.cost_reservation:type_name -> o11y_one.agentic.v1.EvaluationCostReservationV1
-	194,  // 205: o11y_one.agentic.v1.EvaluationRunManifestV1.scorer_suite:type_name -> o11y_one.agentic.v1.EvaluationScorerSuiteSnapshotV1
-	255,  // 206: o11y_one.agentic.v1.EvaluationRunManifestV1.frozen_evaluators:type_name -> o11y_one.agentic.v1.EvaluationFrozenEvaluatorRefV1
-	701,  // 207: o11y_one.agentic.v1.EvaluationFrozenEvaluatorRefV1.provider:type_name -> o11y_one.agentic.v1.ProviderNameV1
-	241,  // 208: o11y_one.agentic.v1.EvaluationFrozenEvaluatorRefV1.model_rate:type_name -> o11y_one.agentic.v1.EvaluationModelRateV1
-	165,  // 209: o11y_one.agentic.v1.EvaluationRunProgressV1.execution_progress_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	254,  // 210: o11y_one.agentic.v1.EvaluationRunV1.manifest:type_name -> o11y_one.agentic.v1.EvaluationRunManifestV1
+	261,  // 204: o11y_one.agentic.v1.EvaluationRunManifestV1.cost_reservation:type_name -> o11y_one.agentic.v1.EvaluationCostReservationV1
+	203,  // 205: o11y_one.agentic.v1.EvaluationRunManifestV1.scorer_suite:type_name -> o11y_one.agentic.v1.EvaluationScorerSuiteSnapshotV1
+	264,  // 206: o11y_one.agentic.v1.EvaluationRunManifestV1.frozen_evaluators:type_name -> o11y_one.agentic.v1.EvaluationFrozenEvaluatorRefV1
+	780,  // 207: o11y_one.agentic.v1.EvaluationFrozenEvaluatorRefV1.provider:type_name -> o11y_one.agentic.v1.ProviderNameV1
+	250,  // 208: o11y_one.agentic.v1.EvaluationFrozenEvaluatorRefV1.model_rate:type_name -> o11y_one.agentic.v1.EvaluationModelRateV1
+	174,  // 209: o11y_one.agentic.v1.EvaluationRunProgressV1.execution_progress_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	263,  // 210: o11y_one.agentic.v1.EvaluationRunV1.manifest:type_name -> o11y_one.agentic.v1.EvaluationRunManifestV1
 	7,    // 211: o11y_one.agentic.v1.EvaluationRunV1.state:type_name -> o11y_one.agentic.v1.EvaluationRunStateV1
-	256,  // 212: o11y_one.agentic.v1.EvaluationRunV1.progress:type_name -> o11y_one.agentic.v1.EvaluationRunProgressV1
-	164,  // 213: o11y_one.agentic.v1.EvaluationRunV1.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	163,  // 214: o11y_one.agentic.v1.EvaluationRunV1.launched_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
-	237,  // 215: o11y_one.agentic.v1.EvaluationRunV1.failure:type_name -> o11y_one.agentic.v1.EvaluationFailureV1
-	167,  // 216: o11y_one.agentic.v1.EvaluationRunV1.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
-	695,  // 217: o11y_one.agentic.v1.EvaluationRunV1.created_at:type_name -> google.protobuf.Timestamp
-	695,  // 218: o11y_one.agentic.v1.EvaluationRunV1.started_at:type_name -> google.protobuf.Timestamp
-	695,  // 219: o11y_one.agentic.v1.EvaluationRunV1.finished_at:type_name -> google.protobuf.Timestamp
-	165,  // 220: o11y_one.agentic.v1.EvaluationRunV1.comparability_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	265,  // 212: o11y_one.agentic.v1.EvaluationRunV1.progress:type_name -> o11y_one.agentic.v1.EvaluationRunProgressV1
+	173,  // 213: o11y_one.agentic.v1.EvaluationRunV1.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	172,  // 214: o11y_one.agentic.v1.EvaluationRunV1.launched_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
+	246,  // 215: o11y_one.agentic.v1.EvaluationRunV1.failure:type_name -> o11y_one.agentic.v1.EvaluationFailureV1
+	176,  // 216: o11y_one.agentic.v1.EvaluationRunV1.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
+	774,  // 217: o11y_one.agentic.v1.EvaluationRunV1.created_at:type_name -> google.protobuf.Timestamp
+	774,  // 218: o11y_one.agentic.v1.EvaluationRunV1.started_at:type_name -> google.protobuf.Timestamp
+	774,  // 219: o11y_one.agentic.v1.EvaluationRunV1.finished_at:type_name -> google.protobuf.Timestamp
+	174,  // 220: o11y_one.agentic.v1.EvaluationRunV1.comparability_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
 	29,   // 221: o11y_one.agentic.v1.EvaluationOperationV1.kind:type_name -> o11y_one.agentic.v1.EvaluationOperationKindV1
 	30,   // 222: o11y_one.agentic.v1.EvaluationOperationV1.state:type_name -> o11y_one.agentic.v1.EvaluationOperationStateV1
-	237,  // 223: o11y_one.agentic.v1.EvaluationOperationV1.failure:type_name -> o11y_one.agentic.v1.EvaluationFailureV1
-	695,  // 224: o11y_one.agentic.v1.EvaluationOperationV1.created_at:type_name -> google.protobuf.Timestamp
-	695,  // 225: o11y_one.agentic.v1.EvaluationOperationV1.updated_at:type_name -> google.protobuf.Timestamp
-	695,  // 226: o11y_one.agentic.v1.EvaluationOperationV1.finished_at:type_name -> google.protobuf.Timestamp
-	165,  // 227: o11y_one.agentic.v1.EvaluationCohortEstimateV1.case_count_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	259,  // 228: o11y_one.agentic.v1.EvaluationPreviewEstimatesV1.cohorts:type_name -> o11y_one.agentic.v1.EvaluationCohortEstimateV1
-	171,  // 229: o11y_one.agentic.v1.EvaluationPreviewEstimatesV1.candidate_cost:type_name -> o11y_one.agentic.v1.CostAmountV1
-	165,  // 230: o11y_one.agentic.v1.EvaluationPreviewEstimatesV1.candidate_cost_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	171,  // 231: o11y_one.agentic.v1.EvaluationPreviewEstimatesV1.evaluator_cost:type_name -> o11y_one.agentic.v1.CostAmountV1
-	165,  // 232: o11y_one.agentic.v1.EvaluationPreviewEstimatesV1.evaluator_cost_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	171,  // 233: o11y_one.agentic.v1.EvaluationPreviewEstimatesV1.total_cost:type_name -> o11y_one.agentic.v1.CostAmountV1
-	165,  // 234: o11y_one.agentic.v1.EvaluationPreviewEstimatesV1.total_cost_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	171,  // 235: o11y_one.agentic.v1.EvaluationPreviewEstimatesV1.reserved_budget:type_name -> o11y_one.agentic.v1.CostAmountV1
-	250,  // 236: o11y_one.agentic.v1.EvaluationPreviewEstimatesV1.cost_assumption:type_name -> o11y_one.agentic.v1.EvaluationCostAssumptionV1
-	291,  // 237: o11y_one.agentic.v1.EvaluationPreviewEstimatesV1.cost_breakdown:type_name -> o11y_one.agentic.v1.CostBreakdownV1
-	171,  // 238: o11y_one.agentic.v1.EvaluationPreviewEstimatesV1.budget_ceiling:type_name -> o11y_one.agentic.v1.CostAmountV1
-	165,  // 239: o11y_one.agentic.v1.EvaluationPreviewEstimatesV1.budget_ceiling_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	246,  // 223: o11y_one.agentic.v1.EvaluationOperationV1.failure:type_name -> o11y_one.agentic.v1.EvaluationFailureV1
+	774,  // 224: o11y_one.agentic.v1.EvaluationOperationV1.created_at:type_name -> google.protobuf.Timestamp
+	774,  // 225: o11y_one.agentic.v1.EvaluationOperationV1.updated_at:type_name -> google.protobuf.Timestamp
+	774,  // 226: o11y_one.agentic.v1.EvaluationOperationV1.finished_at:type_name -> google.protobuf.Timestamp
+	174,  // 227: o11y_one.agentic.v1.EvaluationCohortEstimateV1.case_count_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	268,  // 228: o11y_one.agentic.v1.EvaluationPreviewEstimatesV1.cohorts:type_name -> o11y_one.agentic.v1.EvaluationCohortEstimateV1
+	180,  // 229: o11y_one.agentic.v1.EvaluationPreviewEstimatesV1.candidate_cost:type_name -> o11y_one.agentic.v1.CostAmountV1
+	174,  // 230: o11y_one.agentic.v1.EvaluationPreviewEstimatesV1.candidate_cost_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	180,  // 231: o11y_one.agentic.v1.EvaluationPreviewEstimatesV1.evaluator_cost:type_name -> o11y_one.agentic.v1.CostAmountV1
+	174,  // 232: o11y_one.agentic.v1.EvaluationPreviewEstimatesV1.evaluator_cost_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	180,  // 233: o11y_one.agentic.v1.EvaluationPreviewEstimatesV1.total_cost:type_name -> o11y_one.agentic.v1.CostAmountV1
+	174,  // 234: o11y_one.agentic.v1.EvaluationPreviewEstimatesV1.total_cost_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	180,  // 235: o11y_one.agentic.v1.EvaluationPreviewEstimatesV1.reserved_budget:type_name -> o11y_one.agentic.v1.CostAmountV1
+	259,  // 236: o11y_one.agentic.v1.EvaluationPreviewEstimatesV1.cost_assumption:type_name -> o11y_one.agentic.v1.EvaluationCostAssumptionV1
+	300,  // 237: o11y_one.agentic.v1.EvaluationPreviewEstimatesV1.cost_breakdown:type_name -> o11y_one.agentic.v1.CostBreakdownV1
+	180,  // 238: o11y_one.agentic.v1.EvaluationPreviewEstimatesV1.budget_ceiling:type_name -> o11y_one.agentic.v1.CostAmountV1
+	174,  // 239: o11y_one.agentic.v1.EvaluationPreviewEstimatesV1.budget_ceiling_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
 	14,   // 240: o11y_one.agentic.v1.EvaluationBlastRadiusV1.worst_posture:type_name -> o11y_one.agentic.v1.SideEffectPostureV1
-	165,  // 241: o11y_one.agentic.v1.EvaluationBlastRadiusV1.attestation_enforcement_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 241: o11y_one.agentic.v1.EvaluationBlastRadiusV1.attestation_enforcement_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
 	31,   // 242: o11y_one.agentic.v1.EvaluationPreviewBlockerV1.kind:type_name -> o11y_one.agentic.v1.EvaluationPreviewBlockerKindV1
 	21,   // 243: o11y_one.agentic.v1.EvaluationPreviewBlockerV1.severity:type_name -> o11y_one.agentic.v1.EvaluationBuilderReadinessSeverityV1
 	22,   // 244: o11y_one.agentic.v1.EvaluationPreviewBlockerV1.resolving_section:type_name -> o11y_one.agentic.v1.EvaluationBuilderSectionV1
-	695,  // 245: o11y_one.agentic.v1.PreviewEvaluationRunResponse.expires_at:type_name -> google.protobuf.Timestamp
+	774,  // 245: o11y_one.agentic.v1.PreviewEvaluationRunResponse.expires_at:type_name -> google.protobuf.Timestamp
 	9,    // 246: o11y_one.agentic.v1.PreviewEvaluationRunResponse.launch_mode:type_name -> o11y_one.agentic.v1.EvaluationLaunchModeV1
-	260,  // 247: o11y_one.agentic.v1.PreviewEvaluationRunResponse.estimates:type_name -> o11y_one.agentic.v1.EvaluationPreviewEstimatesV1
-	261,  // 248: o11y_one.agentic.v1.PreviewEvaluationRunResponse.blast_radius:type_name -> o11y_one.agentic.v1.EvaluationBlastRadiusV1
-	254,  // 249: o11y_one.agentic.v1.PreviewEvaluationRunResponse.resolved_manifest:type_name -> o11y_one.agentic.v1.EvaluationRunManifestV1
-	262,  // 250: o11y_one.agentic.v1.PreviewEvaluationRunResponse.blockers:type_name -> o11y_one.agentic.v1.EvaluationPreviewBlockerV1
-	165,  // 251: o11y_one.agentic.v1.PreviewEvaluationRunResponse.comparability_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	165,  // 252: o11y_one.agentic.v1.PreviewEvaluationRunResponse.data_quality_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	235,  // 253: o11y_one.agentic.v1.PreviewEvaluationRunResponse.inferred_subject:type_name -> o11y_one.agentic.v1.EvaluationBuilderInferredSubjectV1
-	167,  // 254: o11y_one.agentic.v1.PreviewEvaluationRunResponse.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
-	170,  // 255: o11y_one.agentic.v1.PreviewEvaluationRunResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	164,  // 256: o11y_one.agentic.v1.PreviewEvaluationRunResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	257,  // 257: o11y_one.agentic.v1.CreateEvaluationRunResponse.run:type_name -> o11y_one.agentic.v1.EvaluationRunV1
-	258,  // 258: o11y_one.agentic.v1.CreateEvaluationRunResponse.operation:type_name -> o11y_one.agentic.v1.EvaluationOperationV1
+	269,  // 247: o11y_one.agentic.v1.PreviewEvaluationRunResponse.estimates:type_name -> o11y_one.agentic.v1.EvaluationPreviewEstimatesV1
+	270,  // 248: o11y_one.agentic.v1.PreviewEvaluationRunResponse.blast_radius:type_name -> o11y_one.agentic.v1.EvaluationBlastRadiusV1
+	263,  // 249: o11y_one.agentic.v1.PreviewEvaluationRunResponse.resolved_manifest:type_name -> o11y_one.agentic.v1.EvaluationRunManifestV1
+	271,  // 250: o11y_one.agentic.v1.PreviewEvaluationRunResponse.blockers:type_name -> o11y_one.agentic.v1.EvaluationPreviewBlockerV1
+	174,  // 251: o11y_one.agentic.v1.PreviewEvaluationRunResponse.comparability_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 252: o11y_one.agentic.v1.PreviewEvaluationRunResponse.data_quality_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	244,  // 253: o11y_one.agentic.v1.PreviewEvaluationRunResponse.inferred_subject:type_name -> o11y_one.agentic.v1.EvaluationBuilderInferredSubjectV1
+	176,  // 254: o11y_one.agentic.v1.PreviewEvaluationRunResponse.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
+	179,  // 255: o11y_one.agentic.v1.PreviewEvaluationRunResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	173,  // 256: o11y_one.agentic.v1.PreviewEvaluationRunResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	266,  // 257: o11y_one.agentic.v1.CreateEvaluationRunResponse.run:type_name -> o11y_one.agentic.v1.EvaluationRunV1
+	267,  // 258: o11y_one.agentic.v1.CreateEvaluationRunResponse.operation:type_name -> o11y_one.agentic.v1.EvaluationOperationV1
 	32,   // 259: o11y_one.agentic.v1.EvaluationLaunchRejectionV1.kind:type_name -> o11y_one.agentic.v1.EvaluationLaunchRejectionKindV1
 	25,   // 260: o11y_one.agentic.v1.EvaluationLaunchRejectionV1.recovery:type_name -> o11y_one.agentic.v1.RecoveryActionV1
-	258,  // 261: o11y_one.agentic.v1.GetEvaluationOperationResponse.operation:type_name -> o11y_one.agentic.v1.EvaluationOperationV1
-	257,  // 262: o11y_one.agentic.v1.GetEvaluationOperationResponse.run:type_name -> o11y_one.agentic.v1.EvaluationRunV1
-	164,  // 263: o11y_one.agentic.v1.GetEvaluationOperationResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	170,  // 264: o11y_one.agentic.v1.GetEvaluationOperationResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	257,  // 265: o11y_one.agentic.v1.CancelEvaluationRunResponse.run:type_name -> o11y_one.agentic.v1.EvaluationRunV1
-	258,  // 266: o11y_one.agentic.v1.CancelEvaluationRunResponse.operation:type_name -> o11y_one.agentic.v1.EvaluationOperationV1
-	272,  // 267: o11y_one.agentic.v1.EvaluationRetryCellStatusV1.cell:type_name -> o11y_one.agentic.v1.EvaluationCellRefV1
+	267,  // 261: o11y_one.agentic.v1.GetEvaluationOperationResponse.operation:type_name -> o11y_one.agentic.v1.EvaluationOperationV1
+	266,  // 262: o11y_one.agentic.v1.GetEvaluationOperationResponse.run:type_name -> o11y_one.agentic.v1.EvaluationRunV1
+	173,  // 263: o11y_one.agentic.v1.GetEvaluationOperationResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	179,  // 264: o11y_one.agentic.v1.GetEvaluationOperationResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	266,  // 265: o11y_one.agentic.v1.CancelEvaluationRunResponse.run:type_name -> o11y_one.agentic.v1.EvaluationRunV1
+	267,  // 266: o11y_one.agentic.v1.CancelEvaluationRunResponse.operation:type_name -> o11y_one.agentic.v1.EvaluationOperationV1
+	281,  // 267: o11y_one.agentic.v1.EvaluationRetryCellStatusV1.cell:type_name -> o11y_one.agentic.v1.EvaluationCellRefV1
 	33,   // 268: o11y_one.agentic.v1.EvaluationRetryCellStatusV1.ineligibility:type_name -> o11y_one.agentic.v1.EvaluationRetryIneligibilityV1
 	8,    // 269: o11y_one.agentic.v1.EvaluationRetryCellStatusV1.current_state:type_name -> o11y_one.agentic.v1.EvaluationExecutionStateV1
-	237,  // 270: o11y_one.agentic.v1.EvaluationRetryCellStatusV1.last_failure:type_name -> o11y_one.agentic.v1.EvaluationFailureV1
-	171,  // 271: o11y_one.agentic.v1.EvaluationRetryEstimateV1.estimated_candidate_cost:type_name -> o11y_one.agentic.v1.CostAmountV1
-	165,  // 272: o11y_one.agentic.v1.EvaluationRetryEstimateV1.cost_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	246,  // 270: o11y_one.agentic.v1.EvaluationRetryCellStatusV1.last_failure:type_name -> o11y_one.agentic.v1.EvaluationFailureV1
+	180,  // 271: o11y_one.agentic.v1.EvaluationRetryEstimateV1.estimated_candidate_cost:type_name -> o11y_one.agentic.v1.CostAmountV1
+	174,  // 272: o11y_one.agentic.v1.EvaluationRetryEstimateV1.cost_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
 	36,   // 273: o11y_one.agentic.v1.EvaluationRetryEstimateV1.cost_posture:type_name -> o11y_one.agentic.v1.CostPostureV1
-	272,  // 274: o11y_one.agentic.v1.PreviewRetryEvaluationCellsRequest.cells:type_name -> o11y_one.agentic.v1.EvaluationCellRefV1
-	273,  // 275: o11y_one.agentic.v1.PreviewRetryEvaluationCellsResponse.cells:type_name -> o11y_one.agentic.v1.EvaluationRetryCellStatusV1
-	274,  // 276: o11y_one.agentic.v1.PreviewRetryEvaluationCellsResponse.estimate:type_name -> o11y_one.agentic.v1.EvaluationRetryEstimateV1
-	167,  // 277: o11y_one.agentic.v1.PreviewRetryEvaluationCellsResponse.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
-	170,  // 278: o11y_one.agentic.v1.PreviewRetryEvaluationCellsResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	164,  // 279: o11y_one.agentic.v1.PreviewRetryEvaluationCellsResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	272,  // 280: o11y_one.agentic.v1.RetryEvaluationCellsRequest.cells:type_name -> o11y_one.agentic.v1.EvaluationCellRefV1
-	257,  // 281: o11y_one.agentic.v1.RetryEvaluationCellsResponse.run:type_name -> o11y_one.agentic.v1.EvaluationRunV1
-	258,  // 282: o11y_one.agentic.v1.RetryEvaluationCellsResponse.operation:type_name -> o11y_one.agentic.v1.EvaluationOperationV1
-	273,  // 283: o11y_one.agentic.v1.RetryEvaluationCellsResponse.rejected:type_name -> o11y_one.agentic.v1.EvaluationRetryCellStatusV1
-	272,  // 284: o11y_one.agentic.v1.EvaluationScorerCoordinateV1.cell:type_name -> o11y_one.agentic.v1.EvaluationCellRefV1
-	279,  // 285: o11y_one.agentic.v1.EvaluationScorerRetryStatusV1.coordinate:type_name -> o11y_one.agentic.v1.EvaluationScorerCoordinateV1
+	281,  // 274: o11y_one.agentic.v1.PreviewRetryEvaluationCellsRequest.cells:type_name -> o11y_one.agentic.v1.EvaluationCellRefV1
+	282,  // 275: o11y_one.agentic.v1.PreviewRetryEvaluationCellsResponse.cells:type_name -> o11y_one.agentic.v1.EvaluationRetryCellStatusV1
+	283,  // 276: o11y_one.agentic.v1.PreviewRetryEvaluationCellsResponse.estimate:type_name -> o11y_one.agentic.v1.EvaluationRetryEstimateV1
+	176,  // 277: o11y_one.agentic.v1.PreviewRetryEvaluationCellsResponse.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
+	179,  // 278: o11y_one.agentic.v1.PreviewRetryEvaluationCellsResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	173,  // 279: o11y_one.agentic.v1.PreviewRetryEvaluationCellsResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	281,  // 280: o11y_one.agentic.v1.RetryEvaluationCellsRequest.cells:type_name -> o11y_one.agentic.v1.EvaluationCellRefV1
+	266,  // 281: o11y_one.agentic.v1.RetryEvaluationCellsResponse.run:type_name -> o11y_one.agentic.v1.EvaluationRunV1
+	267,  // 282: o11y_one.agentic.v1.RetryEvaluationCellsResponse.operation:type_name -> o11y_one.agentic.v1.EvaluationOperationV1
+	282,  // 283: o11y_one.agentic.v1.RetryEvaluationCellsResponse.rejected:type_name -> o11y_one.agentic.v1.EvaluationRetryCellStatusV1
+	281,  // 284: o11y_one.agentic.v1.EvaluationScorerCoordinateV1.cell:type_name -> o11y_one.agentic.v1.EvaluationCellRefV1
+	288,  // 285: o11y_one.agentic.v1.EvaluationScorerRetryStatusV1.coordinate:type_name -> o11y_one.agentic.v1.EvaluationScorerCoordinateV1
 	34,   // 286: o11y_one.agentic.v1.EvaluationScorerRetryStatusV1.ineligibility:type_name -> o11y_one.agentic.v1.EvaluationScorerRetryIneligibilityV1
 	40,   // 287: o11y_one.agentic.v1.EvaluationScorerRetryStatusV1.current_verdict:type_name -> o11y_one.agentic.v1.EvaluationVerdictV1
-	470,  // 288: o11y_one.agentic.v1.EvaluationScorerRetryStatusV1.derived_suite:type_name -> o11y_one.agentic.v1.EvaluationDerivedSuiteCoordinateV1
-	279,  // 289: o11y_one.agentic.v1.PreviewRetryEvaluationScorersRequest.coordinates:type_name -> o11y_one.agentic.v1.EvaluationScorerCoordinateV1
-	280,  // 290: o11y_one.agentic.v1.PreviewRetryEvaluationScorersResponse.coordinates:type_name -> o11y_one.agentic.v1.EvaluationScorerRetryStatusV1
-	167,  // 291: o11y_one.agentic.v1.PreviewRetryEvaluationScorersResponse.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
-	170,  // 292: o11y_one.agentic.v1.PreviewRetryEvaluationScorersResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	164,  // 293: o11y_one.agentic.v1.PreviewRetryEvaluationScorersResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	279,  // 294: o11y_one.agentic.v1.RetryEvaluationScorersRequest.coordinates:type_name -> o11y_one.agentic.v1.EvaluationScorerCoordinateV1
-	279,  // 295: o11y_one.agentic.v1.EvaluationScorerRetryAppliedV1.coordinate:type_name -> o11y_one.agentic.v1.EvaluationScorerCoordinateV1
+	479,  // 288: o11y_one.agentic.v1.EvaluationScorerRetryStatusV1.derived_suite:type_name -> o11y_one.agentic.v1.EvaluationDerivedSuiteCoordinateV1
+	288,  // 289: o11y_one.agentic.v1.PreviewRetryEvaluationScorersRequest.coordinates:type_name -> o11y_one.agentic.v1.EvaluationScorerCoordinateV1
+	289,  // 290: o11y_one.agentic.v1.PreviewRetryEvaluationScorersResponse.coordinates:type_name -> o11y_one.agentic.v1.EvaluationScorerRetryStatusV1
+	176,  // 291: o11y_one.agentic.v1.PreviewRetryEvaluationScorersResponse.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
+	179,  // 292: o11y_one.agentic.v1.PreviewRetryEvaluationScorersResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	173,  // 293: o11y_one.agentic.v1.PreviewRetryEvaluationScorersResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	288,  // 294: o11y_one.agentic.v1.RetryEvaluationScorersRequest.coordinates:type_name -> o11y_one.agentic.v1.EvaluationScorerCoordinateV1
+	288,  // 295: o11y_one.agentic.v1.EvaluationScorerRetryAppliedV1.coordinate:type_name -> o11y_one.agentic.v1.EvaluationScorerCoordinateV1
 	40,   // 296: o11y_one.agentic.v1.EvaluationScorerRetryAppliedV1.prior_verdict:type_name -> o11y_one.agentic.v1.EvaluationVerdictV1
 	40,   // 297: o11y_one.agentic.v1.EvaluationScorerRetryAppliedV1.verdict:type_name -> o11y_one.agentic.v1.EvaluationVerdictV1
-	285,  // 298: o11y_one.agentic.v1.RetryEvaluationScorersResponse.applied:type_name -> o11y_one.agentic.v1.EvaluationScorerRetryAppliedV1
-	280,  // 299: o11y_one.agentic.v1.RetryEvaluationScorersResponse.refused:type_name -> o11y_one.agentic.v1.EvaluationScorerRetryStatusV1
-	170,  // 300: o11y_one.agentic.v1.RetryEvaluationScorersResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	702,  // 301: o11y_one.agentic.v1.TokenUsageV1.requested_reasoning_effort:type_name -> o11y_one.agentic.v1.ProviderReasoningEffortV1
-	165,  // 302: o11y_one.agentic.v1.TokenUsageV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	701,  // 303: o11y_one.agentic.v1.ProviderUsageRecordV1.provider:type_name -> o11y_one.agentic.v1.ProviderNameV1
-	248,  // 304: o11y_one.agentic.v1.ProviderUsageRecordV1.token_accounting:type_name -> o11y_one.agentic.v1.EvaluationTokenAccountingV1
-	289,  // 305: o11y_one.agentic.v1.ProviderUsageRecordV1.fields:type_name -> o11y_one.agentic.v1.ProviderUsageFieldV1
-	165,  // 306: o11y_one.agentic.v1.ProviderUsageRecordV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	294,  // 298: o11y_one.agentic.v1.RetryEvaluationScorersResponse.applied:type_name -> o11y_one.agentic.v1.EvaluationScorerRetryAppliedV1
+	289,  // 299: o11y_one.agentic.v1.RetryEvaluationScorersResponse.refused:type_name -> o11y_one.agentic.v1.EvaluationScorerRetryStatusV1
+	179,  // 300: o11y_one.agentic.v1.RetryEvaluationScorersResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	781,  // 301: o11y_one.agentic.v1.TokenUsageV1.requested_reasoning_effort:type_name -> o11y_one.agentic.v1.ProviderReasoningEffortV1
+	174,  // 302: o11y_one.agentic.v1.TokenUsageV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	780,  // 303: o11y_one.agentic.v1.ProviderUsageRecordV1.provider:type_name -> o11y_one.agentic.v1.ProviderNameV1
+	257,  // 304: o11y_one.agentic.v1.ProviderUsageRecordV1.token_accounting:type_name -> o11y_one.agentic.v1.EvaluationTokenAccountingV1
+	298,  // 305: o11y_one.agentic.v1.ProviderUsageRecordV1.fields:type_name -> o11y_one.agentic.v1.ProviderUsageFieldV1
+	174,  // 306: o11y_one.agentic.v1.ProviderUsageRecordV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
 	35,   // 307: o11y_one.agentic.v1.CostLineItemV1.category:type_name -> o11y_one.agentic.v1.CostCategoryV1
 	36,   // 308: o11y_one.agentic.v1.CostLineItemV1.posture:type_name -> o11y_one.agentic.v1.CostPostureV1
-	165,  // 309: o11y_one.agentic.v1.CostLineItemV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	290,  // 310: o11y_one.agentic.v1.CostBreakdownV1.line_items:type_name -> o11y_one.agentic.v1.CostLineItemV1
-	171,  // 311: o11y_one.agentic.v1.CostBreakdownV1.total:type_name -> o11y_one.agentic.v1.CostAmountV1
-	165,  // 312: o11y_one.agentic.v1.CostBreakdownV1.total_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	165,  // 313: o11y_one.agentic.v1.LatencyMetricsV1.total_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	165,  // 314: o11y_one.agentic.v1.LatencyMetricsV1.time_to_first_token_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	165,  // 315: o11y_one.agentic.v1.LatencyMetricsV1.output_tokens_per_second_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 309: o11y_one.agentic.v1.CostLineItemV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	299,  // 310: o11y_one.agentic.v1.CostBreakdownV1.line_items:type_name -> o11y_one.agentic.v1.CostLineItemV1
+	180,  // 311: o11y_one.agentic.v1.CostBreakdownV1.total:type_name -> o11y_one.agentic.v1.CostAmountV1
+	174,  // 312: o11y_one.agentic.v1.CostBreakdownV1.total_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 313: o11y_one.agentic.v1.LatencyMetricsV1.total_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 314: o11y_one.agentic.v1.LatencyMetricsV1.time_to_first_token_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 315: o11y_one.agentic.v1.LatencyMetricsV1.output_tokens_per_second_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
 	37,   // 316: o11y_one.agentic.v1.ProviderStatusV1.status_class:type_name -> o11y_one.agentic.v1.ProviderStatusClassV1
-	165,  // 317: o11y_one.agentic.v1.ProviderStatusV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 317: o11y_one.agentic.v1.ProviderStatusV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
 	38,   // 318: o11y_one.agentic.v1.InstrumentationCompletenessV1.state:type_name -> o11y_one.agentic.v1.InstrumentationCompletenessStateV1
-	166,  // 319: o11y_one.agentic.v1.InstrumentationCompletenessV1.provenance:type_name -> o11y_one.agentic.v1.SemanticConventionProvenanceV1
+	175,  // 319: o11y_one.agentic.v1.InstrumentationCompletenessV1.provenance:type_name -> o11y_one.agentic.v1.SemanticConventionProvenanceV1
 	39,   // 320: o11y_one.agentic.v1.ExecutionMetricsV1.scope:type_name -> o11y_one.agentic.v1.ExecutionMetricsScopeV1
-	287,  // 321: o11y_one.agentic.v1.ExecutionMetricsV1.tokens:type_name -> o11y_one.agentic.v1.TokenUsageV1
-	291,  // 322: o11y_one.agentic.v1.ExecutionMetricsV1.cost:type_name -> o11y_one.agentic.v1.CostBreakdownV1
-	292,  // 323: o11y_one.agentic.v1.ExecutionMetricsV1.latency:type_name -> o11y_one.agentic.v1.LatencyMetricsV1
-	293,  // 324: o11y_one.agentic.v1.ExecutionMetricsV1.provider_status:type_name -> o11y_one.agentic.v1.ProviderStatusV1
-	237,  // 325: o11y_one.agentic.v1.ExecutionMetricsV1.failure:type_name -> o11y_one.agentic.v1.EvaluationFailureV1
-	294,  // 326: o11y_one.agentic.v1.ExecutionMetricsV1.completeness:type_name -> o11y_one.agentic.v1.InstrumentationCompletenessV1
+	296,  // 321: o11y_one.agentic.v1.ExecutionMetricsV1.tokens:type_name -> o11y_one.agentic.v1.TokenUsageV1
+	300,  // 322: o11y_one.agentic.v1.ExecutionMetricsV1.cost:type_name -> o11y_one.agentic.v1.CostBreakdownV1
+	301,  // 323: o11y_one.agentic.v1.ExecutionMetricsV1.latency:type_name -> o11y_one.agentic.v1.LatencyMetricsV1
+	302,  // 324: o11y_one.agentic.v1.ExecutionMetricsV1.provider_status:type_name -> o11y_one.agentic.v1.ProviderStatusV1
+	246,  // 325: o11y_one.agentic.v1.ExecutionMetricsV1.failure:type_name -> o11y_one.agentic.v1.EvaluationFailureV1
+	303,  // 326: o11y_one.agentic.v1.ExecutionMetricsV1.completeness:type_name -> o11y_one.agentic.v1.InstrumentationCompletenessV1
 	40,   // 327: o11y_one.agentic.v1.EvaluationScorerResultV1.verdict:type_name -> o11y_one.agentic.v1.EvaluationVerdictV1
-	165,  // 328: o11y_one.agentic.v1.EvaluationScorerResultV1.score_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	237,  // 329: o11y_one.agentic.v1.EvaluationScorerResultV1.failure:type_name -> o11y_one.agentic.v1.EvaluationFailureV1
-	295,  // 330: o11y_one.agentic.v1.EvaluationScorerResultV1.metrics:type_name -> o11y_one.agentic.v1.ExecutionMetricsV1
+	174,  // 328: o11y_one.agentic.v1.EvaluationScorerResultV1.score_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	246,  // 329: o11y_one.agentic.v1.EvaluationScorerResultV1.failure:type_name -> o11y_one.agentic.v1.EvaluationFailureV1
+	304,  // 330: o11y_one.agentic.v1.EvaluationScorerResultV1.metrics:type_name -> o11y_one.agentic.v1.ExecutionMetricsV1
 	8,    // 331: o11y_one.agentic.v1.EvaluationCellResultV1.state:type_name -> o11y_one.agentic.v1.EvaluationExecutionStateV1
 	41,   // 332: o11y_one.agentic.v1.EvaluationCellResultV1.candidate_source:type_name -> o11y_one.agentic.v1.EvaluationCandidateSourceV1
-	295,  // 333: o11y_one.agentic.v1.EvaluationCellResultV1.candidate_metrics:type_name -> o11y_one.agentic.v1.ExecutionMetricsV1
-	296,  // 334: o11y_one.agentic.v1.EvaluationCellResultV1.scorer_results:type_name -> o11y_one.agentic.v1.EvaluationScorerResultV1
+	304,  // 333: o11y_one.agentic.v1.EvaluationCellResultV1.candidate_metrics:type_name -> o11y_one.agentic.v1.ExecutionMetricsV1
+	305,  // 334: o11y_one.agentic.v1.EvaluationCellResultV1.scorer_results:type_name -> o11y_one.agentic.v1.EvaluationScorerResultV1
 	40,   // 335: o11y_one.agentic.v1.EvaluationCellResultV1.aggregate_verdict:type_name -> o11y_one.agentic.v1.EvaluationVerdictV1
-	237,  // 336: o11y_one.agentic.v1.EvaluationCellResultV1.failure:type_name -> o11y_one.agentic.v1.EvaluationFailureV1
-	695,  // 337: o11y_one.agentic.v1.EvaluationCellResultV1.executed_at:type_name -> google.protobuf.Timestamp
-	298,  // 338: o11y_one.agentic.v1.EvaluationScorerRollupV1.verdicts:type_name -> o11y_one.agentic.v1.EvaluationVerdictCountsV1
-	165,  // 339: o11y_one.agentic.v1.EvaluationScorerRollupV1.mean_score_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	164,  // 340: o11y_one.agentic.v1.EvaluationScorerRollupV1.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	300,  // 341: o11y_one.agentic.v1.EvaluationScorerRollupV1.completion:type_name -> o11y_one.agentic.v1.EvaluationScorerCompletionV1
-	295,  // 342: o11y_one.agentic.v1.EvaluationScorerRollupV1.evaluator_economics:type_name -> o11y_one.agentic.v1.ExecutionMetricsV1
+	246,  // 336: o11y_one.agentic.v1.EvaluationCellResultV1.failure:type_name -> o11y_one.agentic.v1.EvaluationFailureV1
+	774,  // 337: o11y_one.agentic.v1.EvaluationCellResultV1.executed_at:type_name -> google.protobuf.Timestamp
+	307,  // 338: o11y_one.agentic.v1.EvaluationScorerRollupV1.verdicts:type_name -> o11y_one.agentic.v1.EvaluationVerdictCountsV1
+	174,  // 339: o11y_one.agentic.v1.EvaluationScorerRollupV1.mean_score_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	173,  // 340: o11y_one.agentic.v1.EvaluationScorerRollupV1.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	309,  // 341: o11y_one.agentic.v1.EvaluationScorerRollupV1.completion:type_name -> o11y_one.agentic.v1.EvaluationScorerCompletionV1
+	304,  // 342: o11y_one.agentic.v1.EvaluationScorerRollupV1.evaluator_economics:type_name -> o11y_one.agentic.v1.ExecutionMetricsV1
 	43,   // 343: o11y_one.agentic.v1.EvaluationScorerCompletionV1.state:type_name -> o11y_one.agentic.v1.EvaluationScorerCompletionStateV1
 	23,   // 344: o11y_one.agentic.v1.EvaluationFailureStageCountV1.stage:type_name -> o11y_one.agentic.v1.EvaluationFailureStageV1
-	301,  // 345: o11y_one.agentic.v1.EvaluationRunFailureRollupV1.by_stage:type_name -> o11y_one.agentic.v1.EvaluationFailureStageCountV1
-	237,  // 346: o11y_one.agentic.v1.EvaluationRunFailureRollupV1.terminal_failure:type_name -> o11y_one.agentic.v1.EvaluationFailureV1
-	165,  // 347: o11y_one.agentic.v1.EvaluationRunFailureRollupV1.by_stage_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	310,  // 345: o11y_one.agentic.v1.EvaluationRunFailureRollupV1.by_stage:type_name -> o11y_one.agentic.v1.EvaluationFailureStageCountV1
+	246,  // 346: o11y_one.agentic.v1.EvaluationRunFailureRollupV1.terminal_failure:type_name -> o11y_one.agentic.v1.EvaluationFailureV1
+	174,  // 347: o11y_one.agentic.v1.EvaluationRunFailureRollupV1.by_stage_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
 	25,   // 348: o11y_one.agentic.v1.EvaluationRunRecoveryV1.recommended_action:type_name -> o11y_one.agentic.v1.RecoveryActionV1
-	165,  // 349: o11y_one.agentic.v1.EvaluationRunRecoveryV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 349: o11y_one.agentic.v1.EvaluationRunRecoveryV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
 	44,   // 350: o11y_one.agentic.v1.EvaluationCursorResyncV1.reason:type_name -> o11y_one.agentic.v1.EvaluationResyncReasonV1
 	45,   // 351: o11y_one.agentic.v1.EvaluationDecisionDriverV1.kind:type_name -> o11y_one.agentic.v1.EvaluationDecisionDriverKindV1
 	46,   // 352: o11y_one.agentic.v1.EvaluationDecisionDriverV1.consequence:type_name -> o11y_one.agentic.v1.EvaluationDecisionConsequenceV1
-	165,  // 353: o11y_one.agentic.v1.EvaluationDecisionDriversV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	305,  // 354: o11y_one.agentic.v1.EvaluationDecisionDriversV1.drivers:type_name -> o11y_one.agentic.v1.EvaluationDecisionDriverV1
-	164,  // 355: o11y_one.agentic.v1.EvaluationDecisionDriversV1.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	174,  // 353: o11y_one.agentic.v1.EvaluationDecisionDriversV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	314,  // 354: o11y_one.agentic.v1.EvaluationDecisionDriversV1.drivers:type_name -> o11y_one.agentic.v1.EvaluationDecisionDriverV1
+	173,  // 355: o11y_one.agentic.v1.EvaluationDecisionDriversV1.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
 	50,   // 356: o11y_one.agentic.v1.RepeatSampleCheckV1.basis:type_name -> o11y_one.agentic.v1.EvaluationRepeatBasisV1
 	51,   // 357: o11y_one.agentic.v1.ComparisonRepeatAlignmentV1.rule:type_name -> o11y_one.agentic.v1.ComparisonAlignmentRuleV1
 	47,   // 358: o11y_one.agentic.v1.StatisticalResultV1.test:type_name -> o11y_one.agentic.v1.StatisticalTestV1
 	48,   // 359: o11y_one.agentic.v1.StatisticalResultV1.correction:type_name -> o11y_one.agentic.v1.MultipleComparisonCorrectionV1
-	311,  // 360: o11y_one.agentic.v1.StatisticalResultV1.confidence_interval:type_name -> o11y_one.agentic.v1.ConfidenceIntervalV1
+	320,  // 360: o11y_one.agentic.v1.StatisticalResultV1.confidence_interval:type_name -> o11y_one.agentic.v1.ConfidenceIntervalV1
 	49,   // 361: o11y_one.agentic.v1.StatisticalResultV1.validity:type_name -> o11y_one.agentic.v1.StatisticalValidityV1
-	308,  // 362: o11y_one.agentic.v1.StatisticalResultV1.minimum_detectable_effect:type_name -> o11y_one.agentic.v1.MinimumDetectableEffectV1
-	165,  // 363: o11y_one.agentic.v1.StatisticalResultV1.minimum_detectable_effect_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	312,  // 364: o11y_one.agentic.v1.CandidatePairComparisonV1.statistics:type_name -> o11y_one.agentic.v1.StatisticalResultV1
-	310,  // 365: o11y_one.agentic.v1.CandidatePairComparisonV1.minimum_sample:type_name -> o11y_one.agentic.v1.MinimumSampleCheckV1
-	307,  // 366: o11y_one.agentic.v1.CandidatePairComparisonV1.repeat_sample:type_name -> o11y_one.agentic.v1.RepeatSampleCheckV1
-	309,  // 367: o11y_one.agentic.v1.CandidatePairComparisonV1.repeat_alignment:type_name -> o11y_one.agentic.v1.ComparisonRepeatAlignmentV1
-	308,  // 368: o11y_one.agentic.v1.CandidatePairComparisonV1.minimum_detectable_effect:type_name -> o11y_one.agentic.v1.MinimumDetectableEffectV1
-	165,  // 369: o11y_one.agentic.v1.CandidatePairComparisonV1.minimum_detectable_effect_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	165,  // 370: o11y_one.agentic.v1.EvaluationCandidateComparisonV1.reference_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	313,  // 371: o11y_one.agentic.v1.EvaluationCandidateComparisonV1.pairs:type_name -> o11y_one.agentic.v1.CandidatePairComparisonV1
+	317,  // 362: o11y_one.agentic.v1.StatisticalResultV1.minimum_detectable_effect:type_name -> o11y_one.agentic.v1.MinimumDetectableEffectV1
+	174,  // 363: o11y_one.agentic.v1.StatisticalResultV1.minimum_detectable_effect_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	321,  // 364: o11y_one.agentic.v1.CandidatePairComparisonV1.statistics:type_name -> o11y_one.agentic.v1.StatisticalResultV1
+	319,  // 365: o11y_one.agentic.v1.CandidatePairComparisonV1.minimum_sample:type_name -> o11y_one.agentic.v1.MinimumSampleCheckV1
+	316,  // 366: o11y_one.agentic.v1.CandidatePairComparisonV1.repeat_sample:type_name -> o11y_one.agentic.v1.RepeatSampleCheckV1
+	318,  // 367: o11y_one.agentic.v1.CandidatePairComparisonV1.repeat_alignment:type_name -> o11y_one.agentic.v1.ComparisonRepeatAlignmentV1
+	317,  // 368: o11y_one.agentic.v1.CandidatePairComparisonV1.minimum_detectable_effect:type_name -> o11y_one.agentic.v1.MinimumDetectableEffectV1
+	174,  // 369: o11y_one.agentic.v1.CandidatePairComparisonV1.minimum_detectable_effect_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 370: o11y_one.agentic.v1.EvaluationCandidateComparisonV1.reference_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	322,  // 371: o11y_one.agentic.v1.EvaluationCandidateComparisonV1.pairs:type_name -> o11y_one.agentic.v1.CandidatePairComparisonV1
 	48,   // 372: o11y_one.agentic.v1.EvaluationCandidateComparisonV1.correction:type_name -> o11y_one.agentic.v1.MultipleComparisonCorrectionV1
-	165,  // 373: o11y_one.agentic.v1.EvaluationCandidateComparisonV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	164,  // 374: o11y_one.agentic.v1.EvaluationCandidateComparisonV1.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	298,  // 375: o11y_one.agentic.v1.EvaluationSliceCandidateRowV1.verdicts:type_name -> o11y_one.agentic.v1.EvaluationVerdictCountsV1
-	165,  // 376: o11y_one.agentic.v1.EvaluationSliceCandidateRowV1.mean_score_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	315,  // 377: o11y_one.agentic.v1.EvaluationSliceV1.candidates:type_name -> o11y_one.agentic.v1.EvaluationSliceCandidateRowV1
+	174,  // 373: o11y_one.agentic.v1.EvaluationCandidateComparisonV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	173,  // 374: o11y_one.agentic.v1.EvaluationCandidateComparisonV1.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	307,  // 375: o11y_one.agentic.v1.EvaluationSliceCandidateRowV1.verdicts:type_name -> o11y_one.agentic.v1.EvaluationVerdictCountsV1
+	174,  // 376: o11y_one.agentic.v1.EvaluationSliceCandidateRowV1.mean_score_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	324,  // 377: o11y_one.agentic.v1.EvaluationSliceV1.candidates:type_name -> o11y_one.agentic.v1.EvaluationSliceCandidateRowV1
 	52,   // 378: o11y_one.agentic.v1.EvaluationSliceAnalysisV1.dimension:type_name -> o11y_one.agentic.v1.EvaluationSliceDimensionV1
-	316,  // 379: o11y_one.agentic.v1.EvaluationSliceAnalysisV1.slices:type_name -> o11y_one.agentic.v1.EvaluationSliceV1
-	165,  // 380: o11y_one.agentic.v1.EvaluationSliceAnalysisV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	164,  // 381: o11y_one.agentic.v1.EvaluationSliceAnalysisV1.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	325,  // 379: o11y_one.agentic.v1.EvaluationSliceAnalysisV1.slices:type_name -> o11y_one.agentic.v1.EvaluationSliceV1
+	174,  // 380: o11y_one.agentic.v1.EvaluationSliceAnalysisV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	173,  // 381: o11y_one.agentic.v1.EvaluationSliceAnalysisV1.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
 	53,   // 382: o11y_one.agentic.v1.DataQualityFindingV1.kind:type_name -> o11y_one.agentic.v1.DataQualityFindingKindV1
 	54,   // 383: o11y_one.agentic.v1.DataQualityFindingV1.severity:type_name -> o11y_one.agentic.v1.FindingSeverityV1
-	318,  // 384: o11y_one.agentic.v1.EvaluationDataQualityV1.findings:type_name -> o11y_one.agentic.v1.DataQualityFindingV1
-	165,  // 385: o11y_one.agentic.v1.EvaluationDataQualityV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	164,  // 386: o11y_one.agentic.v1.EvaluationDataQualityV1.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	327,  // 384: o11y_one.agentic.v1.EvaluationDataQualityV1.findings:type_name -> o11y_one.agentic.v1.DataQualityFindingV1
+	174,  // 385: o11y_one.agentic.v1.EvaluationDataQualityV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	173,  // 386: o11y_one.agentic.v1.EvaluationDataQualityV1.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
 	7,    // 387: o11y_one.agentic.v1.RegressionSeriesPointV1.state:type_name -> o11y_one.agentic.v1.EvaluationRunStateV1
-	695,  // 388: o11y_one.agentic.v1.RegressionSeriesPointV1.started_at:type_name -> google.protobuf.Timestamp
-	695,  // 389: o11y_one.agentic.v1.RegressionSeriesPointV1.finished_at:type_name -> google.protobuf.Timestamp
-	298,  // 390: o11y_one.agentic.v1.RegressionSeriesPointV1.verdicts:type_name -> o11y_one.agentic.v1.EvaluationVerdictCountsV1
-	165,  // 391: o11y_one.agentic.v1.RegressionSeriesPointV1.mean_score_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	171,  // 392: o11y_one.agentic.v1.RegressionSeriesPointV1.candidate_cost:type_name -> o11y_one.agentic.v1.CostAmountV1
-	321,  // 393: o11y_one.agentic.v1.EvaluationRegressionHistoryV1.points:type_name -> o11y_one.agentic.v1.RegressionSeriesPointV1
-	320,  // 394: o11y_one.agentic.v1.EvaluationRegressionHistoryV1.total_matching:type_name -> o11y_one.agentic.v1.TotalMatchingV1
-	165,  // 395: o11y_one.agentic.v1.EvaluationRegressionHistoryV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	164,  // 396: o11y_one.agentic.v1.EvaluationRegressionHistoryV1.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	774,  // 388: o11y_one.agentic.v1.RegressionSeriesPointV1.started_at:type_name -> google.protobuf.Timestamp
+	774,  // 389: o11y_one.agentic.v1.RegressionSeriesPointV1.finished_at:type_name -> google.protobuf.Timestamp
+	307,  // 390: o11y_one.agentic.v1.RegressionSeriesPointV1.verdicts:type_name -> o11y_one.agentic.v1.EvaluationVerdictCountsV1
+	174,  // 391: o11y_one.agentic.v1.RegressionSeriesPointV1.mean_score_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	180,  // 392: o11y_one.agentic.v1.RegressionSeriesPointV1.candidate_cost:type_name -> o11y_one.agentic.v1.CostAmountV1
+	330,  // 393: o11y_one.agentic.v1.EvaluationRegressionHistoryV1.points:type_name -> o11y_one.agentic.v1.RegressionSeriesPointV1
+	329,  // 394: o11y_one.agentic.v1.EvaluationRegressionHistoryV1.total_matching:type_name -> o11y_one.agentic.v1.TotalMatchingV1
+	174,  // 395: o11y_one.agentic.v1.EvaluationRegressionHistoryV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	173,  // 396: o11y_one.agentic.v1.EvaluationRegressionHistoryV1.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
 	57,   // 397: o11y_one.agentic.v1.DecisionBlockerV1.kind:type_name -> o11y_one.agentic.v1.DecisionBlockerKindV1
-	171,  // 398: o11y_one.agentic.v1.CandidateTradeoffV1.cost_delta:type_name -> o11y_one.agentic.v1.CostAmountV1
+	180,  // 398: o11y_one.agentic.v1.CandidateTradeoffV1.cost_delta:type_name -> o11y_one.agentic.v1.CostAmountV1
 	1,    // 399: o11y_one.agentic.v1.EvidencePostureV1.completeness:type_name -> o11y_one.agentic.v1.CompletenessStateV1
-	165,  // 400: o11y_one.agentic.v1.EvidencePostureV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 400: o11y_one.agentic.v1.EvidencePostureV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
 	55,   // 401: o11y_one.agentic.v1.EvaluationDecisionV1.outcome:type_name -> o11y_one.agentic.v1.EvaluationDecisionOutcomeV1
-	324,  // 402: o11y_one.agentic.v1.EvaluationDecisionV1.tradeoffs:type_name -> o11y_one.agentic.v1.CandidateTradeoffV1
-	323,  // 403: o11y_one.agentic.v1.EvaluationDecisionV1.blockers:type_name -> o11y_one.agentic.v1.DecisionBlockerV1
-	310,  // 404: o11y_one.agentic.v1.EvaluationDecisionV1.minimum_sample:type_name -> o11y_one.agentic.v1.MinimumSampleCheckV1
-	312,  // 405: o11y_one.agentic.v1.EvaluationDecisionV1.statistics:type_name -> o11y_one.agentic.v1.StatisticalResultV1
-	325,  // 406: o11y_one.agentic.v1.EvaluationDecisionV1.evidence_posture:type_name -> o11y_one.agentic.v1.EvidencePostureV1
+	333,  // 402: o11y_one.agentic.v1.EvaluationDecisionV1.tradeoffs:type_name -> o11y_one.agentic.v1.CandidateTradeoffV1
+	332,  // 403: o11y_one.agentic.v1.EvaluationDecisionV1.blockers:type_name -> o11y_one.agentic.v1.DecisionBlockerV1
+	319,  // 404: o11y_one.agentic.v1.EvaluationDecisionV1.minimum_sample:type_name -> o11y_one.agentic.v1.MinimumSampleCheckV1
+	321,  // 405: o11y_one.agentic.v1.EvaluationDecisionV1.statistics:type_name -> o11y_one.agentic.v1.StatisticalResultV1
+	334,  // 406: o11y_one.agentic.v1.EvaluationDecisionV1.evidence_posture:type_name -> o11y_one.agentic.v1.EvidencePostureV1
 	56,   // 407: o11y_one.agentic.v1.EvaluationDecisionV1.provenance:type_name -> o11y_one.agentic.v1.EvaluationDecisionProvenanceV1
-	307,  // 408: o11y_one.agentic.v1.EvaluationDecisionV1.repeat_sample:type_name -> o11y_one.agentic.v1.RepeatSampleCheckV1
-	326,  // 409: o11y_one.agentic.v1.EvaluationDecisionRevisionV1.decision:type_name -> o11y_one.agentic.v1.EvaluationDecisionV1
-	272,  // 410: o11y_one.agentic.v1.EvaluationDecisionRevisionV1.exclusions:type_name -> o11y_one.agentic.v1.EvaluationCellRefV1
-	163,  // 411: o11y_one.agentic.v1.EvaluationDecisionRevisionV1.actor:type_name -> o11y_one.agentic.v1.PrincipalRefV1
-	695,  // 412: o11y_one.agentic.v1.EvaluationDecisionRevisionV1.created_at:type_name -> google.protobuf.Timestamp
-	327,  // 413: o11y_one.agentic.v1.EvaluationAdoptedDecisionV1.revision:type_name -> o11y_one.agentic.v1.EvaluationDecisionRevisionV1
-	165,  // 414: o11y_one.agentic.v1.EvaluationAdoptedDecisionV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	165,  // 415: o11y_one.agentic.v1.ReleaseAdoptionWarningV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	171,  // 416: o11y_one.agentic.v1.EvaluationCostDriftV1.reserved_candidate_cost:type_name -> o11y_one.agentic.v1.CostAmountV1
-	171,  // 417: o11y_one.agentic.v1.EvaluationCostDriftV1.actual_candidate_cost:type_name -> o11y_one.agentic.v1.CostAmountV1
-	165,  // 418: o11y_one.agentic.v1.EvaluationCostDriftV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	171,  // 419: o11y_one.agentic.v1.EvaluationCostDriftV1.provider_billed_cost:type_name -> o11y_one.agentic.v1.CostAmountV1
+	316,  // 408: o11y_one.agentic.v1.EvaluationDecisionV1.repeat_sample:type_name -> o11y_one.agentic.v1.RepeatSampleCheckV1
+	335,  // 409: o11y_one.agentic.v1.EvaluationDecisionRevisionV1.decision:type_name -> o11y_one.agentic.v1.EvaluationDecisionV1
+	281,  // 410: o11y_one.agentic.v1.EvaluationDecisionRevisionV1.exclusions:type_name -> o11y_one.agentic.v1.EvaluationCellRefV1
+	172,  // 411: o11y_one.agentic.v1.EvaluationDecisionRevisionV1.actor:type_name -> o11y_one.agentic.v1.PrincipalRefV1
+	774,  // 412: o11y_one.agentic.v1.EvaluationDecisionRevisionV1.created_at:type_name -> google.protobuf.Timestamp
+	336,  // 413: o11y_one.agentic.v1.EvaluationAdoptedDecisionV1.revision:type_name -> o11y_one.agentic.v1.EvaluationDecisionRevisionV1
+	174,  // 414: o11y_one.agentic.v1.EvaluationAdoptedDecisionV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 415: o11y_one.agentic.v1.ReleaseAdoptionWarningV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	180,  // 416: o11y_one.agentic.v1.EvaluationCostDriftV1.reserved_candidate_cost:type_name -> o11y_one.agentic.v1.CostAmountV1
+	180,  // 417: o11y_one.agentic.v1.EvaluationCostDriftV1.actual_candidate_cost:type_name -> o11y_one.agentic.v1.CostAmountV1
+	174,  // 418: o11y_one.agentic.v1.EvaluationCostDriftV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	180,  // 419: o11y_one.agentic.v1.EvaluationCostDriftV1.provider_billed_cost:type_name -> o11y_one.agentic.v1.CostAmountV1
 	42,   // 420: o11y_one.agentic.v1.GetEvaluationRunOverviewRequest.profile:type_name -> o11y_one.agentic.v1.EvaluationRunOverviewProfileV1
-	257,  // 421: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.run:type_name -> o11y_one.agentic.v1.EvaluationRunV1
+	266,  // 421: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.run:type_name -> o11y_one.agentic.v1.EvaluationRunV1
 	42,   // 422: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.profile:type_name -> o11y_one.agentic.v1.EvaluationRunOverviewProfileV1
-	256,  // 423: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.progress:type_name -> o11y_one.agentic.v1.EvaluationRunProgressV1
-	298,  // 424: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.verdicts:type_name -> o11y_one.agentic.v1.EvaluationVerdictCountsV1
-	299,  // 425: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.scorer_rollups:type_name -> o11y_one.agentic.v1.EvaluationScorerRollupV1
-	302,  // 426: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.failures:type_name -> o11y_one.agentic.v1.EvaluationRunFailureRollupV1
-	306,  // 427: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.decision_drivers:type_name -> o11y_one.agentic.v1.EvaluationDecisionDriversV1
-	165,  // 428: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.throughput_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	165,  // 429: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.budget_waterfall_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	165,  // 430: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.leaderboard_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	165,  // 431: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.comparability_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	165,  // 432: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.data_quality_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	165,  // 433: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.release_posture_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	167,  // 434: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
-	170,  // 435: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	164,  // 436: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	165,  // 437: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.candidate_metrics_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	295,  // 438: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.candidate_economics:type_name -> o11y_one.agentic.v1.ExecutionMetricsV1
-	165,  // 439: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.publication_lag_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	303,  // 440: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.recovery:type_name -> o11y_one.agentic.v1.EvaluationRunRecoveryV1
-	330,  // 441: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.cost_drift:type_name -> o11y_one.agentic.v1.EvaluationCostDriftV1
-	314,  // 442: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.comparison:type_name -> o11y_one.agentic.v1.EvaluationCandidateComparisonV1
-	317,  // 443: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.slice_analysis:type_name -> o11y_one.agentic.v1.EvaluationSliceAnalysisV1
-	319,  // 444: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.data_quality:type_name -> o11y_one.agentic.v1.EvaluationDataQualityV1
-	322,  // 445: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.regression_history:type_name -> o11y_one.agentic.v1.EvaluationRegressionHistoryV1
-	328,  // 446: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.adopted_decision:type_name -> o11y_one.agentic.v1.EvaluationAdoptedDecisionV1
-	376,  // 447: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.manifest:type_name -> o11y_one.agentic.v1.EvaluationRunManifestSectionV1
-	295,  // 448: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.evaluator_economics:type_name -> o11y_one.agentic.v1.ExecutionMetricsV1
-	195,  // 449: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.scorer_suite_rollups:type_name -> o11y_one.agentic.v1.EvaluationScorerSuiteRollupV1
-	200,  // 450: o11y_one.agentic.v1.PreviewEvaluationDecisionRequest.policy:type_name -> o11y_one.agentic.v1.EvaluationDecisionPolicyV1
-	272,  // 451: o11y_one.agentic.v1.PreviewEvaluationDecisionRequest.exclusions:type_name -> o11y_one.agentic.v1.EvaluationCellRefV1
-	326,  // 452: o11y_one.agentic.v1.PreviewEvaluationDecisionResponse.decision:type_name -> o11y_one.agentic.v1.EvaluationDecisionV1
-	314,  // 453: o11y_one.agentic.v1.PreviewEvaluationDecisionResponse.comparison:type_name -> o11y_one.agentic.v1.EvaluationCandidateComparisonV1
-	164,  // 454: o11y_one.agentic.v1.PreviewEvaluationDecisionResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	170,  // 455: o11y_one.agentic.v1.PreviewEvaluationDecisionResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	200,  // 456: o11y_one.agentic.v1.AdoptEvaluationDecisionRevisionRequest.policy:type_name -> o11y_one.agentic.v1.EvaluationDecisionPolicyV1
-	272,  // 457: o11y_one.agentic.v1.AdoptEvaluationDecisionRevisionRequest.exclusions:type_name -> o11y_one.agentic.v1.EvaluationCellRefV1
-	327,  // 458: o11y_one.agentic.v1.AdoptEvaluationDecisionRevisionResponse.revision:type_name -> o11y_one.agentic.v1.EvaluationDecisionRevisionV1
-	329,  // 459: o11y_one.agentic.v1.AdoptEvaluationDecisionRevisionResponse.release_adoption_warning:type_name -> o11y_one.agentic.v1.ReleaseAdoptionWarningV1
+	265,  // 423: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.progress:type_name -> o11y_one.agentic.v1.EvaluationRunProgressV1
+	307,  // 424: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.verdicts:type_name -> o11y_one.agentic.v1.EvaluationVerdictCountsV1
+	308,  // 425: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.scorer_rollups:type_name -> o11y_one.agentic.v1.EvaluationScorerRollupV1
+	311,  // 426: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.failures:type_name -> o11y_one.agentic.v1.EvaluationRunFailureRollupV1
+	315,  // 427: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.decision_drivers:type_name -> o11y_one.agentic.v1.EvaluationDecisionDriversV1
+	174,  // 428: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.throughput_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 429: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.budget_waterfall_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 430: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.leaderboard_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 431: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.comparability_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 432: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.data_quality_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 433: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.release_posture_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	176,  // 434: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
+	179,  // 435: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	173,  // 436: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	174,  // 437: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.candidate_metrics_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	304,  // 438: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.candidate_economics:type_name -> o11y_one.agentic.v1.ExecutionMetricsV1
+	174,  // 439: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.publication_lag_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	312,  // 440: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.recovery:type_name -> o11y_one.agentic.v1.EvaluationRunRecoveryV1
+	339,  // 441: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.cost_drift:type_name -> o11y_one.agentic.v1.EvaluationCostDriftV1
+	323,  // 442: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.comparison:type_name -> o11y_one.agentic.v1.EvaluationCandidateComparisonV1
+	326,  // 443: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.slice_analysis:type_name -> o11y_one.agentic.v1.EvaluationSliceAnalysisV1
+	328,  // 444: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.data_quality:type_name -> o11y_one.agentic.v1.EvaluationDataQualityV1
+	331,  // 445: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.regression_history:type_name -> o11y_one.agentic.v1.EvaluationRegressionHistoryV1
+	337,  // 446: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.adopted_decision:type_name -> o11y_one.agentic.v1.EvaluationAdoptedDecisionV1
+	385,  // 447: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.manifest:type_name -> o11y_one.agentic.v1.EvaluationRunManifestSectionV1
+	304,  // 448: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.evaluator_economics:type_name -> o11y_one.agentic.v1.ExecutionMetricsV1
+	204,  // 449: o11y_one.agentic.v1.GetEvaluationRunOverviewResponse.scorer_suite_rollups:type_name -> o11y_one.agentic.v1.EvaluationScorerSuiteRollupV1
+	209,  // 450: o11y_one.agentic.v1.PreviewEvaluationDecisionRequest.policy:type_name -> o11y_one.agentic.v1.EvaluationDecisionPolicyV1
+	281,  // 451: o11y_one.agentic.v1.PreviewEvaluationDecisionRequest.exclusions:type_name -> o11y_one.agentic.v1.EvaluationCellRefV1
+	335,  // 452: o11y_one.agentic.v1.PreviewEvaluationDecisionResponse.decision:type_name -> o11y_one.agentic.v1.EvaluationDecisionV1
+	323,  // 453: o11y_one.agentic.v1.PreviewEvaluationDecisionResponse.comparison:type_name -> o11y_one.agentic.v1.EvaluationCandidateComparisonV1
+	173,  // 454: o11y_one.agentic.v1.PreviewEvaluationDecisionResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	179,  // 455: o11y_one.agentic.v1.PreviewEvaluationDecisionResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	209,  // 456: o11y_one.agentic.v1.AdoptEvaluationDecisionRevisionRequest.policy:type_name -> o11y_one.agentic.v1.EvaluationDecisionPolicyV1
+	281,  // 457: o11y_one.agentic.v1.AdoptEvaluationDecisionRevisionRequest.exclusions:type_name -> o11y_one.agentic.v1.EvaluationCellRefV1
+	336,  // 458: o11y_one.agentic.v1.AdoptEvaluationDecisionRevisionResponse.revision:type_name -> o11y_one.agentic.v1.EvaluationDecisionRevisionV1
+	338,  // 459: o11y_one.agentic.v1.AdoptEvaluationDecisionRevisionResponse.release_adoption_warning:type_name -> o11y_one.agentic.v1.ReleaseAdoptionWarningV1
 	40,   // 460: o11y_one.agentic.v1.EvaluationMatrixFilterV1.verdicts:type_name -> o11y_one.agentic.v1.EvaluationVerdictV1
 	59,   // 461: o11y_one.agentic.v1.EvaluationMatrixFilterV1.decision_impacts:type_name -> o11y_one.agentic.v1.EvaluationMatrixDecisionImpactV1
 	60,   // 462: o11y_one.agentic.v1.EvaluationMatrixFilterV1.evidence_states:type_name -> o11y_one.agentic.v1.EvaluationMatrixEvidenceStateV1
 	40,   // 463: o11y_one.agentic.v1.EvaluationMatrixCellV1.verdict:type_name -> o11y_one.agentic.v1.EvaluationVerdictV1
-	165,  // 464: o11y_one.agentic.v1.EvaluationMatrixCellV1.score_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 464: o11y_one.agentic.v1.EvaluationMatrixCellV1.score_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
 	40,   // 465: o11y_one.agentic.v1.EvaluationMatrixCellV1.reference_verdict:type_name -> o11y_one.agentic.v1.EvaluationVerdictV1
 	59,   // 466: o11y_one.agentic.v1.EvaluationMatrixCellV1.decision_impact:type_name -> o11y_one.agentic.v1.EvaluationMatrixDecisionImpactV1
 	60,   // 467: o11y_one.agentic.v1.EvaluationMatrixCellV1.evidence_state:type_name -> o11y_one.agentic.v1.EvaluationMatrixEvidenceStateV1
 	59,   // 468: o11y_one.agentic.v1.EvaluationMatrixRowV1.decision_impact:type_name -> o11y_one.agentic.v1.EvaluationMatrixDecisionImpactV1
 	60,   // 469: o11y_one.agentic.v1.EvaluationMatrixRowV1.evidence_state:type_name -> o11y_one.agentic.v1.EvaluationMatrixEvidenceStateV1
-	338,  // 470: o11y_one.agentic.v1.EvaluationMatrixRowV1.cells:type_name -> o11y_one.agentic.v1.EvaluationMatrixCellV1
-	196,  // 471: o11y_one.agentic.v1.EvaluationMatrixRowV1.suite_cells:type_name -> o11y_one.agentic.v1.EvaluationScorerSuiteCellV1
+	347,  // 470: o11y_one.agentic.v1.EvaluationMatrixRowV1.cells:type_name -> o11y_one.agentic.v1.EvaluationMatrixCellV1
+	205,  // 471: o11y_one.agentic.v1.EvaluationMatrixRowV1.suite_cells:type_name -> o11y_one.agentic.v1.EvaluationScorerSuiteCellV1
 	61,   // 472: o11y_one.agentic.v1.EvaluationMatrixFacetV1.kind:type_name -> o11y_one.agentic.v1.EvaluationMatrixFacetKindV1
-	307,  // 473: o11y_one.agentic.v1.EvaluationMatrixAlignmentV1.repeat_sample:type_name -> o11y_one.agentic.v1.RepeatSampleCheckV1
-	272,  // 474: o11y_one.agentic.v1.MatrixSelectionExplicitIdsV1.cells:type_name -> o11y_one.agentic.v1.EvaluationCellRefV1
-	342,  // 475: o11y_one.agentic.v1.MatrixSelectionV1.explicit_ids:type_name -> o11y_one.agentic.v1.MatrixSelectionExplicitIdsV1
-	337,  // 476: o11y_one.agentic.v1.ListEvaluationMatrixRowsRequest.filter:type_name -> o11y_one.agentic.v1.EvaluationMatrixFilterV1
+	316,  // 473: o11y_one.agentic.v1.EvaluationMatrixAlignmentV1.repeat_sample:type_name -> o11y_one.agentic.v1.RepeatSampleCheckV1
+	281,  // 474: o11y_one.agentic.v1.MatrixSelectionExplicitIdsV1.cells:type_name -> o11y_one.agentic.v1.EvaluationCellRefV1
+	351,  // 475: o11y_one.agentic.v1.MatrixSelectionV1.explicit_ids:type_name -> o11y_one.agentic.v1.MatrixSelectionExplicitIdsV1
+	346,  // 476: o11y_one.agentic.v1.ListEvaluationMatrixRowsRequest.filter:type_name -> o11y_one.agentic.v1.EvaluationMatrixFilterV1
 	58,   // 477: o11y_one.agentic.v1.ListEvaluationMatrixRowsRequest.sort_key:type_name -> o11y_one.agentic.v1.EvaluationMatrixSortKeyV1
-	699,  // 478: o11y_one.agentic.v1.ListEvaluationMatrixRowsRequest.sort_direction:type_name -> o11y_one.common.v1.SortDirectionV1
-	339,  // 479: o11y_one.agentic.v1.ListEvaluationMatrixRowsResponse.rows:type_name -> o11y_one.agentic.v1.EvaluationMatrixRowV1
-	340,  // 480: o11y_one.agentic.v1.ListEvaluationMatrixRowsResponse.facets:type_name -> o11y_one.agentic.v1.EvaluationMatrixFacetV1
-	165,  // 481: o11y_one.agentic.v1.ListEvaluationMatrixRowsResponse.facets_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	320,  // 482: o11y_one.agentic.v1.ListEvaluationMatrixRowsResponse.total_matching:type_name -> o11y_one.agentic.v1.TotalMatchingV1
-	343,  // 483: o11y_one.agentic.v1.ListEvaluationMatrixRowsResponse.selection:type_name -> o11y_one.agentic.v1.MatrixSelectionV1
-	341,  // 484: o11y_one.agentic.v1.ListEvaluationMatrixRowsResponse.alignment:type_name -> o11y_one.agentic.v1.EvaluationMatrixAlignmentV1
-	304,  // 485: o11y_one.agentic.v1.ListEvaluationMatrixRowsResponse.resync:type_name -> o11y_one.agentic.v1.EvaluationCursorResyncV1
+	778,  // 478: o11y_one.agentic.v1.ListEvaluationMatrixRowsRequest.sort_direction:type_name -> o11y_one.common.v1.SortDirectionV1
+	348,  // 479: o11y_one.agentic.v1.ListEvaluationMatrixRowsResponse.rows:type_name -> o11y_one.agentic.v1.EvaluationMatrixRowV1
+	349,  // 480: o11y_one.agentic.v1.ListEvaluationMatrixRowsResponse.facets:type_name -> o11y_one.agentic.v1.EvaluationMatrixFacetV1
+	174,  // 481: o11y_one.agentic.v1.ListEvaluationMatrixRowsResponse.facets_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	329,  // 482: o11y_one.agentic.v1.ListEvaluationMatrixRowsResponse.total_matching:type_name -> o11y_one.agentic.v1.TotalMatchingV1
+	352,  // 483: o11y_one.agentic.v1.ListEvaluationMatrixRowsResponse.selection:type_name -> o11y_one.agentic.v1.MatrixSelectionV1
+	350,  // 484: o11y_one.agentic.v1.ListEvaluationMatrixRowsResponse.alignment:type_name -> o11y_one.agentic.v1.EvaluationMatrixAlignmentV1
+	313,  // 485: o11y_one.agentic.v1.ListEvaluationMatrixRowsResponse.resync:type_name -> o11y_one.agentic.v1.EvaluationCursorResyncV1
 	58,   // 486: o11y_one.agentic.v1.ListEvaluationMatrixRowsResponse.sort_key:type_name -> o11y_one.agentic.v1.EvaluationMatrixSortKeyV1
-	699,  // 487: o11y_one.agentic.v1.ListEvaluationMatrixRowsResponse.sort_direction:type_name -> o11y_one.common.v1.SortDirectionV1
-	167,  // 488: o11y_one.agentic.v1.ListEvaluationMatrixRowsResponse.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
-	170,  // 489: o11y_one.agentic.v1.ListEvaluationMatrixRowsResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	164,  // 490: o11y_one.agentic.v1.ListEvaluationMatrixRowsResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	165,  // 491: o11y_one.agentic.v1.EvaluationCaseContextV1.subject_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	165,  // 492: o11y_one.agentic.v1.EvaluationCaseContextV1.expected_outcome_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	778,  // 487: o11y_one.agentic.v1.ListEvaluationMatrixRowsResponse.sort_direction:type_name -> o11y_one.common.v1.SortDirectionV1
+	176,  // 488: o11y_one.agentic.v1.ListEvaluationMatrixRowsResponse.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
+	179,  // 489: o11y_one.agentic.v1.ListEvaluationMatrixRowsResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	173,  // 490: o11y_one.agentic.v1.ListEvaluationMatrixRowsResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	174,  // 491: o11y_one.agentic.v1.EvaluationCaseContextV1.subject_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 492: o11y_one.agentic.v1.EvaluationCaseContextV1.expected_outcome_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
 	8,    // 493: o11y_one.agentic.v1.EvaluationCandidateAttemptDetailV1.state:type_name -> o11y_one.agentic.v1.EvaluationExecutionStateV1
-	237,  // 494: o11y_one.agentic.v1.EvaluationCandidateAttemptDetailV1.failure:type_name -> o11y_one.agentic.v1.EvaluationFailureV1
-	293,  // 495: o11y_one.agentic.v1.EvaluationCandidateAttemptDetailV1.provider_status:type_name -> o11y_one.agentic.v1.ProviderStatusV1
-	171,  // 496: o11y_one.agentic.v1.EvaluationCandidateAttemptDetailV1.cost:type_name -> o11y_one.agentic.v1.CostAmountV1
-	287,  // 497: o11y_one.agentic.v1.EvaluationCandidateAttemptDetailV1.tokens:type_name -> o11y_one.agentic.v1.TokenUsageV1
-	171,  // 498: o11y_one.agentic.v1.EvaluationCandidateAttemptDetailV1.provider_billed_cost:type_name -> o11y_one.agentic.v1.CostAmountV1
+	246,  // 494: o11y_one.agentic.v1.EvaluationCandidateAttemptDetailV1.failure:type_name -> o11y_one.agentic.v1.EvaluationFailureV1
+	302,  // 495: o11y_one.agentic.v1.EvaluationCandidateAttemptDetailV1.provider_status:type_name -> o11y_one.agentic.v1.ProviderStatusV1
+	180,  // 496: o11y_one.agentic.v1.EvaluationCandidateAttemptDetailV1.cost:type_name -> o11y_one.agentic.v1.CostAmountV1
+	296,  // 497: o11y_one.agentic.v1.EvaluationCandidateAttemptDetailV1.tokens:type_name -> o11y_one.agentic.v1.TokenUsageV1
+	180,  // 498: o11y_one.agentic.v1.EvaluationCandidateAttemptDetailV1.provider_billed_cost:type_name -> o11y_one.agentic.v1.CostAmountV1
 	41,   // 499: o11y_one.agentic.v1.EvaluationCandidateExecutionDetailV1.candidate_source:type_name -> o11y_one.agentic.v1.EvaluationCandidateSourceV1
 	8,    // 500: o11y_one.agentic.v1.EvaluationCandidateExecutionDetailV1.state:type_name -> o11y_one.agentic.v1.EvaluationExecutionStateV1
-	347,  // 501: o11y_one.agentic.v1.EvaluationCandidateExecutionDetailV1.attempts:type_name -> o11y_one.agentic.v1.EvaluationCandidateAttemptDetailV1
-	237,  // 502: o11y_one.agentic.v1.EvaluationCandidateExecutionDetailV1.failure:type_name -> o11y_one.agentic.v1.EvaluationFailureV1
-	295,  // 503: o11y_one.agentic.v1.EvaluationCandidateExecutionDetailV1.metrics:type_name -> o11y_one.agentic.v1.ExecutionMetricsV1
-	165,  // 504: o11y_one.agentic.v1.EvaluationCandidateExecutionDetailV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	356,  // 501: o11y_one.agentic.v1.EvaluationCandidateExecutionDetailV1.attempts:type_name -> o11y_one.agentic.v1.EvaluationCandidateAttemptDetailV1
+	246,  // 502: o11y_one.agentic.v1.EvaluationCandidateExecutionDetailV1.failure:type_name -> o11y_one.agentic.v1.EvaluationFailureV1
+	304,  // 503: o11y_one.agentic.v1.EvaluationCandidateExecutionDetailV1.metrics:type_name -> o11y_one.agentic.v1.ExecutionMetricsV1
+	174,  // 504: o11y_one.agentic.v1.EvaluationCandidateExecutionDetailV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
 	40,   // 505: o11y_one.agentic.v1.EvaluationScorerEvidenceV1.verdict:type_name -> o11y_one.agentic.v1.EvaluationVerdictV1
-	165,  // 506: o11y_one.agentic.v1.EvaluationScorerEvidenceV1.score_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	237,  // 507: o11y_one.agentic.v1.EvaluationScorerEvidenceV1.failure:type_name -> o11y_one.agentic.v1.EvaluationFailureV1
-	295,  // 508: o11y_one.agentic.v1.EvaluationScorerEvidenceV1.evaluator_execution:type_name -> o11y_one.agentic.v1.ExecutionMetricsV1
-	350,  // 509: o11y_one.agentic.v1.EvaluationScorerEvidenceV1.attempt_economics:type_name -> o11y_one.agentic.v1.EvaluationScorerAttemptEconomicsV1
-	171,  // 510: o11y_one.agentic.v1.EvaluationScorerEvidenceV1.attempt_economics_total:type_name -> o11y_one.agentic.v1.CostAmountV1
-	165,  // 511: o11y_one.agentic.v1.EvaluationScorerEvidenceV1.attempt_economics_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 506: o11y_one.agentic.v1.EvaluationScorerEvidenceV1.score_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	246,  // 507: o11y_one.agentic.v1.EvaluationScorerEvidenceV1.failure:type_name -> o11y_one.agentic.v1.EvaluationFailureV1
+	304,  // 508: o11y_one.agentic.v1.EvaluationScorerEvidenceV1.evaluator_execution:type_name -> o11y_one.agentic.v1.ExecutionMetricsV1
+	359,  // 509: o11y_one.agentic.v1.EvaluationScorerEvidenceV1.attempt_economics:type_name -> o11y_one.agentic.v1.EvaluationScorerAttemptEconomicsV1
+	180,  // 510: o11y_one.agentic.v1.EvaluationScorerEvidenceV1.attempt_economics_total:type_name -> o11y_one.agentic.v1.CostAmountV1
+	174,  // 511: o11y_one.agentic.v1.EvaluationScorerEvidenceV1.attempt_economics_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
 	63,   // 512: o11y_one.agentic.v1.EvaluationScorerAttemptEconomicsV1.origin:type_name -> o11y_one.agentic.v1.EvaluationScorerAttemptOriginV1
-	295,  // 513: o11y_one.agentic.v1.EvaluationScorerAttemptEconomicsV1.evaluator_execution:type_name -> o11y_one.agentic.v1.ExecutionMetricsV1
-	165,  // 514: o11y_one.agentic.v1.EvaluationScorerAttemptEconomicsV1.economics_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	165,  // 515: o11y_one.agentic.v1.EvaluationArtifactSummaryV1.content_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	272,  // 516: o11y_one.agentic.v1.EvaluationCellDetailV1.cell:type_name -> o11y_one.agentic.v1.EvaluationCellRefV1
-	346,  // 517: o11y_one.agentic.v1.EvaluationCellDetailV1.case_context:type_name -> o11y_one.agentic.v1.EvaluationCaseContextV1
-	348,  // 518: o11y_one.agentic.v1.EvaluationCellDetailV1.candidate_execution:type_name -> o11y_one.agentic.v1.EvaluationCandidateExecutionDetailV1
-	349,  // 519: o11y_one.agentic.v1.EvaluationCellDetailV1.scorer_evidence:type_name -> o11y_one.agentic.v1.EvaluationScorerEvidenceV1
-	351,  // 520: o11y_one.agentic.v1.EvaluationCellDetailV1.artifacts:type_name -> o11y_one.agentic.v1.EvaluationArtifactSummaryV1
-	165,  // 521: o11y_one.agentic.v1.EvaluationCellDetailV1.artifacts_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	304,  // 513: o11y_one.agentic.v1.EvaluationScorerAttemptEconomicsV1.evaluator_execution:type_name -> o11y_one.agentic.v1.ExecutionMetricsV1
+	174,  // 514: o11y_one.agentic.v1.EvaluationScorerAttemptEconomicsV1.economics_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 515: o11y_one.agentic.v1.EvaluationArtifactSummaryV1.content_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	281,  // 516: o11y_one.agentic.v1.EvaluationCellDetailV1.cell:type_name -> o11y_one.agentic.v1.EvaluationCellRefV1
+	355,  // 517: o11y_one.agentic.v1.EvaluationCellDetailV1.case_context:type_name -> o11y_one.agentic.v1.EvaluationCaseContextV1
+	357,  // 518: o11y_one.agentic.v1.EvaluationCellDetailV1.candidate_execution:type_name -> o11y_one.agentic.v1.EvaluationCandidateExecutionDetailV1
+	358,  // 519: o11y_one.agentic.v1.EvaluationCellDetailV1.scorer_evidence:type_name -> o11y_one.agentic.v1.EvaluationScorerEvidenceV1
+	360,  // 520: o11y_one.agentic.v1.EvaluationCellDetailV1.artifacts:type_name -> o11y_one.agentic.v1.EvaluationArtifactSummaryV1
+	174,  // 521: o11y_one.agentic.v1.EvaluationCellDetailV1.artifacts_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
 	60,   // 522: o11y_one.agentic.v1.EvaluationCellDetailV1.evidence_state:type_name -> o11y_one.agentic.v1.EvaluationMatrixEvidenceStateV1
-	164,  // 523: o11y_one.agentic.v1.EvaluationCellDetailV1.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	343,  // 524: o11y_one.agentic.v1.BatchGetEvaluationCellDetailsRequest.selection:type_name -> o11y_one.agentic.v1.MatrixSelectionV1
-	352,  // 525: o11y_one.agentic.v1.BatchGetEvaluationCellDetailsResponse.cells:type_name -> o11y_one.agentic.v1.EvaluationCellDetailV1
-	272,  // 526: o11y_one.agentic.v1.BatchGetEvaluationCellDetailsResponse.missing:type_name -> o11y_one.agentic.v1.EvaluationCellRefV1
-	320,  // 527: o11y_one.agentic.v1.BatchGetEvaluationCellDetailsResponse.total_matching:type_name -> o11y_one.agentic.v1.TotalMatchingV1
+	173,  // 523: o11y_one.agentic.v1.EvaluationCellDetailV1.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	352,  // 524: o11y_one.agentic.v1.BatchGetEvaluationCellDetailsRequest.selection:type_name -> o11y_one.agentic.v1.MatrixSelectionV1
+	361,  // 525: o11y_one.agentic.v1.BatchGetEvaluationCellDetailsResponse.cells:type_name -> o11y_one.agentic.v1.EvaluationCellDetailV1
+	281,  // 526: o11y_one.agentic.v1.BatchGetEvaluationCellDetailsResponse.missing:type_name -> o11y_one.agentic.v1.EvaluationCellRefV1
+	329,  // 527: o11y_one.agentic.v1.BatchGetEvaluationCellDetailsResponse.total_matching:type_name -> o11y_one.agentic.v1.TotalMatchingV1
 	62,   // 528: o11y_one.agentic.v1.BatchGetEvaluationCellDetailsResponse.evidence_source:type_name -> o11y_one.agentic.v1.EvaluationCellEvidenceSourceV1
-	165,  // 529: o11y_one.agentic.v1.BatchGetEvaluationCellDetailsResponse.fact_plane_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	167,  // 530: o11y_one.agentic.v1.BatchGetEvaluationCellDetailsResponse.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
-	170,  // 531: o11y_one.agentic.v1.BatchGetEvaluationCellDetailsResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	164,  // 532: o11y_one.agentic.v1.BatchGetEvaluationCellDetailsResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	174,  // 529: o11y_one.agentic.v1.BatchGetEvaluationCellDetailsResponse.fact_plane_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	176,  // 530: o11y_one.agentic.v1.BatchGetEvaluationCellDetailsResponse.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
+	179,  // 531: o11y_one.agentic.v1.BatchGetEvaluationCellDetailsResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	173,  // 532: o11y_one.agentic.v1.BatchGetEvaluationCellDetailsResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
 	7,    // 533: o11y_one.agentic.v1.EvaluationRunProgressChangeV1.run_state:type_name -> o11y_one.agentic.v1.EvaluationRunStateV1
-	272,  // 534: o11y_one.agentic.v1.EvaluationCellDeltaV1.cell:type_name -> o11y_one.agentic.v1.EvaluationCellRefV1
+	281,  // 534: o11y_one.agentic.v1.EvaluationCellDeltaV1.cell:type_name -> o11y_one.agentic.v1.EvaluationCellRefV1
 	8,    // 535: o11y_one.agentic.v1.EvaluationCellDeltaV1.state:type_name -> o11y_one.agentic.v1.EvaluationExecutionStateV1
-	356,  // 536: o11y_one.agentic.v1.EvaluationCellBatchChangeV1.deltas:type_name -> o11y_one.agentic.v1.EvaluationCellDeltaV1
+	365,  // 536: o11y_one.agentic.v1.EvaluationCellBatchChangeV1.deltas:type_name -> o11y_one.agentic.v1.EvaluationCellDeltaV1
 	7,    // 537: o11y_one.agentic.v1.EvaluationTerminalChangeV1.run_state:type_name -> o11y_one.agentic.v1.EvaluationRunStateV1
 	44,   // 538: o11y_one.agentic.v1.EvaluationChangeResyncV1.reason:type_name -> o11y_one.agentic.v1.EvaluationResyncReasonV1
-	695,  // 539: o11y_one.agentic.v1.EvaluationRunChangeV1.recorded_at:type_name -> google.protobuf.Timestamp
+	774,  // 539: o11y_one.agentic.v1.EvaluationRunChangeV1.recorded_at:type_name -> google.protobuf.Timestamp
 	64,   // 540: o11y_one.agentic.v1.EvaluationRunChangeV1.kind:type_name -> o11y_one.agentic.v1.EvaluationRunChangeKindV1
-	355,  // 541: o11y_one.agentic.v1.EvaluationRunChangeV1.progress:type_name -> o11y_one.agentic.v1.EvaluationRunProgressChangeV1
-	357,  // 542: o11y_one.agentic.v1.EvaluationRunChangeV1.cell_batch:type_name -> o11y_one.agentic.v1.EvaluationCellBatchChangeV1
-	358,  // 543: o11y_one.agentic.v1.EvaluationRunChangeV1.section_refreshed:type_name -> o11y_one.agentic.v1.EvaluationSectionRefreshedChangeV1
-	359,  // 544: o11y_one.agentic.v1.EvaluationRunChangeV1.decision_revision:type_name -> o11y_one.agentic.v1.EvaluationDecisionRevisionChangeV1
-	360,  // 545: o11y_one.agentic.v1.EvaluationRunChangeV1.terminal:type_name -> o11y_one.agentic.v1.EvaluationTerminalChangeV1
-	361,  // 546: o11y_one.agentic.v1.EvaluationRunChangeV1.resync_required:type_name -> o11y_one.agentic.v1.EvaluationChangeResyncV1
-	362,  // 547: o11y_one.agentic.v1.EvaluationRunChangeV1.replay_gap:type_name -> o11y_one.agentic.v1.EvaluationChangeReplayGapV1
-	363,  // 548: o11y_one.agentic.v1.ListEvaluationRunChangesResponse.changes:type_name -> o11y_one.agentic.v1.EvaluationRunChangeV1
-	167,  // 549: o11y_one.agentic.v1.ListEvaluationRunChangesResponse.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
-	170,  // 550: o11y_one.agentic.v1.ListEvaluationRunChangesResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	164,  // 551: o11y_one.agentic.v1.ListEvaluationRunChangesResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	364,  // 541: o11y_one.agentic.v1.EvaluationRunChangeV1.progress:type_name -> o11y_one.agentic.v1.EvaluationRunProgressChangeV1
+	366,  // 542: o11y_one.agentic.v1.EvaluationRunChangeV1.cell_batch:type_name -> o11y_one.agentic.v1.EvaluationCellBatchChangeV1
+	367,  // 543: o11y_one.agentic.v1.EvaluationRunChangeV1.section_refreshed:type_name -> o11y_one.agentic.v1.EvaluationSectionRefreshedChangeV1
+	368,  // 544: o11y_one.agentic.v1.EvaluationRunChangeV1.decision_revision:type_name -> o11y_one.agentic.v1.EvaluationDecisionRevisionChangeV1
+	369,  // 545: o11y_one.agentic.v1.EvaluationRunChangeV1.terminal:type_name -> o11y_one.agentic.v1.EvaluationTerminalChangeV1
+	370,  // 546: o11y_one.agentic.v1.EvaluationRunChangeV1.resync_required:type_name -> o11y_one.agentic.v1.EvaluationChangeResyncV1
+	371,  // 547: o11y_one.agentic.v1.EvaluationRunChangeV1.replay_gap:type_name -> o11y_one.agentic.v1.EvaluationChangeReplayGapV1
+	372,  // 548: o11y_one.agentic.v1.ListEvaluationRunChangesResponse.changes:type_name -> o11y_one.agentic.v1.EvaluationRunChangeV1
+	176,  // 549: o11y_one.agentic.v1.ListEvaluationRunChangesResponse.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
+	179,  // 550: o11y_one.agentic.v1.ListEvaluationRunChangesResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	173,  // 551: o11y_one.agentic.v1.ListEvaluationRunChangesResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
 	66,   // 552: o11y_one.agentic.v1.EvaluationArtifactRemediationV1.kind:type_name -> o11y_one.agentic.v1.EvaluationArtifactRemediationKindV1
 	65,   // 553: o11y_one.agentic.v1.EvaluationArtifactContentV1.state:type_name -> o11y_one.agentic.v1.EvaluationArtifactContentStateV1
-	165,  // 554: o11y_one.agentic.v1.EvaluationArtifactContentV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	367,  // 555: o11y_one.agentic.v1.EvaluationArtifactContentV1.remediation:type_name -> o11y_one.agentic.v1.EvaluationArtifactRemediationV1
-	272,  // 556: o11y_one.agentic.v1.GetEvaluationArtifactContentRequest.cell:type_name -> o11y_one.agentic.v1.EvaluationCellRefV1
-	366,  // 557: o11y_one.agentic.v1.GetEvaluationArtifactContentRequest.artifact:type_name -> o11y_one.agentic.v1.EvaluationArtifactContentRefV1
-	368,  // 558: o11y_one.agentic.v1.GetEvaluationArtifactContentResponse.content:type_name -> o11y_one.agentic.v1.EvaluationArtifactContentV1
-	167,  // 559: o11y_one.agentic.v1.GetEvaluationArtifactContentResponse.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
-	170,  // 560: o11y_one.agentic.v1.GetEvaluationArtifactContentResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	164,  // 561: o11y_one.agentic.v1.GetEvaluationArtifactContentResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	272,  // 562: o11y_one.agentic.v1.BatchGetEvaluationArtifactContentsRequest.cell:type_name -> o11y_one.agentic.v1.EvaluationCellRefV1
-	366,  // 563: o11y_one.agentic.v1.BatchGetEvaluationArtifactContentsRequest.artifacts:type_name -> o11y_one.agentic.v1.EvaluationArtifactContentRefV1
-	368,  // 564: o11y_one.agentic.v1.BatchGetEvaluationArtifactContentsResponse.contents:type_name -> o11y_one.agentic.v1.EvaluationArtifactContentV1
-	167,  // 565: o11y_one.agentic.v1.BatchGetEvaluationArtifactContentsResponse.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
-	170,  // 566: o11y_one.agentic.v1.BatchGetEvaluationArtifactContentsResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	164,  // 567: o11y_one.agentic.v1.BatchGetEvaluationArtifactContentsResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	174,  // 554: o11y_one.agentic.v1.EvaluationArtifactContentV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	376,  // 555: o11y_one.agentic.v1.EvaluationArtifactContentV1.remediation:type_name -> o11y_one.agentic.v1.EvaluationArtifactRemediationV1
+	281,  // 556: o11y_one.agentic.v1.GetEvaluationArtifactContentRequest.cell:type_name -> o11y_one.agentic.v1.EvaluationCellRefV1
+	375,  // 557: o11y_one.agentic.v1.GetEvaluationArtifactContentRequest.artifact:type_name -> o11y_one.agentic.v1.EvaluationArtifactContentRefV1
+	377,  // 558: o11y_one.agentic.v1.GetEvaluationArtifactContentResponse.content:type_name -> o11y_one.agentic.v1.EvaluationArtifactContentV1
+	176,  // 559: o11y_one.agentic.v1.GetEvaluationArtifactContentResponse.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
+	179,  // 560: o11y_one.agentic.v1.GetEvaluationArtifactContentResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	173,  // 561: o11y_one.agentic.v1.GetEvaluationArtifactContentResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	281,  // 562: o11y_one.agentic.v1.BatchGetEvaluationArtifactContentsRequest.cell:type_name -> o11y_one.agentic.v1.EvaluationCellRefV1
+	375,  // 563: o11y_one.agentic.v1.BatchGetEvaluationArtifactContentsRequest.artifacts:type_name -> o11y_one.agentic.v1.EvaluationArtifactContentRefV1
+	377,  // 564: o11y_one.agentic.v1.BatchGetEvaluationArtifactContentsResponse.contents:type_name -> o11y_one.agentic.v1.EvaluationArtifactContentV1
+	176,  // 565: o11y_one.agentic.v1.BatchGetEvaluationArtifactContentsResponse.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
+	179,  // 566: o11y_one.agentic.v1.BatchGetEvaluationArtifactContentsResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	173,  // 567: o11y_one.agentic.v1.BatchGetEvaluationArtifactContentsResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
 	67,   // 568: o11y_one.agentic.v1.ConfigurationDiffEntryV1.dimension:type_name -> o11y_one.agentic.v1.ConfigurationDimensionV1
-	161,  // 569: o11y_one.agentic.v1.ConfigurationDiffEntryV1.reference_value:type_name -> o11y_one.agentic.v1.MetadataValueV1
-	161,  // 570: o11y_one.agentic.v1.ConfigurationDiffEntryV1.candidate_value:type_name -> o11y_one.agentic.v1.MetadataValueV1
-	373,  // 571: o11y_one.agentic.v1.EvaluationConfigurationDiffV1.entries:type_name -> o11y_one.agentic.v1.ConfigurationDiffEntryV1
-	165,  // 572: o11y_one.agentic.v1.EvaluationConfigurationDiffV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	170,  // 569: o11y_one.agentic.v1.ConfigurationDiffEntryV1.reference_value:type_name -> o11y_one.agentic.v1.MetadataValueV1
+	170,  // 570: o11y_one.agentic.v1.ConfigurationDiffEntryV1.candidate_value:type_name -> o11y_one.agentic.v1.MetadataValueV1
+	382,  // 571: o11y_one.agentic.v1.EvaluationConfigurationDiffV1.entries:type_name -> o11y_one.agentic.v1.ConfigurationDiffEntryV1
+	174,  // 572: o11y_one.agentic.v1.EvaluationConfigurationDiffV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
 	68,   // 573: o11y_one.agentic.v1.EvaluationAuditEntryV1.kind:type_name -> o11y_one.agentic.v1.EvaluationAuditEventKindV1
-	163,  // 574: o11y_one.agentic.v1.EvaluationAuditEntryV1.actor:type_name -> o11y_one.agentic.v1.PrincipalRefV1
-	695,  // 575: o11y_one.agentic.v1.EvaluationAuditEntryV1.occurred_at:type_name -> google.protobuf.Timestamp
-	162,  // 576: o11y_one.agentic.v1.EvaluationAuditEntryV1.details:type_name -> o11y_one.agentic.v1.MetadataEntryV1
-	374,  // 577: o11y_one.agentic.v1.EvaluationRunManifestSectionV1.configuration_diff:type_name -> o11y_one.agentic.v1.EvaluationConfigurationDiffV1
-	239,  // 578: o11y_one.agentic.v1.EvaluationRunManifestSectionV1.scorers:type_name -> o11y_one.agentic.v1.EvaluationScorerVersionSnapshotV1
-	251,  // 579: o11y_one.agentic.v1.EvaluationRunManifestSectionV1.pricing_source:type_name -> o11y_one.agentic.v1.EvaluationPricingSourceV1
-	165,  // 580: o11y_one.agentic.v1.EvaluationRunManifestSectionV1.pricing_source_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	329,  // 581: o11y_one.agentic.v1.EvaluationRunManifestSectionV1.release_adoption:type_name -> o11y_one.agentic.v1.ReleaseAdoptionWarningV1
-	375,  // 582: o11y_one.agentic.v1.EvaluationRunManifestSectionV1.audit:type_name -> o11y_one.agentic.v1.EvaluationAuditEntryV1
-	164,  // 583: o11y_one.agentic.v1.EvaluationRunManifestSectionV1.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	165,  // 584: o11y_one.agentic.v1.EvaluationRunManifestSectionV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	272,  // 585: o11y_one.agentic.v1.EvaluationReviewUnitV1.cell:type_name -> o11y_one.agentic.v1.EvaluationCellRefV1
+	172,  // 574: o11y_one.agentic.v1.EvaluationAuditEntryV1.actor:type_name -> o11y_one.agentic.v1.PrincipalRefV1
+	774,  // 575: o11y_one.agentic.v1.EvaluationAuditEntryV1.occurred_at:type_name -> google.protobuf.Timestamp
+	171,  // 576: o11y_one.agentic.v1.EvaluationAuditEntryV1.details:type_name -> o11y_one.agentic.v1.MetadataEntryV1
+	383,  // 577: o11y_one.agentic.v1.EvaluationRunManifestSectionV1.configuration_diff:type_name -> o11y_one.agentic.v1.EvaluationConfigurationDiffV1
+	248,  // 578: o11y_one.agentic.v1.EvaluationRunManifestSectionV1.scorers:type_name -> o11y_one.agentic.v1.EvaluationScorerVersionSnapshotV1
+	260,  // 579: o11y_one.agentic.v1.EvaluationRunManifestSectionV1.pricing_source:type_name -> o11y_one.agentic.v1.EvaluationPricingSourceV1
+	174,  // 580: o11y_one.agentic.v1.EvaluationRunManifestSectionV1.pricing_source_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	338,  // 581: o11y_one.agentic.v1.EvaluationRunManifestSectionV1.release_adoption:type_name -> o11y_one.agentic.v1.ReleaseAdoptionWarningV1
+	384,  // 582: o11y_one.agentic.v1.EvaluationRunManifestSectionV1.audit:type_name -> o11y_one.agentic.v1.EvaluationAuditEntryV1
+	173,  // 583: o11y_one.agentic.v1.EvaluationRunManifestSectionV1.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	174,  // 584: o11y_one.agentic.v1.EvaluationRunManifestSectionV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	281,  // 585: o11y_one.agentic.v1.EvaluationReviewUnitV1.cell:type_name -> o11y_one.agentic.v1.EvaluationCellRefV1
 	71,   // 586: o11y_one.agentic.v1.EvaluationReviewUnitV1.completion_state:type_name -> o11y_one.agentic.v1.ReviewUnitCompletionStateV1
 	72,   // 587: o11y_one.agentic.v1.EvaluationReviewUnitV1.adjudication_state:type_name -> o11y_one.agentic.v1.ReviewAdjudicationStateV1
-	377,  // 588: o11y_one.agentic.v1.EvaluationReviewTaskV1.unit:type_name -> o11y_one.agentic.v1.EvaluationReviewUnitV1
+	386,  // 588: o11y_one.agentic.v1.EvaluationReviewTaskV1.unit:type_name -> o11y_one.agentic.v1.EvaluationReviewUnitV1
 	69,   // 589: o11y_one.agentic.v1.EvaluationReviewTaskV1.state:type_name -> o11y_one.agentic.v1.EvaluationReviewTaskStateV1
 	70,   // 590: o11y_one.agentic.v1.EvaluationReviewTaskV1.reservation_state:type_name -> o11y_one.agentic.v1.ReviewReservationStateV1
-	695,  // 591: o11y_one.agentic.v1.EvaluationReviewTaskV1.reservation_expires_at:type_name -> google.protobuf.Timestamp
-	163,  // 592: o11y_one.agentic.v1.EvaluationReviewTaskV1.reviewer:type_name -> o11y_one.agentic.v1.PrincipalRefV1
-	167,  // 593: o11y_one.agentic.v1.EvaluationReviewTaskV1.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
-	695,  // 594: o11y_one.agentic.v1.EvaluationReviewTaskV1.created_at:type_name -> google.protobuf.Timestamp
-	695,  // 595: o11y_one.agentic.v1.EvaluationReviewTaskV1.updated_at:type_name -> google.protobuf.Timestamp
-	366,  // 596: o11y_one.agentic.v1.EvaluationReviewSubjectV1.artifact_refs:type_name -> o11y_one.agentic.v1.EvaluationArtifactContentRefV1
-	165,  // 597: o11y_one.agentic.v1.EvaluationReviewSubjectV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	774,  // 591: o11y_one.agentic.v1.EvaluationReviewTaskV1.reservation_expires_at:type_name -> google.protobuf.Timestamp
+	172,  // 592: o11y_one.agentic.v1.EvaluationReviewTaskV1.reviewer:type_name -> o11y_one.agentic.v1.PrincipalRefV1
+	176,  // 593: o11y_one.agentic.v1.EvaluationReviewTaskV1.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
+	774,  // 594: o11y_one.agentic.v1.EvaluationReviewTaskV1.created_at:type_name -> google.protobuf.Timestamp
+	774,  // 595: o11y_one.agentic.v1.EvaluationReviewTaskV1.updated_at:type_name -> google.protobuf.Timestamp
+	375,  // 596: o11y_one.agentic.v1.EvaluationReviewSubjectV1.artifact_refs:type_name -> o11y_one.agentic.v1.EvaluationArtifactContentRefV1
+	174,  // 597: o11y_one.agentic.v1.EvaluationReviewSubjectV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
 	126,  // 598: o11y_one.agentic.v1.EvaluationReviewSubjectV1.subject_kind:type_name -> o11y_one.agentic.v1.EvaluationReviewSubjectKindV1
-	380,  // 599: o11y_one.agentic.v1.EvaluationReviewRubricV1.fields:type_name -> o11y_one.agentic.v1.EvaluationReviewRubricFieldV1
-	163,  // 600: o11y_one.agentic.v1.EvaluationReviewSubmissionV1.reviewer:type_name -> o11y_one.agentic.v1.PrincipalRefV1
-	162,  // 601: o11y_one.agentic.v1.EvaluationReviewSubmissionV1.field_values:type_name -> o11y_one.agentic.v1.MetadataEntryV1
-	703,  // 602: o11y_one.agentic.v1.EvaluationReviewSubmissionV1.pairwise_winner:type_name -> o11y_one.agentic.v1.AnnotationPairwiseWinnerV1
-	695,  // 603: o11y_one.agentic.v1.EvaluationReviewSubmissionV1.submitted_at:type_name -> google.protobuf.Timestamp
-	698,  // 604: o11y_one.agentic.v1.ListEvaluationReviewTasksRequest.page:type_name -> o11y_one.common.v1.PageRequestV1
+	389,  // 599: o11y_one.agentic.v1.EvaluationReviewRubricV1.fields:type_name -> o11y_one.agentic.v1.EvaluationReviewRubricFieldV1
+	172,  // 600: o11y_one.agentic.v1.EvaluationReviewSubmissionV1.reviewer:type_name -> o11y_one.agentic.v1.PrincipalRefV1
+	171,  // 601: o11y_one.agentic.v1.EvaluationReviewSubmissionV1.field_values:type_name -> o11y_one.agentic.v1.MetadataEntryV1
+	782,  // 602: o11y_one.agentic.v1.EvaluationReviewSubmissionV1.pairwise_winner:type_name -> o11y_one.agentic.v1.AnnotationPairwiseWinnerV1
+	774,  // 603: o11y_one.agentic.v1.EvaluationReviewSubmissionV1.submitted_at:type_name -> google.protobuf.Timestamp
+	777,  // 604: o11y_one.agentic.v1.ListEvaluationReviewTasksRequest.page:type_name -> o11y_one.common.v1.PageRequestV1
 	69,   // 605: o11y_one.agentic.v1.ListEvaluationReviewTasksRequest.states:type_name -> o11y_one.agentic.v1.EvaluationReviewTaskStateV1
-	378,  // 606: o11y_one.agentic.v1.ListEvaluationReviewTasksResponse.tasks:type_name -> o11y_one.agentic.v1.EvaluationReviewTaskV1
-	700,  // 607: o11y_one.agentic.v1.ListEvaluationReviewTasksResponse.page:type_name -> o11y_one.common.v1.PageResponseV1
-	164,  // 608: o11y_one.agentic.v1.ListEvaluationReviewTasksResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	170,  // 609: o11y_one.agentic.v1.ListEvaluationReviewTasksResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	378,  // 610: o11y_one.agentic.v1.ClaimEvaluationReviewTasksResponse.tasks:type_name -> o11y_one.agentic.v1.EvaluationReviewTaskV1
-	164,  // 611: o11y_one.agentic.v1.ClaimEvaluationReviewTasksResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	170,  // 612: o11y_one.agentic.v1.ClaimEvaluationReviewTasksResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	494,  // 613: o11y_one.agentic.v1.ClaimEvaluationReviewTasksResponse.refusals:type_name -> o11y_one.agentic.v1.EvaluationReviewTaskRefusalV1
-	378,  // 614: o11y_one.agentic.v1.GetEvaluationReviewTaskResponse.task:type_name -> o11y_one.agentic.v1.EvaluationReviewTaskV1
-	379,  // 615: o11y_one.agentic.v1.GetEvaluationReviewTaskResponse.subject:type_name -> o11y_one.agentic.v1.EvaluationReviewSubjectV1
-	381,  // 616: o11y_one.agentic.v1.GetEvaluationReviewTaskResponse.rubric:type_name -> o11y_one.agentic.v1.EvaluationReviewRubricV1
-	382,  // 617: o11y_one.agentic.v1.GetEvaluationReviewTaskResponse.own_submission:type_name -> o11y_one.agentic.v1.EvaluationReviewSubmissionV1
-	162,  // 618: o11y_one.agentic.v1.GetEvaluationReviewTaskResponse.own_draft_field_values:type_name -> o11y_one.agentic.v1.MetadataEntryV1
-	382,  // 619: o11y_one.agentic.v1.GetEvaluationReviewTaskResponse.other_submissions:type_name -> o11y_one.agentic.v1.EvaluationReviewSubmissionV1
-	167,  // 620: o11y_one.agentic.v1.GetEvaluationReviewTaskResponse.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
-	164,  // 621: o11y_one.agentic.v1.GetEvaluationReviewTaskResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	170,  // 622: o11y_one.agentic.v1.GetEvaluationReviewTaskResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	162,  // 623: o11y_one.agentic.v1.SubmitEvaluationReviewRequest.field_values:type_name -> o11y_one.agentic.v1.MetadataEntryV1
-	703,  // 624: o11y_one.agentic.v1.SubmitEvaluationReviewRequest.pairwise_winner:type_name -> o11y_one.agentic.v1.AnnotationPairwiseWinnerV1
+	387,  // 606: o11y_one.agentic.v1.ListEvaluationReviewTasksResponse.tasks:type_name -> o11y_one.agentic.v1.EvaluationReviewTaskV1
+	779,  // 607: o11y_one.agentic.v1.ListEvaluationReviewTasksResponse.page:type_name -> o11y_one.common.v1.PageResponseV1
+	173,  // 608: o11y_one.agentic.v1.ListEvaluationReviewTasksResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	179,  // 609: o11y_one.agentic.v1.ListEvaluationReviewTasksResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	387,  // 610: o11y_one.agentic.v1.ClaimEvaluationReviewTasksResponse.tasks:type_name -> o11y_one.agentic.v1.EvaluationReviewTaskV1
+	173,  // 611: o11y_one.agentic.v1.ClaimEvaluationReviewTasksResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	179,  // 612: o11y_one.agentic.v1.ClaimEvaluationReviewTasksResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	503,  // 613: o11y_one.agentic.v1.ClaimEvaluationReviewTasksResponse.refusals:type_name -> o11y_one.agentic.v1.EvaluationReviewTaskRefusalV1
+	387,  // 614: o11y_one.agentic.v1.GetEvaluationReviewTaskResponse.task:type_name -> o11y_one.agentic.v1.EvaluationReviewTaskV1
+	388,  // 615: o11y_one.agentic.v1.GetEvaluationReviewTaskResponse.subject:type_name -> o11y_one.agentic.v1.EvaluationReviewSubjectV1
+	390,  // 616: o11y_one.agentic.v1.GetEvaluationReviewTaskResponse.rubric:type_name -> o11y_one.agentic.v1.EvaluationReviewRubricV1
+	391,  // 617: o11y_one.agentic.v1.GetEvaluationReviewTaskResponse.own_submission:type_name -> o11y_one.agentic.v1.EvaluationReviewSubmissionV1
+	171,  // 618: o11y_one.agentic.v1.GetEvaluationReviewTaskResponse.own_draft_field_values:type_name -> o11y_one.agentic.v1.MetadataEntryV1
+	391,  // 619: o11y_one.agentic.v1.GetEvaluationReviewTaskResponse.other_submissions:type_name -> o11y_one.agentic.v1.EvaluationReviewSubmissionV1
+	176,  // 620: o11y_one.agentic.v1.GetEvaluationReviewTaskResponse.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
+	173,  // 621: o11y_one.agentic.v1.GetEvaluationReviewTaskResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	179,  // 622: o11y_one.agentic.v1.GetEvaluationReviewTaskResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	171,  // 623: o11y_one.agentic.v1.SubmitEvaluationReviewRequest.field_values:type_name -> o11y_one.agentic.v1.MetadataEntryV1
+	782,  // 624: o11y_one.agentic.v1.SubmitEvaluationReviewRequest.pairwise_winner:type_name -> o11y_one.agentic.v1.AnnotationPairwiseWinnerV1
 	148,  // 625: o11y_one.agentic.v1.SubmitEvaluationReviewRequest.dataset_case_outcome:type_name -> o11y_one.agentic.v1.DatasetCaseReviewOutcomeV1
 	149,  // 626: o11y_one.agentic.v1.SubmitEvaluationReviewRequest.dataset_case_rejection_reason:type_name -> o11y_one.agentic.v1.DatasetCaseDraftRejectionReasonV1
-	382,  // 627: o11y_one.agentic.v1.SubmitEvaluationReviewResponse.submission:type_name -> o11y_one.agentic.v1.EvaluationReviewSubmissionV1
-	377,  // 628: o11y_one.agentic.v1.SubmitEvaluationReviewResponse.unit:type_name -> o11y_one.agentic.v1.EvaluationReviewUnitV1
-	383,  // 629: o11y_one.agentic.v1.SubmitEvaluationReviewResponse.field_errors:type_name -> o11y_one.agentic.v1.EvaluationReviewRubricFieldErrorV1
-	164,  // 630: o11y_one.agentic.v1.SubmitEvaluationReviewResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	170,  // 631: o11y_one.agentic.v1.SubmitEvaluationReviewResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	391,  // 627: o11y_one.agentic.v1.SubmitEvaluationReviewResponse.submission:type_name -> o11y_one.agentic.v1.EvaluationReviewSubmissionV1
+	386,  // 628: o11y_one.agentic.v1.SubmitEvaluationReviewResponse.unit:type_name -> o11y_one.agentic.v1.EvaluationReviewUnitV1
+	392,  // 629: o11y_one.agentic.v1.SubmitEvaluationReviewResponse.field_errors:type_name -> o11y_one.agentic.v1.EvaluationReviewRubricFieldErrorV1
+	173,  // 630: o11y_one.agentic.v1.SubmitEvaluationReviewResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	179,  // 631: o11y_one.agentic.v1.SubmitEvaluationReviewResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
 	73,   // 632: o11y_one.agentic.v1.EvaluationExportV1.format:type_name -> o11y_one.agentic.v1.EvaluationExportFormatV1
 	30,   // 633: o11y_one.agentic.v1.EvaluationExportV1.state:type_name -> o11y_one.agentic.v1.EvaluationOperationStateV1
-	163,  // 634: o11y_one.agentic.v1.EvaluationExportV1.requested_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
-	237,  // 635: o11y_one.agentic.v1.EvaluationExportV1.failure:type_name -> o11y_one.agentic.v1.EvaluationFailureV1
-	695,  // 636: o11y_one.agentic.v1.EvaluationExportV1.created_at:type_name -> google.protobuf.Timestamp
-	695,  // 637: o11y_one.agentic.v1.EvaluationExportV1.updated_at:type_name -> google.protobuf.Timestamp
-	695,  // 638: o11y_one.agentic.v1.EvaluationExportV1.finished_at:type_name -> google.protobuf.Timestamp
+	172,  // 634: o11y_one.agentic.v1.EvaluationExportV1.requested_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
+	246,  // 635: o11y_one.agentic.v1.EvaluationExportV1.failure:type_name -> o11y_one.agentic.v1.EvaluationFailureV1
+	774,  // 636: o11y_one.agentic.v1.EvaluationExportV1.created_at:type_name -> google.protobuf.Timestamp
+	774,  // 637: o11y_one.agentic.v1.EvaluationExportV1.updated_at:type_name -> google.protobuf.Timestamp
+	774,  // 638: o11y_one.agentic.v1.EvaluationExportV1.finished_at:type_name -> google.protobuf.Timestamp
 	73,   // 639: o11y_one.agentic.v1.CreateEvaluationExportRequest.format:type_name -> o11y_one.agentic.v1.EvaluationExportFormatV1
-	392,  // 640: o11y_one.agentic.v1.CreateEvaluationExportResponse.export:type_name -> o11y_one.agentic.v1.EvaluationExportV1
-	170,  // 641: o11y_one.agentic.v1.CreateEvaluationExportResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	392,  // 642: o11y_one.agentic.v1.GetEvaluationExportResponse.export:type_name -> o11y_one.agentic.v1.EvaluationExportV1
-	167,  // 643: o11y_one.agentic.v1.GetEvaluationExportResponse.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
-	164,  // 644: o11y_one.agentic.v1.GetEvaluationExportResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	170,  // 645: o11y_one.agentic.v1.GetEvaluationExportResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	401,  // 640: o11y_one.agentic.v1.CreateEvaluationExportResponse.export:type_name -> o11y_one.agentic.v1.EvaluationExportV1
+	179,  // 641: o11y_one.agentic.v1.CreateEvaluationExportResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	401,  // 642: o11y_one.agentic.v1.GetEvaluationExportResponse.export:type_name -> o11y_one.agentic.v1.EvaluationExportV1
+	176,  // 643: o11y_one.agentic.v1.GetEvaluationExportResponse.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
+	173,  // 644: o11y_one.agentic.v1.GetEvaluationExportResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	179,  // 645: o11y_one.agentic.v1.GetEvaluationExportResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
 	74,   // 646: o11y_one.agentic.v1.EvaluationShareV1.state:type_name -> o11y_one.agentic.v1.EvaluationShareStateV1
-	163,  // 647: o11y_one.agentic.v1.EvaluationShareV1.created_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
-	695,  // 648: o11y_one.agentic.v1.EvaluationShareV1.created_at:type_name -> google.protobuf.Timestamp
-	695,  // 649: o11y_one.agentic.v1.EvaluationShareV1.revoked_at:type_name -> google.protobuf.Timestamp
-	397,  // 650: o11y_one.agentic.v1.CreateEvaluationShareResponse.share:type_name -> o11y_one.agentic.v1.EvaluationShareV1
-	170,  // 651: o11y_one.agentic.v1.CreateEvaluationShareResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	397,  // 652: o11y_one.agentic.v1.GetEvaluationShareResponse.share:type_name -> o11y_one.agentic.v1.EvaluationShareV1
-	167,  // 653: o11y_one.agentic.v1.GetEvaluationShareResponse.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
-	164,  // 654: o11y_one.agentic.v1.GetEvaluationShareResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	170,  // 655: o11y_one.agentic.v1.GetEvaluationShareResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	397,  // 656: o11y_one.agentic.v1.RevokeEvaluationShareResponse.share:type_name -> o11y_one.agentic.v1.EvaluationShareV1
-	170,  // 657: o11y_one.agentic.v1.RevokeEvaluationShareResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	172,  // 647: o11y_one.agentic.v1.EvaluationShareV1.created_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
+	774,  // 648: o11y_one.agentic.v1.EvaluationShareV1.created_at:type_name -> google.protobuf.Timestamp
+	774,  // 649: o11y_one.agentic.v1.EvaluationShareV1.revoked_at:type_name -> google.protobuf.Timestamp
+	406,  // 650: o11y_one.agentic.v1.CreateEvaluationShareResponse.share:type_name -> o11y_one.agentic.v1.EvaluationShareV1
+	179,  // 651: o11y_one.agentic.v1.CreateEvaluationShareResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	406,  // 652: o11y_one.agentic.v1.GetEvaluationShareResponse.share:type_name -> o11y_one.agentic.v1.EvaluationShareV1
+	176,  // 653: o11y_one.agentic.v1.GetEvaluationShareResponse.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
+	173,  // 654: o11y_one.agentic.v1.GetEvaluationShareResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	179,  // 655: o11y_one.agentic.v1.GetEvaluationShareResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	406,  // 656: o11y_one.agentic.v1.RevokeEvaluationShareResponse.share:type_name -> o11y_one.agentic.v1.EvaluationShareV1
+	179,  // 657: o11y_one.agentic.v1.RevokeEvaluationShareResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
 	76,   // 658: o11y_one.agentic.v1.EvaluationOperationBoundaryV1.excluded_dimensions:type_name -> o11y_one.agentic.v1.EvaluationOperationDimensionV1
 	75,   // 659: o11y_one.agentic.v1.EvaluationOperationGroupV1.kind:type_name -> o11y_one.agentic.v1.EvaluationWorkOperationKindV1
-	165,  // 660: o11y_one.agentic.v1.EvaluationOperationGroupV1.latency_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	171,  // 661: o11y_one.agentic.v1.EvaluationOperationGroupV1.cost:type_name -> o11y_one.agentic.v1.CostAmountV1
+	174,  // 660: o11y_one.agentic.v1.EvaluationOperationGroupV1.latency_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	180,  // 661: o11y_one.agentic.v1.EvaluationOperationGroupV1.cost:type_name -> o11y_one.agentic.v1.CostAmountV1
 	36,   // 662: o11y_one.agentic.v1.EvaluationOperationGroupV1.cost_posture:type_name -> o11y_one.agentic.v1.CostPostureV1
-	165,  // 663: o11y_one.agentic.v1.EvaluationOperationGroupV1.cost_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	165,  // 664: o11y_one.agentic.v1.EvaluationOperationGroupV1.token_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 663: o11y_one.agentic.v1.EvaluationOperationGroupV1.cost_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 664: o11y_one.agentic.v1.EvaluationOperationGroupV1.token_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
 	77,   // 665: o11y_one.agentic.v1.EvaluationOperationGroupV1.cache_explanation:type_name -> o11y_one.agentic.v1.EvaluationOperationCacheExplanationV1
-	272,  // 666: o11y_one.agentic.v1.EvaluationOperationGroupV1.exemplar_cells:type_name -> o11y_one.agentic.v1.EvaluationCellRefV1
-	171,  // 667: o11y_one.agentic.v1.EvaluationOperationTotalsV1.candidate_cost:type_name -> o11y_one.agentic.v1.CostAmountV1
-	165,  // 668: o11y_one.agentic.v1.EvaluationOperationTotalsV1.candidate_cost_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	165,  // 669: o11y_one.agentic.v1.EvaluationOperationTotalsV1.scorer_cost_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	165,  // 670: o11y_one.agentic.v1.EvaluationOperationTotalsV1.time_to_first_token_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	405,  // 671: o11y_one.agentic.v1.GetEvaluationOperationBreakdownResponse.groups:type_name -> o11y_one.agentic.v1.EvaluationOperationGroupV1
-	406,  // 672: o11y_one.agentic.v1.GetEvaluationOperationBreakdownResponse.totals:type_name -> o11y_one.agentic.v1.EvaluationOperationTotalsV1
-	404,  // 673: o11y_one.agentic.v1.GetEvaluationOperationBreakdownResponse.boundary:type_name -> o11y_one.agentic.v1.EvaluationOperationBoundaryV1
-	167,  // 674: o11y_one.agentic.v1.GetEvaluationOperationBreakdownResponse.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
-	164,  // 675: o11y_one.agentic.v1.GetEvaluationOperationBreakdownResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	170,  // 676: o11y_one.agentic.v1.GetEvaluationOperationBreakdownResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	163,  // 677: o11y_one.agentic.v1.EvaluationDefinitionRevisionSummaryV1.created_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
-	695,  // 678: o11y_one.agentic.v1.EvaluationDefinitionRevisionSummaryV1.created_at:type_name -> google.protobuf.Timestamp
-	698,  // 679: o11y_one.agentic.v1.ListEvaluationDefinitionRevisionsRequest.page:type_name -> o11y_one.common.v1.PageRequestV1
-	409,  // 680: o11y_one.agentic.v1.ListEvaluationDefinitionRevisionsResponse.revisions:type_name -> o11y_one.agentic.v1.EvaluationDefinitionRevisionSummaryV1
-	700,  // 681: o11y_one.agentic.v1.ListEvaluationDefinitionRevisionsResponse.page:type_name -> o11y_one.common.v1.PageResponseV1
-	164,  // 682: o11y_one.agentic.v1.ListEvaluationDefinitionRevisionsResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	170,  // 683: o11y_one.agentic.v1.ListEvaluationDefinitionRevisionsResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	304,  // 684: o11y_one.agentic.v1.ListEvaluationDefinitionRevisionsResponse.resync:type_name -> o11y_one.agentic.v1.EvaluationCursorResyncV1
-	163,  // 685: o11y_one.agentic.v1.EvaluationReviewAdjudicationV1.adjudicator:type_name -> o11y_one.agentic.v1.PrincipalRefV1
-	162,  // 686: o11y_one.agentic.v1.EvaluationReviewAdjudicationV1.field_values:type_name -> o11y_one.agentic.v1.MetadataEntryV1
-	703,  // 687: o11y_one.agentic.v1.EvaluationReviewAdjudicationV1.pairwise_winner:type_name -> o11y_one.agentic.v1.AnnotationPairwiseWinnerV1
-	695,  // 688: o11y_one.agentic.v1.EvaluationReviewAdjudicationV1.resolved_at:type_name -> google.protobuf.Timestamp
-	162,  // 689: o11y_one.agentic.v1.AdjudicateEvaluationReviewConflictRequest.field_values:type_name -> o11y_one.agentic.v1.MetadataEntryV1
-	703,  // 690: o11y_one.agentic.v1.AdjudicateEvaluationReviewConflictRequest.pairwise_winner:type_name -> o11y_one.agentic.v1.AnnotationPairwiseWinnerV1
-	412,  // 691: o11y_one.agentic.v1.AdjudicateEvaluationReviewConflictResponse.adjudication:type_name -> o11y_one.agentic.v1.EvaluationReviewAdjudicationV1
-	377,  // 692: o11y_one.agentic.v1.AdjudicateEvaluationReviewConflictResponse.unit:type_name -> o11y_one.agentic.v1.EvaluationReviewUnitV1
-	382,  // 693: o11y_one.agentic.v1.AdjudicateEvaluationReviewConflictResponse.resolved_submissions:type_name -> o11y_one.agentic.v1.EvaluationReviewSubmissionV1
+	281,  // 666: o11y_one.agentic.v1.EvaluationOperationGroupV1.exemplar_cells:type_name -> o11y_one.agentic.v1.EvaluationCellRefV1
+	180,  // 667: o11y_one.agentic.v1.EvaluationOperationTotalsV1.candidate_cost:type_name -> o11y_one.agentic.v1.CostAmountV1
+	174,  // 668: o11y_one.agentic.v1.EvaluationOperationTotalsV1.candidate_cost_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 669: o11y_one.agentic.v1.EvaluationOperationTotalsV1.scorer_cost_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 670: o11y_one.agentic.v1.EvaluationOperationTotalsV1.time_to_first_token_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	414,  // 671: o11y_one.agentic.v1.GetEvaluationOperationBreakdownResponse.groups:type_name -> o11y_one.agentic.v1.EvaluationOperationGroupV1
+	415,  // 672: o11y_one.agentic.v1.GetEvaluationOperationBreakdownResponse.totals:type_name -> o11y_one.agentic.v1.EvaluationOperationTotalsV1
+	413,  // 673: o11y_one.agentic.v1.GetEvaluationOperationBreakdownResponse.boundary:type_name -> o11y_one.agentic.v1.EvaluationOperationBoundaryV1
+	176,  // 674: o11y_one.agentic.v1.GetEvaluationOperationBreakdownResponse.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
+	173,  // 675: o11y_one.agentic.v1.GetEvaluationOperationBreakdownResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	179,  // 676: o11y_one.agentic.v1.GetEvaluationOperationBreakdownResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	172,  // 677: o11y_one.agentic.v1.EvaluationDefinitionRevisionSummaryV1.created_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
+	774,  // 678: o11y_one.agentic.v1.EvaluationDefinitionRevisionSummaryV1.created_at:type_name -> google.protobuf.Timestamp
+	777,  // 679: o11y_one.agentic.v1.ListEvaluationDefinitionRevisionsRequest.page:type_name -> o11y_one.common.v1.PageRequestV1
+	418,  // 680: o11y_one.agentic.v1.ListEvaluationDefinitionRevisionsResponse.revisions:type_name -> o11y_one.agentic.v1.EvaluationDefinitionRevisionSummaryV1
+	779,  // 681: o11y_one.agentic.v1.ListEvaluationDefinitionRevisionsResponse.page:type_name -> o11y_one.common.v1.PageResponseV1
+	173,  // 682: o11y_one.agentic.v1.ListEvaluationDefinitionRevisionsResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	179,  // 683: o11y_one.agentic.v1.ListEvaluationDefinitionRevisionsResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	313,  // 684: o11y_one.agentic.v1.ListEvaluationDefinitionRevisionsResponse.resync:type_name -> o11y_one.agentic.v1.EvaluationCursorResyncV1
+	172,  // 685: o11y_one.agentic.v1.EvaluationReviewAdjudicationV1.adjudicator:type_name -> o11y_one.agentic.v1.PrincipalRefV1
+	171,  // 686: o11y_one.agentic.v1.EvaluationReviewAdjudicationV1.field_values:type_name -> o11y_one.agentic.v1.MetadataEntryV1
+	782,  // 687: o11y_one.agentic.v1.EvaluationReviewAdjudicationV1.pairwise_winner:type_name -> o11y_one.agentic.v1.AnnotationPairwiseWinnerV1
+	774,  // 688: o11y_one.agentic.v1.EvaluationReviewAdjudicationV1.resolved_at:type_name -> google.protobuf.Timestamp
+	171,  // 689: o11y_one.agentic.v1.AdjudicateEvaluationReviewConflictRequest.field_values:type_name -> o11y_one.agentic.v1.MetadataEntryV1
+	782,  // 690: o11y_one.agentic.v1.AdjudicateEvaluationReviewConflictRequest.pairwise_winner:type_name -> o11y_one.agentic.v1.AnnotationPairwiseWinnerV1
+	421,  // 691: o11y_one.agentic.v1.AdjudicateEvaluationReviewConflictResponse.adjudication:type_name -> o11y_one.agentic.v1.EvaluationReviewAdjudicationV1
+	386,  // 692: o11y_one.agentic.v1.AdjudicateEvaluationReviewConflictResponse.unit:type_name -> o11y_one.agentic.v1.EvaluationReviewUnitV1
+	391,  // 693: o11y_one.agentic.v1.AdjudicateEvaluationReviewConflictResponse.resolved_submissions:type_name -> o11y_one.agentic.v1.EvaluationReviewSubmissionV1
 	78,   // 694: o11y_one.agentic.v1.AdjudicateEvaluationReviewConflictResponse.refusal:type_name -> o11y_one.agentic.v1.EvaluationAdjudicationRefusalV1
-	164,  // 695: o11y_one.agentic.v1.AdjudicateEvaluationReviewConflictResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	170,  // 696: o11y_one.agentic.v1.AdjudicateEvaluationReviewConflictResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	701,  // 697: o11y_one.agentic.v1.EvaluationOrgNegotiatedRateV1.provider:type_name -> o11y_one.agentic.v1.ProviderNameV1
-	163,  // 698: o11y_one.agentic.v1.EvaluationOrgNegotiatedRateV1.created_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
-	695,  // 699: o11y_one.agentic.v1.EvaluationOrgNegotiatedRateV1.created_at:type_name -> google.protobuf.Timestamp
+	173,  // 695: o11y_one.agentic.v1.AdjudicateEvaluationReviewConflictResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	179,  // 696: o11y_one.agentic.v1.AdjudicateEvaluationReviewConflictResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	780,  // 697: o11y_one.agentic.v1.EvaluationOrgNegotiatedRateV1.provider:type_name -> o11y_one.agentic.v1.ProviderNameV1
+	172,  // 698: o11y_one.agentic.v1.EvaluationOrgNegotiatedRateV1.created_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
+	774,  // 699: o11y_one.agentic.v1.EvaluationOrgNegotiatedRateV1.created_at:type_name -> google.protobuf.Timestamp
 	79,   // 700: o11y_one.agentic.v1.EvaluationOrgNegotiatedRateV1.state:type_name -> o11y_one.agentic.v1.EvaluationOrgNegotiatedRateStateV1
-	695,  // 701: o11y_one.agentic.v1.EvaluationOrgNegotiatedRateV1.voided_at:type_name -> google.protobuf.Timestamp
-	701,  // 702: o11y_one.agentic.v1.RecordEvaluationOrgNegotiatedRateRequest.provider:type_name -> o11y_one.agentic.v1.ProviderNameV1
-	415,  // 703: o11y_one.agentic.v1.RecordEvaluationOrgNegotiatedRateResponse.negotiated_rate:type_name -> o11y_one.agentic.v1.EvaluationOrgNegotiatedRateV1
-	170,  // 704: o11y_one.agentic.v1.RecordEvaluationOrgNegotiatedRateResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	698,  // 705: o11y_one.agentic.v1.ListEvaluationOrgNegotiatedRatesRequest.page:type_name -> o11y_one.common.v1.PageRequestV1
-	415,  // 706: o11y_one.agentic.v1.ListEvaluationOrgNegotiatedRatesResponse.negotiated_rates:type_name -> o11y_one.agentic.v1.EvaluationOrgNegotiatedRateV1
-	700,  // 707: o11y_one.agentic.v1.ListEvaluationOrgNegotiatedRatesResponse.page:type_name -> o11y_one.common.v1.PageResponseV1
-	164,  // 708: o11y_one.agentic.v1.ListEvaluationOrgNegotiatedRatesResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	170,  // 709: o11y_one.agentic.v1.ListEvaluationOrgNegotiatedRatesResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	304,  // 710: o11y_one.agentic.v1.ListEvaluationOrgNegotiatedRatesResponse.resync:type_name -> o11y_one.agentic.v1.EvaluationCursorResyncV1
-	415,  // 711: o11y_one.agentic.v1.EndEvaluationOrgNegotiatedRateResponse.negotiated_rate:type_name -> o11y_one.agentic.v1.EvaluationOrgNegotiatedRateV1
-	170,  // 712: o11y_one.agentic.v1.EndEvaluationOrgNegotiatedRateResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	415,  // 713: o11y_one.agentic.v1.VoidEvaluationOrgNegotiatedRateResponse.negotiated_rate:type_name -> o11y_one.agentic.v1.EvaluationOrgNegotiatedRateV1
-	170,  // 714: o11y_one.agentic.v1.VoidEvaluationOrgNegotiatedRateResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	695,  // 715: o11y_one.agentic.v1.EvaluationSeriesPointV1.bucket_start:type_name -> google.protobuf.Timestamp
-	165,  // 716: o11y_one.agentic.v1.EvaluationSeriesPointV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	424,  // 717: o11y_one.agentic.v1.EvaluationScoreSeriesV1.key:type_name -> o11y_one.agentic.v1.EvaluationSeriesKeyV1
-	425,  // 718: o11y_one.agentic.v1.EvaluationScoreSeriesV1.points:type_name -> o11y_one.agentic.v1.EvaluationSeriesPointV1
-	165,  // 719: o11y_one.agentic.v1.EvaluationScoreSeriesV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	695,  // 720: o11y_one.agentic.v1.EvaluationSeriesClampV1.effective_window_start:type_name -> google.protobuf.Timestamp
-	695,  // 721: o11y_one.agentic.v1.EvaluationSeriesClampV1.effective_window_end:type_name -> google.protobuf.Timestamp
-	695,  // 722: o11y_one.agentic.v1.ListEvaluationScoreSeriesRequest.window_start:type_name -> google.protobuf.Timestamp
-	695,  // 723: o11y_one.agentic.v1.ListEvaluationScoreSeriesRequest.window_end:type_name -> google.protobuf.Timestamp
+	774,  // 701: o11y_one.agentic.v1.EvaluationOrgNegotiatedRateV1.voided_at:type_name -> google.protobuf.Timestamp
+	780,  // 702: o11y_one.agentic.v1.RecordEvaluationOrgNegotiatedRateRequest.provider:type_name -> o11y_one.agentic.v1.ProviderNameV1
+	424,  // 703: o11y_one.agentic.v1.RecordEvaluationOrgNegotiatedRateResponse.negotiated_rate:type_name -> o11y_one.agentic.v1.EvaluationOrgNegotiatedRateV1
+	179,  // 704: o11y_one.agentic.v1.RecordEvaluationOrgNegotiatedRateResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	777,  // 705: o11y_one.agentic.v1.ListEvaluationOrgNegotiatedRatesRequest.page:type_name -> o11y_one.common.v1.PageRequestV1
+	424,  // 706: o11y_one.agentic.v1.ListEvaluationOrgNegotiatedRatesResponse.negotiated_rates:type_name -> o11y_one.agentic.v1.EvaluationOrgNegotiatedRateV1
+	779,  // 707: o11y_one.agentic.v1.ListEvaluationOrgNegotiatedRatesResponse.page:type_name -> o11y_one.common.v1.PageResponseV1
+	173,  // 708: o11y_one.agentic.v1.ListEvaluationOrgNegotiatedRatesResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	179,  // 709: o11y_one.agentic.v1.ListEvaluationOrgNegotiatedRatesResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	313,  // 710: o11y_one.agentic.v1.ListEvaluationOrgNegotiatedRatesResponse.resync:type_name -> o11y_one.agentic.v1.EvaluationCursorResyncV1
+	424,  // 711: o11y_one.agentic.v1.EndEvaluationOrgNegotiatedRateResponse.negotiated_rate:type_name -> o11y_one.agentic.v1.EvaluationOrgNegotiatedRateV1
+	179,  // 712: o11y_one.agentic.v1.EndEvaluationOrgNegotiatedRateResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	424,  // 713: o11y_one.agentic.v1.VoidEvaluationOrgNegotiatedRateResponse.negotiated_rate:type_name -> o11y_one.agentic.v1.EvaluationOrgNegotiatedRateV1
+	179,  // 714: o11y_one.agentic.v1.VoidEvaluationOrgNegotiatedRateResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	774,  // 715: o11y_one.agentic.v1.EvaluationSeriesPointV1.bucket_start:type_name -> google.protobuf.Timestamp
+	174,  // 716: o11y_one.agentic.v1.EvaluationSeriesPointV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	433,  // 717: o11y_one.agentic.v1.EvaluationScoreSeriesV1.key:type_name -> o11y_one.agentic.v1.EvaluationSeriesKeyV1
+	434,  // 718: o11y_one.agentic.v1.EvaluationScoreSeriesV1.points:type_name -> o11y_one.agentic.v1.EvaluationSeriesPointV1
+	174,  // 719: o11y_one.agentic.v1.EvaluationScoreSeriesV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	774,  // 720: o11y_one.agentic.v1.EvaluationSeriesClampV1.effective_window_start:type_name -> google.protobuf.Timestamp
+	774,  // 721: o11y_one.agentic.v1.EvaluationSeriesClampV1.effective_window_end:type_name -> google.protobuf.Timestamp
+	774,  // 722: o11y_one.agentic.v1.ListEvaluationScoreSeriesRequest.window_start:type_name -> google.protobuf.Timestamp
+	774,  // 723: o11y_one.agentic.v1.ListEvaluationScoreSeriesRequest.window_end:type_name -> google.protobuf.Timestamp
 	80,   // 724: o11y_one.agentic.v1.ListEvaluationScoreSeriesRequest.grain:type_name -> o11y_one.agentic.v1.EvaluationSeriesGrainV1
-	426,  // 725: o11y_one.agentic.v1.ListEvaluationScoreSeriesResponse.series:type_name -> o11y_one.agentic.v1.EvaluationScoreSeriesV1
-	427,  // 726: o11y_one.agentic.v1.ListEvaluationScoreSeriesResponse.clamp:type_name -> o11y_one.agentic.v1.EvaluationSeriesClampV1
+	435,  // 725: o11y_one.agentic.v1.ListEvaluationScoreSeriesResponse.series:type_name -> o11y_one.agentic.v1.EvaluationScoreSeriesV1
+	436,  // 726: o11y_one.agentic.v1.ListEvaluationScoreSeriesResponse.clamp:type_name -> o11y_one.agentic.v1.EvaluationSeriesClampV1
 	81,   // 727: o11y_one.agentic.v1.ListEvaluationScoreSeriesResponse.answering_plane:type_name -> o11y_one.agentic.v1.EvaluationSeriesPlaneV1
-	164,  // 728: o11y_one.agentic.v1.ListEvaluationScoreSeriesResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	170,  // 729: o11y_one.agentic.v1.ListEvaluationScoreSeriesResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	272,  // 730: o11y_one.agentic.v1.EvaluationCaptureCellSourceV1.cell:type_name -> o11y_one.agentic.v1.EvaluationCellRefV1
+	173,  // 728: o11y_one.agentic.v1.ListEvaluationScoreSeriesResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	179,  // 729: o11y_one.agentic.v1.ListEvaluationScoreSeriesResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	281,  // 730: o11y_one.agentic.v1.EvaluationCaptureCellSourceV1.cell:type_name -> o11y_one.agentic.v1.EvaluationCellRefV1
 	82,   // 731: o11y_one.agentic.v1.EvaluationCaptureProvenanceV1.source_kind:type_name -> o11y_one.agentic.v1.EvaluationCaptureSourceKindV1
-	165,  // 732: o11y_one.agentic.v1.EvaluationCaptureProvenanceV1.telemetry_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	272,  // 733: o11y_one.agentic.v1.EvaluationCaptureProvenanceV1.cell:type_name -> o11y_one.agentic.v1.EvaluationCellRefV1
-	695,  // 734: o11y_one.agentic.v1.EvaluationCaptureProvenanceV1.captured_at:type_name -> google.protobuf.Timestamp
-	165,  // 735: o11y_one.agentic.v1.EvaluationCaptureFieldSelectionV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 732: o11y_one.agentic.v1.EvaluationCaptureProvenanceV1.telemetry_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	281,  // 733: o11y_one.agentic.v1.EvaluationCaptureProvenanceV1.cell:type_name -> o11y_one.agentic.v1.EvaluationCellRefV1
+	774,  // 734: o11y_one.agentic.v1.EvaluationCaptureProvenanceV1.captured_at:type_name -> google.protobuf.Timestamp
+	174,  // 735: o11y_one.agentic.v1.EvaluationCaptureFieldSelectionV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
 	85,   // 736: o11y_one.agentic.v1.EvaluationProposedCaseV1.state:type_name -> o11y_one.agentic.v1.EvaluationProposedCaseStateV1
-	432,  // 737: o11y_one.agentic.v1.EvaluationProposedCaseV1.provenance:type_name -> o11y_one.agentic.v1.EvaluationCaptureProvenanceV1
-	433,  // 738: o11y_one.agentic.v1.EvaluationProposedCaseV1.selections:type_name -> o11y_one.agentic.v1.EvaluationCaptureFieldSelectionV1
-	165,  // 739: o11y_one.agentic.v1.EvaluationProposedCaseV1.input_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	165,  // 740: o11y_one.agentic.v1.EvaluationProposedCaseV1.expected_output_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	165,  // 741: o11y_one.agentic.v1.EvaluationProposedCaseV1.recorded_output_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	695,  // 742: o11y_one.agentic.v1.EvaluationProposedCaseV1.created_at:type_name -> google.protobuf.Timestamp
-	439,  // 743: o11y_one.agentic.v1.EvaluationProposedCaseV1.source_content_refs:type_name -> o11y_one.agentic.v1.EvaluationSpanContentHydrationV1
+	441,  // 737: o11y_one.agentic.v1.EvaluationProposedCaseV1.provenance:type_name -> o11y_one.agentic.v1.EvaluationCaptureProvenanceV1
+	442,  // 738: o11y_one.agentic.v1.EvaluationProposedCaseV1.selections:type_name -> o11y_one.agentic.v1.EvaluationCaptureFieldSelectionV1
+	174,  // 739: o11y_one.agentic.v1.EvaluationProposedCaseV1.input_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 740: o11y_one.agentic.v1.EvaluationProposedCaseV1.expected_output_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 741: o11y_one.agentic.v1.EvaluationProposedCaseV1.recorded_output_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	774,  // 742: o11y_one.agentic.v1.EvaluationProposedCaseV1.created_at:type_name -> google.protobuf.Timestamp
+	448,  // 743: o11y_one.agentic.v1.EvaluationProposedCaseV1.source_content_refs:type_name -> o11y_one.agentic.v1.EvaluationSpanContentHydrationV1
 	146,  // 744: o11y_one.agentic.v1.EvaluationProposedCaseV1.draft_state:type_name -> o11y_one.agentic.v1.DatasetCaseDraftStateV1
 	84,   // 745: o11y_one.agentic.v1.EvaluationDatasetVersionDraftV1.state:type_name -> o11y_one.agentic.v1.EvaluationDatasetDraftStateV1
-	695,  // 746: o11y_one.agentic.v1.EvaluationDatasetVersionDraftV1.created_at:type_name -> google.protobuf.Timestamp
-	695,  // 747: o11y_one.agentic.v1.EvaluationDatasetVersionDraftV1.updated_at:type_name -> google.protobuf.Timestamp
+	774,  // 746: o11y_one.agentic.v1.EvaluationDatasetVersionDraftV1.created_at:type_name -> google.protobuf.Timestamp
+	774,  // 747: o11y_one.agentic.v1.EvaluationDatasetVersionDraftV1.updated_at:type_name -> google.protobuf.Timestamp
 	83,   // 748: o11y_one.agentic.v1.EvaluationCaptureRefusalV1.kind:type_name -> o11y_one.agentic.v1.EvaluationCaptureRefusalKindV1
 	25,   // 749: o11y_one.agentic.v1.EvaluationCaptureRefusalV1.recovery:type_name -> o11y_one.agentic.v1.RecoveryActionV1
-	430,  // 750: o11y_one.agentic.v1.CaptureEvaluationCaseRequest.span:type_name -> o11y_one.agentic.v1.EvaluationCaptureSpanSourceV1
-	431,  // 751: o11y_one.agentic.v1.CaptureEvaluationCaseRequest.cell:type_name -> o11y_one.agentic.v1.EvaluationCaptureCellSourceV1
-	172,  // 752: o11y_one.agentic.v1.CaptureEvaluationCaseRequest.field_mappings:type_name -> o11y_one.agentic.v1.DatasetFieldMappingV1
-	435,  // 753: o11y_one.agentic.v1.CaptureEvaluationCaseResponse.draft:type_name -> o11y_one.agentic.v1.EvaluationDatasetVersionDraftV1
-	434,  // 754: o11y_one.agentic.v1.CaptureEvaluationCaseResponse.proposed_case:type_name -> o11y_one.agentic.v1.EvaluationProposedCaseV1
-	170,  // 755: o11y_one.agentic.v1.CaptureEvaluationCaseResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	164,  // 756: o11y_one.agentic.v1.CaptureEvaluationCaseResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	439,  // 750: o11y_one.agentic.v1.CaptureEvaluationCaseRequest.span:type_name -> o11y_one.agentic.v1.EvaluationCaptureSpanSourceV1
+	440,  // 751: o11y_one.agentic.v1.CaptureEvaluationCaseRequest.cell:type_name -> o11y_one.agentic.v1.EvaluationCaptureCellSourceV1
+	181,  // 752: o11y_one.agentic.v1.CaptureEvaluationCaseRequest.field_mappings:type_name -> o11y_one.agentic.v1.DatasetFieldMappingV1
+	444,  // 753: o11y_one.agentic.v1.CaptureEvaluationCaseResponse.draft:type_name -> o11y_one.agentic.v1.EvaluationDatasetVersionDraftV1
+	443,  // 754: o11y_one.agentic.v1.CaptureEvaluationCaseResponse.proposed_case:type_name -> o11y_one.agentic.v1.EvaluationProposedCaseV1
+	179,  // 755: o11y_one.agentic.v1.CaptureEvaluationCaseResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	173,  // 756: o11y_one.agentic.v1.CaptureEvaluationCaseResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
 	86,   // 757: o11y_one.agentic.v1.EvaluationSpanContentHydrationV1.content_class:type_name -> o11y_one.agentic.v1.EvaluationSpanContentClassV1
-	165,  // 758: o11y_one.agentic.v1.EvaluationSpanContentHydrationV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	165,  // 759: o11y_one.agentic.v1.EvaluationCapturePreviewFieldV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	430,  // 760: o11y_one.agentic.v1.PreviewEvaluationCaseCaptureRequest.span:type_name -> o11y_one.agentic.v1.EvaluationCaptureSpanSourceV1
-	431,  // 761: o11y_one.agentic.v1.PreviewEvaluationCaseCaptureRequest.cell:type_name -> o11y_one.agentic.v1.EvaluationCaptureCellSourceV1
-	172,  // 762: o11y_one.agentic.v1.PreviewEvaluationCaseCaptureRequest.field_mappings:type_name -> o11y_one.agentic.v1.DatasetFieldMappingV1
-	432,  // 763: o11y_one.agentic.v1.PreviewEvaluationCaseCaptureResponse.provenance:type_name -> o11y_one.agentic.v1.EvaluationCaptureProvenanceV1
-	440,  // 764: o11y_one.agentic.v1.PreviewEvaluationCaseCaptureResponse.fields:type_name -> o11y_one.agentic.v1.EvaluationCapturePreviewFieldV1
-	433,  // 765: o11y_one.agentic.v1.PreviewEvaluationCaseCaptureResponse.selections:type_name -> o11y_one.agentic.v1.EvaluationCaptureFieldSelectionV1
-	439,  // 766: o11y_one.agentic.v1.PreviewEvaluationCaseCaptureResponse.content_hydration:type_name -> o11y_one.agentic.v1.EvaluationSpanContentHydrationV1
-	436,  // 767: o11y_one.agentic.v1.PreviewEvaluationCaseCaptureResponse.refusal:type_name -> o11y_one.agentic.v1.EvaluationCaptureRefusalV1
-	170,  // 768: o11y_one.agentic.v1.PreviewEvaluationCaseCaptureResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	164,  // 769: o11y_one.agentic.v1.PreviewEvaluationCaseCaptureResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	615,  // 770: o11y_one.agentic.v1.PreviewEvaluationCaseCaptureResponse.quality:type_name -> o11y_one.agentic.v1.DatasetCaseQualitySignalsV1
-	701,  // 771: o11y_one.agentic.v1.EvaluationProviderCredentialV1.provider:type_name -> o11y_one.agentic.v1.ProviderNameV1
-	695,  // 772: o11y_one.agentic.v1.EvaluationProviderCredentialV1.created_at:type_name -> google.protobuf.Timestamp
-	695,  // 773: o11y_one.agentic.v1.EvaluationProviderCredentialV1.disabled_at:type_name -> google.protobuf.Timestamp
+	174,  // 758: o11y_one.agentic.v1.EvaluationSpanContentHydrationV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 759: o11y_one.agentic.v1.EvaluationCapturePreviewFieldV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	439,  // 760: o11y_one.agentic.v1.PreviewEvaluationCaseCaptureRequest.span:type_name -> o11y_one.agentic.v1.EvaluationCaptureSpanSourceV1
+	440,  // 761: o11y_one.agentic.v1.PreviewEvaluationCaseCaptureRequest.cell:type_name -> o11y_one.agentic.v1.EvaluationCaptureCellSourceV1
+	181,  // 762: o11y_one.agentic.v1.PreviewEvaluationCaseCaptureRequest.field_mappings:type_name -> o11y_one.agentic.v1.DatasetFieldMappingV1
+	441,  // 763: o11y_one.agentic.v1.PreviewEvaluationCaseCaptureResponse.provenance:type_name -> o11y_one.agentic.v1.EvaluationCaptureProvenanceV1
+	449,  // 764: o11y_one.agentic.v1.PreviewEvaluationCaseCaptureResponse.fields:type_name -> o11y_one.agentic.v1.EvaluationCapturePreviewFieldV1
+	442,  // 765: o11y_one.agentic.v1.PreviewEvaluationCaseCaptureResponse.selections:type_name -> o11y_one.agentic.v1.EvaluationCaptureFieldSelectionV1
+	448,  // 766: o11y_one.agentic.v1.PreviewEvaluationCaseCaptureResponse.content_hydration:type_name -> o11y_one.agentic.v1.EvaluationSpanContentHydrationV1
+	445,  // 767: o11y_one.agentic.v1.PreviewEvaluationCaseCaptureResponse.refusal:type_name -> o11y_one.agentic.v1.EvaluationCaptureRefusalV1
+	179,  // 768: o11y_one.agentic.v1.PreviewEvaluationCaseCaptureResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	173,  // 769: o11y_one.agentic.v1.PreviewEvaluationCaseCaptureResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	624,  // 770: o11y_one.agentic.v1.PreviewEvaluationCaseCaptureResponse.quality:type_name -> o11y_one.agentic.v1.DatasetCaseQualitySignalsV1
+	780,  // 771: o11y_one.agentic.v1.EvaluationProviderCredentialV1.provider:type_name -> o11y_one.agentic.v1.ProviderNameV1
+	774,  // 772: o11y_one.agentic.v1.EvaluationProviderCredentialV1.created_at:type_name -> google.protobuf.Timestamp
+	774,  // 773: o11y_one.agentic.v1.EvaluationProviderCredentialV1.disabled_at:type_name -> google.protobuf.Timestamp
 	87,   // 774: o11y_one.agentic.v1.EvaluationProviderCredentialRejectionV1.kind:type_name -> o11y_one.agentic.v1.EvaluationProviderCredentialRejectionKindV1
 	25,   // 775: o11y_one.agentic.v1.EvaluationProviderCredentialRejectionV1.recovery:type_name -> o11y_one.agentic.v1.RecoveryActionV1
-	701,  // 776: o11y_one.agentic.v1.RegisterEvaluationProviderCredentialRequest.provider:type_name -> o11y_one.agentic.v1.ProviderNameV1
-	443,  // 777: o11y_one.agentic.v1.RegisterEvaluationProviderCredentialResponse.credential:type_name -> o11y_one.agentic.v1.EvaluationProviderCredentialV1
-	170,  // 778: o11y_one.agentic.v1.RegisterEvaluationProviderCredentialResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	780,  // 776: o11y_one.agentic.v1.RegisterEvaluationProviderCredentialRequest.provider:type_name -> o11y_one.agentic.v1.ProviderNameV1
+	452,  // 777: o11y_one.agentic.v1.RegisterEvaluationProviderCredentialResponse.credential:type_name -> o11y_one.agentic.v1.EvaluationProviderCredentialV1
+	179,  // 778: o11y_one.agentic.v1.RegisterEvaluationProviderCredentialResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
 	89,   // 779: o11y_one.agentic.v1.EvaluationScorerDeterministicSpecV1.evaluator:type_name -> o11y_one.agentic.v1.EvaluationScorerEvaluatorV1
 	88,   // 780: o11y_one.agentic.v1.EvaluationScorerConfigV1.kind:type_name -> o11y_one.agentic.v1.EvaluationScorerKindV1
-	447,  // 781: o11y_one.agentic.v1.EvaluationScorerConfigV1.deterministic:type_name -> o11y_one.agentic.v1.EvaluationScorerDeterministicSpecV1
-	448,  // 782: o11y_one.agentic.v1.EvaluationScorerConfigV1.review_policy:type_name -> o11y_one.agentic.v1.EvaluationScorerReviewPolicySpecV1
-	695,  // 783: o11y_one.agentic.v1.EvaluationScorerConfigV1.created_at:type_name -> google.protobuf.Timestamp
-	455,  // 784: o11y_one.agentic.v1.EvaluationScorerConfigV1.judge:type_name -> o11y_one.agentic.v1.EvaluationScorerJudgeSpecV1
+	456,  // 781: o11y_one.agentic.v1.EvaluationScorerConfigV1.deterministic:type_name -> o11y_one.agentic.v1.EvaluationScorerDeterministicSpecV1
+	457,  // 782: o11y_one.agentic.v1.EvaluationScorerConfigV1.review_policy:type_name -> o11y_one.agentic.v1.EvaluationScorerReviewPolicySpecV1
+	774,  // 783: o11y_one.agentic.v1.EvaluationScorerConfigV1.created_at:type_name -> google.protobuf.Timestamp
+	464,  // 784: o11y_one.agentic.v1.EvaluationScorerConfigV1.judge:type_name -> o11y_one.agentic.v1.EvaluationScorerJudgeSpecV1
 	90,   // 785: o11y_one.agentic.v1.EvaluationScorerConfigRejectionV1.kind:type_name -> o11y_one.agentic.v1.EvaluationScorerConfigRejectionKindV1
 	25,   // 786: o11y_one.agentic.v1.EvaluationScorerConfigRejectionV1.recovery:type_name -> o11y_one.agentic.v1.RecoveryActionV1
-	701,  // 787: o11y_one.agentic.v1.EvaluationScorerConfigRejectionV1.judge_provider:type_name -> o11y_one.agentic.v1.ProviderNameV1
-	451,  // 788: o11y_one.agentic.v1.EvaluationScorerJudgeRubricV1.verdict_mappings:type_name -> o11y_one.agentic.v1.EvaluationScorerJudgeVerdictMappingV1
-	696,  // 789: o11y_one.agentic.v1.EvaluationScorerJudgeProviderExecutionV1.model:type_name -> o11y_one.agentic.v1.ProviderModelRefV1
-	697,  // 790: o11y_one.agentic.v1.EvaluationScorerJudgeProviderExecutionV1.request_settings:type_name -> o11y_one.agentic.v1.ProviderRequestSettingsV1
-	702,  // 791: o11y_one.agentic.v1.EvaluationScorerJudgeProviderExecutionV1.reasoning_effort:type_name -> o11y_one.agentic.v1.ProviderReasoningEffortV1
-	452,  // 792: o11y_one.agentic.v1.EvaluationScorerJudgeSpecV1.rubric_content:type_name -> o11y_one.agentic.v1.EvaluationScorerJudgeRubricV1
-	453,  // 793: o11y_one.agentic.v1.EvaluationScorerJudgeSpecV1.template_ref:type_name -> o11y_one.agentic.v1.EvaluationScorerJudgeTemplateRefV1
-	454,  // 794: o11y_one.agentic.v1.EvaluationScorerJudgeSpecV1.provider_execution:type_name -> o11y_one.agentic.v1.EvaluationScorerJudgeProviderExecutionV1
+	780,  // 787: o11y_one.agentic.v1.EvaluationScorerConfigRejectionV1.judge_provider:type_name -> o11y_one.agentic.v1.ProviderNameV1
+	460,  // 788: o11y_one.agentic.v1.EvaluationScorerJudgeRubricV1.verdict_mappings:type_name -> o11y_one.agentic.v1.EvaluationScorerJudgeVerdictMappingV1
+	775,  // 789: o11y_one.agentic.v1.EvaluationScorerJudgeProviderExecutionV1.model:type_name -> o11y_one.agentic.v1.ProviderModelRefV1
+	776,  // 790: o11y_one.agentic.v1.EvaluationScorerJudgeProviderExecutionV1.request_settings:type_name -> o11y_one.agentic.v1.ProviderRequestSettingsV1
+	781,  // 791: o11y_one.agentic.v1.EvaluationScorerJudgeProviderExecutionV1.reasoning_effort:type_name -> o11y_one.agentic.v1.ProviderReasoningEffortV1
+	461,  // 792: o11y_one.agentic.v1.EvaluationScorerJudgeSpecV1.rubric_content:type_name -> o11y_one.agentic.v1.EvaluationScorerJudgeRubricV1
+	462,  // 793: o11y_one.agentic.v1.EvaluationScorerJudgeSpecV1.template_ref:type_name -> o11y_one.agentic.v1.EvaluationScorerJudgeTemplateRefV1
+	463,  // 794: o11y_one.agentic.v1.EvaluationScorerJudgeSpecV1.provider_execution:type_name -> o11y_one.agentic.v1.EvaluationScorerJudgeProviderExecutionV1
 	88,   // 795: o11y_one.agentic.v1.CreateEvaluationScorerConfigRequest.kind:type_name -> o11y_one.agentic.v1.EvaluationScorerKindV1
-	447,  // 796: o11y_one.agentic.v1.CreateEvaluationScorerConfigRequest.deterministic:type_name -> o11y_one.agentic.v1.EvaluationScorerDeterministicSpecV1
-	448,  // 797: o11y_one.agentic.v1.CreateEvaluationScorerConfigRequest.review_policy:type_name -> o11y_one.agentic.v1.EvaluationScorerReviewPolicySpecV1
-	455,  // 798: o11y_one.agentic.v1.CreateEvaluationScorerConfigRequest.judge:type_name -> o11y_one.agentic.v1.EvaluationScorerJudgeSpecV1
-	449,  // 799: o11y_one.agentic.v1.CreateEvaluationScorerConfigResponse.scorer_config:type_name -> o11y_one.agentic.v1.EvaluationScorerConfigV1
-	170,  // 800: o11y_one.agentic.v1.CreateEvaluationScorerConfigResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	165,  // 801: o11y_one.agentic.v1.EvaluationDatasetVersionV1.case_count_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	165,  // 802: o11y_one.agentic.v1.EvaluationDatasetVersionV1.schema_fingerprint_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	695,  // 803: o11y_one.agentic.v1.EvaluationDatasetVersionV1.created_at:type_name -> google.protobuf.Timestamp
-	695,  // 804: o11y_one.agentic.v1.EvaluationDatasetVersionV1.picker_retired_at:type_name -> google.protobuf.Timestamp
-	695,  // 805: o11y_one.agentic.v1.EvaluationDatasetRolloverV1.retired_at:type_name -> google.protobuf.Timestamp
+	456,  // 796: o11y_one.agentic.v1.CreateEvaluationScorerConfigRequest.deterministic:type_name -> o11y_one.agentic.v1.EvaluationScorerDeterministicSpecV1
+	457,  // 797: o11y_one.agentic.v1.CreateEvaluationScorerConfigRequest.review_policy:type_name -> o11y_one.agentic.v1.EvaluationScorerReviewPolicySpecV1
+	464,  // 798: o11y_one.agentic.v1.CreateEvaluationScorerConfigRequest.judge:type_name -> o11y_one.agentic.v1.EvaluationScorerJudgeSpecV1
+	458,  // 799: o11y_one.agentic.v1.CreateEvaluationScorerConfigResponse.scorer_config:type_name -> o11y_one.agentic.v1.EvaluationScorerConfigV1
+	179,  // 800: o11y_one.agentic.v1.CreateEvaluationScorerConfigResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	174,  // 801: o11y_one.agentic.v1.EvaluationDatasetVersionV1.case_count_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 802: o11y_one.agentic.v1.EvaluationDatasetVersionV1.schema_fingerprint_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	774,  // 803: o11y_one.agentic.v1.EvaluationDatasetVersionV1.created_at:type_name -> google.protobuf.Timestamp
+	774,  // 804: o11y_one.agentic.v1.EvaluationDatasetVersionV1.picker_retired_at:type_name -> google.protobuf.Timestamp
+	774,  // 805: o11y_one.agentic.v1.EvaluationDatasetRolloverV1.retired_at:type_name -> google.protobuf.Timestamp
 	91,   // 806: o11y_one.agentic.v1.EvaluationDatasetVersionRejectionV1.kind:type_name -> o11y_one.agentic.v1.EvaluationDatasetVersionRejectionKindV1
 	25,   // 807: o11y_one.agentic.v1.EvaluationDatasetVersionRejectionV1.recovery:type_name -> o11y_one.agentic.v1.RecoveryActionV1
-	621,  // 808: o11y_one.agentic.v1.CreateEvaluationDatasetVersionRequest.declared_schema:type_name -> o11y_one.agentic.v1.DatasetSchemaShapeV1
-	459,  // 809: o11y_one.agentic.v1.CreateEvaluationDatasetVersionResponse.version:type_name -> o11y_one.agentic.v1.EvaluationDatasetVersionV1
-	458,  // 810: o11y_one.agentic.v1.CreateEvaluationDatasetVersionResponse.case_absences:type_name -> o11y_one.agentic.v1.EvaluationDatasetCaseAbsenceV1
-	460,  // 811: o11y_one.agentic.v1.CreateEvaluationDatasetVersionResponse.rollover:type_name -> o11y_one.agentic.v1.EvaluationDatasetRolloverV1
-	170,  // 812: o11y_one.agentic.v1.CreateEvaluationDatasetVersionResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	165,  // 813: o11y_one.agentic.v1.EvaluationCredentialBlastRadiusV1.live_run_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	165,  // 814: o11y_one.agentic.v1.EvaluationCredentialBlastRadiusV1.evaluation_definition_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	443,  // 815: o11y_one.agentic.v1.SetEvaluationProviderCredentialEnabledResponse.credential:type_name -> o11y_one.agentic.v1.EvaluationProviderCredentialV1
-	170,  // 816: o11y_one.agentic.v1.SetEvaluationProviderCredentialEnabledResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	465,  // 817: o11y_one.agentic.v1.SetEvaluationProviderCredentialEnabledResponse.blast_radius:type_name -> o11y_one.agentic.v1.EvaluationCredentialBlastRadiusV1
+	630,  // 808: o11y_one.agentic.v1.CreateEvaluationDatasetVersionRequest.declared_schema:type_name -> o11y_one.agentic.v1.DatasetSchemaShapeV1
+	468,  // 809: o11y_one.agentic.v1.CreateEvaluationDatasetVersionResponse.version:type_name -> o11y_one.agentic.v1.EvaluationDatasetVersionV1
+	467,  // 810: o11y_one.agentic.v1.CreateEvaluationDatasetVersionResponse.case_absences:type_name -> o11y_one.agentic.v1.EvaluationDatasetCaseAbsenceV1
+	469,  // 811: o11y_one.agentic.v1.CreateEvaluationDatasetVersionResponse.rollover:type_name -> o11y_one.agentic.v1.EvaluationDatasetRolloverV1
+	179,  // 812: o11y_one.agentic.v1.CreateEvaluationDatasetVersionResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	174,  // 813: o11y_one.agentic.v1.EvaluationCredentialBlastRadiusV1.live_run_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 814: o11y_one.agentic.v1.EvaluationCredentialBlastRadiusV1.evaluation_definition_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	452,  // 815: o11y_one.agentic.v1.SetEvaluationProviderCredentialEnabledResponse.credential:type_name -> o11y_one.agentic.v1.EvaluationProviderCredentialV1
+	179,  // 816: o11y_one.agentic.v1.SetEvaluationProviderCredentialEnabledResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	474,  // 817: o11y_one.agentic.v1.SetEvaluationProviderCredentialEnabledResponse.blast_radius:type_name -> o11y_one.agentic.v1.EvaluationCredentialBlastRadiusV1
 	92,   // 818: o11y_one.agentic.v1.EvaluationScorerSuiteRejectionV1.kind:type_name -> o11y_one.agentic.v1.EvaluationScorerSuiteRejectionKindV1
-	467,  // 819: o11y_one.agentic.v1.EvaluationScorerSuiteRejectionV1.offending_members:type_name -> o11y_one.agentic.v1.EvaluationScorerSuiteMemberRefusalV1
+	476,  // 819: o11y_one.agentic.v1.EvaluationScorerSuiteRejectionV1.offending_members:type_name -> o11y_one.agentic.v1.EvaluationScorerSuiteMemberRefusalV1
 	16,   // 820: o11y_one.agentic.v1.CreateEvaluationScorerSuiteRequest.combine_rule:type_name -> o11y_one.agentic.v1.EvaluationScorerSuiteCombineRuleV1
-	192,  // 821: o11y_one.agentic.v1.CreateEvaluationScorerSuiteRequest.members:type_name -> o11y_one.agentic.v1.EvaluationScorerSuiteMemberV1
-	279,  // 822: o11y_one.agentic.v1.EvaluationDerivedSuiteCoordinateV1.member_coordinates:type_name -> o11y_one.agentic.v1.EvaluationScorerCoordinateV1
-	193,  // 823: o11y_one.agentic.v1.CreateEvaluationScorerSuiteResponse.scorer_suite:type_name -> o11y_one.agentic.v1.EvaluationScorerSuiteV1
-	170,  // 824: o11y_one.agentic.v1.CreateEvaluationScorerSuiteResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	255,  // 825: o11y_one.agentic.v1.EvaluationJudgeRegradeScorerPinV1.evaluator:type_name -> o11y_one.agentic.v1.EvaluationFrozenEvaluatorRefV1
-	472,  // 826: o11y_one.agentic.v1.EvaluationJudgeRegradePinV1.scorers:type_name -> o11y_one.agentic.v1.EvaluationJudgeRegradeScorerPinV1
-	473,  // 827: o11y_one.agentic.v1.EvaluationJudgeRegradePinV1.candidate_fields:type_name -> o11y_one.agentic.v1.EvaluationJudgeRegradeCandidateFieldV1
-	279,  // 828: o11y_one.agentic.v1.EvaluationJudgeRegradeCellStatusV1.coordinate:type_name -> o11y_one.agentic.v1.EvaluationScorerCoordinateV1
+	201,  // 821: o11y_one.agentic.v1.CreateEvaluationScorerSuiteRequest.members:type_name -> o11y_one.agentic.v1.EvaluationScorerSuiteMemberV1
+	288,  // 822: o11y_one.agentic.v1.EvaluationDerivedSuiteCoordinateV1.member_coordinates:type_name -> o11y_one.agentic.v1.EvaluationScorerCoordinateV1
+	202,  // 823: o11y_one.agentic.v1.CreateEvaluationScorerSuiteResponse.scorer_suite:type_name -> o11y_one.agentic.v1.EvaluationScorerSuiteV1
+	179,  // 824: o11y_one.agentic.v1.CreateEvaluationScorerSuiteResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	264,  // 825: o11y_one.agentic.v1.EvaluationJudgeRegradeScorerPinV1.evaluator:type_name -> o11y_one.agentic.v1.EvaluationFrozenEvaluatorRefV1
+	481,  // 826: o11y_one.agentic.v1.EvaluationJudgeRegradePinV1.scorers:type_name -> o11y_one.agentic.v1.EvaluationJudgeRegradeScorerPinV1
+	482,  // 827: o11y_one.agentic.v1.EvaluationJudgeRegradePinV1.candidate_fields:type_name -> o11y_one.agentic.v1.EvaluationJudgeRegradeCandidateFieldV1
+	288,  // 828: o11y_one.agentic.v1.EvaluationJudgeRegradeCellStatusV1.coordinate:type_name -> o11y_one.agentic.v1.EvaluationScorerCoordinateV1
 	95,   // 829: o11y_one.agentic.v1.EvaluationJudgeRegradeCellStatusV1.ineligibility:type_name -> o11y_one.agentic.v1.EvaluationJudgeRegradeIneligibilityV1
 	40,   // 830: o11y_one.agentic.v1.EvaluationJudgeRegradeCellStatusV1.current_verdict:type_name -> o11y_one.agentic.v1.EvaluationVerdictV1
-	470,  // 831: o11y_one.agentic.v1.EvaluationJudgeRegradeCellStatusV1.derived_suite:type_name -> o11y_one.agentic.v1.EvaluationDerivedSuiteCoordinateV1
-	279,  // 832: o11y_one.agentic.v1.EvaluationJudgeRegradeCellProgressV1.coordinate:type_name -> o11y_one.agentic.v1.EvaluationScorerCoordinateV1
+	479,  // 831: o11y_one.agentic.v1.EvaluationJudgeRegradeCellStatusV1.derived_suite:type_name -> o11y_one.agentic.v1.EvaluationDerivedSuiteCoordinateV1
+	288,  // 832: o11y_one.agentic.v1.EvaluationJudgeRegradeCellProgressV1.coordinate:type_name -> o11y_one.agentic.v1.EvaluationScorerCoordinateV1
 	94,   // 833: o11y_one.agentic.v1.EvaluationJudgeRegradeCellProgressV1.state:type_name -> o11y_one.agentic.v1.EvaluationJudgeRegradeCellStateV1
 	40,   // 834: o11y_one.agentic.v1.EvaluationJudgeRegradeCellProgressV1.verdict:type_name -> o11y_one.agentic.v1.EvaluationVerdictV1
-	295,  // 835: o11y_one.agentic.v1.EvaluationJudgeRegradeCellProgressV1.evaluator_execution:type_name -> o11y_one.agentic.v1.ExecutionMetricsV1
-	237,  // 836: o11y_one.agentic.v1.EvaluationJudgeRegradeCellProgressV1.failure:type_name -> o11y_one.agentic.v1.EvaluationFailureV1
+	304,  // 835: o11y_one.agentic.v1.EvaluationJudgeRegradeCellProgressV1.evaluator_execution:type_name -> o11y_one.agentic.v1.ExecutionMetricsV1
+	246,  // 836: o11y_one.agentic.v1.EvaluationJudgeRegradeCellProgressV1.failure:type_name -> o11y_one.agentic.v1.EvaluationFailureV1
 	93,   // 837: o11y_one.agentic.v1.EvaluationJudgeRegradeJobV1.state:type_name -> o11y_one.agentic.v1.EvaluationJudgeRegradeJobStateV1
-	695,  // 838: o11y_one.agentic.v1.EvaluationJudgeRegradeJobV1.created_at:type_name -> google.protobuf.Timestamp
-	695,  // 839: o11y_one.agentic.v1.EvaluationJudgeRegradeJobV1.started_at:type_name -> google.protobuf.Timestamp
-	695,  // 840: o11y_one.agentic.v1.EvaluationJudgeRegradeJobV1.finished_at:type_name -> google.protobuf.Timestamp
-	237,  // 841: o11y_one.agentic.v1.EvaluationJudgeRegradeJobV1.failure:type_name -> o11y_one.agentic.v1.EvaluationFailureV1
-	472,  // 842: o11y_one.agentic.v1.EvaluationJudgeRegradeJobV1.evaluator_pins:type_name -> o11y_one.agentic.v1.EvaluationJudgeRegradeScorerPinV1
-	695,  // 843: o11y_one.agentic.v1.EvaluationJudgeRegradeJobV1.cancellation_requested_at:type_name -> google.protobuf.Timestamp
-	279,  // 844: o11y_one.agentic.v1.RequestEvaluationJudgeRegradeRequest.coordinates:type_name -> o11y_one.agentic.v1.EvaluationScorerCoordinateV1
-	477,  // 845: o11y_one.agentic.v1.RequestEvaluationJudgeRegradeResponse.job:type_name -> o11y_one.agentic.v1.EvaluationJudgeRegradeJobV1
-	475,  // 846: o11y_one.agentic.v1.RequestEvaluationJudgeRegradeResponse.coordinates:type_name -> o11y_one.agentic.v1.EvaluationJudgeRegradeCellStatusV1
-	167,  // 847: o11y_one.agentic.v1.RequestEvaluationJudgeRegradeResponse.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
-	170,  // 848: o11y_one.agentic.v1.RequestEvaluationJudgeRegradeResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	477,  // 849: o11y_one.agentic.v1.GetEvaluationJudgeRegradeJobResponse.job:type_name -> o11y_one.agentic.v1.EvaluationJudgeRegradeJobV1
-	476,  // 850: o11y_one.agentic.v1.GetEvaluationJudgeRegradeJobResponse.cells:type_name -> o11y_one.agentic.v1.EvaluationJudgeRegradeCellProgressV1
-	164,  // 851: o11y_one.agentic.v1.GetEvaluationJudgeRegradeJobResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	170,  // 852: o11y_one.agentic.v1.GetEvaluationJudgeRegradeJobResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	487,  // 853: o11y_one.agentic.v1.GetEvaluationJudgeRegradeJobResponse.queue_depth:type_name -> o11y_one.agentic.v1.EvaluationJudgeRegradeQueueDepthV1
-	486,  // 854: o11y_one.agentic.v1.GetEvaluationJudgeRegradeJobResponse.pinned_rates:type_name -> o11y_one.agentic.v1.EvaluationJudgeRegradePinnedRateV1
-	171,  // 855: o11y_one.agentic.v1.EvaluationJudgeRegradeEstimateV1.evaluator_cost:type_name -> o11y_one.agentic.v1.CostAmountV1
-	165,  // 856: o11y_one.agentic.v1.EvaluationJudgeRegradeEstimateV1.evaluator_cost_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	250,  // 857: o11y_one.agentic.v1.EvaluationJudgeRegradeEstimateV1.cost_assumption:type_name -> o11y_one.agentic.v1.EvaluationCostAssumptionV1
-	279,  // 858: o11y_one.agentic.v1.PreviewEvaluationJudgeRegradeRequest.coordinates:type_name -> o11y_one.agentic.v1.EvaluationScorerCoordinateV1
-	475,  // 859: o11y_one.agentic.v1.PreviewEvaluationJudgeRegradeResponse.coordinates:type_name -> o11y_one.agentic.v1.EvaluationJudgeRegradeCellStatusV1
-	483,  // 860: o11y_one.agentic.v1.PreviewEvaluationJudgeRegradeResponse.estimate:type_name -> o11y_one.agentic.v1.EvaluationJudgeRegradeEstimateV1
-	472,  // 861: o11y_one.agentic.v1.PreviewEvaluationJudgeRegradeResponse.evaluator_pins:type_name -> o11y_one.agentic.v1.EvaluationJudgeRegradeScorerPinV1
-	167,  // 862: o11y_one.agentic.v1.PreviewEvaluationJudgeRegradeResponse.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
-	170,  // 863: o11y_one.agentic.v1.PreviewEvaluationJudgeRegradeResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	164,  // 864: o11y_one.agentic.v1.PreviewEvaluationJudgeRegradeResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	486,  // 865: o11y_one.agentic.v1.PreviewEvaluationJudgeRegradeResponse.pinned_rates:type_name -> o11y_one.agentic.v1.EvaluationJudgeRegradePinnedRateV1
+	774,  // 838: o11y_one.agentic.v1.EvaluationJudgeRegradeJobV1.created_at:type_name -> google.protobuf.Timestamp
+	774,  // 839: o11y_one.agentic.v1.EvaluationJudgeRegradeJobV1.started_at:type_name -> google.protobuf.Timestamp
+	774,  // 840: o11y_one.agentic.v1.EvaluationJudgeRegradeJobV1.finished_at:type_name -> google.protobuf.Timestamp
+	246,  // 841: o11y_one.agentic.v1.EvaluationJudgeRegradeJobV1.failure:type_name -> o11y_one.agentic.v1.EvaluationFailureV1
+	481,  // 842: o11y_one.agentic.v1.EvaluationJudgeRegradeJobV1.evaluator_pins:type_name -> o11y_one.agentic.v1.EvaluationJudgeRegradeScorerPinV1
+	774,  // 843: o11y_one.agentic.v1.EvaluationJudgeRegradeJobV1.cancellation_requested_at:type_name -> google.protobuf.Timestamp
+	288,  // 844: o11y_one.agentic.v1.RequestEvaluationJudgeRegradeRequest.coordinates:type_name -> o11y_one.agentic.v1.EvaluationScorerCoordinateV1
+	486,  // 845: o11y_one.agentic.v1.RequestEvaluationJudgeRegradeResponse.job:type_name -> o11y_one.agentic.v1.EvaluationJudgeRegradeJobV1
+	484,  // 846: o11y_one.agentic.v1.RequestEvaluationJudgeRegradeResponse.coordinates:type_name -> o11y_one.agentic.v1.EvaluationJudgeRegradeCellStatusV1
+	176,  // 847: o11y_one.agentic.v1.RequestEvaluationJudgeRegradeResponse.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
+	179,  // 848: o11y_one.agentic.v1.RequestEvaluationJudgeRegradeResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	486,  // 849: o11y_one.agentic.v1.GetEvaluationJudgeRegradeJobResponse.job:type_name -> o11y_one.agentic.v1.EvaluationJudgeRegradeJobV1
+	485,  // 850: o11y_one.agentic.v1.GetEvaluationJudgeRegradeJobResponse.cells:type_name -> o11y_one.agentic.v1.EvaluationJudgeRegradeCellProgressV1
+	173,  // 851: o11y_one.agentic.v1.GetEvaluationJudgeRegradeJobResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	179,  // 852: o11y_one.agentic.v1.GetEvaluationJudgeRegradeJobResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	496,  // 853: o11y_one.agentic.v1.GetEvaluationJudgeRegradeJobResponse.queue_depth:type_name -> o11y_one.agentic.v1.EvaluationJudgeRegradeQueueDepthV1
+	495,  // 854: o11y_one.agentic.v1.GetEvaluationJudgeRegradeJobResponse.pinned_rates:type_name -> o11y_one.agentic.v1.EvaluationJudgeRegradePinnedRateV1
+	180,  // 855: o11y_one.agentic.v1.EvaluationJudgeRegradeEstimateV1.evaluator_cost:type_name -> o11y_one.agentic.v1.CostAmountV1
+	174,  // 856: o11y_one.agentic.v1.EvaluationJudgeRegradeEstimateV1.evaluator_cost_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	259,  // 857: o11y_one.agentic.v1.EvaluationJudgeRegradeEstimateV1.cost_assumption:type_name -> o11y_one.agentic.v1.EvaluationCostAssumptionV1
+	288,  // 858: o11y_one.agentic.v1.PreviewEvaluationJudgeRegradeRequest.coordinates:type_name -> o11y_one.agentic.v1.EvaluationScorerCoordinateV1
+	484,  // 859: o11y_one.agentic.v1.PreviewEvaluationJudgeRegradeResponse.coordinates:type_name -> o11y_one.agentic.v1.EvaluationJudgeRegradeCellStatusV1
+	492,  // 860: o11y_one.agentic.v1.PreviewEvaluationJudgeRegradeResponse.estimate:type_name -> o11y_one.agentic.v1.EvaluationJudgeRegradeEstimateV1
+	481,  // 861: o11y_one.agentic.v1.PreviewEvaluationJudgeRegradeResponse.evaluator_pins:type_name -> o11y_one.agentic.v1.EvaluationJudgeRegradeScorerPinV1
+	176,  // 862: o11y_one.agentic.v1.PreviewEvaluationJudgeRegradeResponse.allowed_actions:type_name -> o11y_one.agentic.v1.AllowedActionV1
+	179,  // 863: o11y_one.agentic.v1.PreviewEvaluationJudgeRegradeResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	173,  // 864: o11y_one.agentic.v1.PreviewEvaluationJudgeRegradeResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	495,  // 865: o11y_one.agentic.v1.PreviewEvaluationJudgeRegradeResponse.pinned_rates:type_name -> o11y_one.agentic.v1.EvaluationJudgeRegradePinnedRateV1
 	96,   // 866: o11y_one.agentic.v1.EvaluationJudgeRegradePinnedRateV1.comparison:type_name -> o11y_one.agentic.v1.EvaluationJudgeRegradeRateComparisonV1
-	171,  // 867: o11y_one.agentic.v1.EvaluationJudgeRegradePinnedRateV1.pinned_cost_per_call:type_name -> o11y_one.agentic.v1.CostAmountV1
-	171,  // 868: o11y_one.agentic.v1.EvaluationJudgeRegradePinnedRateV1.current_cost_per_call:type_name -> o11y_one.agentic.v1.CostAmountV1
-	165,  // 869: o11y_one.agentic.v1.EvaluationJudgeRegradeQueueDepthV1.position_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	477,  // 870: o11y_one.agentic.v1.CancelEvaluationJudgeRegradeJobResponse.job:type_name -> o11y_one.agentic.v1.EvaluationJudgeRegradeJobV1
-	476,  // 871: o11y_one.agentic.v1.CancelEvaluationJudgeRegradeJobResponse.cells:type_name -> o11y_one.agentic.v1.EvaluationJudgeRegradeCellProgressV1
-	171,  // 872: o11y_one.agentic.v1.CancelEvaluationJudgeRegradeJobResponse.retained_evaluator_cost:type_name -> o11y_one.agentic.v1.CostAmountV1
-	170,  // 873: o11y_one.agentic.v1.CancelEvaluationJudgeRegradeJobResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	180,  // 867: o11y_one.agentic.v1.EvaluationJudgeRegradePinnedRateV1.pinned_cost_per_call:type_name -> o11y_one.agentic.v1.CostAmountV1
+	180,  // 868: o11y_one.agentic.v1.EvaluationJudgeRegradePinnedRateV1.current_cost_per_call:type_name -> o11y_one.agentic.v1.CostAmountV1
+	174,  // 869: o11y_one.agentic.v1.EvaluationJudgeRegradeQueueDepthV1.position_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	486,  // 870: o11y_one.agentic.v1.CancelEvaluationJudgeRegradeJobResponse.job:type_name -> o11y_one.agentic.v1.EvaluationJudgeRegradeJobV1
+	485,  // 871: o11y_one.agentic.v1.CancelEvaluationJudgeRegradeJobResponse.cells:type_name -> o11y_one.agentic.v1.EvaluationJudgeRegradeCellProgressV1
+	180,  // 872: o11y_one.agentic.v1.CancelEvaluationJudgeRegradeJobResponse.retained_evaluator_cost:type_name -> o11y_one.agentic.v1.CostAmountV1
+	179,  // 873: o11y_one.agentic.v1.CancelEvaluationJudgeRegradeJobResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
 	7,    // 874: o11y_one.agentic.v1.EvaluationRunSummaryV1.state:type_name -> o11y_one.agentic.v1.EvaluationRunStateV1
-	695,  // 875: o11y_one.agentic.v1.EvaluationRunSummaryV1.cancellation_requested_at:type_name -> google.protobuf.Timestamp
-	163,  // 876: o11y_one.agentic.v1.EvaluationRunSummaryV1.launched_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
-	695,  // 877: o11y_one.agentic.v1.EvaluationRunSummaryV1.created_at:type_name -> google.protobuf.Timestamp
-	695,  // 878: o11y_one.agentic.v1.EvaluationRunSummaryV1.started_at:type_name -> google.protobuf.Timestamp
-	695,  // 879: o11y_one.agentic.v1.EvaluationRunSummaryV1.finished_at:type_name -> google.protobuf.Timestamp
-	237,  // 880: o11y_one.agentic.v1.EvaluationRunSummaryV1.failure:type_name -> o11y_one.agentic.v1.EvaluationFailureV1
-	165,  // 881: o11y_one.agentic.v1.EvaluationRunSummaryV1.projection_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	165,  // 882: o11y_one.agentic.v1.EvaluationRunSummaryV1.cost_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	165,  // 883: o11y_one.agentic.v1.EvaluationRunSummaryV1.token_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	165,  // 884: o11y_one.agentic.v1.EvaluationRunSummaryV1.latency_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	165,  // 885: o11y_one.agentic.v1.EvaluationRunSummaryV1.instrumentation_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	165,  // 886: o11y_one.agentic.v1.EvaluationRunSummaryV1.release_marker_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	774,  // 875: o11y_one.agentic.v1.EvaluationRunSummaryV1.cancellation_requested_at:type_name -> google.protobuf.Timestamp
+	172,  // 876: o11y_one.agentic.v1.EvaluationRunSummaryV1.launched_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
+	774,  // 877: o11y_one.agentic.v1.EvaluationRunSummaryV1.created_at:type_name -> google.protobuf.Timestamp
+	774,  // 878: o11y_one.agentic.v1.EvaluationRunSummaryV1.started_at:type_name -> google.protobuf.Timestamp
+	774,  // 879: o11y_one.agentic.v1.EvaluationRunSummaryV1.finished_at:type_name -> google.protobuf.Timestamp
+	246,  // 880: o11y_one.agentic.v1.EvaluationRunSummaryV1.failure:type_name -> o11y_one.agentic.v1.EvaluationFailureV1
+	174,  // 881: o11y_one.agentic.v1.EvaluationRunSummaryV1.projection_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 882: o11y_one.agentic.v1.EvaluationRunSummaryV1.cost_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 883: o11y_one.agentic.v1.EvaluationRunSummaryV1.token_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 884: o11y_one.agentic.v1.EvaluationRunSummaryV1.latency_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 885: o11y_one.agentic.v1.EvaluationRunSummaryV1.instrumentation_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 886: o11y_one.agentic.v1.EvaluationRunSummaryV1.release_marker_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
 	7,    // 887: o11y_one.agentic.v1.EvaluationRunListFilterV1.states:type_name -> o11y_one.agentic.v1.EvaluationRunStateV1
-	695,  // 888: o11y_one.agentic.v1.EvaluationRunListFilterV1.created_after:type_name -> google.protobuf.Timestamp
-	695,  // 889: o11y_one.agentic.v1.EvaluationRunListFilterV1.created_before:type_name -> google.protobuf.Timestamp
-	698,  // 890: o11y_one.agentic.v1.ListEvaluationRunsRequest.page:type_name -> o11y_one.common.v1.PageRequestV1
-	491,  // 891: o11y_one.agentic.v1.ListEvaluationRunsRequest.filter:type_name -> o11y_one.agentic.v1.EvaluationRunListFilterV1
-	490,  // 892: o11y_one.agentic.v1.ListEvaluationRunsResponse.runs:type_name -> o11y_one.agentic.v1.EvaluationRunSummaryV1
-	700,  // 893: o11y_one.agentic.v1.ListEvaluationRunsResponse.page:type_name -> o11y_one.common.v1.PageResponseV1
-	164,  // 894: o11y_one.agentic.v1.ListEvaluationRunsResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	170,  // 895: o11y_one.agentic.v1.ListEvaluationRunsResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	304,  // 896: o11y_one.agentic.v1.ListEvaluationRunsResponse.resync:type_name -> o11y_one.agentic.v1.EvaluationCursorResyncV1
+	774,  // 888: o11y_one.agentic.v1.EvaluationRunListFilterV1.created_after:type_name -> google.protobuf.Timestamp
+	774,  // 889: o11y_one.agentic.v1.EvaluationRunListFilterV1.created_before:type_name -> google.protobuf.Timestamp
+	777,  // 890: o11y_one.agentic.v1.ListEvaluationRunsRequest.page:type_name -> o11y_one.common.v1.PageRequestV1
+	500,  // 891: o11y_one.agentic.v1.ListEvaluationRunsRequest.filter:type_name -> o11y_one.agentic.v1.EvaluationRunListFilterV1
+	499,  // 892: o11y_one.agentic.v1.ListEvaluationRunsResponse.runs:type_name -> o11y_one.agentic.v1.EvaluationRunSummaryV1
+	779,  // 893: o11y_one.agentic.v1.ListEvaluationRunsResponse.page:type_name -> o11y_one.common.v1.PageResponseV1
+	173,  // 894: o11y_one.agentic.v1.ListEvaluationRunsResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	179,  // 895: o11y_one.agentic.v1.ListEvaluationRunsResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	313,  // 896: o11y_one.agentic.v1.ListEvaluationRunsResponse.resync:type_name -> o11y_one.agentic.v1.EvaluationCursorResyncV1
 	98,   // 897: o11y_one.agentic.v1.EvaluationReviewTaskRefusalV1.kind:type_name -> o11y_one.agentic.v1.EvaluationReviewTaskRefusalKindV1
 	25,   // 898: o11y_one.agentic.v1.EvaluationReviewTaskRefusalV1.recovery:type_name -> o11y_one.agentic.v1.RecoveryActionV1
-	164,  // 899: o11y_one.agentic.v1.ReleaseEvaluationReviewTasksResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	170,  // 900: o11y_one.agentic.v1.ReleaseEvaluationReviewTasksResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	173,  // 899: o11y_one.agentic.v1.ReleaseEvaluationReviewTasksResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	179,  // 900: o11y_one.agentic.v1.ReleaseEvaluationReviewTasksResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
 	97,   // 901: o11y_one.agentic.v1.RequeueEvaluationReviewTasksRequest.reason:type_name -> o11y_one.agentic.v1.EvaluationReviewRequeueReasonV1
-	164,  // 902: o11y_one.agentic.v1.RequeueEvaluationReviewTasksResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	170,  // 903: o11y_one.agentic.v1.RequeueEvaluationReviewTasksResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	173,  // 902: o11y_one.agentic.v1.RequeueEvaluationReviewTasksResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	179,  // 903: o11y_one.agentic.v1.RequeueEvaluationReviewTasksResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
 	103,  // 904: o11y_one.agentic.v1.ProductionRuleActionConditionV1.kind:type_name -> o11y_one.agentic.v1.ProductionRuleActionConditionKindV1
 	100,  // 905: o11y_one.agentic.v1.ProductionRuleActionV1.action_kind:type_name -> o11y_one.agentic.v1.ProductionRuleActionKindV1
-	500,  // 906: o11y_one.agentic.v1.ProductionRuleActionV1.condition:type_name -> o11y_one.agentic.v1.ProductionRuleActionConditionV1
-	601,  // 907: o11y_one.agentic.v1.ProductionRuleActionV1.target:type_name -> o11y_one.agentic.v1.ProductionRuleActionTargetV1
+	509,  // 906: o11y_one.agentic.v1.ProductionRuleActionV1.condition:type_name -> o11y_one.agentic.v1.ProductionRuleActionConditionV1
+	610,  // 907: o11y_one.agentic.v1.ProductionRuleActionV1.target:type_name -> o11y_one.agentic.v1.ProductionRuleActionTargetV1
 	104,  // 908: o11y_one.agentic.v1.ProductionRuleDependencyRefV1.kind:type_name -> o11y_one.agentic.v1.ProductionRuleDependencyKindV1
 	102,  // 909: o11y_one.agentic.v1.ProductionRuleVersionDraftV1.runtime_scope:type_name -> o11y_one.agentic.v1.ProductionRuleRuntimeScopeV1
-	499,  // 910: o11y_one.agentic.v1.ProductionRuleVersionDraftV1.scorer_target:type_name -> o11y_one.agentic.v1.EvaluationScorerTargetRefV1
-	501,  // 911: o11y_one.agentic.v1.ProductionRuleVersionDraftV1.actions:type_name -> o11y_one.agentic.v1.ProductionRuleActionV1
-	503,  // 912: o11y_one.agentic.v1.ProductionRuleVersionDraftV1.dependencies:type_name -> o11y_one.agentic.v1.ProductionRuleDependencyRefV1
-	502,  // 913: o11y_one.agentic.v1.ProductionRuleVersionDraftV1.budget:type_name -> o11y_one.agentic.v1.ProductionRuleBudgetPolicyV1
+	508,  // 910: o11y_one.agentic.v1.ProductionRuleVersionDraftV1.scorer_target:type_name -> o11y_one.agentic.v1.EvaluationScorerTargetRefV1
+	510,  // 911: o11y_one.agentic.v1.ProductionRuleVersionDraftV1.actions:type_name -> o11y_one.agentic.v1.ProductionRuleActionV1
+	512,  // 912: o11y_one.agentic.v1.ProductionRuleVersionDraftV1.dependencies:type_name -> o11y_one.agentic.v1.ProductionRuleDependencyRefV1
+	511,  // 913: o11y_one.agentic.v1.ProductionRuleVersionDraftV1.budget:type_name -> o11y_one.agentic.v1.ProductionRuleBudgetPolicyV1
 	99,   // 914: o11y_one.agentic.v1.ProductionRuleVersionV1.state:type_name -> o11y_one.agentic.v1.ProductionRuleVersionStateV1
-	504,  // 915: o11y_one.agentic.v1.ProductionRuleVersionV1.content:type_name -> o11y_one.agentic.v1.ProductionRuleVersionDraftV1
-	163,  // 916: o11y_one.agentic.v1.ProductionRuleVersionV1.created_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
-	695,  // 917: o11y_one.agentic.v1.ProductionRuleVersionV1.created_at:type_name -> google.protobuf.Timestamp
-	695,  // 918: o11y_one.agentic.v1.ProductionRuleVersionV1.activated_at:type_name -> google.protobuf.Timestamp
-	695,  // 919: o11y_one.agentic.v1.ProductionRuleVersionV1.paused_at:type_name -> google.protobuf.Timestamp
-	695,  // 920: o11y_one.agentic.v1.ProductionRuleVersionV1.superseded_at:type_name -> google.protobuf.Timestamp
-	695,  // 921: o11y_one.agentic.v1.ProductionRuleVersionV1.disabled_at:type_name -> google.protobuf.Timestamp
-	695,  // 922: o11y_one.agentic.v1.ProductionRuleVersionV1.archived_at:type_name -> google.protobuf.Timestamp
-	163,  // 923: o11y_one.agentic.v1.ProductionRuleVersionV1.last_state_changed_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
-	695,  // 924: o11y_one.agentic.v1.ProductionRuleVersionV1.last_state_changed_at:type_name -> google.protobuf.Timestamp
+	513,  // 915: o11y_one.agentic.v1.ProductionRuleVersionV1.content:type_name -> o11y_one.agentic.v1.ProductionRuleVersionDraftV1
+	172,  // 916: o11y_one.agentic.v1.ProductionRuleVersionV1.created_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
+	774,  // 917: o11y_one.agentic.v1.ProductionRuleVersionV1.created_at:type_name -> google.protobuf.Timestamp
+	774,  // 918: o11y_one.agentic.v1.ProductionRuleVersionV1.activated_at:type_name -> google.protobuf.Timestamp
+	774,  // 919: o11y_one.agentic.v1.ProductionRuleVersionV1.paused_at:type_name -> google.protobuf.Timestamp
+	774,  // 920: o11y_one.agentic.v1.ProductionRuleVersionV1.superseded_at:type_name -> google.protobuf.Timestamp
+	774,  // 921: o11y_one.agentic.v1.ProductionRuleVersionV1.disabled_at:type_name -> google.protobuf.Timestamp
+	774,  // 922: o11y_one.agentic.v1.ProductionRuleVersionV1.archived_at:type_name -> google.protobuf.Timestamp
+	172,  // 923: o11y_one.agentic.v1.ProductionRuleVersionV1.last_state_changed_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
+	774,  // 924: o11y_one.agentic.v1.ProductionRuleVersionV1.last_state_changed_at:type_name -> google.protobuf.Timestamp
 	101,  // 925: o11y_one.agentic.v1.ProductionRuleHealthV1.state:type_name -> o11y_one.agentic.v1.ProductionRuleHealthStateV1
 	105,  // 926: o11y_one.agentic.v1.ProductionRuleHealthV1.dependency_health:type_name -> o11y_one.agentic.v1.ProductionRuleDependencyHealthV1
-	695,  // 927: o11y_one.agentic.v1.ProductionRuleHealthV1.latest_actionable_error_at:type_name -> google.protobuf.Timestamp
-	695,  // 928: o11y_one.agentic.v1.ProductionRuleHealthV1.evaluated_at:type_name -> google.protobuf.Timestamp
-	165,  // 929: o11y_one.agentic.v1.ProductionRuleHealthV1.execution_counts_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	164,  // 930: o11y_one.agentic.v1.ProductionRuleHealthV1.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	507,  // 931: o11y_one.agentic.v1.ProductionRuleHealthV1.execution_counts:type_name -> o11y_one.agentic.v1.ProductionRuleExecutionCountsV1
-	509,  // 932: o11y_one.agentic.v1.ProductionRuleHealthV1.timings:type_name -> o11y_one.agentic.v1.ProductionRuleWorkflowTimingsV1
-	508,  // 933: o11y_one.agentic.v1.ProductionRuleExecutionCountsV1.downstream:type_name -> o11y_one.agentic.v1.ProductionRuleDownstreamCountsV1
-	165,  // 934: o11y_one.agentic.v1.ProductionRuleDownstreamCountsV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	695,  // 935: o11y_one.agentic.v1.ProductionRuleWorkflowTimingsV1.last_attempt_at:type_name -> google.protobuf.Timestamp
-	695,  // 936: o11y_one.agentic.v1.ProductionRuleWorkflowTimingsV1.last_success_at:type_name -> google.protobuf.Timestamp
-	695,  // 937: o11y_one.agentic.v1.ProductionRuleWorkflowTimingsV1.last_failure_at:type_name -> google.protobuf.Timestamp
-	695,  // 938: o11y_one.agentic.v1.ProductionRuleWorkflowTimingsV1.next_eligible_work_at:type_name -> google.protobuf.Timestamp
-	165,  // 939: o11y_one.agentic.v1.ProductionRuleWorkflowTimingsV1.queue_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	163,  // 940: o11y_one.agentic.v1.ProductionRuleV1.created_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
-	695,  // 941: o11y_one.agentic.v1.ProductionRuleV1.created_at:type_name -> google.protobuf.Timestamp
-	695,  // 942: o11y_one.agentic.v1.ProductionRuleV1.updated_at:type_name -> google.protobuf.Timestamp
-	510,  // 943: o11y_one.agentic.v1.ProductionRuleListItemV1.rule:type_name -> o11y_one.agentic.v1.ProductionRuleV1
-	506,  // 944: o11y_one.agentic.v1.ProductionRuleListItemV1.health:type_name -> o11y_one.agentic.v1.ProductionRuleHealthV1
-	504,  // 945: o11y_one.agentic.v1.CreateProductionEvaluationRuleRequest.version:type_name -> o11y_one.agentic.v1.ProductionRuleVersionDraftV1
-	510,  // 946: o11y_one.agentic.v1.CreateProductionEvaluationRuleResponse.rule:type_name -> o11y_one.agentic.v1.ProductionRuleV1
-	505,  // 947: o11y_one.agentic.v1.CreateProductionEvaluationRuleResponse.version:type_name -> o11y_one.agentic.v1.ProductionRuleVersionV1
-	504,  // 948: o11y_one.agentic.v1.CreateProductionEvaluationRuleVersionRequest.version:type_name -> o11y_one.agentic.v1.ProductionRuleVersionDraftV1
-	505,  // 949: o11y_one.agentic.v1.CreateProductionEvaluationRuleVersionResponse.version:type_name -> o11y_one.agentic.v1.ProductionRuleVersionV1
+	774,  // 927: o11y_one.agentic.v1.ProductionRuleHealthV1.latest_actionable_error_at:type_name -> google.protobuf.Timestamp
+	774,  // 928: o11y_one.agentic.v1.ProductionRuleHealthV1.evaluated_at:type_name -> google.protobuf.Timestamp
+	174,  // 929: o11y_one.agentic.v1.ProductionRuleHealthV1.execution_counts_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	173,  // 930: o11y_one.agentic.v1.ProductionRuleHealthV1.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	516,  // 931: o11y_one.agentic.v1.ProductionRuleHealthV1.execution_counts:type_name -> o11y_one.agentic.v1.ProductionRuleExecutionCountsV1
+	518,  // 932: o11y_one.agentic.v1.ProductionRuleHealthV1.timings:type_name -> o11y_one.agentic.v1.ProductionRuleWorkflowTimingsV1
+	517,  // 933: o11y_one.agentic.v1.ProductionRuleExecutionCountsV1.downstream:type_name -> o11y_one.agentic.v1.ProductionRuleDownstreamCountsV1
+	174,  // 934: o11y_one.agentic.v1.ProductionRuleDownstreamCountsV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	774,  // 935: o11y_one.agentic.v1.ProductionRuleWorkflowTimingsV1.last_attempt_at:type_name -> google.protobuf.Timestamp
+	774,  // 936: o11y_one.agentic.v1.ProductionRuleWorkflowTimingsV1.last_success_at:type_name -> google.protobuf.Timestamp
+	774,  // 937: o11y_one.agentic.v1.ProductionRuleWorkflowTimingsV1.last_failure_at:type_name -> google.protobuf.Timestamp
+	774,  // 938: o11y_one.agentic.v1.ProductionRuleWorkflowTimingsV1.next_eligible_work_at:type_name -> google.protobuf.Timestamp
+	174,  // 939: o11y_one.agentic.v1.ProductionRuleWorkflowTimingsV1.queue_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	172,  // 940: o11y_one.agentic.v1.ProductionRuleV1.created_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
+	774,  // 941: o11y_one.agentic.v1.ProductionRuleV1.created_at:type_name -> google.protobuf.Timestamp
+	774,  // 942: o11y_one.agentic.v1.ProductionRuleV1.updated_at:type_name -> google.protobuf.Timestamp
+	519,  // 943: o11y_one.agentic.v1.ProductionRuleListItemV1.rule:type_name -> o11y_one.agentic.v1.ProductionRuleV1
+	515,  // 944: o11y_one.agentic.v1.ProductionRuleListItemV1.health:type_name -> o11y_one.agentic.v1.ProductionRuleHealthV1
+	513,  // 945: o11y_one.agentic.v1.CreateProductionEvaluationRuleRequest.version:type_name -> o11y_one.agentic.v1.ProductionRuleVersionDraftV1
+	519,  // 946: o11y_one.agentic.v1.CreateProductionEvaluationRuleResponse.rule:type_name -> o11y_one.agentic.v1.ProductionRuleV1
+	514,  // 947: o11y_one.agentic.v1.CreateProductionEvaluationRuleResponse.version:type_name -> o11y_one.agentic.v1.ProductionRuleVersionV1
+	513,  // 948: o11y_one.agentic.v1.CreateProductionEvaluationRuleVersionRequest.version:type_name -> o11y_one.agentic.v1.ProductionRuleVersionDraftV1
+	514,  // 949: o11y_one.agentic.v1.CreateProductionEvaluationRuleVersionResponse.version:type_name -> o11y_one.agentic.v1.ProductionRuleVersionV1
 	106,  // 950: o11y_one.agentic.v1.SetProductionEvaluationRuleVersionStateRequest.transition:type_name -> o11y_one.agentic.v1.ProductionRuleVersionTransitionV1
-	505,  // 951: o11y_one.agentic.v1.SetProductionEvaluationRuleVersionStateResponse.version:type_name -> o11y_one.agentic.v1.ProductionRuleVersionV1
-	506,  // 952: o11y_one.agentic.v1.SetProductionEvaluationRuleVersionStateResponse.health:type_name -> o11y_one.agentic.v1.ProductionRuleHealthV1
+	514,  // 951: o11y_one.agentic.v1.SetProductionEvaluationRuleVersionStateResponse.version:type_name -> o11y_one.agentic.v1.ProductionRuleVersionV1
+	515,  // 952: o11y_one.agentic.v1.SetProductionEvaluationRuleVersionStateResponse.health:type_name -> o11y_one.agentic.v1.ProductionRuleHealthV1
 	101,  // 953: o11y_one.agentic.v1.ListProductionEvaluationRulesRequest.health_state:type_name -> o11y_one.agentic.v1.ProductionRuleHealthStateV1
-	511,  // 954: o11y_one.agentic.v1.ListProductionEvaluationRulesResponse.items:type_name -> o11y_one.agentic.v1.ProductionRuleListItemV1
-	164,  // 955: o11y_one.agentic.v1.ListProductionEvaluationRulesResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	510,  // 956: o11y_one.agentic.v1.GetProductionEvaluationRuleResponse.rule:type_name -> o11y_one.agentic.v1.ProductionRuleV1
-	505,  // 957: o11y_one.agentic.v1.GetProductionEvaluationRuleResponse.active_version:type_name -> o11y_one.agentic.v1.ProductionRuleVersionV1
-	506,  // 958: o11y_one.agentic.v1.GetProductionEvaluationRuleResponse.health:type_name -> o11y_one.agentic.v1.ProductionRuleHealthV1
-	505,  // 959: o11y_one.agentic.v1.GetProductionEvaluationRuleResponse.version_history:type_name -> o11y_one.agentic.v1.ProductionRuleVersionV1
-	164,  // 960: o11y_one.agentic.v1.GetProductionEvaluationRuleResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	520,  // 954: o11y_one.agentic.v1.ListProductionEvaluationRulesResponse.items:type_name -> o11y_one.agentic.v1.ProductionRuleListItemV1
+	173,  // 955: o11y_one.agentic.v1.ListProductionEvaluationRulesResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	519,  // 956: o11y_one.agentic.v1.GetProductionEvaluationRuleResponse.rule:type_name -> o11y_one.agentic.v1.ProductionRuleV1
+	514,  // 957: o11y_one.agentic.v1.GetProductionEvaluationRuleResponse.active_version:type_name -> o11y_one.agentic.v1.ProductionRuleVersionV1
+	515,  // 958: o11y_one.agentic.v1.GetProductionEvaluationRuleResponse.health:type_name -> o11y_one.agentic.v1.ProductionRuleHealthV1
+	514,  // 959: o11y_one.agentic.v1.GetProductionEvaluationRuleResponse.version_history:type_name -> o11y_one.agentic.v1.ProductionRuleVersionV1
+	173,  // 960: o11y_one.agentic.v1.GetProductionEvaluationRuleResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
 	108,  // 961: o11y_one.agentic.v1.ProductionWorkflowStepAttemptV1.state:type_name -> o11y_one.agentic.v1.ProductionWorkflowStepStateV1
-	695,  // 962: o11y_one.agentic.v1.ProductionWorkflowStepAttemptV1.started_at:type_name -> google.protobuf.Timestamp
-	695,  // 963: o11y_one.agentic.v1.ProductionWorkflowStepAttemptV1.finished_at:type_name -> google.protobuf.Timestamp
+	774,  // 962: o11y_one.agentic.v1.ProductionWorkflowStepAttemptV1.started_at:type_name -> google.protobuf.Timestamp
+	774,  // 963: o11y_one.agentic.v1.ProductionWorkflowStepAttemptV1.finished_at:type_name -> google.protobuf.Timestamp
 	100,  // 964: o11y_one.agentic.v1.ProductionWorkflowStepV1.action_kind:type_name -> o11y_one.agentic.v1.ProductionRuleActionKindV1
 	108,  // 965: o11y_one.agentic.v1.ProductionWorkflowStepV1.state:type_name -> o11y_one.agentic.v1.ProductionWorkflowStepStateV1
 	109,  // 966: o11y_one.agentic.v1.ProductionWorkflowStepV1.skip_reason:type_name -> o11y_one.agentic.v1.ProductionWorkflowStepSkipReasonV1
-	501,  // 967: o11y_one.agentic.v1.ProductionWorkflowStepV1.configuration_snapshot:type_name -> o11y_one.agentic.v1.ProductionRuleActionV1
-	695,  // 968: o11y_one.agentic.v1.ProductionWorkflowStepV1.next_attempt_at:type_name -> google.protobuf.Timestamp
-	524,  // 969: o11y_one.agentic.v1.ProductionWorkflowStepV1.attempts:type_name -> o11y_one.agentic.v1.ProductionWorkflowStepAttemptV1
-	525,  // 970: o11y_one.agentic.v1.ProductionWorkflowStepV1.effect:type_name -> o11y_one.agentic.v1.ProductionWorkflowStepEffectV1
-	695,  // 971: o11y_one.agentic.v1.ProductionWorkflowStepV1.created_at:type_name -> google.protobuf.Timestamp
-	695,  // 972: o11y_one.agentic.v1.ProductionWorkflowStepV1.terminal_at:type_name -> google.protobuf.Timestamp
+	510,  // 967: o11y_one.agentic.v1.ProductionWorkflowStepV1.configuration_snapshot:type_name -> o11y_one.agentic.v1.ProductionRuleActionV1
+	774,  // 968: o11y_one.agentic.v1.ProductionWorkflowStepV1.next_attempt_at:type_name -> google.protobuf.Timestamp
+	533,  // 969: o11y_one.agentic.v1.ProductionWorkflowStepV1.attempts:type_name -> o11y_one.agentic.v1.ProductionWorkflowStepAttemptV1
+	534,  // 970: o11y_one.agentic.v1.ProductionWorkflowStepV1.effect:type_name -> o11y_one.agentic.v1.ProductionWorkflowStepEffectV1
+	774,  // 971: o11y_one.agentic.v1.ProductionWorkflowStepV1.created_at:type_name -> google.protobuf.Timestamp
+	774,  // 972: o11y_one.agentic.v1.ProductionWorkflowStepV1.terminal_at:type_name -> google.protobuf.Timestamp
 	107,  // 973: o11y_one.agentic.v1.ProductionWorkflowExecutionV1.state:type_name -> o11y_one.agentic.v1.ProductionWorkflowExecutionStateV1
-	523,  // 974: o11y_one.agentic.v1.ProductionWorkflowExecutionV1.correlation:type_name -> o11y_one.agentic.v1.ProductionWorkflowCorrelationV1
-	163,  // 975: o11y_one.agentic.v1.ProductionWorkflowExecutionV1.triggered_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
-	522,  // 976: o11y_one.agentic.v1.ProductionWorkflowExecutionV1.score_outcome:type_name -> o11y_one.agentic.v1.ProductionWorkflowScoreOutcomeV1
-	695,  // 977: o11y_one.agentic.v1.ProductionWorkflowExecutionV1.created_at:type_name -> google.protobuf.Timestamp
-	695,  // 978: o11y_one.agentic.v1.ProductionWorkflowExecutionV1.started_at:type_name -> google.protobuf.Timestamp
-	695,  // 979: o11y_one.agentic.v1.ProductionWorkflowExecutionV1.terminal_at:type_name -> google.protobuf.Timestamp
+	532,  // 974: o11y_one.agentic.v1.ProductionWorkflowExecutionV1.correlation:type_name -> o11y_one.agentic.v1.ProductionWorkflowCorrelationV1
+	172,  // 975: o11y_one.agentic.v1.ProductionWorkflowExecutionV1.triggered_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
+	531,  // 976: o11y_one.agentic.v1.ProductionWorkflowExecutionV1.score_outcome:type_name -> o11y_one.agentic.v1.ProductionWorkflowScoreOutcomeV1
+	774,  // 977: o11y_one.agentic.v1.ProductionWorkflowExecutionV1.created_at:type_name -> google.protobuf.Timestamp
+	774,  // 978: o11y_one.agentic.v1.ProductionWorkflowExecutionV1.started_at:type_name -> google.protobuf.Timestamp
+	774,  // 979: o11y_one.agentic.v1.ProductionWorkflowExecutionV1.terminal_at:type_name -> google.protobuf.Timestamp
 	112,  // 980: o11y_one.agentic.v1.ProductionReleaseBlockEvidenceRefV1.kind:type_name -> o11y_one.agentic.v1.ProductionReleaseBlockEvidenceKindV1
 	111,  // 981: o11y_one.agentic.v1.ProductionReleaseBlockV1.state:type_name -> o11y_one.agentic.v1.ReleaseBlockStateV1
-	528,  // 982: o11y_one.agentic.v1.ProductionReleaseBlockV1.evidence:type_name -> o11y_one.agentic.v1.ProductionReleaseBlockEvidenceRefV1
+	537,  // 982: o11y_one.agentic.v1.ProductionReleaseBlockV1.evidence:type_name -> o11y_one.agentic.v1.ProductionReleaseBlockEvidenceRefV1
 	113,  // 983: o11y_one.agentic.v1.ProductionReleaseBlockV1.clear_condition:type_name -> o11y_one.agentic.v1.ProductionReleaseBlockClearConditionV1
-	695,  // 984: o11y_one.agentic.v1.ProductionReleaseBlockV1.expires_at:type_name -> google.protobuf.Timestamp
-	695,  // 985: o11y_one.agentic.v1.ProductionReleaseBlockV1.created_at:type_name -> google.protobuf.Timestamp
-	695,  // 986: o11y_one.agentic.v1.ProductionReleaseBlockV1.cleared_at:type_name -> google.protobuf.Timestamp
-	695,  // 987: o11y_one.agentic.v1.ProductionReleaseBlockV1.expired_at:type_name -> google.protobuf.Timestamp
-	163,  // 988: o11y_one.agentic.v1.ProductionReleaseBlockV1.overridden_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
-	695,  // 989: o11y_one.agentic.v1.ProductionReleaseBlockV1.overridden_at:type_name -> google.protobuf.Timestamp
-	522,  // 990: o11y_one.agentic.v1.StartProductionEvaluationWorkflowRequest.score_outcome:type_name -> o11y_one.agentic.v1.ProductionWorkflowScoreOutcomeV1
-	523,  // 991: o11y_one.agentic.v1.StartProductionEvaluationWorkflowRequest.correlation:type_name -> o11y_one.agentic.v1.ProductionWorkflowCorrelationV1
+	774,  // 984: o11y_one.agentic.v1.ProductionReleaseBlockV1.expires_at:type_name -> google.protobuf.Timestamp
+	774,  // 985: o11y_one.agentic.v1.ProductionReleaseBlockV1.created_at:type_name -> google.protobuf.Timestamp
+	774,  // 986: o11y_one.agentic.v1.ProductionReleaseBlockV1.cleared_at:type_name -> google.protobuf.Timestamp
+	774,  // 987: o11y_one.agentic.v1.ProductionReleaseBlockV1.expired_at:type_name -> google.protobuf.Timestamp
+	172,  // 988: o11y_one.agentic.v1.ProductionReleaseBlockV1.overridden_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
+	774,  // 989: o11y_one.agentic.v1.ProductionReleaseBlockV1.overridden_at:type_name -> google.protobuf.Timestamp
+	531,  // 990: o11y_one.agentic.v1.StartProductionEvaluationWorkflowRequest.score_outcome:type_name -> o11y_one.agentic.v1.ProductionWorkflowScoreOutcomeV1
+	532,  // 991: o11y_one.agentic.v1.StartProductionEvaluationWorkflowRequest.correlation:type_name -> o11y_one.agentic.v1.ProductionWorkflowCorrelationV1
 	110,  // 992: o11y_one.agentic.v1.StartProductionEvaluationWorkflowResponse.admission:type_name -> o11y_one.agentic.v1.ProductionWorkflowAdmissionV1
-	527,  // 993: o11y_one.agentic.v1.StartProductionEvaluationWorkflowResponse.execution:type_name -> o11y_one.agentic.v1.ProductionWorkflowExecutionV1
+	536,  // 993: o11y_one.agentic.v1.StartProductionEvaluationWorkflowResponse.execution:type_name -> o11y_one.agentic.v1.ProductionWorkflowExecutionV1
 	99,   // 994: o11y_one.agentic.v1.StartProductionEvaluationWorkflowResponse.version_state:type_name -> o11y_one.agentic.v1.ProductionRuleVersionStateV1
 	107,  // 995: o11y_one.agentic.v1.ProductionWorkflowExecutionListFilterV1.state:type_name -> o11y_one.agentic.v1.ProductionWorkflowExecutionStateV1
-	532,  // 996: o11y_one.agentic.v1.ListProductionEvaluationWorkflowExecutionsRequest.filter:type_name -> o11y_one.agentic.v1.ProductionWorkflowExecutionListFilterV1
-	527,  // 997: o11y_one.agentic.v1.ListProductionEvaluationWorkflowExecutionsResponse.items:type_name -> o11y_one.agentic.v1.ProductionWorkflowExecutionV1
-	164,  // 998: o11y_one.agentic.v1.ListProductionEvaluationWorkflowExecutionsResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	527,  // 999: o11y_one.agentic.v1.GetProductionEvaluationWorkflowExecutionResponse.execution:type_name -> o11y_one.agentic.v1.ProductionWorkflowExecutionV1
-	526,  // 1000: o11y_one.agentic.v1.GetProductionEvaluationWorkflowExecutionResponse.steps:type_name -> o11y_one.agentic.v1.ProductionWorkflowStepV1
-	529,  // 1001: o11y_one.agentic.v1.GetProductionEvaluationWorkflowExecutionResponse.release_blocks:type_name -> o11y_one.agentic.v1.ProductionReleaseBlockV1
-	164,  // 1002: o11y_one.agentic.v1.GetProductionEvaluationWorkflowExecutionResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	526,  // 1003: o11y_one.agentic.v1.RetryProductionEvaluationWorkflowStepResponse.step:type_name -> o11y_one.agentic.v1.ProductionWorkflowStepV1
-	527,  // 1004: o11y_one.agentic.v1.RetryProductionEvaluationWorkflowStepResponse.execution:type_name -> o11y_one.agentic.v1.ProductionWorkflowExecutionV1
+	541,  // 996: o11y_one.agentic.v1.ListProductionEvaluationWorkflowExecutionsRequest.filter:type_name -> o11y_one.agentic.v1.ProductionWorkflowExecutionListFilterV1
+	536,  // 997: o11y_one.agentic.v1.ListProductionEvaluationWorkflowExecutionsResponse.items:type_name -> o11y_one.agentic.v1.ProductionWorkflowExecutionV1
+	173,  // 998: o11y_one.agentic.v1.ListProductionEvaluationWorkflowExecutionsResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	536,  // 999: o11y_one.agentic.v1.GetProductionEvaluationWorkflowExecutionResponse.execution:type_name -> o11y_one.agentic.v1.ProductionWorkflowExecutionV1
+	535,  // 1000: o11y_one.agentic.v1.GetProductionEvaluationWorkflowExecutionResponse.steps:type_name -> o11y_one.agentic.v1.ProductionWorkflowStepV1
+	538,  // 1001: o11y_one.agentic.v1.GetProductionEvaluationWorkflowExecutionResponse.release_blocks:type_name -> o11y_one.agentic.v1.ProductionReleaseBlockV1
+	173,  // 1002: o11y_one.agentic.v1.GetProductionEvaluationWorkflowExecutionResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	535,  // 1003: o11y_one.agentic.v1.RetryProductionEvaluationWorkflowStepResponse.step:type_name -> o11y_one.agentic.v1.ProductionWorkflowStepV1
+	536,  // 1004: o11y_one.agentic.v1.RetryProductionEvaluationWorkflowStepResponse.execution:type_name -> o11y_one.agentic.v1.ProductionWorkflowExecutionV1
 	111,  // 1005: o11y_one.agentic.v1.ProductionReleaseBlockListFilterV1.state:type_name -> o11y_one.agentic.v1.ReleaseBlockStateV1
-	539,  // 1006: o11y_one.agentic.v1.ListProductionEvaluationReleaseBlocksRequest.filter:type_name -> o11y_one.agentic.v1.ProductionReleaseBlockListFilterV1
-	529,  // 1007: o11y_one.agentic.v1.ListProductionEvaluationReleaseBlocksResponse.items:type_name -> o11y_one.agentic.v1.ProductionReleaseBlockV1
-	164,  // 1008: o11y_one.agentic.v1.ListProductionEvaluationReleaseBlocksResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	529,  // 1009: o11y_one.agentic.v1.OverrideProductionEvaluationReleaseBlockResponse.block:type_name -> o11y_one.agentic.v1.ProductionReleaseBlockV1
+	548,  // 1006: o11y_one.agentic.v1.ListProductionEvaluationReleaseBlocksRequest.filter:type_name -> o11y_one.agentic.v1.ProductionReleaseBlockListFilterV1
+	538,  // 1007: o11y_one.agentic.v1.ListProductionEvaluationReleaseBlocksResponse.items:type_name -> o11y_one.agentic.v1.ProductionReleaseBlockV1
+	173,  // 1008: o11y_one.agentic.v1.ListProductionEvaluationReleaseBlocksResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	538,  // 1009: o11y_one.agentic.v1.OverrideProductionEvaluationReleaseBlockResponse.block:type_name -> o11y_one.agentic.v1.ProductionReleaseBlockV1
 	124,  // 1010: o11y_one.agentic.v1.ReleaseVerificationOverrideV1.reason:type_name -> o11y_one.agentic.v1.ReleaseVerificationOverrideReasonV1
-	163,  // 1011: o11y_one.agentic.v1.ReleaseVerificationOverrideV1.actor:type_name -> o11y_one.agentic.v1.PrincipalRefV1
-	695,  // 1012: o11y_one.agentic.v1.ReleaseVerificationOverrideV1.overridden_at:type_name -> google.protobuf.Timestamp
+	172,  // 1011: o11y_one.agentic.v1.ReleaseVerificationOverrideV1.actor:type_name -> o11y_one.agentic.v1.PrincipalRefV1
+	774,  // 1012: o11y_one.agentic.v1.ReleaseVerificationOverrideV1.overridden_at:type_name -> google.protobuf.Timestamp
 	116,  // 1013: o11y_one.agentic.v1.ReleaseSigningKeyRefV1.state:type_name -> o11y_one.agentic.v1.ReleaseSigningKeyStateV1
-	695,  // 1014: o11y_one.agentic.v1.ReleaseSigningKeyRefV1.activated_at:type_name -> google.protobuf.Timestamp
-	695,  // 1015: o11y_one.agentic.v1.ReleaseSigningKeyRefV1.not_after:type_name -> google.protobuf.Timestamp
+	774,  // 1014: o11y_one.agentic.v1.ReleaseSigningKeyRefV1.activated_at:type_name -> google.protobuf.Timestamp
+	774,  // 1015: o11y_one.agentic.v1.ReleaseSigningKeyRefV1.not_after:type_name -> google.protobuf.Timestamp
 	114,  // 1016: o11y_one.agentic.v1.ReleaseIntegrationV1.kind:type_name -> o11y_one.agentic.v1.ReleaseIntegrationKindV1
-	545,  // 1017: o11y_one.agentic.v1.ReleaseIntegrationV1.target:type_name -> o11y_one.agentic.v1.ReleaseTargetV1
-	546,  // 1018: o11y_one.agentic.v1.ReleaseIntegrationV1.signing_keys:type_name -> o11y_one.agentic.v1.ReleaseSigningKeyRefV1
+	554,  // 1017: o11y_one.agentic.v1.ReleaseIntegrationV1.target:type_name -> o11y_one.agentic.v1.ReleaseTargetV1
+	555,  // 1018: o11y_one.agentic.v1.ReleaseIntegrationV1.signing_keys:type_name -> o11y_one.agentic.v1.ReleaseSigningKeyRefV1
 	115,  // 1019: o11y_one.agentic.v1.ReleaseIntegrationV1.health:type_name -> o11y_one.agentic.v1.ReleaseIntegrationHealthV1
-	695,  // 1020: o11y_one.agentic.v1.ReleaseIntegrationV1.health_observed_at:type_name -> google.protobuf.Timestamp
-	695,  // 1021: o11y_one.agentic.v1.ReleaseIntegrationV1.archived_at:type_name -> google.protobuf.Timestamp
-	163,  // 1022: o11y_one.agentic.v1.ReleaseIntegrationV1.created_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
-	695,  // 1023: o11y_one.agentic.v1.ReleaseIntegrationV1.created_at:type_name -> google.protobuf.Timestamp
-	695,  // 1024: o11y_one.agentic.v1.ReleaseIntegrationV1.updated_at:type_name -> google.protobuf.Timestamp
+	774,  // 1020: o11y_one.agentic.v1.ReleaseIntegrationV1.health_observed_at:type_name -> google.protobuf.Timestamp
+	774,  // 1021: o11y_one.agentic.v1.ReleaseIntegrationV1.archived_at:type_name -> google.protobuf.Timestamp
+	172,  // 1022: o11y_one.agentic.v1.ReleaseIntegrationV1.created_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
+	774,  // 1023: o11y_one.agentic.v1.ReleaseIntegrationV1.created_at:type_name -> google.protobuf.Timestamp
+	774,  // 1024: o11y_one.agentic.v1.ReleaseIntegrationV1.updated_at:type_name -> google.protobuf.Timestamp
 	120,  // 1025: o11y_one.agentic.v1.ReleaseIntegrationV1.supported_operations:type_name -> o11y_one.agentic.v1.ReleaseAdapterOperationV1
-	548,  // 1026: o11y_one.agentic.v1.ReleaseIntegrationV1.credential:type_name -> o11y_one.agentic.v1.ReleaseIntegrationCredentialRefV1
+	557,  // 1026: o11y_one.agentic.v1.ReleaseIntegrationV1.credential:type_name -> o11y_one.agentic.v1.ReleaseIntegrationCredentialRefV1
 	125,  // 1027: o11y_one.agentic.v1.ReleaseIntegrationCredentialRefV1.state:type_name -> o11y_one.agentic.v1.ReleaseIntegrationCredentialStateV1
-	695,  // 1028: o11y_one.agentic.v1.ReleaseIntegrationCredentialRefV1.activated_at:type_name -> google.protobuf.Timestamp
+	774,  // 1028: o11y_one.agentic.v1.ReleaseIntegrationCredentialRefV1.activated_at:type_name -> google.protobuf.Timestamp
 	55,   // 1029: o11y_one.agentic.v1.ReleaseEvidenceSnapshotV1.decision_outcome:type_name -> o11y_one.agentic.v1.EvaluationDecisionOutcomeV1
-	695,  // 1030: o11y_one.agentic.v1.ReleaseEvidenceSnapshotV1.snapshotted_at:type_name -> google.protobuf.Timestamp
+	774,  // 1030: o11y_one.agentic.v1.ReleaseEvidenceSnapshotV1.snapshotted_at:type_name -> google.protobuf.Timestamp
 	121,  // 1031: o11y_one.agentic.v1.ReleaseValidationV1.kind:type_name -> o11y_one.agentic.v1.ReleaseValidationKindV1
 	122,  // 1032: o11y_one.agentic.v1.ReleaseValidationV1.state:type_name -> o11y_one.agentic.v1.ReleaseValidationStateV1
-	529,  // 1033: o11y_one.agentic.v1.ReleaseValidationV1.gate_blocks:type_name -> o11y_one.agentic.v1.ProductionReleaseBlockV1
+	538,  // 1033: o11y_one.agentic.v1.ReleaseValidationV1.gate_blocks:type_name -> o11y_one.agentic.v1.ProductionReleaseBlockV1
 	117,  // 1034: o11y_one.agentic.v1.ReleasePostureV1.stage:type_name -> o11y_one.agentic.v1.ReleaseStageV1
 	119,  // 1035: o11y_one.agentic.v1.ReleasePostureV1.latest_action_type:type_name -> o11y_one.agentic.v1.ReleaseActionTypeV1
 	118,  // 1036: o11y_one.agentic.v1.ReleasePostureV1.latest_action_state:type_name -> o11y_one.agentic.v1.ReleaseActionStateV1
-	695,  // 1037: o11y_one.agentic.v1.ReleasePostureV1.latest_action_at:type_name -> google.protobuf.Timestamp
+	774,  // 1037: o11y_one.agentic.v1.ReleasePostureV1.latest_action_at:type_name -> google.protobuf.Timestamp
 	115,  // 1038: o11y_one.agentic.v1.ReleasePostureV1.observed_integration_health:type_name -> o11y_one.agentic.v1.ReleaseIntegrationHealthV1
-	695,  // 1039: o11y_one.agentic.v1.ReleasePostureV1.integration_health_observed_at:type_name -> google.protobuf.Timestamp
-	164,  // 1040: o11y_one.agentic.v1.ReleasePostureV1.evidence_freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	774,  // 1039: o11y_one.agentic.v1.ReleasePostureV1.integration_health_observed_at:type_name -> google.protobuf.Timestamp
+	173,  // 1040: o11y_one.agentic.v1.ReleasePostureV1.evidence_freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
 	119,  // 1041: o11y_one.agentic.v1.ReleasePostureV1.allowed_actions:type_name -> o11y_one.agentic.v1.ReleaseActionTypeV1
-	553,  // 1042: o11y_one.agentic.v1.ReleasePostureV1.blocked_actions:type_name -> o11y_one.agentic.v1.ReleaseBlockedActionV1
-	695,  // 1043: o11y_one.agentic.v1.ReleasePostureV1.refreshed_at:type_name -> google.protobuf.Timestamp
+	562,  // 1042: o11y_one.agentic.v1.ReleasePostureV1.blocked_actions:type_name -> o11y_one.agentic.v1.ReleaseBlockedActionV1
+	774,  // 1043: o11y_one.agentic.v1.ReleasePostureV1.refreshed_at:type_name -> google.protobuf.Timestamp
 	119,  // 1044: o11y_one.agentic.v1.ReleaseBlockedActionV1.action_type:type_name -> o11y_one.agentic.v1.ReleaseActionTypeV1
-	545,  // 1045: o11y_one.agentic.v1.ReleaseV1.target:type_name -> o11y_one.agentic.v1.ReleaseTargetV1
-	549,  // 1046: o11y_one.agentic.v1.ReleaseV1.evidence:type_name -> o11y_one.agentic.v1.ReleaseEvidenceSnapshotV1
-	550,  // 1047: o11y_one.agentic.v1.ReleaseV1.policy:type_name -> o11y_one.agentic.v1.ReleasePolicyV1
+	554,  // 1045: o11y_one.agentic.v1.ReleaseV1.target:type_name -> o11y_one.agentic.v1.ReleaseTargetV1
+	558,  // 1046: o11y_one.agentic.v1.ReleaseV1.evidence:type_name -> o11y_one.agentic.v1.ReleaseEvidenceSnapshotV1
+	559,  // 1047: o11y_one.agentic.v1.ReleaseV1.policy:type_name -> o11y_one.agentic.v1.ReleasePolicyV1
 	117,  // 1048: o11y_one.agentic.v1.ReleaseV1.stage:type_name -> o11y_one.agentic.v1.ReleaseStageV1
-	163,  // 1049: o11y_one.agentic.v1.ReleaseV1.created_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
-	695,  // 1050: o11y_one.agentic.v1.ReleaseV1.created_at:type_name -> google.protobuf.Timestamp
-	695,  // 1051: o11y_one.agentic.v1.ReleaseV1.updated_at:type_name -> google.protobuf.Timestamp
-	552,  // 1052: o11y_one.agentic.v1.ReleaseV1.posture:type_name -> o11y_one.agentic.v1.ReleasePostureV1
+	172,  // 1049: o11y_one.agentic.v1.ReleaseV1.created_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
+	774,  // 1050: o11y_one.agentic.v1.ReleaseV1.created_at:type_name -> google.protobuf.Timestamp
+	774,  // 1051: o11y_one.agentic.v1.ReleaseV1.updated_at:type_name -> google.protobuf.Timestamp
+	561,  // 1052: o11y_one.agentic.v1.ReleaseV1.posture:type_name -> o11y_one.agentic.v1.ReleasePostureV1
 	119,  // 1053: o11y_one.agentic.v1.ReleaseActionV1.action_type:type_name -> o11y_one.agentic.v1.ReleaseActionTypeV1
 	118,  // 1054: o11y_one.agentic.v1.ReleaseActionV1.state:type_name -> o11y_one.agentic.v1.ReleaseActionStateV1
 	123,  // 1055: o11y_one.agentic.v1.ReleaseActionV1.reason:type_name -> o11y_one.agentic.v1.ReleaseActionReasonV1
-	163,  // 1056: o11y_one.agentic.v1.ReleaseActionV1.actor:type_name -> o11y_one.agentic.v1.PrincipalRefV1
-	695,  // 1057: o11y_one.agentic.v1.ReleaseActionV1.requested_at:type_name -> google.protobuf.Timestamp
-	695,  // 1058: o11y_one.agentic.v1.ReleaseActionV1.dispatched_at:type_name -> google.protobuf.Timestamp
-	695,  // 1059: o11y_one.agentic.v1.ReleaseActionV1.accepted_at:type_name -> google.protobuf.Timestamp
-	695,  // 1060: o11y_one.agentic.v1.ReleaseActionV1.observed_at:type_name -> google.protobuf.Timestamp
-	695,  // 1061: o11y_one.agentic.v1.ReleaseActionV1.verified_at:type_name -> google.protobuf.Timestamp
+	172,  // 1056: o11y_one.agentic.v1.ReleaseActionV1.actor:type_name -> o11y_one.agentic.v1.PrincipalRefV1
+	774,  // 1057: o11y_one.agentic.v1.ReleaseActionV1.requested_at:type_name -> google.protobuf.Timestamp
+	774,  // 1058: o11y_one.agentic.v1.ReleaseActionV1.dispatched_at:type_name -> google.protobuf.Timestamp
+	774,  // 1059: o11y_one.agentic.v1.ReleaseActionV1.accepted_at:type_name -> google.protobuf.Timestamp
+	774,  // 1060: o11y_one.agentic.v1.ReleaseActionV1.observed_at:type_name -> google.protobuf.Timestamp
+	774,  // 1061: o11y_one.agentic.v1.ReleaseActionV1.verified_at:type_name -> google.protobuf.Timestamp
 	117,  // 1062: o11y_one.agentic.v1.ReleaseActionV1.target_stage:type_name -> o11y_one.agentic.v1.ReleaseStageV1
-	544,  // 1063: o11y_one.agentic.v1.ReleaseActionV1.verification_override:type_name -> o11y_one.agentic.v1.ReleaseVerificationOverrideV1
+	553,  // 1063: o11y_one.agentic.v1.ReleaseActionV1.verification_override:type_name -> o11y_one.agentic.v1.ReleaseVerificationOverrideV1
 	117,  // 1064: o11y_one.agentic.v1.ReleaseActivityEntryV1.from_stage:type_name -> o11y_one.agentic.v1.ReleaseStageV1
 	117,  // 1065: o11y_one.agentic.v1.ReleaseActivityEntryV1.to_stage:type_name -> o11y_one.agentic.v1.ReleaseStageV1
-	163,  // 1066: o11y_one.agentic.v1.ReleaseActivityEntryV1.actor:type_name -> o11y_one.agentic.v1.PrincipalRefV1
-	695,  // 1067: o11y_one.agentic.v1.ReleaseActivityEntryV1.occurred_at:type_name -> google.protobuf.Timestamp
+	172,  // 1066: o11y_one.agentic.v1.ReleaseActivityEntryV1.actor:type_name -> o11y_one.agentic.v1.PrincipalRefV1
+	774,  // 1067: o11y_one.agentic.v1.ReleaseActivityEntryV1.occurred_at:type_name -> google.protobuf.Timestamp
 	117,  // 1068: o11y_one.agentic.v1.ReleaseStageHistoryEntryV1.from_stage:type_name -> o11y_one.agentic.v1.ReleaseStageV1
 	117,  // 1069: o11y_one.agentic.v1.ReleaseStageHistoryEntryV1.to_stage:type_name -> o11y_one.agentic.v1.ReleaseStageV1
-	695,  // 1070: o11y_one.agentic.v1.ReleaseStageHistoryEntryV1.entered_at:type_name -> google.protobuf.Timestamp
+	774,  // 1070: o11y_one.agentic.v1.ReleaseStageHistoryEntryV1.entered_at:type_name -> google.protobuf.Timestamp
 	114,  // 1071: o11y_one.agentic.v1.ReleaseIntegrationDraftV1.kind:type_name -> o11y_one.agentic.v1.ReleaseIntegrationKindV1
-	545,  // 1072: o11y_one.agentic.v1.ReleaseIntegrationDraftV1.target:type_name -> o11y_one.agentic.v1.ReleaseTargetV1
-	558,  // 1073: o11y_one.agentic.v1.CreateReleaseIntegrationRequest.draft:type_name -> o11y_one.agentic.v1.ReleaseIntegrationDraftV1
-	547,  // 1074: o11y_one.agentic.v1.CreateReleaseIntegrationResponse.integration:type_name -> o11y_one.agentic.v1.ReleaseIntegrationV1
-	547,  // 1075: o11y_one.agentic.v1.GetReleaseIntegrationResponse.integration:type_name -> o11y_one.agentic.v1.ReleaseIntegrationV1
-	164,  // 1076: o11y_one.agentic.v1.GetReleaseIntegrationResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	554,  // 1072: o11y_one.agentic.v1.ReleaseIntegrationDraftV1.target:type_name -> o11y_one.agentic.v1.ReleaseTargetV1
+	567,  // 1073: o11y_one.agentic.v1.CreateReleaseIntegrationRequest.draft:type_name -> o11y_one.agentic.v1.ReleaseIntegrationDraftV1
+	556,  // 1074: o11y_one.agentic.v1.CreateReleaseIntegrationResponse.integration:type_name -> o11y_one.agentic.v1.ReleaseIntegrationV1
+	556,  // 1075: o11y_one.agentic.v1.GetReleaseIntegrationResponse.integration:type_name -> o11y_one.agentic.v1.ReleaseIntegrationV1
+	173,  // 1076: o11y_one.agentic.v1.GetReleaseIntegrationResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
 	114,  // 1077: o11y_one.agentic.v1.ReleaseIntegrationListFilterV1.kind:type_name -> o11y_one.agentic.v1.ReleaseIntegrationKindV1
 	115,  // 1078: o11y_one.agentic.v1.ReleaseIntegrationListFilterV1.health:type_name -> o11y_one.agentic.v1.ReleaseIntegrationHealthV1
-	563,  // 1079: o11y_one.agentic.v1.ListReleaseIntegrationsRequest.filter:type_name -> o11y_one.agentic.v1.ReleaseIntegrationListFilterV1
-	547,  // 1080: o11y_one.agentic.v1.ListReleaseIntegrationsResponse.items:type_name -> o11y_one.agentic.v1.ReleaseIntegrationV1
-	164,  // 1081: o11y_one.agentic.v1.ListReleaseIntegrationsResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	566,  // 1082: o11y_one.agentic.v1.UpdateReleaseIntegrationRequest.patch:type_name -> o11y_one.agentic.v1.ReleaseIntegrationPatchV1
-	547,  // 1083: o11y_one.agentic.v1.UpdateReleaseIntegrationResponse.integration:type_name -> o11y_one.agentic.v1.ReleaseIntegrationV1
-	547,  // 1084: o11y_one.agentic.v1.ArchiveReleaseIntegrationResponse.integration:type_name -> o11y_one.agentic.v1.ReleaseIntegrationV1
-	571,  // 1085: o11y_one.agentic.v1.ReleaseDraftV1.candidate:type_name -> o11y_one.agentic.v1.ReleaseCandidateRefV1
-	550,  // 1086: o11y_one.agentic.v1.ReleaseDraftV1.policy:type_name -> o11y_one.agentic.v1.ReleasePolicyV1
-	572,  // 1087: o11y_one.agentic.v1.CreateReleaseRequest.draft:type_name -> o11y_one.agentic.v1.ReleaseDraftV1
-	554,  // 1088: o11y_one.agentic.v1.CreateReleaseResponse.release:type_name -> o11y_one.agentic.v1.ReleaseV1
-	551,  // 1089: o11y_one.agentic.v1.CreateReleaseResponse.validations:type_name -> o11y_one.agentic.v1.ReleaseValidationV1
-	572,  // 1090: o11y_one.agentic.v1.PreviewReleaseRequest.draft:type_name -> o11y_one.agentic.v1.ReleaseDraftV1
-	551,  // 1091: o11y_one.agentic.v1.PreviewReleaseResponse.validations:type_name -> o11y_one.agentic.v1.ReleaseValidationV1
-	549,  // 1092: o11y_one.agentic.v1.PreviewReleaseResponse.evidence:type_name -> o11y_one.agentic.v1.ReleaseEvidenceSnapshotV1
+	572,  // 1079: o11y_one.agentic.v1.ListReleaseIntegrationsRequest.filter:type_name -> o11y_one.agentic.v1.ReleaseIntegrationListFilterV1
+	556,  // 1080: o11y_one.agentic.v1.ListReleaseIntegrationsResponse.items:type_name -> o11y_one.agentic.v1.ReleaseIntegrationV1
+	173,  // 1081: o11y_one.agentic.v1.ListReleaseIntegrationsResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	575,  // 1082: o11y_one.agentic.v1.UpdateReleaseIntegrationRequest.patch:type_name -> o11y_one.agentic.v1.ReleaseIntegrationPatchV1
+	556,  // 1083: o11y_one.agentic.v1.UpdateReleaseIntegrationResponse.integration:type_name -> o11y_one.agentic.v1.ReleaseIntegrationV1
+	556,  // 1084: o11y_one.agentic.v1.ArchiveReleaseIntegrationResponse.integration:type_name -> o11y_one.agentic.v1.ReleaseIntegrationV1
+	580,  // 1085: o11y_one.agentic.v1.ReleaseDraftV1.candidate:type_name -> o11y_one.agentic.v1.ReleaseCandidateRefV1
+	559,  // 1086: o11y_one.agentic.v1.ReleaseDraftV1.policy:type_name -> o11y_one.agentic.v1.ReleasePolicyV1
+	581,  // 1087: o11y_one.agentic.v1.CreateReleaseRequest.draft:type_name -> o11y_one.agentic.v1.ReleaseDraftV1
+	563,  // 1088: o11y_one.agentic.v1.CreateReleaseResponse.release:type_name -> o11y_one.agentic.v1.ReleaseV1
+	560,  // 1089: o11y_one.agentic.v1.CreateReleaseResponse.validations:type_name -> o11y_one.agentic.v1.ReleaseValidationV1
+	581,  // 1090: o11y_one.agentic.v1.PreviewReleaseRequest.draft:type_name -> o11y_one.agentic.v1.ReleaseDraftV1
+	560,  // 1091: o11y_one.agentic.v1.PreviewReleaseResponse.validations:type_name -> o11y_one.agentic.v1.ReleaseValidationV1
+	558,  // 1092: o11y_one.agentic.v1.PreviewReleaseResponse.evidence:type_name -> o11y_one.agentic.v1.ReleaseEvidenceSnapshotV1
 	119,  // 1093: o11y_one.agentic.v1.PreviewReleaseResponse.would_allow_actions:type_name -> o11y_one.agentic.v1.ReleaseActionTypeV1
-	164,  // 1094: o11y_one.agentic.v1.PreviewReleaseResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	554,  // 1095: o11y_one.agentic.v1.GetReleaseResponse.release:type_name -> o11y_one.agentic.v1.ReleaseV1
-	555,  // 1096: o11y_one.agentic.v1.GetReleaseResponse.recent_actions:type_name -> o11y_one.agentic.v1.ReleaseActionV1
-	557,  // 1097: o11y_one.agentic.v1.GetReleaseResponse.stage_history:type_name -> o11y_one.agentic.v1.ReleaseStageHistoryEntryV1
-	556,  // 1098: o11y_one.agentic.v1.GetReleaseResponse.recent_activity:type_name -> o11y_one.agentic.v1.ReleaseActivityEntryV1
-	551,  // 1099: o11y_one.agentic.v1.GetReleaseResponse.validations:type_name -> o11y_one.agentic.v1.ReleaseValidationV1
-	547,  // 1100: o11y_one.agentic.v1.GetReleaseResponse.integration:type_name -> o11y_one.agentic.v1.ReleaseIntegrationV1
-	554,  // 1101: o11y_one.agentic.v1.GetReleaseResponse.last_known_good:type_name -> o11y_one.agentic.v1.ReleaseV1
-	164,  // 1102: o11y_one.agentic.v1.GetReleaseResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	598,  // 1103: o11y_one.agentic.v1.GetReleaseResponse.recent_health_snapshots:type_name -> o11y_one.agentic.v1.ReleaseHealthSnapshotV1
-	599,  // 1104: o11y_one.agentic.v1.GetReleaseResponse.drift_posture:type_name -> o11y_one.agentic.v1.ReleaseDriftPostureV1
-	544,  // 1105: o11y_one.agentic.v1.GetReleaseResponse.verification_overrides:type_name -> o11y_one.agentic.v1.ReleaseVerificationOverrideV1
+	173,  // 1094: o11y_one.agentic.v1.PreviewReleaseResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	563,  // 1095: o11y_one.agentic.v1.GetReleaseResponse.release:type_name -> o11y_one.agentic.v1.ReleaseV1
+	564,  // 1096: o11y_one.agentic.v1.GetReleaseResponse.recent_actions:type_name -> o11y_one.agentic.v1.ReleaseActionV1
+	566,  // 1097: o11y_one.agentic.v1.GetReleaseResponse.stage_history:type_name -> o11y_one.agentic.v1.ReleaseStageHistoryEntryV1
+	565,  // 1098: o11y_one.agentic.v1.GetReleaseResponse.recent_activity:type_name -> o11y_one.agentic.v1.ReleaseActivityEntryV1
+	560,  // 1099: o11y_one.agentic.v1.GetReleaseResponse.validations:type_name -> o11y_one.agentic.v1.ReleaseValidationV1
+	556,  // 1100: o11y_one.agentic.v1.GetReleaseResponse.integration:type_name -> o11y_one.agentic.v1.ReleaseIntegrationV1
+	563,  // 1101: o11y_one.agentic.v1.GetReleaseResponse.last_known_good:type_name -> o11y_one.agentic.v1.ReleaseV1
+	173,  // 1102: o11y_one.agentic.v1.GetReleaseResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	607,  // 1103: o11y_one.agentic.v1.GetReleaseResponse.recent_health_snapshots:type_name -> o11y_one.agentic.v1.ReleaseHealthSnapshotV1
+	608,  // 1104: o11y_one.agentic.v1.GetReleaseResponse.drift_posture:type_name -> o11y_one.agentic.v1.ReleaseDriftPostureV1
+	553,  // 1105: o11y_one.agentic.v1.GetReleaseResponse.verification_overrides:type_name -> o11y_one.agentic.v1.ReleaseVerificationOverrideV1
 	117,  // 1106: o11y_one.agentic.v1.ReleaseListFilterV1.stage:type_name -> o11y_one.agentic.v1.ReleaseStageV1
-	579,  // 1107: o11y_one.agentic.v1.ListReleasesRequest.filter:type_name -> o11y_one.agentic.v1.ReleaseListFilterV1
-	554,  // 1108: o11y_one.agentic.v1.ListReleasesResponse.items:type_name -> o11y_one.agentic.v1.ReleaseV1
-	164,  // 1109: o11y_one.agentic.v1.ListReleasesResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	588,  // 1107: o11y_one.agentic.v1.ListReleasesRequest.filter:type_name -> o11y_one.agentic.v1.ReleaseListFilterV1
+	563,  // 1108: o11y_one.agentic.v1.ListReleasesResponse.items:type_name -> o11y_one.agentic.v1.ReleaseV1
+	173,  // 1109: o11y_one.agentic.v1.ListReleasesResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
 	123,  // 1110: o11y_one.agentic.v1.StartReleaseCanaryRequest.reason:type_name -> o11y_one.agentic.v1.ReleaseActionReasonV1
-	544,  // 1111: o11y_one.agentic.v1.StartReleaseCanaryRequest.verification_override:type_name -> o11y_one.agentic.v1.ReleaseVerificationOverrideV1
-	555,  // 1112: o11y_one.agentic.v1.StartReleaseCanaryResponse.action:type_name -> o11y_one.agentic.v1.ReleaseActionV1
-	554,  // 1113: o11y_one.agentic.v1.StartReleaseCanaryResponse.release:type_name -> o11y_one.agentic.v1.ReleaseV1
+	553,  // 1111: o11y_one.agentic.v1.StartReleaseCanaryRequest.verification_override:type_name -> o11y_one.agentic.v1.ReleaseVerificationOverrideV1
+	564,  // 1112: o11y_one.agentic.v1.StartReleaseCanaryResponse.action:type_name -> o11y_one.agentic.v1.ReleaseActionV1
+	563,  // 1113: o11y_one.agentic.v1.StartReleaseCanaryResponse.release:type_name -> o11y_one.agentic.v1.ReleaseV1
 	123,  // 1114: o11y_one.agentic.v1.PromoteReleaseRequest.reason:type_name -> o11y_one.agentic.v1.ReleaseActionReasonV1
-	544,  // 1115: o11y_one.agentic.v1.PromoteReleaseRequest.verification_override:type_name -> o11y_one.agentic.v1.ReleaseVerificationOverrideV1
-	555,  // 1116: o11y_one.agentic.v1.PromoteReleaseResponse.action:type_name -> o11y_one.agentic.v1.ReleaseActionV1
-	554,  // 1117: o11y_one.agentic.v1.PromoteReleaseResponse.release:type_name -> o11y_one.agentic.v1.ReleaseV1
+	553,  // 1115: o11y_one.agentic.v1.PromoteReleaseRequest.verification_override:type_name -> o11y_one.agentic.v1.ReleaseVerificationOverrideV1
+	564,  // 1116: o11y_one.agentic.v1.PromoteReleaseResponse.action:type_name -> o11y_one.agentic.v1.ReleaseActionV1
+	563,  // 1117: o11y_one.agentic.v1.PromoteReleaseResponse.release:type_name -> o11y_one.agentic.v1.ReleaseV1
 	123,  // 1118: o11y_one.agentic.v1.HoldReleaseRequest.reason:type_name -> o11y_one.agentic.v1.ReleaseActionReasonV1
-	544,  // 1119: o11y_one.agentic.v1.HoldReleaseRequest.verification_override:type_name -> o11y_one.agentic.v1.ReleaseVerificationOverrideV1
-	555,  // 1120: o11y_one.agentic.v1.HoldReleaseResponse.action:type_name -> o11y_one.agentic.v1.ReleaseActionV1
-	554,  // 1121: o11y_one.agentic.v1.HoldReleaseResponse.release:type_name -> o11y_one.agentic.v1.ReleaseV1
+	553,  // 1119: o11y_one.agentic.v1.HoldReleaseRequest.verification_override:type_name -> o11y_one.agentic.v1.ReleaseVerificationOverrideV1
+	564,  // 1120: o11y_one.agentic.v1.HoldReleaseResponse.action:type_name -> o11y_one.agentic.v1.ReleaseActionV1
+	563,  // 1121: o11y_one.agentic.v1.HoldReleaseResponse.release:type_name -> o11y_one.agentic.v1.ReleaseV1
 	123,  // 1122: o11y_one.agentic.v1.AbortReleaseRequest.reason:type_name -> o11y_one.agentic.v1.ReleaseActionReasonV1
-	544,  // 1123: o11y_one.agentic.v1.AbortReleaseRequest.verification_override:type_name -> o11y_one.agentic.v1.ReleaseVerificationOverrideV1
-	555,  // 1124: o11y_one.agentic.v1.AbortReleaseResponse.action:type_name -> o11y_one.agentic.v1.ReleaseActionV1
-	554,  // 1125: o11y_one.agentic.v1.AbortReleaseResponse.release:type_name -> o11y_one.agentic.v1.ReleaseV1
+	553,  // 1123: o11y_one.agentic.v1.AbortReleaseRequest.verification_override:type_name -> o11y_one.agentic.v1.ReleaseVerificationOverrideV1
+	564,  // 1124: o11y_one.agentic.v1.AbortReleaseResponse.action:type_name -> o11y_one.agentic.v1.ReleaseActionV1
+	563,  // 1125: o11y_one.agentic.v1.AbortReleaseResponse.release:type_name -> o11y_one.agentic.v1.ReleaseV1
 	123,  // 1126: o11y_one.agentic.v1.RollbackReleaseRequest.reason:type_name -> o11y_one.agentic.v1.ReleaseActionReasonV1
-	544,  // 1127: o11y_one.agentic.v1.RollbackReleaseRequest.verification_override:type_name -> o11y_one.agentic.v1.ReleaseVerificationOverrideV1
-	555,  // 1128: o11y_one.agentic.v1.RollbackReleaseResponse.action:type_name -> o11y_one.agentic.v1.ReleaseActionV1
-	554,  // 1129: o11y_one.agentic.v1.RollbackReleaseResponse.release:type_name -> o11y_one.agentic.v1.ReleaseV1
-	551,  // 1130: o11y_one.agentic.v1.RollbackReleaseResponse.rollback_target_verdict:type_name -> o11y_one.agentic.v1.ReleaseValidationV1
-	555,  // 1131: o11y_one.agentic.v1.GetReleaseActionResponse.action:type_name -> o11y_one.agentic.v1.ReleaseActionV1
-	554,  // 1132: o11y_one.agentic.v1.GetReleaseActionResponse.release:type_name -> o11y_one.agentic.v1.ReleaseV1
-	600,  // 1133: o11y_one.agentic.v1.GetReleaseActionResponse.observations:type_name -> o11y_one.agentic.v1.ReleaseObservationV1
+	553,  // 1127: o11y_one.agentic.v1.RollbackReleaseRequest.verification_override:type_name -> o11y_one.agentic.v1.ReleaseVerificationOverrideV1
+	564,  // 1128: o11y_one.agentic.v1.RollbackReleaseResponse.action:type_name -> o11y_one.agentic.v1.ReleaseActionV1
+	563,  // 1129: o11y_one.agentic.v1.RollbackReleaseResponse.release:type_name -> o11y_one.agentic.v1.ReleaseV1
+	560,  // 1130: o11y_one.agentic.v1.RollbackReleaseResponse.rollback_target_verdict:type_name -> o11y_one.agentic.v1.ReleaseValidationV1
+	564,  // 1131: o11y_one.agentic.v1.GetReleaseActionResponse.action:type_name -> o11y_one.agentic.v1.ReleaseActionV1
+	563,  // 1132: o11y_one.agentic.v1.GetReleaseActionResponse.release:type_name -> o11y_one.agentic.v1.ReleaseV1
+	609,  // 1133: o11y_one.agentic.v1.GetReleaseActionResponse.observations:type_name -> o11y_one.agentic.v1.ReleaseObservationV1
 	119,  // 1134: o11y_one.agentic.v1.ReleaseActionListFilterV1.action_type:type_name -> o11y_one.agentic.v1.ReleaseActionTypeV1
 	118,  // 1135: o11y_one.agentic.v1.ReleaseActionListFilterV1.state:type_name -> o11y_one.agentic.v1.ReleaseActionStateV1
-	594,  // 1136: o11y_one.agentic.v1.ListReleaseActionsRequest.filter:type_name -> o11y_one.agentic.v1.ReleaseActionListFilterV1
-	555,  // 1137: o11y_one.agentic.v1.ListReleaseActionsResponse.items:type_name -> o11y_one.agentic.v1.ReleaseActionV1
-	164,  // 1138: o11y_one.agentic.v1.ListReleaseActionsResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	165,  // 1139: o11y_one.agentic.v1.ReleaseHealthConditionV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	603,  // 1136: o11y_one.agentic.v1.ListReleaseActionsRequest.filter:type_name -> o11y_one.agentic.v1.ReleaseActionListFilterV1
+	564,  // 1137: o11y_one.agentic.v1.ListReleaseActionsResponse.items:type_name -> o11y_one.agentic.v1.ReleaseActionV1
+	173,  // 1138: o11y_one.agentic.v1.ListReleaseActionsResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	174,  // 1139: o11y_one.agentic.v1.ReleaseHealthConditionV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
 	117,  // 1140: o11y_one.agentic.v1.ReleaseHealthSnapshotV1.stage:type_name -> o11y_one.agentic.v1.ReleaseStageV1
-	695,  // 1141: o11y_one.agentic.v1.ReleaseHealthSnapshotV1.window_start:type_name -> google.protobuf.Timestamp
-	695,  // 1142: o11y_one.agentic.v1.ReleaseHealthSnapshotV1.window_end:type_name -> google.protobuf.Timestamp
-	597,  // 1143: o11y_one.agentic.v1.ReleaseHealthSnapshotV1.conditions:type_name -> o11y_one.agentic.v1.ReleaseHealthConditionV1
-	695,  // 1144: o11y_one.agentic.v1.ReleaseHealthSnapshotV1.observed_at:type_name -> google.protobuf.Timestamp
+	774,  // 1141: o11y_one.agentic.v1.ReleaseHealthSnapshotV1.window_start:type_name -> google.protobuf.Timestamp
+	774,  // 1142: o11y_one.agentic.v1.ReleaseHealthSnapshotV1.window_end:type_name -> google.protobuf.Timestamp
+	606,  // 1143: o11y_one.agentic.v1.ReleaseHealthSnapshotV1.conditions:type_name -> o11y_one.agentic.v1.ReleaseHealthConditionV1
+	774,  // 1144: o11y_one.agentic.v1.ReleaseHealthSnapshotV1.observed_at:type_name -> google.protobuf.Timestamp
 	117,  // 1145: o11y_one.agentic.v1.ReleaseDriftPostureV1.externally_observed_stage:type_name -> o11y_one.agentic.v1.ReleaseStageV1
-	695,  // 1146: o11y_one.agentic.v1.ReleaseDriftPostureV1.detected_at:type_name -> google.protobuf.Timestamp
-	165,  // 1147: o11y_one.agentic.v1.ReleaseDriftPostureV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	695,  // 1148: o11y_one.agentic.v1.ReleaseObservationV1.provider_observed_at:type_name -> google.protobuf.Timestamp
+	774,  // 1146: o11y_one.agentic.v1.ReleaseDriftPostureV1.detected_at:type_name -> google.protobuf.Timestamp
+	174,  // 1147: o11y_one.agentic.v1.ReleaseDriftPostureV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	774,  // 1148: o11y_one.agentic.v1.ReleaseObservationV1.provider_observed_at:type_name -> google.protobuf.Timestamp
 	118,  // 1149: o11y_one.agentic.v1.ReleaseObservationV1.reported_action_state:type_name -> o11y_one.agentic.v1.ReleaseActionStateV1
 	117,  // 1150: o11y_one.agentic.v1.ReleaseObservationV1.reported_stage:type_name -> o11y_one.agentic.v1.ReleaseStageV1
-	695,  // 1151: o11y_one.agentic.v1.ReleaseObservationV1.received_at:type_name -> google.protobuf.Timestamp
+	774,  // 1151: o11y_one.agentic.v1.ReleaseObservationV1.received_at:type_name -> google.protobuf.Timestamp
 	157,  // 1152: o11y_one.agentic.v1.ReleaseObservationV1.correlation_confidence:type_name -> o11y_one.agentic.v1.ReleaseObservationConfidenceV1
-	602,  // 1153: o11y_one.agentic.v1.ProductionRuleActionTargetV1.dataset_draft:type_name -> o11y_one.agentic.v1.ProductionRuleDatasetDraftTargetV1
-	603,  // 1154: o11y_one.agentic.v1.ProductionRuleActionTargetV1.review:type_name -> o11y_one.agentic.v1.ProductionRuleReviewTargetV1
-	604,  // 1155: o11y_one.agentic.v1.ProductionRuleActionTargetV1.linked_evaluation:type_name -> o11y_one.agentic.v1.ProductionRuleLinkedEvaluationTargetV1
-	605,  // 1156: o11y_one.agentic.v1.ProductionRuleActionTargetV1.notify:type_name -> o11y_one.agentic.v1.ProductionRuleNotifyTargetV1
-	172,  // 1157: o11y_one.agentic.v1.ProductionRuleDatasetDraftTargetV1.field_mappings:type_name -> o11y_one.agentic.v1.DatasetFieldMappingV1
+	611,  // 1153: o11y_one.agentic.v1.ProductionRuleActionTargetV1.dataset_draft:type_name -> o11y_one.agentic.v1.ProductionRuleDatasetDraftTargetV1
+	612,  // 1154: o11y_one.agentic.v1.ProductionRuleActionTargetV1.review:type_name -> o11y_one.agentic.v1.ProductionRuleReviewTargetV1
+	613,  // 1155: o11y_one.agentic.v1.ProductionRuleActionTargetV1.linked_evaluation:type_name -> o11y_one.agentic.v1.ProductionRuleLinkedEvaluationTargetV1
+	614,  // 1156: o11y_one.agentic.v1.ProductionRuleActionTargetV1.notify:type_name -> o11y_one.agentic.v1.ProductionRuleNotifyTargetV1
+	181,  // 1157: o11y_one.agentic.v1.ProductionRuleDatasetDraftTargetV1.field_mappings:type_name -> o11y_one.agentic.v1.DatasetFieldMappingV1
 	128,  // 1158: o11y_one.agentic.v1.DatasetRedactionOutcomeV1.outcome:type_name -> o11y_one.agentic.v1.DatasetRedactionOutcomeKindV1
 	127,  // 1159: o11y_one.agentic.v1.DatasetRedactionOutcomeV1.detector_kinds:type_name -> o11y_one.agentic.v1.DatasetRedactionDetectorKindV1
-	606,  // 1160: o11y_one.agentic.v1.DatasetRedactionSectionV1.outcomes:type_name -> o11y_one.agentic.v1.DatasetRedactionOutcomeV1
+	615,  // 1160: o11y_one.agentic.v1.DatasetRedactionSectionV1.outcomes:type_name -> o11y_one.agentic.v1.DatasetRedactionOutcomeV1
 	128,  // 1161: o11y_one.agentic.v1.DatasetRedactionSectionV1.verdict:type_name -> o11y_one.agentic.v1.DatasetRedactionOutcomeKindV1
-	165,  // 1162: o11y_one.agentic.v1.DatasetRedactionSectionV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 1162: o11y_one.agentic.v1.DatasetRedactionSectionV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
 	129,  // 1163: o11y_one.agentic.v1.DatasetDuplicationCandidateV1.subject_kind:type_name -> o11y_one.agentic.v1.DatasetDedupeSubjectKindV1
 	130,  // 1164: o11y_one.agentic.v1.DatasetDuplicationCandidateV1.verdict:type_name -> o11y_one.agentic.v1.DatasetDuplicationVerdictV1
 	130,  // 1165: o11y_one.agentic.v1.DatasetDuplicationSectionV1.verdict:type_name -> o11y_one.agentic.v1.DatasetDuplicationVerdictV1
-	608,  // 1166: o11y_one.agentic.v1.DatasetDuplicationSectionV1.candidates:type_name -> o11y_one.agentic.v1.DatasetDuplicationCandidateV1
-	165,  // 1167: o11y_one.agentic.v1.DatasetDuplicationSectionV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	617,  // 1166: o11y_one.agentic.v1.DatasetDuplicationSectionV1.candidates:type_name -> o11y_one.agentic.v1.DatasetDuplicationCandidateV1
+	174,  // 1167: o11y_one.agentic.v1.DatasetDuplicationSectionV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
 	131,  // 1168: o11y_one.agentic.v1.DedupeResolutionV1.resolution:type_name -> o11y_one.agentic.v1.DatasetDedupeResolutionKindV1
-	695,  // 1169: o11y_one.agentic.v1.DedupeResolutionV1.resolved_at:type_name -> google.protobuf.Timestamp
+	774,  // 1169: o11y_one.agentic.v1.DedupeResolutionV1.resolved_at:type_name -> google.protobuf.Timestamp
 	132,  // 1170: o11y_one.agentic.v1.DatasetLeakageSourceSignalV1.source:type_name -> o11y_one.agentic.v1.DatasetLeakageSourceKindV1
 	133,  // 1171: o11y_one.agentic.v1.DatasetLeakageSourceSignalV1.verdict:type_name -> o11y_one.agentic.v1.DatasetLeakageVerdictV1
-	165,  // 1172: o11y_one.agentic.v1.DatasetLeakageSourceSignalV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	611,  // 1173: o11y_one.agentic.v1.DatasetLeakageSectionV1.sources:type_name -> o11y_one.agentic.v1.DatasetLeakageSourceSignalV1
+	174,  // 1172: o11y_one.agentic.v1.DatasetLeakageSourceSignalV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	620,  // 1173: o11y_one.agentic.v1.DatasetLeakageSectionV1.sources:type_name -> o11y_one.agentic.v1.DatasetLeakageSourceSignalV1
 	133,  // 1174: o11y_one.agentic.v1.DatasetLeakageSectionV1.verdict:type_name -> o11y_one.agentic.v1.DatasetLeakageVerdictV1
-	165,  // 1175: o11y_one.agentic.v1.DatasetLeakageSectionV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 1175: o11y_one.agentic.v1.DatasetLeakageSectionV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
 	135,  // 1176: o11y_one.agentic.v1.DatasetSliceObservationV1.flag:type_name -> o11y_one.agentic.v1.DatasetSliceFlagV1
-	165,  // 1177: o11y_one.agentic.v1.DatasetSliceObservationV1.production_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	165,  // 1178: o11y_one.agentic.v1.DatasetSliceObservationV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 1177: o11y_one.agentic.v1.DatasetSliceObservationV1.production_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 1178: o11y_one.agentic.v1.DatasetSliceObservationV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
 	134,  // 1179: o11y_one.agentic.v1.DatasetSliceSectionV1.dimension_source:type_name -> o11y_one.agentic.v1.DatasetSliceDimensionSourceV1
-	613,  // 1180: o11y_one.agentic.v1.DatasetSliceSectionV1.observations:type_name -> o11y_one.agentic.v1.DatasetSliceObservationV1
-	165,  // 1181: o11y_one.agentic.v1.DatasetSliceSectionV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	607,  // 1182: o11y_one.agentic.v1.DatasetCaseQualitySignalsV1.redaction:type_name -> o11y_one.agentic.v1.DatasetRedactionSectionV1
-	609,  // 1183: o11y_one.agentic.v1.DatasetCaseQualitySignalsV1.duplication:type_name -> o11y_one.agentic.v1.DatasetDuplicationSectionV1
-	612,  // 1184: o11y_one.agentic.v1.DatasetCaseQualitySignalsV1.leakage:type_name -> o11y_one.agentic.v1.DatasetLeakageSectionV1
-	614,  // 1185: o11y_one.agentic.v1.DatasetCaseQualitySignalsV1.slices:type_name -> o11y_one.agentic.v1.DatasetSliceSectionV1
-	607,  // 1186: o11y_one.agentic.v1.ChangesetQualitySignalsV1.redaction:type_name -> o11y_one.agentic.v1.DatasetRedactionSectionV1
-	609,  // 1187: o11y_one.agentic.v1.ChangesetQualitySignalsV1.duplication:type_name -> o11y_one.agentic.v1.DatasetDuplicationSectionV1
-	612,  // 1188: o11y_one.agentic.v1.ChangesetQualitySignalsV1.leakage:type_name -> o11y_one.agentic.v1.DatasetLeakageSectionV1
-	614,  // 1189: o11y_one.agentic.v1.ChangesetQualitySignalsV1.slices:type_name -> o11y_one.agentic.v1.DatasetSliceSectionV1
-	318,  // 1190: o11y_one.agentic.v1.ChangesetQualitySignalsV1.findings:type_name -> o11y_one.agentic.v1.DataQualityFindingV1
+	622,  // 1180: o11y_one.agentic.v1.DatasetSliceSectionV1.observations:type_name -> o11y_one.agentic.v1.DatasetSliceObservationV1
+	174,  // 1181: o11y_one.agentic.v1.DatasetSliceSectionV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	616,  // 1182: o11y_one.agentic.v1.DatasetCaseQualitySignalsV1.redaction:type_name -> o11y_one.agentic.v1.DatasetRedactionSectionV1
+	618,  // 1183: o11y_one.agentic.v1.DatasetCaseQualitySignalsV1.duplication:type_name -> o11y_one.agentic.v1.DatasetDuplicationSectionV1
+	621,  // 1184: o11y_one.agentic.v1.DatasetCaseQualitySignalsV1.leakage:type_name -> o11y_one.agentic.v1.DatasetLeakageSectionV1
+	623,  // 1185: o11y_one.agentic.v1.DatasetCaseQualitySignalsV1.slices:type_name -> o11y_one.agentic.v1.DatasetSliceSectionV1
+	616,  // 1186: o11y_one.agentic.v1.ChangesetQualitySignalsV1.redaction:type_name -> o11y_one.agentic.v1.DatasetRedactionSectionV1
+	618,  // 1187: o11y_one.agentic.v1.ChangesetQualitySignalsV1.duplication:type_name -> o11y_one.agentic.v1.DatasetDuplicationSectionV1
+	621,  // 1188: o11y_one.agentic.v1.ChangesetQualitySignalsV1.leakage:type_name -> o11y_one.agentic.v1.DatasetLeakageSectionV1
+	623,  // 1189: o11y_one.agentic.v1.ChangesetQualitySignalsV1.slices:type_name -> o11y_one.agentic.v1.DatasetSliceSectionV1
+	327,  // 1190: o11y_one.agentic.v1.ChangesetQualitySignalsV1.findings:type_name -> o11y_one.agentic.v1.DataQualityFindingV1
 	136,  // 1191: o11y_one.agentic.v1.DatasetSchemaFieldV1.value_kind:type_name -> o11y_one.agentic.v1.DatasetSchemaValueKindV1
 	136,  // 1192: o11y_one.agentic.v1.DatasetSliceDimensionV1.value_kind:type_name -> o11y_one.agentic.v1.DatasetSchemaValueKindV1
 	136,  // 1193: o11y_one.agentic.v1.DatasetSchemaMetadataKeyV1.value_kind:type_name -> o11y_one.agentic.v1.DatasetSchemaValueKindV1
 	137,  // 1194: o11y_one.agentic.v1.DatasetSchemaShapeV1.compatibility_policy:type_name -> o11y_one.agentic.v1.DatasetSchemaCompatibilityPolicyV1
-	617,  // 1195: o11y_one.agentic.v1.DatasetSchemaShapeV1.input_fields:type_name -> o11y_one.agentic.v1.DatasetSchemaFieldV1
-	617,  // 1196: o11y_one.agentic.v1.DatasetSchemaShapeV1.expected_output_fields:type_name -> o11y_one.agentic.v1.DatasetSchemaFieldV1
-	618,  // 1197: o11y_one.agentic.v1.DatasetSchemaShapeV1.slice_dimensions:type_name -> o11y_one.agentic.v1.DatasetSliceDimensionV1
-	619,  // 1198: o11y_one.agentic.v1.DatasetSchemaShapeV1.metadata_keys:type_name -> o11y_one.agentic.v1.DatasetSchemaMetadataKeyV1
-	620,  // 1199: o11y_one.agentic.v1.DatasetSchemaShapeV1.mapping_rules:type_name -> o11y_one.agentic.v1.DatasetSchemaMappingRuleV1
-	621,  // 1200: o11y_one.agentic.v1.DatasetSchemaRevisionV1.shape:type_name -> o11y_one.agentic.v1.DatasetSchemaShapeV1
-	695,  // 1201: o11y_one.agentic.v1.DatasetSchemaRevisionV1.created_at:type_name -> google.protobuf.Timestamp
+	626,  // 1195: o11y_one.agentic.v1.DatasetSchemaShapeV1.input_fields:type_name -> o11y_one.agentic.v1.DatasetSchemaFieldV1
+	626,  // 1196: o11y_one.agentic.v1.DatasetSchemaShapeV1.expected_output_fields:type_name -> o11y_one.agentic.v1.DatasetSchemaFieldV1
+	627,  // 1197: o11y_one.agentic.v1.DatasetSchemaShapeV1.slice_dimensions:type_name -> o11y_one.agentic.v1.DatasetSliceDimensionV1
+	628,  // 1198: o11y_one.agentic.v1.DatasetSchemaShapeV1.metadata_keys:type_name -> o11y_one.agentic.v1.DatasetSchemaMetadataKeyV1
+	629,  // 1199: o11y_one.agentic.v1.DatasetSchemaShapeV1.mapping_rules:type_name -> o11y_one.agentic.v1.DatasetSchemaMappingRuleV1
+	630,  // 1200: o11y_one.agentic.v1.DatasetSchemaRevisionV1.shape:type_name -> o11y_one.agentic.v1.DatasetSchemaShapeV1
+	774,  // 1201: o11y_one.agentic.v1.DatasetSchemaRevisionV1.created_at:type_name -> google.protobuf.Timestamp
 	139,  // 1202: o11y_one.agentic.v1.DatasetSchemaChangeV1.kind:type_name -> o11y_one.agentic.v1.DatasetSchemaChangeKindV1
 	136,  // 1203: o11y_one.agentic.v1.DatasetSchemaChangeV1.from_value_kind:type_name -> o11y_one.agentic.v1.DatasetSchemaValueKindV1
 	136,  // 1204: o11y_one.agentic.v1.DatasetSchemaChangeV1.to_value_kind:type_name -> o11y_one.agentic.v1.DatasetSchemaValueKindV1
 	138,  // 1205: o11y_one.agentic.v1.DatasetSchemaCompatibilityVerdictV1.verdict:type_name -> o11y_one.agentic.v1.DatasetSchemaCompatibilityVerdictKindV1
 	137,  // 1206: o11y_one.agentic.v1.DatasetSchemaCompatibilityVerdictV1.policy_applied:type_name -> o11y_one.agentic.v1.DatasetSchemaCompatibilityPolicyV1
-	623,  // 1207: o11y_one.agentic.v1.DatasetSchemaCompatibilityVerdictV1.changes:type_name -> o11y_one.agentic.v1.DatasetSchemaChangeV1
-	165,  // 1208: o11y_one.agentic.v1.DatasetCaseRecentPerformanceV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	695,  // 1209: o11y_one.agentic.v1.DatasetCaseRecentPerformanceV1.latest_run_at:type_name -> google.protobuf.Timestamp
+	632,  // 1207: o11y_one.agentic.v1.DatasetSchemaCompatibilityVerdictV1.changes:type_name -> o11y_one.agentic.v1.DatasetSchemaChangeV1
+	174,  // 1208: o11y_one.agentic.v1.DatasetCaseRecentPerformanceV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	774,  // 1209: o11y_one.agentic.v1.DatasetCaseRecentPerformanceV1.latest_run_at:type_name -> google.protobuf.Timestamp
 	141,  // 1210: o11y_one.agentic.v1.DatasetCaseRecentPerformanceV1.latest_result:type_name -> o11y_one.agentic.v1.DatasetCaseResultPostureV1
 	140,  // 1211: o11y_one.agentic.v1.DatasetCaseRecentPerformanceV1.regression:type_name -> o11y_one.agentic.v1.DatasetCaseRegressionPostureV1
-	164,  // 1212: o11y_one.agentic.v1.DatasetCaseRecentPerformanceV1.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	165,  // 1213: o11y_one.agentic.v1.DatasetCaseContentRefV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	173,  // 1212: o11y_one.agentic.v1.DatasetCaseRecentPerformanceV1.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	174,  // 1213: o11y_one.agentic.v1.DatasetCaseContentRefV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
 	145,  // 1214: o11y_one.agentic.v1.DatasetCaseLineageV1.anchor_kind:type_name -> o11y_one.agentic.v1.DatasetCaseLineageAnchorKindV1
 	144,  // 1215: o11y_one.agentic.v1.DatasetCaseLineageV1.anchor_availability:type_name -> o11y_one.agentic.v1.DatasetLineageAnchorAvailabilityV1
-	626,  // 1216: o11y_one.agentic.v1.DatasetCaseLineageV1.content_refs:type_name -> o11y_one.agentic.v1.DatasetCaseContentRefV1
-	165,  // 1217: o11y_one.agentic.v1.DatasetCaseArtifactSourceCoverageV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	695,  // 1218: o11y_one.agentic.v1.DatasetCaseArtifactSummaryV1.observed_at:type_name -> google.protobuf.Timestamp
-	628,  // 1219: o11y_one.agentic.v1.DatasetCaseArtifactPostureV1.source_coverage:type_name -> o11y_one.agentic.v1.DatasetCaseArtifactSourceCoverageV1
-	629,  // 1220: o11y_one.agentic.v1.DatasetCaseArtifactPostureV1.artifacts:type_name -> o11y_one.agentic.v1.DatasetCaseArtifactSummaryV1
+	635,  // 1216: o11y_one.agentic.v1.DatasetCaseLineageV1.content_refs:type_name -> o11y_one.agentic.v1.DatasetCaseContentRefV1
+	174,  // 1217: o11y_one.agentic.v1.DatasetCaseArtifactSourceCoverageV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	774,  // 1218: o11y_one.agentic.v1.DatasetCaseArtifactSummaryV1.observed_at:type_name -> google.protobuf.Timestamp
+	637,  // 1219: o11y_one.agentic.v1.DatasetCaseArtifactPostureV1.source_coverage:type_name -> o11y_one.agentic.v1.DatasetCaseArtifactSourceCoverageV1
+	638,  // 1220: o11y_one.agentic.v1.DatasetCaseArtifactPostureV1.artifacts:type_name -> o11y_one.agentic.v1.DatasetCaseArtifactSummaryV1
 	82,   // 1221: o11y_one.agentic.v1.DatasetCaseSummaryV1.source_kind:type_name -> o11y_one.agentic.v1.EvaluationCaptureSourceKindV1
 	142,  // 1222: o11y_one.agentic.v1.DatasetCaseSummaryV1.completeness:type_name -> o11y_one.agentic.v1.DatasetCaseCompletenessStateV1
-	458,  // 1223: o11y_one.agentic.v1.DatasetCaseSummaryV1.absences:type_name -> o11y_one.agentic.v1.EvaluationDatasetCaseAbsenceV1
-	165,  // 1224: o11y_one.agentic.v1.DatasetCaseSummaryV1.review_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	625,  // 1225: o11y_one.agentic.v1.DatasetCaseSummaryV1.recent_performance:type_name -> o11y_one.agentic.v1.DatasetCaseRecentPerformanceV1
+	467,  // 1223: o11y_one.agentic.v1.DatasetCaseSummaryV1.absences:type_name -> o11y_one.agentic.v1.EvaluationDatasetCaseAbsenceV1
+	174,  // 1224: o11y_one.agentic.v1.DatasetCaseSummaryV1.review_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	634,  // 1225: o11y_one.agentic.v1.DatasetCaseSummaryV1.recent_performance:type_name -> o11y_one.agentic.v1.DatasetCaseRecentPerformanceV1
 	144,  // 1226: o11y_one.agentic.v1.DatasetCaseSummaryV1.anchor_availability:type_name -> o11y_one.agentic.v1.DatasetLineageAnchorAvailabilityV1
-	695,  // 1227: o11y_one.agentic.v1.DatasetCaseSummaryV1.created_at:type_name -> google.protobuf.Timestamp
-	695,  // 1228: o11y_one.agentic.v1.DatasetCaseMembershipV1.created_at:type_name -> google.protobuf.Timestamp
-	631,  // 1229: o11y_one.agentic.v1.DatasetCaseV1.summary:type_name -> o11y_one.agentic.v1.DatasetCaseSummaryV1
+	774,  // 1227: o11y_one.agentic.v1.DatasetCaseSummaryV1.created_at:type_name -> google.protobuf.Timestamp
+	774,  // 1228: o11y_one.agentic.v1.DatasetCaseMembershipV1.created_at:type_name -> google.protobuf.Timestamp
+	640,  // 1229: o11y_one.agentic.v1.DatasetCaseV1.summary:type_name -> o11y_one.agentic.v1.DatasetCaseSummaryV1
 	143,  // 1230: o11y_one.agentic.v1.DatasetCaseV1.identity_source:type_name -> o11y_one.agentic.v1.DatasetCaseIdentitySourceV1
-	172,  // 1231: o11y_one.agentic.v1.DatasetCaseV1.mapping:type_name -> o11y_one.agentic.v1.DatasetFieldMappingV1
-	627,  // 1232: o11y_one.agentic.v1.DatasetCaseV1.lineage:type_name -> o11y_one.agentic.v1.DatasetCaseLineageV1
-	630,  // 1233: o11y_one.agentic.v1.DatasetCaseV1.artifact_posture:type_name -> o11y_one.agentic.v1.DatasetCaseArtifactPostureV1
-	632,  // 1234: o11y_one.agentic.v1.DatasetCaseV1.memberships:type_name -> o11y_one.agentic.v1.DatasetCaseMembershipV1
-	622,  // 1235: o11y_one.agentic.v1.DatasetCaseV1.schema_revision:type_name -> o11y_one.agentic.v1.DatasetSchemaRevisionV1
-	165,  // 1236: o11y_one.agentic.v1.DatasetCaseV1.schema_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	634,  // 1237: o11y_one.agentic.v1.DatasetQualityProjectionV1.slice_coverage:type_name -> o11y_one.agentic.v1.DatasetQualitySliceCoverageV1
-	165,  // 1238: o11y_one.agentic.v1.DatasetQualityProjectionV1.slice_coverage_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	165,  // 1239: o11y_one.agentic.v1.DatasetQualityProjectionV1.missing_ground_truth_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	165,  // 1240: o11y_one.agentic.v1.DatasetQualityProjectionV1.duplicate_density_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	165,  // 1241: o11y_one.agentic.v1.DatasetQualityProjectionV1.production_drift_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	165,  // 1242: o11y_one.agentic.v1.DatasetQualityProjectionV1.leakage_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	165,  // 1243: o11y_one.agentic.v1.DatasetQualityProjectionV1.source_completeness_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	164,  // 1244: o11y_one.agentic.v1.DatasetQualityProjectionV1.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	695,  // 1245: o11y_one.agentic.v1.DatasetVersionSummaryV1.picker_retired_at:type_name -> google.protobuf.Timestamp
-	695,  // 1246: o11y_one.agentic.v1.DatasetVersionSummaryV1.created_at:type_name -> google.protobuf.Timestamp
-	695,  // 1247: o11y_one.agentic.v1.DatasetUsageRowV1.first_prepared_at:type_name -> google.protobuf.Timestamp
-	622,  // 1248: o11y_one.agentic.v1.GetDatasetSchemaRevisionResponse.revision:type_name -> o11y_one.agentic.v1.DatasetSchemaRevisionV1
-	624,  // 1249: o11y_one.agentic.v1.GetDatasetSchemaRevisionResponse.compatibility_with_active:type_name -> o11y_one.agentic.v1.DatasetSchemaCompatibilityVerdictV1
-	170,  // 1250: o11y_one.agentic.v1.GetDatasetSchemaRevisionResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	631,  // 1251: o11y_one.agentic.v1.ListDatasetCasesResponse.cases:type_name -> o11y_one.agentic.v1.DatasetCaseSummaryV1
-	164,  // 1252: o11y_one.agentic.v1.ListDatasetCasesResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	170,  // 1253: o11y_one.agentic.v1.ListDatasetCasesResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	633,  // 1254: o11y_one.agentic.v1.GetDatasetCaseResponse.dataset_case:type_name -> o11y_one.agentic.v1.DatasetCaseV1
-	164,  // 1255: o11y_one.agentic.v1.GetDatasetCaseResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	170,  // 1256: o11y_one.agentic.v1.GetDatasetCaseResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	636,  // 1257: o11y_one.agentic.v1.GetDatasetOverviewResponse.active_version:type_name -> o11y_one.agentic.v1.DatasetVersionSummaryV1
-	165,  // 1258: o11y_one.agentic.v1.GetDatasetOverviewResponse.active_version_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	622,  // 1259: o11y_one.agentic.v1.GetDatasetOverviewResponse.schema_revision:type_name -> o11y_one.agentic.v1.DatasetSchemaRevisionV1
-	165,  // 1260: o11y_one.agentic.v1.GetDatasetOverviewResponse.schema_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	635,  // 1261: o11y_one.agentic.v1.GetDatasetOverviewResponse.quality:type_name -> o11y_one.agentic.v1.DatasetQualityProjectionV1
-	165,  // 1262: o11y_one.agentic.v1.GetDatasetOverviewResponse.quality_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	164,  // 1263: o11y_one.agentic.v1.GetDatasetOverviewResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	170,  // 1264: o11y_one.agentic.v1.GetDatasetOverviewResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	636,  // 1265: o11y_one.agentic.v1.ListEvaluationDatasetVersionsResponse.versions:type_name -> o11y_one.agentic.v1.DatasetVersionSummaryV1
-	164,  // 1266: o11y_one.agentic.v1.ListEvaluationDatasetVersionsResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	170,  // 1267: o11y_one.agentic.v1.ListEvaluationDatasetVersionsResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	637,  // 1268: o11y_one.agentic.v1.ListDatasetUsageResponse.usage:type_name -> o11y_one.agentic.v1.DatasetUsageRowV1
-	164,  // 1269: o11y_one.agentic.v1.ListDatasetUsageResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	170,  // 1270: o11y_one.agentic.v1.ListDatasetUsageResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	146,  // 1271: o11y_one.agentic.v1.DatasetCaseDraftConflictV1.current_state:type_name -> o11y_one.agentic.v1.DatasetCaseDraftStateV1
-	150,  // 1272: o11y_one.agentic.v1.DatasetDraftRefusalV1.kind:type_name -> o11y_one.agentic.v1.DatasetDraftRefusalKindV1
-	25,   // 1273: o11y_one.agentic.v1.DatasetDraftRefusalV1.recovery:type_name -> o11y_one.agentic.v1.RecoveryActionV1
-	650,  // 1274: o11y_one.agentic.v1.DatasetDraftRefusalV1.conflict:type_name -> o11y_one.agentic.v1.DatasetCaseDraftConflictV1
-	146,  // 1275: o11y_one.agentic.v1.DatasetDraftRefusalV1.from_state:type_name -> o11y_one.agentic.v1.DatasetCaseDraftStateV1
-	146,  // 1276: o11y_one.agentic.v1.DatasetDraftRefusalV1.to_state:type_name -> o11y_one.agentic.v1.DatasetCaseDraftStateV1
-	432,  // 1277: o11y_one.agentic.v1.DatasetCaseDraftLineageV1.provenance:type_name -> o11y_one.agentic.v1.EvaluationCaptureProvenanceV1
-	165,  // 1278: o11y_one.agentic.v1.DatasetCaseDraftLineageV1.source_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	439,  // 1279: o11y_one.agentic.v1.DatasetCaseDraftLineageV1.source_content_refs:type_name -> o11y_one.agentic.v1.EvaluationSpanContentHydrationV1
-	433,  // 1280: o11y_one.agentic.v1.DatasetCaseDraftLineageV1.selections:type_name -> o11y_one.agentic.v1.EvaluationCaptureFieldSelectionV1
-	146,  // 1281: o11y_one.agentic.v1.DatasetCaseDraftV1.state:type_name -> o11y_one.agentic.v1.DatasetCaseDraftStateV1
-	82,   // 1282: o11y_one.agentic.v1.DatasetCaseDraftV1.source_kind:type_name -> o11y_one.agentic.v1.EvaluationCaptureSourceKindV1
-	652,  // 1283: o11y_one.agentic.v1.DatasetCaseDraftV1.lineage:type_name -> o11y_one.agentic.v1.DatasetCaseDraftLineageV1
-	165,  // 1284: o11y_one.agentic.v1.DatasetCaseDraftV1.input_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	165,  // 1285: o11y_one.agentic.v1.DatasetCaseDraftV1.expected_output_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	165,  // 1286: o11y_one.agentic.v1.DatasetCaseDraftV1.recorded_output_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	163,  // 1287: o11y_one.agentic.v1.DatasetCaseDraftV1.reviewer:type_name -> o11y_one.agentic.v1.PrincipalRefV1
-	695,  // 1288: o11y_one.agentic.v1.DatasetCaseDraftV1.reservation_expires_at:type_name -> google.protobuf.Timestamp
-	148,  // 1289: o11y_one.agentic.v1.DatasetCaseDraftV1.review_outcome:type_name -> o11y_one.agentic.v1.DatasetCaseReviewOutcomeV1
-	149,  // 1290: o11y_one.agentic.v1.DatasetCaseDraftV1.rejection_reason:type_name -> o11y_one.agentic.v1.DatasetCaseDraftRejectionReasonV1
-	615,  // 1291: o11y_one.agentic.v1.DatasetCaseDraftV1.quality:type_name -> o11y_one.agentic.v1.DatasetCaseQualitySignalsV1
-	695,  // 1292: o11y_one.agentic.v1.DatasetCaseDraftV1.reviewed_at:type_name -> google.protobuf.Timestamp
-	695,  // 1293: o11y_one.agentic.v1.DatasetCaseDraftV1.published_at:type_name -> google.protobuf.Timestamp
-	695,  // 1294: o11y_one.agentic.v1.DatasetCaseDraftV1.state_changed_at:type_name -> google.protobuf.Timestamp
-	695,  // 1295: o11y_one.agentic.v1.DatasetCaseDraftV1.created_at:type_name -> google.protobuf.Timestamp
-	147,  // 1296: o11y_one.agentic.v1.DatasetChangesetV1.state:type_name -> o11y_one.agentic.v1.DatasetChangesetStateV1
-	695,  // 1297: o11y_one.agentic.v1.DatasetChangesetV1.preview_computed_at:type_name -> google.protobuf.Timestamp
-	695,  // 1298: o11y_one.agentic.v1.DatasetChangesetV1.created_at:type_name -> google.protobuf.Timestamp
-	695,  // 1299: o11y_one.agentic.v1.DatasetChangesetV1.updated_at:type_name -> google.protobuf.Timestamp
-	654,  // 1300: o11y_one.agentic.v1.DatasetChangesetPreviewV1.changeset:type_name -> o11y_one.agentic.v1.DatasetChangesetV1
-	624,  // 1301: o11y_one.agentic.v1.DatasetChangesetPreviewV1.schema_compatibility:type_name -> o11y_one.agentic.v1.DatasetSchemaCompatibilityVerdictV1
-	610,  // 1302: o11y_one.agentic.v1.DatasetChangesetPreviewV1.dedupe_resolutions:type_name -> o11y_one.agentic.v1.DedupeResolutionV1
-	318,  // 1303: o11y_one.agentic.v1.DatasetChangesetPreviewV1.conflicts:type_name -> o11y_one.agentic.v1.DataQualityFindingV1
-	655,  // 1304: o11y_one.agentic.v1.DatasetChangesetPreviewV1.linked_evaluation_plan:type_name -> o11y_one.agentic.v1.DatasetPublishLinkedEvaluationV1
-	616,  // 1305: o11y_one.agentic.v1.DatasetChangesetPreviewV1.quality:type_name -> o11y_one.agentic.v1.ChangesetQualitySignalsV1
-	459,  // 1306: o11y_one.agentic.v1.DatasetPublishResultV1.version:type_name -> o11y_one.agentic.v1.EvaluationDatasetVersionV1
-	654,  // 1307: o11y_one.agentic.v1.DatasetPublishResultV1.changeset:type_name -> o11y_one.agentic.v1.DatasetChangesetV1
-	655,  // 1308: o11y_one.agentic.v1.DatasetPublishResultV1.dispatch_obligations:type_name -> o11y_one.agentic.v1.DatasetPublishLinkedEvaluationV1
-	460,  // 1309: o11y_one.agentic.v1.DatasetPublishResultV1.rollover:type_name -> o11y_one.agentic.v1.EvaluationDatasetRolloverV1
-	653,  // 1310: o11y_one.agentic.v1.GetDatasetCaseDraftResponse.draft:type_name -> o11y_one.agentic.v1.DatasetCaseDraftV1
-	164,  // 1311: o11y_one.agentic.v1.GetDatasetCaseDraftResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	170,  // 1312: o11y_one.agentic.v1.GetDatasetCaseDraftResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	146,  // 1313: o11y_one.agentic.v1.ListDatasetCaseDraftsRequest.states:type_name -> o11y_one.agentic.v1.DatasetCaseDraftStateV1
-	653,  // 1314: o11y_one.agentic.v1.ListDatasetCaseDraftsResponse.drafts:type_name -> o11y_one.agentic.v1.DatasetCaseDraftV1
-	164,  // 1315: o11y_one.agentic.v1.ListDatasetCaseDraftsResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	170,  // 1316: o11y_one.agentic.v1.ListDatasetCaseDraftsResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	653,  // 1317: o11y_one.agentic.v1.UpdateDatasetCaseDraftResponse.draft:type_name -> o11y_one.agentic.v1.DatasetCaseDraftV1
-	170,  // 1318: o11y_one.agentic.v1.UpdateDatasetCaseDraftResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	653,  // 1319: o11y_one.agentic.v1.ApproveDatasetCaseDraftResponse.draft:type_name -> o11y_one.agentic.v1.DatasetCaseDraftV1
-	654,  // 1320: o11y_one.agentic.v1.ApproveDatasetCaseDraftResponse.changeset:type_name -> o11y_one.agentic.v1.DatasetChangesetV1
-	170,  // 1321: o11y_one.agentic.v1.ApproveDatasetCaseDraftResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	149,  // 1322: o11y_one.agentic.v1.RejectDatasetCaseDraftRequest.reason:type_name -> o11y_one.agentic.v1.DatasetCaseDraftRejectionReasonV1
-	653,  // 1323: o11y_one.agentic.v1.RejectDatasetCaseDraftResponse.draft:type_name -> o11y_one.agentic.v1.DatasetCaseDraftV1
-	170,  // 1324: o11y_one.agentic.v1.RejectDatasetCaseDraftResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	653,  // 1325: o11y_one.agentic.v1.MergeDatasetCaseDraftResponse.draft:type_name -> o11y_one.agentic.v1.DatasetCaseDraftV1
-	170,  // 1326: o11y_one.agentic.v1.MergeDatasetCaseDraftResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	656,  // 1327: o11y_one.agentic.v1.PreviewPublishDatasetChangesetResponse.preview:type_name -> o11y_one.agentic.v1.DatasetChangesetPreviewV1
-	164,  // 1328: o11y_one.agentic.v1.PreviewPublishDatasetChangesetResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	170,  // 1329: o11y_one.agentic.v1.PreviewPublishDatasetChangesetResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	657,  // 1330: o11y_one.agentic.v1.PublishDatasetCaseDraftsResponse.result:type_name -> o11y_one.agentic.v1.DatasetPublishResultV1
-	170,  // 1331: o11y_one.agentic.v1.PublishDatasetCaseDraftsResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	675,  // 1332: o11y_one.agentic.v1.PreviewProductionEvaluationRuleRequest.draft:type_name -> o11y_one.agentic.v1.ProductionRulePreviewDraftSubjectV1
-	504,  // 1333: o11y_one.agentic.v1.ProductionRulePreviewDraftSubjectV1.version:type_name -> o11y_one.agentic.v1.ProductionRuleVersionDraftV1
-	99,   // 1334: o11y_one.agentic.v1.ProductionRulePreviewDraftSubjectV1.assumed_state:type_name -> o11y_one.agentic.v1.ProductionRuleVersionStateV1
-	695,  // 1335: o11y_one.agentic.v1.ProductionRulePreviewWindowV1.window_start:type_name -> google.protobuf.Timestamp
-	695,  // 1336: o11y_one.agentic.v1.ProductionRulePreviewWindowV1.window_end:type_name -> google.protobuf.Timestamp
-	151,  // 1337: o11y_one.agentic.v1.ProductionRulePreviewWindowV1.observation_basis:type_name -> o11y_one.agentic.v1.ProductionRulePreviewObservationBasisV1
-	1,    // 1338: o11y_one.agentic.v1.ProductionRulePreviewWindowV1.population_completeness:type_name -> o11y_one.agentic.v1.CompletenessStateV1
-	677,  // 1339: o11y_one.agentic.v1.ProductionRulePreviewWindowV1.cumulative_counts:type_name -> o11y_one.agentic.v1.ProductionRulePreviewCumulativeCountsV1
-	165,  // 1340: o11y_one.agentic.v1.ProductionRulePreviewIdleBucketV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	678,  // 1341: o11y_one.agentic.v1.ProductionRulePreviewBucketsV1.eligible:type_name -> o11y_one.agentic.v1.ProductionRulePreviewBucketV1
-	678,  // 1342: o11y_one.agentic.v1.ProductionRulePreviewBucketsV1.matched:type_name -> o11y_one.agentic.v1.ProductionRulePreviewBucketV1
-	678,  // 1343: o11y_one.agentic.v1.ProductionRulePreviewBucketsV1.sampled:type_name -> o11y_one.agentic.v1.ProductionRulePreviewBucketV1
-	678,  // 1344: o11y_one.agentic.v1.ProductionRulePreviewBucketsV1.sampled_out:type_name -> o11y_one.agentic.v1.ProductionRulePreviewBucketV1
-	678,  // 1345: o11y_one.agentic.v1.ProductionRulePreviewBucketsV1.budget_blocked:type_name -> o11y_one.agentic.v1.ProductionRulePreviewBucketV1
-	678,  // 1346: o11y_one.agentic.v1.ProductionRulePreviewBucketsV1.already_executed:type_name -> o11y_one.agentic.v1.ProductionRulePreviewBucketV1
-	679,  // 1347: o11y_one.agentic.v1.ProductionRulePreviewBucketsV1.idle:type_name -> o11y_one.agentic.v1.ProductionRulePreviewIdleBucketV1
-	171,  // 1348: o11y_one.agentic.v1.ProductionRulePreviewEstimateV1.evaluator_cost:type_name -> o11y_one.agentic.v1.CostAmountV1
-	165,  // 1349: o11y_one.agentic.v1.ProductionRulePreviewEstimateV1.evaluator_cost_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	250,  // 1350: o11y_one.agentic.v1.ProductionRulePreviewEstimateV1.cost_assumption:type_name -> o11y_one.agentic.v1.EvaluationCostAssumptionV1
-	153,  // 1351: o11y_one.agentic.v1.ProductionRulePreviewPromotionImplicationV1.redaction_posture:type_name -> o11y_one.agentic.v1.ProductionRulePreviewRedactionPostureV1
-	154,  // 1352: o11y_one.agentic.v1.ProductionRulePreviewLinkedEvaluationImplicationV1.revision_pin:type_name -> o11y_one.agentic.v1.ProductionRulePreviewRevisionPinV1
-	165,  // 1353: o11y_one.agentic.v1.ProductionRulePreviewLinkedEvaluationImplicationV1.candidate_cost_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	171,  // 1354: o11y_one.agentic.v1.ProductionRulePreviewLinkedEvaluationImplicationV1.candidate_cost:type_name -> o11y_one.agentic.v1.CostAmountV1
-	113,  // 1355: o11y_one.agentic.v1.ProductionRulePreviewReleaseBlockImplicationV1.clear_condition:type_name -> o11y_one.agentic.v1.ProductionReleaseBlockClearConditionV1
-	100,  // 1356: o11y_one.agentic.v1.ProductionRulePreviewActionCandidateV1.action_kind:type_name -> o11y_one.agentic.v1.ProductionRuleActionKindV1
-	500,  // 1357: o11y_one.agentic.v1.ProductionRulePreviewActionCandidateV1.condition:type_name -> o11y_one.agentic.v1.ProductionRuleActionConditionV1
-	601,  // 1358: o11y_one.agentic.v1.ProductionRulePreviewActionCandidateV1.target:type_name -> o11y_one.agentic.v1.ProductionRuleActionTargetV1
-	152,  // 1359: o11y_one.agentic.v1.ProductionRulePreviewActionCandidateV1.target_resolution:type_name -> o11y_one.agentic.v1.ProductionRulePreviewTargetResolutionV1
-	165,  // 1360: o11y_one.agentic.v1.ProductionRulePreviewActionCandidateV1.dispatch_count_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	683,  // 1361: o11y_one.agentic.v1.ProductionRulePreviewActionCandidateV1.promotion:type_name -> o11y_one.agentic.v1.ProductionRulePreviewPromotionImplicationV1
-	684,  // 1362: o11y_one.agentic.v1.ProductionRulePreviewActionCandidateV1.review:type_name -> o11y_one.agentic.v1.ProductionRulePreviewReviewImplicationV1
-	685,  // 1363: o11y_one.agentic.v1.ProductionRulePreviewActionCandidateV1.linked_evaluation:type_name -> o11y_one.agentic.v1.ProductionRulePreviewLinkedEvaluationImplicationV1
-	686,  // 1364: o11y_one.agentic.v1.ProductionRulePreviewActionCandidateV1.notify:type_name -> o11y_one.agentic.v1.ProductionRulePreviewNotifyImplicationV1
-	687,  // 1365: o11y_one.agentic.v1.ProductionRulePreviewActionCandidateV1.release_block:type_name -> o11y_one.agentic.v1.ProductionRulePreviewReleaseBlockImplicationV1
-	155,  // 1366: o11y_one.agentic.v1.ProductionRulePreviewZeroMatchV1.reason:type_name -> o11y_one.agentic.v1.ProductionRulePreviewZeroMatchReasonV1
-	100,  // 1367: o11y_one.agentic.v1.ProductionRulePreviewWarningV1.action_kind:type_name -> o11y_one.agentic.v1.ProductionRuleActionKindV1
-	99,   // 1368: o11y_one.agentic.v1.ProductionRulePreviewSubjectV1.evaluated_state:type_name -> o11y_one.agentic.v1.ProductionRuleVersionStateV1
-	110,  // 1369: o11y_one.agentic.v1.ProductionRulePreviewOfferV1.predicted_admission:type_name -> o11y_one.agentic.v1.ProductionWorkflowAdmissionV1
-	695,  // 1370: o11y_one.agentic.v1.ProductionRulePreviewOfferV1.observed_at:type_name -> google.protobuf.Timestamp
-	691,  // 1371: o11y_one.agentic.v1.PreviewProductionEvaluationRuleResponse.subject:type_name -> o11y_one.agentic.v1.ProductionRulePreviewSubjectV1
-	676,  // 1372: o11y_one.agentic.v1.PreviewProductionEvaluationRuleResponse.window:type_name -> o11y_one.agentic.v1.ProductionRulePreviewWindowV1
-	680,  // 1373: o11y_one.agentic.v1.PreviewProductionEvaluationRuleResponse.buckets:type_name -> o11y_one.agentic.v1.ProductionRulePreviewBucketsV1
-	681,  // 1374: o11y_one.agentic.v1.PreviewProductionEvaluationRuleResponse.estimate:type_name -> o11y_one.agentic.v1.ProductionRulePreviewEstimateV1
-	682,  // 1375: o11y_one.agentic.v1.PreviewProductionEvaluationRuleResponse.budget_posture:type_name -> o11y_one.agentic.v1.ProductionRulePreviewBudgetPostureV1
-	688,  // 1376: o11y_one.agentic.v1.PreviewProductionEvaluationRuleResponse.action_candidates:type_name -> o11y_one.agentic.v1.ProductionRulePreviewActionCandidateV1
-	689,  // 1377: o11y_one.agentic.v1.PreviewProductionEvaluationRuleResponse.zero_match:type_name -> o11y_one.agentic.v1.ProductionRulePreviewZeroMatchV1
-	690,  // 1378: o11y_one.agentic.v1.PreviewProductionEvaluationRuleResponse.warnings:type_name -> o11y_one.agentic.v1.ProductionRulePreviewWarningV1
-	692,  // 1379: o11y_one.agentic.v1.PreviewProductionEvaluationRuleResponse.offers:type_name -> o11y_one.agentic.v1.ProductionRulePreviewOfferV1
-	164,  // 1380: o11y_one.agentic.v1.PreviewProductionEvaluationRuleResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	170,  // 1381: o11y_one.agentic.v1.PreviewProductionEvaluationRuleResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	156,  // 1382: o11y_one.agentic.v1.ProductionRulePreviewRefusalV1.kind:type_name -> o11y_one.agentic.v1.ProductionRulePreviewRefusalKindV1
-	25,   // 1383: o11y_one.agentic.v1.ProductionRulePreviewRefusalV1.recovery:type_name -> o11y_one.agentic.v1.RecoveryActionV1
-	208,  // 1384: o11y_one.agentic.v1.AgenticEvaluationService.CreateEvaluationDefinition:input_type -> o11y_one.agentic.v1.CreateEvaluationDefinitionRequest
-	211,  // 1385: o11y_one.agentic.v1.AgenticEvaluationService.UpdateEvaluationDefinition:input_type -> o11y_one.agentic.v1.UpdateEvaluationDefinitionRequest
-	213,  // 1386: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationDefinition:input_type -> o11y_one.agentic.v1.GetEvaluationDefinitionRequest
-	215,  // 1387: o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationDefinitions:input_type -> o11y_one.agentic.v1.ListEvaluationDefinitionsRequest
-	224,  // 1388: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationBuilderContext:input_type -> o11y_one.agentic.v1.GetEvaluationBuilderContextRequest
-	263,  // 1389: o11y_one.agentic.v1.AgenticEvaluationService.PreviewEvaluationRun:input_type -> o11y_one.agentic.v1.PreviewEvaluationRunRequest
-	265,  // 1390: o11y_one.agentic.v1.AgenticEvaluationService.CreateEvaluationRun:input_type -> o11y_one.agentic.v1.CreateEvaluationRunRequest
-	268,  // 1391: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationOperation:input_type -> o11y_one.agentic.v1.GetEvaluationOperationRequest
-	270,  // 1392: o11y_one.agentic.v1.AgenticEvaluationService.CancelEvaluationRun:input_type -> o11y_one.agentic.v1.CancelEvaluationRunRequest
-	331,  // 1393: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationRunOverview:input_type -> o11y_one.agentic.v1.GetEvaluationRunOverviewRequest
-	275,  // 1394: o11y_one.agentic.v1.AgenticEvaluationService.PreviewRetryEvaluationCells:input_type -> o11y_one.agentic.v1.PreviewRetryEvaluationCellsRequest
-	277,  // 1395: o11y_one.agentic.v1.AgenticEvaluationService.RetryEvaluationCells:input_type -> o11y_one.agentic.v1.RetryEvaluationCellsRequest
-	333,  // 1396: o11y_one.agentic.v1.AgenticEvaluationService.PreviewEvaluationDecision:input_type -> o11y_one.agentic.v1.PreviewEvaluationDecisionRequest
-	335,  // 1397: o11y_one.agentic.v1.AgenticEvaluationService.AdoptEvaluationDecisionRevision:input_type -> o11y_one.agentic.v1.AdoptEvaluationDecisionRevisionRequest
-	344,  // 1398: o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationMatrixRows:input_type -> o11y_one.agentic.v1.ListEvaluationMatrixRowsRequest
-	353,  // 1399: o11y_one.agentic.v1.AgenticEvaluationService.BatchGetEvaluationCellDetails:input_type -> o11y_one.agentic.v1.BatchGetEvaluationCellDetailsRequest
-	364,  // 1400: o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationRunChanges:input_type -> o11y_one.agentic.v1.ListEvaluationRunChangesRequest
-	369,  // 1401: o11y_one.agentic.v1.AgenticEvaluationService.GetExecutionArtifactContent:input_type -> o11y_one.agentic.v1.GetEvaluationArtifactContentRequest
-	371,  // 1402: o11y_one.agentic.v1.AgenticEvaluationService.BatchGetExecutionArtifactContents:input_type -> o11y_one.agentic.v1.BatchGetEvaluationArtifactContentsRequest
-	384,  // 1403: o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationReviewTasks:input_type -> o11y_one.agentic.v1.ListEvaluationReviewTasksRequest
-	386,  // 1404: o11y_one.agentic.v1.AgenticEvaluationService.ClaimEvaluationReviewTasks:input_type -> o11y_one.agentic.v1.ClaimEvaluationReviewTasksRequest
-	388,  // 1405: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationReviewTask:input_type -> o11y_one.agentic.v1.GetEvaluationReviewTaskRequest
-	390,  // 1406: o11y_one.agentic.v1.AgenticEvaluationService.SubmitEvaluationReview:input_type -> o11y_one.agentic.v1.SubmitEvaluationReviewRequest
-	393,  // 1407: o11y_one.agentic.v1.AgenticEvaluationService.CreateEvaluationExport:input_type -> o11y_one.agentic.v1.CreateEvaluationExportRequest
-	395,  // 1408: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationExport:input_type -> o11y_one.agentic.v1.GetEvaluationExportRequest
-	398,  // 1409: o11y_one.agentic.v1.AgenticEvaluationService.CreateEvaluationShare:input_type -> o11y_one.agentic.v1.CreateEvaluationShareRequest
-	400,  // 1410: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationShare:input_type -> o11y_one.agentic.v1.GetEvaluationShareRequest
-	402,  // 1411: o11y_one.agentic.v1.AgenticEvaluationService.RevokeEvaluationShare:input_type -> o11y_one.agentic.v1.RevokeEvaluationShareRequest
-	407,  // 1412: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationOperationBreakdown:input_type -> o11y_one.agentic.v1.GetEvaluationOperationBreakdownRequest
-	410,  // 1413: o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationDefinitionRevisions:input_type -> o11y_one.agentic.v1.ListEvaluationDefinitionRevisionsRequest
-	413,  // 1414: o11y_one.agentic.v1.AgenticEvaluationService.AdjudicateEvaluationReviewConflict:input_type -> o11y_one.agentic.v1.AdjudicateEvaluationReviewConflictRequest
-	282,  // 1415: o11y_one.agentic.v1.AgenticEvaluationService.PreviewRetryEvaluationScorers:input_type -> o11y_one.agentic.v1.PreviewRetryEvaluationScorersRequest
-	284,  // 1416: o11y_one.agentic.v1.AgenticEvaluationService.RetryEvaluationScorers:input_type -> o11y_one.agentic.v1.RetryEvaluationScorersRequest
-	416,  // 1417: o11y_one.agentic.v1.AgenticEvaluationService.RecordEvaluationOrgNegotiatedRate:input_type -> o11y_one.agentic.v1.RecordEvaluationOrgNegotiatedRateRequest
-	418,  // 1418: o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationOrgNegotiatedRates:input_type -> o11y_one.agentic.v1.ListEvaluationOrgNegotiatedRatesRequest
-	420,  // 1419: o11y_one.agentic.v1.AgenticEvaluationService.EndEvaluationOrgNegotiatedRate:input_type -> o11y_one.agentic.v1.EndEvaluationOrgNegotiatedRateRequest
-	422,  // 1420: o11y_one.agentic.v1.AgenticEvaluationService.VoidEvaluationOrgNegotiatedRate:input_type -> o11y_one.agentic.v1.VoidEvaluationOrgNegotiatedRateRequest
-	428,  // 1421: o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationScoreSeries:input_type -> o11y_one.agentic.v1.ListEvaluationScoreSeriesRequest
-	437,  // 1422: o11y_one.agentic.v1.AgenticEvaluationService.CaptureEvaluationCase:input_type -> o11y_one.agentic.v1.CaptureEvaluationCaseRequest
-	445,  // 1423: o11y_one.agentic.v1.AgenticEvaluationService.RegisterEvaluationProviderCredential:input_type -> o11y_one.agentic.v1.RegisterEvaluationProviderCredentialRequest
-	456,  // 1424: o11y_one.agentic.v1.AgenticEvaluationService.CreateEvaluationScorerConfig:input_type -> o11y_one.agentic.v1.CreateEvaluationScorerConfigRequest
-	462,  // 1425: o11y_one.agentic.v1.AgenticEvaluationService.CreateEvaluationDatasetVersion:input_type -> o11y_one.agentic.v1.CreateEvaluationDatasetVersionRequest
-	464,  // 1426: o11y_one.agentic.v1.AgenticEvaluationService.SetEvaluationProviderCredentialEnabled:input_type -> o11y_one.agentic.v1.SetEvaluationProviderCredentialEnabledRequest
-	469,  // 1427: o11y_one.agentic.v1.AgenticEvaluationService.CreateEvaluationScorerSuite:input_type -> o11y_one.agentic.v1.CreateEvaluationScorerSuiteRequest
-	479,  // 1428: o11y_one.agentic.v1.AgenticEvaluationService.RequestEvaluationJudgeRegrade:input_type -> o11y_one.agentic.v1.RequestEvaluationJudgeRegradeRequest
-	481,  // 1429: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationJudgeRegradeJob:input_type -> o11y_one.agentic.v1.GetEvaluationJudgeRegradeJobRequest
-	484,  // 1430: o11y_one.agentic.v1.AgenticEvaluationService.PreviewEvaluationJudgeRegrade:input_type -> o11y_one.agentic.v1.PreviewEvaluationJudgeRegradeRequest
-	488,  // 1431: o11y_one.agentic.v1.AgenticEvaluationService.CancelEvaluationJudgeRegradeJob:input_type -> o11y_one.agentic.v1.CancelEvaluationJudgeRegradeJobRequest
-	492,  // 1432: o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationRuns:input_type -> o11y_one.agentic.v1.ListEvaluationRunsRequest
-	495,  // 1433: o11y_one.agentic.v1.AgenticEvaluationService.ReleaseEvaluationReviewTasks:input_type -> o11y_one.agentic.v1.ReleaseEvaluationReviewTasksRequest
-	497,  // 1434: o11y_one.agentic.v1.AgenticEvaluationService.RequeueEvaluationReviewTasks:input_type -> o11y_one.agentic.v1.RequeueEvaluationReviewTasksRequest
-	441,  // 1435: o11y_one.agentic.v1.AgenticEvaluationService.PreviewEvaluationCaseCapture:input_type -> o11y_one.agentic.v1.PreviewEvaluationCaseCaptureRequest
-	518,  // 1436: o11y_one.agentic.v1.AgenticEvaluationService.ListProductionEvaluationRules:input_type -> o11y_one.agentic.v1.ListProductionEvaluationRulesRequest
-	520,  // 1437: o11y_one.agentic.v1.AgenticEvaluationService.GetProductionEvaluationRule:input_type -> o11y_one.agentic.v1.GetProductionEvaluationRuleRequest
-	512,  // 1438: o11y_one.agentic.v1.AgenticEvaluationService.CreateProductionEvaluationRule:input_type -> o11y_one.agentic.v1.CreateProductionEvaluationRuleRequest
-	514,  // 1439: o11y_one.agentic.v1.AgenticEvaluationService.CreateProductionEvaluationRuleVersion:input_type -> o11y_one.agentic.v1.CreateProductionEvaluationRuleVersionRequest
-	516,  // 1440: o11y_one.agentic.v1.AgenticEvaluationService.SetProductionEvaluationRuleVersionState:input_type -> o11y_one.agentic.v1.SetProductionEvaluationRuleVersionStateRequest
-	674,  // 1441: o11y_one.agentic.v1.AgenticEvaluationService.PreviewProductionEvaluationRule:input_type -> o11y_one.agentic.v1.PreviewProductionEvaluationRuleRequest
-	533,  // 1442: o11y_one.agentic.v1.AgenticEvaluationService.ListProductionEvaluationWorkflowExecutions:input_type -> o11y_one.agentic.v1.ListProductionEvaluationWorkflowExecutionsRequest
-	535,  // 1443: o11y_one.agentic.v1.AgenticEvaluationService.GetProductionEvaluationWorkflowExecution:input_type -> o11y_one.agentic.v1.GetProductionEvaluationWorkflowExecutionRequest
-	530,  // 1444: o11y_one.agentic.v1.AgenticEvaluationService.StartProductionEvaluationWorkflow:input_type -> o11y_one.agentic.v1.StartProductionEvaluationWorkflowRequest
-	537,  // 1445: o11y_one.agentic.v1.AgenticEvaluationService.RetryProductionEvaluationWorkflowStep:input_type -> o11y_one.agentic.v1.RetryProductionEvaluationWorkflowStepRequest
-	540,  // 1446: o11y_one.agentic.v1.AgenticEvaluationService.ListProductionEvaluationReleaseBlocks:input_type -> o11y_one.agentic.v1.ListProductionEvaluationReleaseBlocksRequest
-	542,  // 1447: o11y_one.agentic.v1.AgenticEvaluationService.OverrideProductionEvaluationReleaseBlock:input_type -> o11y_one.agentic.v1.OverrideProductionEvaluationReleaseBlockRequest
-	559,  // 1448: o11y_one.agentic.v1.AgenticEvaluationService.CreateReleaseIntegration:input_type -> o11y_one.agentic.v1.CreateReleaseIntegrationRequest
-	561,  // 1449: o11y_one.agentic.v1.AgenticEvaluationService.GetReleaseIntegration:input_type -> o11y_one.agentic.v1.GetReleaseIntegrationRequest
-	564,  // 1450: o11y_one.agentic.v1.AgenticEvaluationService.ListReleaseIntegrations:input_type -> o11y_one.agentic.v1.ListReleaseIntegrationsRequest
-	567,  // 1451: o11y_one.agentic.v1.AgenticEvaluationService.UpdateReleaseIntegration:input_type -> o11y_one.agentic.v1.UpdateReleaseIntegrationRequest
-	569,  // 1452: o11y_one.agentic.v1.AgenticEvaluationService.ArchiveReleaseIntegration:input_type -> o11y_one.agentic.v1.ArchiveReleaseIntegrationRequest
-	573,  // 1453: o11y_one.agentic.v1.AgenticEvaluationService.CreateRelease:input_type -> o11y_one.agentic.v1.CreateReleaseRequest
-	577,  // 1454: o11y_one.agentic.v1.AgenticEvaluationService.GetRelease:input_type -> o11y_one.agentic.v1.GetReleaseRequest
-	580,  // 1455: o11y_one.agentic.v1.AgenticEvaluationService.ListReleases:input_type -> o11y_one.agentic.v1.ListReleasesRequest
-	575,  // 1456: o11y_one.agentic.v1.AgenticEvaluationService.PreviewRelease:input_type -> o11y_one.agentic.v1.PreviewReleaseRequest
-	582,  // 1457: o11y_one.agentic.v1.AgenticEvaluationService.StartReleaseCanary:input_type -> o11y_one.agentic.v1.StartReleaseCanaryRequest
-	584,  // 1458: o11y_one.agentic.v1.AgenticEvaluationService.PromoteRelease:input_type -> o11y_one.agentic.v1.PromoteReleaseRequest
-	586,  // 1459: o11y_one.agentic.v1.AgenticEvaluationService.HoldRelease:input_type -> o11y_one.agentic.v1.HoldReleaseRequest
-	588,  // 1460: o11y_one.agentic.v1.AgenticEvaluationService.AbortRelease:input_type -> o11y_one.agentic.v1.AbortReleaseRequest
-	590,  // 1461: o11y_one.agentic.v1.AgenticEvaluationService.RollbackRelease:input_type -> o11y_one.agentic.v1.RollbackReleaseRequest
-	592,  // 1462: o11y_one.agentic.v1.AgenticEvaluationService.GetReleaseAction:input_type -> o11y_one.agentic.v1.GetReleaseActionRequest
-	595,  // 1463: o11y_one.agentic.v1.AgenticEvaluationService.ListReleaseActions:input_type -> o11y_one.agentic.v1.ListReleaseActionsRequest
-	638,  // 1464: o11y_one.agentic.v1.AgenticEvaluationService.GetDatasetSchemaRevision:input_type -> o11y_one.agentic.v1.GetDatasetSchemaRevisionRequest
-	640,  // 1465: o11y_one.agentic.v1.AgenticEvaluationService.ListDatasetCases:input_type -> o11y_one.agentic.v1.ListDatasetCasesRequest
-	642,  // 1466: o11y_one.agentic.v1.AgenticEvaluationService.GetDatasetCase:input_type -> o11y_one.agentic.v1.GetDatasetCaseRequest
-	644,  // 1467: o11y_one.agentic.v1.AgenticEvaluationService.GetDatasetOverview:input_type -> o11y_one.agentic.v1.GetDatasetOverviewRequest
-	646,  // 1468: o11y_one.agentic.v1.AgenticEvaluationService.ListDatasetVersions:input_type -> o11y_one.agentic.v1.ListEvaluationDatasetVersionsRequest
-	648,  // 1469: o11y_one.agentic.v1.AgenticEvaluationService.ListDatasetUsage:input_type -> o11y_one.agentic.v1.ListDatasetUsageRequest
-	658,  // 1470: o11y_one.agentic.v1.AgenticEvaluationService.GetDatasetCaseDraft:input_type -> o11y_one.agentic.v1.GetDatasetCaseDraftRequest
-	660,  // 1471: o11y_one.agentic.v1.AgenticEvaluationService.ListDatasetCaseDrafts:input_type -> o11y_one.agentic.v1.ListDatasetCaseDraftsRequest
-	662,  // 1472: o11y_one.agentic.v1.AgenticEvaluationService.UpdateDatasetCaseDraft:input_type -> o11y_one.agentic.v1.UpdateDatasetCaseDraftRequest
-	664,  // 1473: o11y_one.agentic.v1.AgenticEvaluationService.ApproveDatasetCaseDraft:input_type -> o11y_one.agentic.v1.ApproveDatasetCaseDraftRequest
-	666,  // 1474: o11y_one.agentic.v1.AgenticEvaluationService.RejectDatasetCaseDraft:input_type -> o11y_one.agentic.v1.RejectDatasetCaseDraftRequest
-	668,  // 1475: o11y_one.agentic.v1.AgenticEvaluationService.MergeDatasetCaseDraft:input_type -> o11y_one.agentic.v1.MergeDatasetCaseDraftRequest
-	670,  // 1476: o11y_one.agentic.v1.AgenticEvaluationService.PreviewPublishDatasetChangeset:input_type -> o11y_one.agentic.v1.PreviewPublishDatasetChangesetRequest
-	672,  // 1477: o11y_one.agentic.v1.AgenticEvaluationService.PublishDatasetCaseDrafts:input_type -> o11y_one.agentic.v1.PublishDatasetCaseDraftsRequest
-	209,  // 1478: o11y_one.agentic.v1.AgenticEvaluationService.CreateEvaluationDefinition:output_type -> o11y_one.agentic.v1.CreateEvaluationDefinitionResponse
-	212,  // 1479: o11y_one.agentic.v1.AgenticEvaluationService.UpdateEvaluationDefinition:output_type -> o11y_one.agentic.v1.UpdateEvaluationDefinitionResponse
-	214,  // 1480: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationDefinition:output_type -> o11y_one.agentic.v1.GetEvaluationDefinitionResponse
-	216,  // 1481: o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationDefinitions:output_type -> o11y_one.agentic.v1.ListEvaluationDefinitionsResponse
-	236,  // 1482: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationBuilderContext:output_type -> o11y_one.agentic.v1.GetEvaluationBuilderContextResponse
-	264,  // 1483: o11y_one.agentic.v1.AgenticEvaluationService.PreviewEvaluationRun:output_type -> o11y_one.agentic.v1.PreviewEvaluationRunResponse
-	266,  // 1484: o11y_one.agentic.v1.AgenticEvaluationService.CreateEvaluationRun:output_type -> o11y_one.agentic.v1.CreateEvaluationRunResponse
-	269,  // 1485: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationOperation:output_type -> o11y_one.agentic.v1.GetEvaluationOperationResponse
-	271,  // 1486: o11y_one.agentic.v1.AgenticEvaluationService.CancelEvaluationRun:output_type -> o11y_one.agentic.v1.CancelEvaluationRunResponse
-	332,  // 1487: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationRunOverview:output_type -> o11y_one.agentic.v1.GetEvaluationRunOverviewResponse
-	276,  // 1488: o11y_one.agentic.v1.AgenticEvaluationService.PreviewRetryEvaluationCells:output_type -> o11y_one.agentic.v1.PreviewRetryEvaluationCellsResponse
-	278,  // 1489: o11y_one.agentic.v1.AgenticEvaluationService.RetryEvaluationCells:output_type -> o11y_one.agentic.v1.RetryEvaluationCellsResponse
-	334,  // 1490: o11y_one.agentic.v1.AgenticEvaluationService.PreviewEvaluationDecision:output_type -> o11y_one.agentic.v1.PreviewEvaluationDecisionResponse
-	336,  // 1491: o11y_one.agentic.v1.AgenticEvaluationService.AdoptEvaluationDecisionRevision:output_type -> o11y_one.agentic.v1.AdoptEvaluationDecisionRevisionResponse
-	345,  // 1492: o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationMatrixRows:output_type -> o11y_one.agentic.v1.ListEvaluationMatrixRowsResponse
-	354,  // 1493: o11y_one.agentic.v1.AgenticEvaluationService.BatchGetEvaluationCellDetails:output_type -> o11y_one.agentic.v1.BatchGetEvaluationCellDetailsResponse
-	365,  // 1494: o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationRunChanges:output_type -> o11y_one.agentic.v1.ListEvaluationRunChangesResponse
-	370,  // 1495: o11y_one.agentic.v1.AgenticEvaluationService.GetExecutionArtifactContent:output_type -> o11y_one.agentic.v1.GetEvaluationArtifactContentResponse
-	372,  // 1496: o11y_one.agentic.v1.AgenticEvaluationService.BatchGetExecutionArtifactContents:output_type -> o11y_one.agentic.v1.BatchGetEvaluationArtifactContentsResponse
-	385,  // 1497: o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationReviewTasks:output_type -> o11y_one.agentic.v1.ListEvaluationReviewTasksResponse
-	387,  // 1498: o11y_one.agentic.v1.AgenticEvaluationService.ClaimEvaluationReviewTasks:output_type -> o11y_one.agentic.v1.ClaimEvaluationReviewTasksResponse
-	389,  // 1499: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationReviewTask:output_type -> o11y_one.agentic.v1.GetEvaluationReviewTaskResponse
-	391,  // 1500: o11y_one.agentic.v1.AgenticEvaluationService.SubmitEvaluationReview:output_type -> o11y_one.agentic.v1.SubmitEvaluationReviewResponse
-	394,  // 1501: o11y_one.agentic.v1.AgenticEvaluationService.CreateEvaluationExport:output_type -> o11y_one.agentic.v1.CreateEvaluationExportResponse
-	396,  // 1502: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationExport:output_type -> o11y_one.agentic.v1.GetEvaluationExportResponse
-	399,  // 1503: o11y_one.agentic.v1.AgenticEvaluationService.CreateEvaluationShare:output_type -> o11y_one.agentic.v1.CreateEvaluationShareResponse
-	401,  // 1504: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationShare:output_type -> o11y_one.agentic.v1.GetEvaluationShareResponse
-	403,  // 1505: o11y_one.agentic.v1.AgenticEvaluationService.RevokeEvaluationShare:output_type -> o11y_one.agentic.v1.RevokeEvaluationShareResponse
-	408,  // 1506: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationOperationBreakdown:output_type -> o11y_one.agentic.v1.GetEvaluationOperationBreakdownResponse
-	411,  // 1507: o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationDefinitionRevisions:output_type -> o11y_one.agentic.v1.ListEvaluationDefinitionRevisionsResponse
-	414,  // 1508: o11y_one.agentic.v1.AgenticEvaluationService.AdjudicateEvaluationReviewConflict:output_type -> o11y_one.agentic.v1.AdjudicateEvaluationReviewConflictResponse
-	283,  // 1509: o11y_one.agentic.v1.AgenticEvaluationService.PreviewRetryEvaluationScorers:output_type -> o11y_one.agentic.v1.PreviewRetryEvaluationScorersResponse
-	286,  // 1510: o11y_one.agentic.v1.AgenticEvaluationService.RetryEvaluationScorers:output_type -> o11y_one.agentic.v1.RetryEvaluationScorersResponse
-	417,  // 1511: o11y_one.agentic.v1.AgenticEvaluationService.RecordEvaluationOrgNegotiatedRate:output_type -> o11y_one.agentic.v1.RecordEvaluationOrgNegotiatedRateResponse
-	419,  // 1512: o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationOrgNegotiatedRates:output_type -> o11y_one.agentic.v1.ListEvaluationOrgNegotiatedRatesResponse
-	421,  // 1513: o11y_one.agentic.v1.AgenticEvaluationService.EndEvaluationOrgNegotiatedRate:output_type -> o11y_one.agentic.v1.EndEvaluationOrgNegotiatedRateResponse
-	423,  // 1514: o11y_one.agentic.v1.AgenticEvaluationService.VoidEvaluationOrgNegotiatedRate:output_type -> o11y_one.agentic.v1.VoidEvaluationOrgNegotiatedRateResponse
-	429,  // 1515: o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationScoreSeries:output_type -> o11y_one.agentic.v1.ListEvaluationScoreSeriesResponse
-	438,  // 1516: o11y_one.agentic.v1.AgenticEvaluationService.CaptureEvaluationCase:output_type -> o11y_one.agentic.v1.CaptureEvaluationCaseResponse
-	446,  // 1517: o11y_one.agentic.v1.AgenticEvaluationService.RegisterEvaluationProviderCredential:output_type -> o11y_one.agentic.v1.RegisterEvaluationProviderCredentialResponse
-	457,  // 1518: o11y_one.agentic.v1.AgenticEvaluationService.CreateEvaluationScorerConfig:output_type -> o11y_one.agentic.v1.CreateEvaluationScorerConfigResponse
-	463,  // 1519: o11y_one.agentic.v1.AgenticEvaluationService.CreateEvaluationDatasetVersion:output_type -> o11y_one.agentic.v1.CreateEvaluationDatasetVersionResponse
-	466,  // 1520: o11y_one.agentic.v1.AgenticEvaluationService.SetEvaluationProviderCredentialEnabled:output_type -> o11y_one.agentic.v1.SetEvaluationProviderCredentialEnabledResponse
-	471,  // 1521: o11y_one.agentic.v1.AgenticEvaluationService.CreateEvaluationScorerSuite:output_type -> o11y_one.agentic.v1.CreateEvaluationScorerSuiteResponse
-	480,  // 1522: o11y_one.agentic.v1.AgenticEvaluationService.RequestEvaluationJudgeRegrade:output_type -> o11y_one.agentic.v1.RequestEvaluationJudgeRegradeResponse
-	482,  // 1523: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationJudgeRegradeJob:output_type -> o11y_one.agentic.v1.GetEvaluationJudgeRegradeJobResponse
-	485,  // 1524: o11y_one.agentic.v1.AgenticEvaluationService.PreviewEvaluationJudgeRegrade:output_type -> o11y_one.agentic.v1.PreviewEvaluationJudgeRegradeResponse
-	489,  // 1525: o11y_one.agentic.v1.AgenticEvaluationService.CancelEvaluationJudgeRegradeJob:output_type -> o11y_one.agentic.v1.CancelEvaluationJudgeRegradeJobResponse
-	493,  // 1526: o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationRuns:output_type -> o11y_one.agentic.v1.ListEvaluationRunsResponse
-	496,  // 1527: o11y_one.agentic.v1.AgenticEvaluationService.ReleaseEvaluationReviewTasks:output_type -> o11y_one.agentic.v1.ReleaseEvaluationReviewTasksResponse
-	498,  // 1528: o11y_one.agentic.v1.AgenticEvaluationService.RequeueEvaluationReviewTasks:output_type -> o11y_one.agentic.v1.RequeueEvaluationReviewTasksResponse
-	442,  // 1529: o11y_one.agentic.v1.AgenticEvaluationService.PreviewEvaluationCaseCapture:output_type -> o11y_one.agentic.v1.PreviewEvaluationCaseCaptureResponse
-	519,  // 1530: o11y_one.agentic.v1.AgenticEvaluationService.ListProductionEvaluationRules:output_type -> o11y_one.agentic.v1.ListProductionEvaluationRulesResponse
-	521,  // 1531: o11y_one.agentic.v1.AgenticEvaluationService.GetProductionEvaluationRule:output_type -> o11y_one.agentic.v1.GetProductionEvaluationRuleResponse
-	513,  // 1532: o11y_one.agentic.v1.AgenticEvaluationService.CreateProductionEvaluationRule:output_type -> o11y_one.agentic.v1.CreateProductionEvaluationRuleResponse
-	515,  // 1533: o11y_one.agentic.v1.AgenticEvaluationService.CreateProductionEvaluationRuleVersion:output_type -> o11y_one.agentic.v1.CreateProductionEvaluationRuleVersionResponse
-	517,  // 1534: o11y_one.agentic.v1.AgenticEvaluationService.SetProductionEvaluationRuleVersionState:output_type -> o11y_one.agentic.v1.SetProductionEvaluationRuleVersionStateResponse
-	693,  // 1535: o11y_one.agentic.v1.AgenticEvaluationService.PreviewProductionEvaluationRule:output_type -> o11y_one.agentic.v1.PreviewProductionEvaluationRuleResponse
-	534,  // 1536: o11y_one.agentic.v1.AgenticEvaluationService.ListProductionEvaluationWorkflowExecutions:output_type -> o11y_one.agentic.v1.ListProductionEvaluationWorkflowExecutionsResponse
-	536,  // 1537: o11y_one.agentic.v1.AgenticEvaluationService.GetProductionEvaluationWorkflowExecution:output_type -> o11y_one.agentic.v1.GetProductionEvaluationWorkflowExecutionResponse
-	531,  // 1538: o11y_one.agentic.v1.AgenticEvaluationService.StartProductionEvaluationWorkflow:output_type -> o11y_one.agentic.v1.StartProductionEvaluationWorkflowResponse
-	538,  // 1539: o11y_one.agentic.v1.AgenticEvaluationService.RetryProductionEvaluationWorkflowStep:output_type -> o11y_one.agentic.v1.RetryProductionEvaluationWorkflowStepResponse
-	541,  // 1540: o11y_one.agentic.v1.AgenticEvaluationService.ListProductionEvaluationReleaseBlocks:output_type -> o11y_one.agentic.v1.ListProductionEvaluationReleaseBlocksResponse
-	543,  // 1541: o11y_one.agentic.v1.AgenticEvaluationService.OverrideProductionEvaluationReleaseBlock:output_type -> o11y_one.agentic.v1.OverrideProductionEvaluationReleaseBlockResponse
-	560,  // 1542: o11y_one.agentic.v1.AgenticEvaluationService.CreateReleaseIntegration:output_type -> o11y_one.agentic.v1.CreateReleaseIntegrationResponse
-	562,  // 1543: o11y_one.agentic.v1.AgenticEvaluationService.GetReleaseIntegration:output_type -> o11y_one.agentic.v1.GetReleaseIntegrationResponse
-	565,  // 1544: o11y_one.agentic.v1.AgenticEvaluationService.ListReleaseIntegrations:output_type -> o11y_one.agentic.v1.ListReleaseIntegrationsResponse
-	568,  // 1545: o11y_one.agentic.v1.AgenticEvaluationService.UpdateReleaseIntegration:output_type -> o11y_one.agentic.v1.UpdateReleaseIntegrationResponse
-	570,  // 1546: o11y_one.agentic.v1.AgenticEvaluationService.ArchiveReleaseIntegration:output_type -> o11y_one.agentic.v1.ArchiveReleaseIntegrationResponse
-	574,  // 1547: o11y_one.agentic.v1.AgenticEvaluationService.CreateRelease:output_type -> o11y_one.agentic.v1.CreateReleaseResponse
-	578,  // 1548: o11y_one.agentic.v1.AgenticEvaluationService.GetRelease:output_type -> o11y_one.agentic.v1.GetReleaseResponse
-	581,  // 1549: o11y_one.agentic.v1.AgenticEvaluationService.ListReleases:output_type -> o11y_one.agentic.v1.ListReleasesResponse
-	576,  // 1550: o11y_one.agentic.v1.AgenticEvaluationService.PreviewRelease:output_type -> o11y_one.agentic.v1.PreviewReleaseResponse
-	583,  // 1551: o11y_one.agentic.v1.AgenticEvaluationService.StartReleaseCanary:output_type -> o11y_one.agentic.v1.StartReleaseCanaryResponse
-	585,  // 1552: o11y_one.agentic.v1.AgenticEvaluationService.PromoteRelease:output_type -> o11y_one.agentic.v1.PromoteReleaseResponse
-	587,  // 1553: o11y_one.agentic.v1.AgenticEvaluationService.HoldRelease:output_type -> o11y_one.agentic.v1.HoldReleaseResponse
-	589,  // 1554: o11y_one.agentic.v1.AgenticEvaluationService.AbortRelease:output_type -> o11y_one.agentic.v1.AbortReleaseResponse
-	591,  // 1555: o11y_one.agentic.v1.AgenticEvaluationService.RollbackRelease:output_type -> o11y_one.agentic.v1.RollbackReleaseResponse
-	593,  // 1556: o11y_one.agentic.v1.AgenticEvaluationService.GetReleaseAction:output_type -> o11y_one.agentic.v1.GetReleaseActionResponse
-	596,  // 1557: o11y_one.agentic.v1.AgenticEvaluationService.ListReleaseActions:output_type -> o11y_one.agentic.v1.ListReleaseActionsResponse
-	639,  // 1558: o11y_one.agentic.v1.AgenticEvaluationService.GetDatasetSchemaRevision:output_type -> o11y_one.agentic.v1.GetDatasetSchemaRevisionResponse
-	641,  // 1559: o11y_one.agentic.v1.AgenticEvaluationService.ListDatasetCases:output_type -> o11y_one.agentic.v1.ListDatasetCasesResponse
-	643,  // 1560: o11y_one.agentic.v1.AgenticEvaluationService.GetDatasetCase:output_type -> o11y_one.agentic.v1.GetDatasetCaseResponse
-	645,  // 1561: o11y_one.agentic.v1.AgenticEvaluationService.GetDatasetOverview:output_type -> o11y_one.agentic.v1.GetDatasetOverviewResponse
-	647,  // 1562: o11y_one.agentic.v1.AgenticEvaluationService.ListDatasetVersions:output_type -> o11y_one.agentic.v1.ListEvaluationDatasetVersionsResponse
-	649,  // 1563: o11y_one.agentic.v1.AgenticEvaluationService.ListDatasetUsage:output_type -> o11y_one.agentic.v1.ListDatasetUsageResponse
-	659,  // 1564: o11y_one.agentic.v1.AgenticEvaluationService.GetDatasetCaseDraft:output_type -> o11y_one.agentic.v1.GetDatasetCaseDraftResponse
-	661,  // 1565: o11y_one.agentic.v1.AgenticEvaluationService.ListDatasetCaseDrafts:output_type -> o11y_one.agentic.v1.ListDatasetCaseDraftsResponse
-	663,  // 1566: o11y_one.agentic.v1.AgenticEvaluationService.UpdateDatasetCaseDraft:output_type -> o11y_one.agentic.v1.UpdateDatasetCaseDraftResponse
-	665,  // 1567: o11y_one.agentic.v1.AgenticEvaluationService.ApproveDatasetCaseDraft:output_type -> o11y_one.agentic.v1.ApproveDatasetCaseDraftResponse
-	667,  // 1568: o11y_one.agentic.v1.AgenticEvaluationService.RejectDatasetCaseDraft:output_type -> o11y_one.agentic.v1.RejectDatasetCaseDraftResponse
-	669,  // 1569: o11y_one.agentic.v1.AgenticEvaluationService.MergeDatasetCaseDraft:output_type -> o11y_one.agentic.v1.MergeDatasetCaseDraftResponse
-	671,  // 1570: o11y_one.agentic.v1.AgenticEvaluationService.PreviewPublishDatasetChangeset:output_type -> o11y_one.agentic.v1.PreviewPublishDatasetChangesetResponse
-	673,  // 1571: o11y_one.agentic.v1.AgenticEvaluationService.PublishDatasetCaseDrafts:output_type -> o11y_one.agentic.v1.PublishDatasetCaseDraftsResponse
-	1478, // [1478:1572] is the sub-list for method output_type
-	1384, // [1384:1478] is the sub-list for method input_type
-	1384, // [1384:1384] is the sub-list for extension type_name
-	1384, // [1384:1384] is the sub-list for extension extendee
-	0,    // [0:1384] is the sub-list for field type_name
+	181,  // 1231: o11y_one.agentic.v1.DatasetCaseV1.mapping:type_name -> o11y_one.agentic.v1.DatasetFieldMappingV1
+	636,  // 1232: o11y_one.agentic.v1.DatasetCaseV1.lineage:type_name -> o11y_one.agentic.v1.DatasetCaseLineageV1
+	639,  // 1233: o11y_one.agentic.v1.DatasetCaseV1.artifact_posture:type_name -> o11y_one.agentic.v1.DatasetCaseArtifactPostureV1
+	641,  // 1234: o11y_one.agentic.v1.DatasetCaseV1.memberships:type_name -> o11y_one.agentic.v1.DatasetCaseMembershipV1
+	631,  // 1235: o11y_one.agentic.v1.DatasetCaseV1.schema_revision:type_name -> o11y_one.agentic.v1.DatasetSchemaRevisionV1
+	174,  // 1236: o11y_one.agentic.v1.DatasetCaseV1.schema_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	643,  // 1237: o11y_one.agentic.v1.DatasetQualityProjectionV1.slice_coverage:type_name -> o11y_one.agentic.v1.DatasetQualitySliceCoverageV1
+	174,  // 1238: o11y_one.agentic.v1.DatasetQualityProjectionV1.slice_coverage_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 1239: o11y_one.agentic.v1.DatasetQualityProjectionV1.missing_ground_truth_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 1240: o11y_one.agentic.v1.DatasetQualityProjectionV1.duplicate_density_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 1241: o11y_one.agentic.v1.DatasetQualityProjectionV1.production_drift_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 1242: o11y_one.agentic.v1.DatasetQualityProjectionV1.leakage_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 1243: o11y_one.agentic.v1.DatasetQualityProjectionV1.source_completeness_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	173,  // 1244: o11y_one.agentic.v1.DatasetQualityProjectionV1.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	774,  // 1245: o11y_one.agentic.v1.DatasetVersionSummaryV1.picker_retired_at:type_name -> google.protobuf.Timestamp
+	774,  // 1246: o11y_one.agentic.v1.DatasetVersionSummaryV1.created_at:type_name -> google.protobuf.Timestamp
+	774,  // 1247: o11y_one.agentic.v1.DatasetUsageRowV1.first_prepared_at:type_name -> google.protobuf.Timestamp
+	631,  // 1248: o11y_one.agentic.v1.GetDatasetSchemaRevisionResponse.revision:type_name -> o11y_one.agentic.v1.DatasetSchemaRevisionV1
+	633,  // 1249: o11y_one.agentic.v1.GetDatasetSchemaRevisionResponse.compatibility_with_active:type_name -> o11y_one.agentic.v1.DatasetSchemaCompatibilityVerdictV1
+	179,  // 1250: o11y_one.agentic.v1.GetDatasetSchemaRevisionResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	640,  // 1251: o11y_one.agentic.v1.ListDatasetCasesResponse.cases:type_name -> o11y_one.agentic.v1.DatasetCaseSummaryV1
+	173,  // 1252: o11y_one.agentic.v1.ListDatasetCasesResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	179,  // 1253: o11y_one.agentic.v1.ListDatasetCasesResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	642,  // 1254: o11y_one.agentic.v1.GetDatasetCaseResponse.dataset_case:type_name -> o11y_one.agentic.v1.DatasetCaseV1
+	173,  // 1255: o11y_one.agentic.v1.GetDatasetCaseResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	179,  // 1256: o11y_one.agentic.v1.GetDatasetCaseResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	645,  // 1257: o11y_one.agentic.v1.GetDatasetOverviewResponse.active_version:type_name -> o11y_one.agentic.v1.DatasetVersionSummaryV1
+	174,  // 1258: o11y_one.agentic.v1.GetDatasetOverviewResponse.active_version_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	631,  // 1259: o11y_one.agentic.v1.GetDatasetOverviewResponse.schema_revision:type_name -> o11y_one.agentic.v1.DatasetSchemaRevisionV1
+	174,  // 1260: o11y_one.agentic.v1.GetDatasetOverviewResponse.schema_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	644,  // 1261: o11y_one.agentic.v1.GetDatasetOverviewResponse.quality:type_name -> o11y_one.agentic.v1.DatasetQualityProjectionV1
+	174,  // 1262: o11y_one.agentic.v1.GetDatasetOverviewResponse.quality_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	173,  // 1263: o11y_one.agentic.v1.GetDatasetOverviewResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	179,  // 1264: o11y_one.agentic.v1.GetDatasetOverviewResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	774,  // 1265: o11y_one.agentic.v1.GetDatasetOverviewResponse.created_at:type_name -> google.protobuf.Timestamp
+	645,  // 1266: o11y_one.agentic.v1.ListEvaluationDatasetVersionsResponse.versions:type_name -> o11y_one.agentic.v1.DatasetVersionSummaryV1
+	173,  // 1267: o11y_one.agentic.v1.ListEvaluationDatasetVersionsResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	179,  // 1268: o11y_one.agentic.v1.ListEvaluationDatasetVersionsResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	646,  // 1269: o11y_one.agentic.v1.ListDatasetUsageResponse.usage:type_name -> o11y_one.agentic.v1.DatasetUsageRowV1
+	173,  // 1270: o11y_one.agentic.v1.ListDatasetUsageResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	179,  // 1271: o11y_one.agentic.v1.ListDatasetUsageResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	146,  // 1272: o11y_one.agentic.v1.DatasetCaseDraftConflictV1.current_state:type_name -> o11y_one.agentic.v1.DatasetCaseDraftStateV1
+	150,  // 1273: o11y_one.agentic.v1.DatasetDraftRefusalV1.kind:type_name -> o11y_one.agentic.v1.DatasetDraftRefusalKindV1
+	25,   // 1274: o11y_one.agentic.v1.DatasetDraftRefusalV1.recovery:type_name -> o11y_one.agentic.v1.RecoveryActionV1
+	659,  // 1275: o11y_one.agentic.v1.DatasetDraftRefusalV1.conflict:type_name -> o11y_one.agentic.v1.DatasetCaseDraftConflictV1
+	146,  // 1276: o11y_one.agentic.v1.DatasetDraftRefusalV1.from_state:type_name -> o11y_one.agentic.v1.DatasetCaseDraftStateV1
+	146,  // 1277: o11y_one.agentic.v1.DatasetDraftRefusalV1.to_state:type_name -> o11y_one.agentic.v1.DatasetCaseDraftStateV1
+	441,  // 1278: o11y_one.agentic.v1.DatasetCaseDraftLineageV1.provenance:type_name -> o11y_one.agentic.v1.EvaluationCaptureProvenanceV1
+	174,  // 1279: o11y_one.agentic.v1.DatasetCaseDraftLineageV1.source_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	448,  // 1280: o11y_one.agentic.v1.DatasetCaseDraftLineageV1.source_content_refs:type_name -> o11y_one.agentic.v1.EvaluationSpanContentHydrationV1
+	442,  // 1281: o11y_one.agentic.v1.DatasetCaseDraftLineageV1.selections:type_name -> o11y_one.agentic.v1.EvaluationCaptureFieldSelectionV1
+	146,  // 1282: o11y_one.agentic.v1.DatasetCaseDraftV1.state:type_name -> o11y_one.agentic.v1.DatasetCaseDraftStateV1
+	82,   // 1283: o11y_one.agentic.v1.DatasetCaseDraftV1.source_kind:type_name -> o11y_one.agentic.v1.EvaluationCaptureSourceKindV1
+	661,  // 1284: o11y_one.agentic.v1.DatasetCaseDraftV1.lineage:type_name -> o11y_one.agentic.v1.DatasetCaseDraftLineageV1
+	174,  // 1285: o11y_one.agentic.v1.DatasetCaseDraftV1.input_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 1286: o11y_one.agentic.v1.DatasetCaseDraftV1.expected_output_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 1287: o11y_one.agentic.v1.DatasetCaseDraftV1.recorded_output_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	172,  // 1288: o11y_one.agentic.v1.DatasetCaseDraftV1.reviewer:type_name -> o11y_one.agentic.v1.PrincipalRefV1
+	774,  // 1289: o11y_one.agentic.v1.DatasetCaseDraftV1.reservation_expires_at:type_name -> google.protobuf.Timestamp
+	148,  // 1290: o11y_one.agentic.v1.DatasetCaseDraftV1.review_outcome:type_name -> o11y_one.agentic.v1.DatasetCaseReviewOutcomeV1
+	149,  // 1291: o11y_one.agentic.v1.DatasetCaseDraftV1.rejection_reason:type_name -> o11y_one.agentic.v1.DatasetCaseDraftRejectionReasonV1
+	624,  // 1292: o11y_one.agentic.v1.DatasetCaseDraftV1.quality:type_name -> o11y_one.agentic.v1.DatasetCaseQualitySignalsV1
+	774,  // 1293: o11y_one.agentic.v1.DatasetCaseDraftV1.reviewed_at:type_name -> google.protobuf.Timestamp
+	774,  // 1294: o11y_one.agentic.v1.DatasetCaseDraftV1.published_at:type_name -> google.protobuf.Timestamp
+	774,  // 1295: o11y_one.agentic.v1.DatasetCaseDraftV1.state_changed_at:type_name -> google.protobuf.Timestamp
+	774,  // 1296: o11y_one.agentic.v1.DatasetCaseDraftV1.created_at:type_name -> google.protobuf.Timestamp
+	147,  // 1297: o11y_one.agentic.v1.DatasetChangesetV1.state:type_name -> o11y_one.agentic.v1.DatasetChangesetStateV1
+	774,  // 1298: o11y_one.agentic.v1.DatasetChangesetV1.preview_computed_at:type_name -> google.protobuf.Timestamp
+	774,  // 1299: o11y_one.agentic.v1.DatasetChangesetV1.created_at:type_name -> google.protobuf.Timestamp
+	774,  // 1300: o11y_one.agentic.v1.DatasetChangesetV1.updated_at:type_name -> google.protobuf.Timestamp
+	663,  // 1301: o11y_one.agentic.v1.DatasetChangesetPreviewV1.changeset:type_name -> o11y_one.agentic.v1.DatasetChangesetV1
+	633,  // 1302: o11y_one.agentic.v1.DatasetChangesetPreviewV1.schema_compatibility:type_name -> o11y_one.agentic.v1.DatasetSchemaCompatibilityVerdictV1
+	619,  // 1303: o11y_one.agentic.v1.DatasetChangesetPreviewV1.dedupe_resolutions:type_name -> o11y_one.agentic.v1.DedupeResolutionV1
+	327,  // 1304: o11y_one.agentic.v1.DatasetChangesetPreviewV1.conflicts:type_name -> o11y_one.agentic.v1.DataQualityFindingV1
+	664,  // 1305: o11y_one.agentic.v1.DatasetChangesetPreviewV1.linked_evaluation_plan:type_name -> o11y_one.agentic.v1.DatasetPublishLinkedEvaluationV1
+	625,  // 1306: o11y_one.agentic.v1.DatasetChangesetPreviewV1.quality:type_name -> o11y_one.agentic.v1.ChangesetQualitySignalsV1
+	468,  // 1307: o11y_one.agentic.v1.DatasetPublishResultV1.version:type_name -> o11y_one.agentic.v1.EvaluationDatasetVersionV1
+	663,  // 1308: o11y_one.agentic.v1.DatasetPublishResultV1.changeset:type_name -> o11y_one.agentic.v1.DatasetChangesetV1
+	664,  // 1309: o11y_one.agentic.v1.DatasetPublishResultV1.dispatch_obligations:type_name -> o11y_one.agentic.v1.DatasetPublishLinkedEvaluationV1
+	469,  // 1310: o11y_one.agentic.v1.DatasetPublishResultV1.rollover:type_name -> o11y_one.agentic.v1.EvaluationDatasetRolloverV1
+	662,  // 1311: o11y_one.agentic.v1.GetDatasetCaseDraftResponse.draft:type_name -> o11y_one.agentic.v1.DatasetCaseDraftV1
+	173,  // 1312: o11y_one.agentic.v1.GetDatasetCaseDraftResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	179,  // 1313: o11y_one.agentic.v1.GetDatasetCaseDraftResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	146,  // 1314: o11y_one.agentic.v1.ListDatasetCaseDraftsRequest.states:type_name -> o11y_one.agentic.v1.DatasetCaseDraftStateV1
+	662,  // 1315: o11y_one.agentic.v1.ListDatasetCaseDraftsResponse.drafts:type_name -> o11y_one.agentic.v1.DatasetCaseDraftV1
+	173,  // 1316: o11y_one.agentic.v1.ListDatasetCaseDraftsResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	179,  // 1317: o11y_one.agentic.v1.ListDatasetCaseDraftsResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	662,  // 1318: o11y_one.agentic.v1.UpdateDatasetCaseDraftResponse.draft:type_name -> o11y_one.agentic.v1.DatasetCaseDraftV1
+	179,  // 1319: o11y_one.agentic.v1.UpdateDatasetCaseDraftResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	662,  // 1320: o11y_one.agentic.v1.ApproveDatasetCaseDraftResponse.draft:type_name -> o11y_one.agentic.v1.DatasetCaseDraftV1
+	663,  // 1321: o11y_one.agentic.v1.ApproveDatasetCaseDraftResponse.changeset:type_name -> o11y_one.agentic.v1.DatasetChangesetV1
+	179,  // 1322: o11y_one.agentic.v1.ApproveDatasetCaseDraftResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	149,  // 1323: o11y_one.agentic.v1.RejectDatasetCaseDraftRequest.reason:type_name -> o11y_one.agentic.v1.DatasetCaseDraftRejectionReasonV1
+	662,  // 1324: o11y_one.agentic.v1.RejectDatasetCaseDraftResponse.draft:type_name -> o11y_one.agentic.v1.DatasetCaseDraftV1
+	179,  // 1325: o11y_one.agentic.v1.RejectDatasetCaseDraftResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	662,  // 1326: o11y_one.agentic.v1.MergeDatasetCaseDraftResponse.draft:type_name -> o11y_one.agentic.v1.DatasetCaseDraftV1
+	179,  // 1327: o11y_one.agentic.v1.MergeDatasetCaseDraftResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	665,  // 1328: o11y_one.agentic.v1.PreviewPublishDatasetChangesetResponse.preview:type_name -> o11y_one.agentic.v1.DatasetChangesetPreviewV1
+	173,  // 1329: o11y_one.agentic.v1.PreviewPublishDatasetChangesetResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	179,  // 1330: o11y_one.agentic.v1.PreviewPublishDatasetChangesetResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	666,  // 1331: o11y_one.agentic.v1.PublishDatasetCaseDraftsResponse.result:type_name -> o11y_one.agentic.v1.DatasetPublishResultV1
+	179,  // 1332: o11y_one.agentic.v1.PublishDatasetCaseDraftsResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	684,  // 1333: o11y_one.agentic.v1.PreviewProductionEvaluationRuleRequest.draft:type_name -> o11y_one.agentic.v1.ProductionRulePreviewDraftSubjectV1
+	513,  // 1334: o11y_one.agentic.v1.ProductionRulePreviewDraftSubjectV1.version:type_name -> o11y_one.agentic.v1.ProductionRuleVersionDraftV1
+	99,   // 1335: o11y_one.agentic.v1.ProductionRulePreviewDraftSubjectV1.assumed_state:type_name -> o11y_one.agentic.v1.ProductionRuleVersionStateV1
+	774,  // 1336: o11y_one.agentic.v1.ProductionRulePreviewWindowV1.window_start:type_name -> google.protobuf.Timestamp
+	774,  // 1337: o11y_one.agentic.v1.ProductionRulePreviewWindowV1.window_end:type_name -> google.protobuf.Timestamp
+	151,  // 1338: o11y_one.agentic.v1.ProductionRulePreviewWindowV1.observation_basis:type_name -> o11y_one.agentic.v1.ProductionRulePreviewObservationBasisV1
+	1,    // 1339: o11y_one.agentic.v1.ProductionRulePreviewWindowV1.population_completeness:type_name -> o11y_one.agentic.v1.CompletenessStateV1
+	686,  // 1340: o11y_one.agentic.v1.ProductionRulePreviewWindowV1.cumulative_counts:type_name -> o11y_one.agentic.v1.ProductionRulePreviewCumulativeCountsV1
+	174,  // 1341: o11y_one.agentic.v1.ProductionRulePreviewIdleBucketV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	687,  // 1342: o11y_one.agentic.v1.ProductionRulePreviewBucketsV1.eligible:type_name -> o11y_one.agentic.v1.ProductionRulePreviewBucketV1
+	687,  // 1343: o11y_one.agentic.v1.ProductionRulePreviewBucketsV1.matched:type_name -> o11y_one.agentic.v1.ProductionRulePreviewBucketV1
+	687,  // 1344: o11y_one.agentic.v1.ProductionRulePreviewBucketsV1.sampled:type_name -> o11y_one.agentic.v1.ProductionRulePreviewBucketV1
+	687,  // 1345: o11y_one.agentic.v1.ProductionRulePreviewBucketsV1.sampled_out:type_name -> o11y_one.agentic.v1.ProductionRulePreviewBucketV1
+	687,  // 1346: o11y_one.agentic.v1.ProductionRulePreviewBucketsV1.budget_blocked:type_name -> o11y_one.agentic.v1.ProductionRulePreviewBucketV1
+	687,  // 1347: o11y_one.agentic.v1.ProductionRulePreviewBucketsV1.already_executed:type_name -> o11y_one.agentic.v1.ProductionRulePreviewBucketV1
+	688,  // 1348: o11y_one.agentic.v1.ProductionRulePreviewBucketsV1.idle:type_name -> o11y_one.agentic.v1.ProductionRulePreviewIdleBucketV1
+	180,  // 1349: o11y_one.agentic.v1.ProductionRulePreviewEstimateV1.evaluator_cost:type_name -> o11y_one.agentic.v1.CostAmountV1
+	174,  // 1350: o11y_one.agentic.v1.ProductionRulePreviewEstimateV1.evaluator_cost_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	259,  // 1351: o11y_one.agentic.v1.ProductionRulePreviewEstimateV1.cost_assumption:type_name -> o11y_one.agentic.v1.EvaluationCostAssumptionV1
+	153,  // 1352: o11y_one.agentic.v1.ProductionRulePreviewPromotionImplicationV1.redaction_posture:type_name -> o11y_one.agentic.v1.ProductionRulePreviewRedactionPostureV1
+	154,  // 1353: o11y_one.agentic.v1.ProductionRulePreviewLinkedEvaluationImplicationV1.revision_pin:type_name -> o11y_one.agentic.v1.ProductionRulePreviewRevisionPinV1
+	174,  // 1354: o11y_one.agentic.v1.ProductionRulePreviewLinkedEvaluationImplicationV1.candidate_cost_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	180,  // 1355: o11y_one.agentic.v1.ProductionRulePreviewLinkedEvaluationImplicationV1.candidate_cost:type_name -> o11y_one.agentic.v1.CostAmountV1
+	113,  // 1356: o11y_one.agentic.v1.ProductionRulePreviewReleaseBlockImplicationV1.clear_condition:type_name -> o11y_one.agentic.v1.ProductionReleaseBlockClearConditionV1
+	100,  // 1357: o11y_one.agentic.v1.ProductionRulePreviewActionCandidateV1.action_kind:type_name -> o11y_one.agentic.v1.ProductionRuleActionKindV1
+	509,  // 1358: o11y_one.agentic.v1.ProductionRulePreviewActionCandidateV1.condition:type_name -> o11y_one.agentic.v1.ProductionRuleActionConditionV1
+	610,  // 1359: o11y_one.agentic.v1.ProductionRulePreviewActionCandidateV1.target:type_name -> o11y_one.agentic.v1.ProductionRuleActionTargetV1
+	152,  // 1360: o11y_one.agentic.v1.ProductionRulePreviewActionCandidateV1.target_resolution:type_name -> o11y_one.agentic.v1.ProductionRulePreviewTargetResolutionV1
+	174,  // 1361: o11y_one.agentic.v1.ProductionRulePreviewActionCandidateV1.dispatch_count_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	692,  // 1362: o11y_one.agentic.v1.ProductionRulePreviewActionCandidateV1.promotion:type_name -> o11y_one.agentic.v1.ProductionRulePreviewPromotionImplicationV1
+	693,  // 1363: o11y_one.agentic.v1.ProductionRulePreviewActionCandidateV1.review:type_name -> o11y_one.agentic.v1.ProductionRulePreviewReviewImplicationV1
+	694,  // 1364: o11y_one.agentic.v1.ProductionRulePreviewActionCandidateV1.linked_evaluation:type_name -> o11y_one.agentic.v1.ProductionRulePreviewLinkedEvaluationImplicationV1
+	695,  // 1365: o11y_one.agentic.v1.ProductionRulePreviewActionCandidateV1.notify:type_name -> o11y_one.agentic.v1.ProductionRulePreviewNotifyImplicationV1
+	696,  // 1366: o11y_one.agentic.v1.ProductionRulePreviewActionCandidateV1.release_block:type_name -> o11y_one.agentic.v1.ProductionRulePreviewReleaseBlockImplicationV1
+	155,  // 1367: o11y_one.agentic.v1.ProductionRulePreviewZeroMatchV1.reason:type_name -> o11y_one.agentic.v1.ProductionRulePreviewZeroMatchReasonV1
+	100,  // 1368: o11y_one.agentic.v1.ProductionRulePreviewWarningV1.action_kind:type_name -> o11y_one.agentic.v1.ProductionRuleActionKindV1
+	99,   // 1369: o11y_one.agentic.v1.ProductionRulePreviewSubjectV1.evaluated_state:type_name -> o11y_one.agentic.v1.ProductionRuleVersionStateV1
+	110,  // 1370: o11y_one.agentic.v1.ProductionRulePreviewOfferV1.predicted_admission:type_name -> o11y_one.agentic.v1.ProductionWorkflowAdmissionV1
+	774,  // 1371: o11y_one.agentic.v1.ProductionRulePreviewOfferV1.observed_at:type_name -> google.protobuf.Timestamp
+	700,  // 1372: o11y_one.agentic.v1.PreviewProductionEvaluationRuleResponse.subject:type_name -> o11y_one.agentic.v1.ProductionRulePreviewSubjectV1
+	685,  // 1373: o11y_one.agentic.v1.PreviewProductionEvaluationRuleResponse.window:type_name -> o11y_one.agentic.v1.ProductionRulePreviewWindowV1
+	689,  // 1374: o11y_one.agentic.v1.PreviewProductionEvaluationRuleResponse.buckets:type_name -> o11y_one.agentic.v1.ProductionRulePreviewBucketsV1
+	690,  // 1375: o11y_one.agentic.v1.PreviewProductionEvaluationRuleResponse.estimate:type_name -> o11y_one.agentic.v1.ProductionRulePreviewEstimateV1
+	691,  // 1376: o11y_one.agentic.v1.PreviewProductionEvaluationRuleResponse.budget_posture:type_name -> o11y_one.agentic.v1.ProductionRulePreviewBudgetPostureV1
+	697,  // 1377: o11y_one.agentic.v1.PreviewProductionEvaluationRuleResponse.action_candidates:type_name -> o11y_one.agentic.v1.ProductionRulePreviewActionCandidateV1
+	698,  // 1378: o11y_one.agentic.v1.PreviewProductionEvaluationRuleResponse.zero_match:type_name -> o11y_one.agentic.v1.ProductionRulePreviewZeroMatchV1
+	699,  // 1379: o11y_one.agentic.v1.PreviewProductionEvaluationRuleResponse.warnings:type_name -> o11y_one.agentic.v1.ProductionRulePreviewWarningV1
+	701,  // 1380: o11y_one.agentic.v1.PreviewProductionEvaluationRuleResponse.offers:type_name -> o11y_one.agentic.v1.ProductionRulePreviewOfferV1
+	173,  // 1381: o11y_one.agentic.v1.PreviewProductionEvaluationRuleResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	179,  // 1382: o11y_one.agentic.v1.PreviewProductionEvaluationRuleResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	156,  // 1383: o11y_one.agentic.v1.ProductionRulePreviewRefusalV1.kind:type_name -> o11y_one.agentic.v1.ProductionRulePreviewRefusalKindV1
+	25,   // 1384: o11y_one.agentic.v1.ProductionRulePreviewRefusalV1.recovery:type_name -> o11y_one.agentic.v1.RecoveryActionV1
+	158,  // 1385: o11y_one.agentic.v1.MachinePrincipalV1.scopes:type_name -> o11y_one.agentic.v1.MachinePrincipalScopeV1
+	159,  // 1386: o11y_one.agentic.v1.MachinePrincipalV1.state:type_name -> o11y_one.agentic.v1.MachinePrincipalStateV1
+	172,  // 1387: o11y_one.agentic.v1.MachinePrincipalV1.created_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
+	774,  // 1388: o11y_one.agentic.v1.MachinePrincipalV1.created_at:type_name -> google.protobuf.Timestamp
+	774,  // 1389: o11y_one.agentic.v1.MachinePrincipalV1.updated_at:type_name -> google.protobuf.Timestamp
+	774,  // 1390: o11y_one.agentic.v1.MachinePrincipalV1.last_used_at:type_name -> google.protobuf.Timestamp
+	160,  // 1391: o11y_one.agentic.v1.MachineCredentialV1.state:type_name -> o11y_one.agentic.v1.MachineCredentialStateV1
+	774,  // 1392: o11y_one.agentic.v1.MachineCredentialV1.expires_at:type_name -> google.protobuf.Timestamp
+	172,  // 1393: o11y_one.agentic.v1.MachineCredentialV1.created_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
+	774,  // 1394: o11y_one.agentic.v1.MachineCredentialV1.created_at:type_name -> google.protobuf.Timestamp
+	172,  // 1395: o11y_one.agentic.v1.MachineCredentialV1.revoked_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
+	774,  // 1396: o11y_one.agentic.v1.MachineCredentialV1.revoked_at:type_name -> google.protobuf.Timestamp
+	158,  // 1397: o11y_one.agentic.v1.CreateMachinePrincipalRequest.scopes:type_name -> o11y_one.agentic.v1.MachinePrincipalScopeV1
+	704,  // 1398: o11y_one.agentic.v1.CreateMachinePrincipalResponse.principal:type_name -> o11y_one.agentic.v1.MachinePrincipalV1
+	704,  // 1399: o11y_one.agentic.v1.MachinePrincipalWithCredentialsV1.principal:type_name -> o11y_one.agentic.v1.MachinePrincipalV1
+	705,  // 1400: o11y_one.agentic.v1.MachinePrincipalWithCredentialsV1.credentials:type_name -> o11y_one.agentic.v1.MachineCredentialV1
+	709,  // 1401: o11y_one.agentic.v1.ListMachinePrincipalsResponse.principals:type_name -> o11y_one.agentic.v1.MachinePrincipalWithCredentialsV1
+	774,  // 1402: o11y_one.agentic.v1.CreateMachineCredentialRequest.expires_at:type_name -> google.protobuf.Timestamp
+	705,  // 1403: o11y_one.agentic.v1.CreateMachineCredentialResponse.credential:type_name -> o11y_one.agentic.v1.MachineCredentialV1
+	705,  // 1404: o11y_one.agentic.v1.RevokeMachineCredentialResponse.credential:type_name -> o11y_one.agentic.v1.MachineCredentialV1
+	704,  // 1405: o11y_one.agentic.v1.RevokeMachinePrincipalResponse.principal:type_name -> o11y_one.agentic.v1.MachinePrincipalV1
+	705,  // 1406: o11y_one.agentic.v1.RevokeMachinePrincipalResponse.revoked_credentials:type_name -> o11y_one.agentic.v1.MachineCredentialV1
+	172,  // 1407: o11y_one.agentic.v1.GetCallerPrincipalResponse.caller:type_name -> o11y_one.agentic.v1.PrincipalRefV1
+	704,  // 1408: o11y_one.agentic.v1.GetCallerPrincipalResponse.machine_principal:type_name -> o11y_one.agentic.v1.MachinePrincipalV1
+	705,  // 1409: o11y_one.agentic.v1.GetCallerPrincipalResponse.credential:type_name -> o11y_one.agentic.v1.MachineCredentialV1
+	774,  // 1410: o11y_one.agentic.v1.ExternalCaseLeaseV1.expires_at:type_name -> google.protobuf.Timestamp
+	774,  // 1411: o11y_one.agentic.v1.LeasedEvaluationCaseV1.submission_deadline_at:type_name -> google.protobuf.Timestamp
+	721,  // 1412: o11y_one.agentic.v1.ExternalCaseOutputV1.failure:type_name -> o11y_one.agentic.v1.ExternalCaseFailureV1
+	722,  // 1413: o11y_one.agentic.v1.ExternalCaseOutputV1.usage:type_name -> o11y_one.agentic.v1.ExternalCaseUsageV1
+	161,  // 1414: o11y_one.agentic.v1.ExternalCaseOutputAckV1.kind:type_name -> o11y_one.agentic.v1.ExternalSubmissionAckKindV1
+	8,    // 1415: o11y_one.agentic.v1.ExternalCaseOutputAckV1.observed_state:type_name -> o11y_one.agentic.v1.EvaluationExecutionStateV1
+	246,  // 1416: o11y_one.agentic.v1.ExternalCaseOutputAckV1.rejection:type_name -> o11y_one.agentic.v1.EvaluationFailureV1
+	162,  // 1417: o11y_one.agentic.v1.ExternalLeaseRefusalV1.kind:type_name -> o11y_one.agentic.v1.ExternalLeaseRefusalKindV1
+	25,   // 1418: o11y_one.agentic.v1.ExternalLeaseRefusalV1.recovery:type_name -> o11y_one.agentic.v1.RecoveryActionV1
+	719,  // 1419: o11y_one.agentic.v1.LeaseEvaluationCasesResponse.lease:type_name -> o11y_one.agentic.v1.ExternalCaseLeaseV1
+	720,  // 1420: o11y_one.agentic.v1.LeaseEvaluationCasesResponse.cases:type_name -> o11y_one.agentic.v1.LeasedEvaluationCaseV1
+	725,  // 1421: o11y_one.agentic.v1.LeaseEvaluationCasesResponse.refusal:type_name -> o11y_one.agentic.v1.ExternalLeaseRefusalV1
+	179,  // 1422: o11y_one.agentic.v1.LeaseEvaluationCasesResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	173,  // 1423: o11y_one.agentic.v1.LeaseEvaluationCasesResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	719,  // 1424: o11y_one.agentic.v1.RenewEvaluationCaseLeaseResponse.lease:type_name -> o11y_one.agentic.v1.ExternalCaseLeaseV1
+	725,  // 1425: o11y_one.agentic.v1.RenewEvaluationCaseLeaseResponse.refusal:type_name -> o11y_one.agentic.v1.ExternalLeaseRefusalV1
+	179,  // 1426: o11y_one.agentic.v1.RenewEvaluationCaseLeaseResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	723,  // 1427: o11y_one.agentic.v1.SubmitEvaluationCaseOutputsRequest.outputs:type_name -> o11y_one.agentic.v1.ExternalCaseOutputV1
+	724,  // 1428: o11y_one.agentic.v1.SubmitEvaluationCaseOutputsResponse.acks:type_name -> o11y_one.agentic.v1.ExternalCaseOutputAckV1
+	719,  // 1429: o11y_one.agentic.v1.SubmitEvaluationCaseOutputsResponse.lease:type_name -> o11y_one.agentic.v1.ExternalCaseLeaseV1
+	725,  // 1430: o11y_one.agentic.v1.SubmitEvaluationCaseOutputsResponse.refusal:type_name -> o11y_one.agentic.v1.ExternalLeaseRefusalV1
+	179,  // 1431: o11y_one.agentic.v1.SubmitEvaluationCaseOutputsResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	725,  // 1432: o11y_one.agentic.v1.ReleaseEvaluationCaseLeaseResponse.refusal:type_name -> o11y_one.agentic.v1.ExternalLeaseRefusalV1
+	179,  // 1433: o11y_one.agentic.v1.ReleaseEvaluationCaseLeaseResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	164,  // 1434: o11y_one.agentic.v1.PlatformAnnotationLinkV1.kind:type_name -> o11y_one.agentic.v1.PlatformAnnotationLinkKindV1
+	163,  // 1435: o11y_one.agentic.v1.PlatformAnnotationV1.kind:type_name -> o11y_one.agentic.v1.PlatformAnnotationKindV1
+	774,  // 1436: o11y_one.agentic.v1.PlatformAnnotationV1.start_at:type_name -> google.protobuf.Timestamp
+	774,  // 1437: o11y_one.agentic.v1.PlatformAnnotationV1.end_at:type_name -> google.protobuf.Timestamp
+	735,  // 1438: o11y_one.agentic.v1.PlatformAnnotationV1.attributes:type_name -> o11y_one.agentic.v1.PlatformAnnotationAttributeV1
+	734,  // 1439: o11y_one.agentic.v1.PlatformAnnotationV1.links:type_name -> o11y_one.agentic.v1.PlatformAnnotationLinkV1
+	172,  // 1440: o11y_one.agentic.v1.PlatformAnnotationV1.recorded_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
+	774,  // 1441: o11y_one.agentic.v1.PlatformAnnotationV1.recorded_at:type_name -> google.protobuf.Timestamp
+	165,  // 1442: o11y_one.agentic.v1.PlatformAnnotationRejectionV1.reason:type_name -> o11y_one.agentic.v1.PlatformAnnotationRejectionReasonV1
+	163,  // 1443: o11y_one.agentic.v1.PlatformAnnotationRejectionV1.supported_kinds:type_name -> o11y_one.agentic.v1.PlatformAnnotationKindV1
+	163,  // 1444: o11y_one.agentic.v1.RecordPlatformAnnotationRequest.kind:type_name -> o11y_one.agentic.v1.PlatformAnnotationKindV1
+	774,  // 1445: o11y_one.agentic.v1.RecordPlatformAnnotationRequest.start_at:type_name -> google.protobuf.Timestamp
+	774,  // 1446: o11y_one.agentic.v1.RecordPlatformAnnotationRequest.end_at:type_name -> google.protobuf.Timestamp
+	735,  // 1447: o11y_one.agentic.v1.RecordPlatformAnnotationRequest.attributes:type_name -> o11y_one.agentic.v1.PlatformAnnotationAttributeV1
+	734,  // 1448: o11y_one.agentic.v1.RecordPlatformAnnotationRequest.links:type_name -> o11y_one.agentic.v1.PlatformAnnotationLinkV1
+	736,  // 1449: o11y_one.agentic.v1.RecordPlatformAnnotationResponse.annotation:type_name -> o11y_one.agentic.v1.PlatformAnnotationV1
+	179,  // 1450: o11y_one.agentic.v1.RecordPlatformAnnotationResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	774,  // 1451: o11y_one.agentic.v1.ListPlatformAnnotationsRequest.window_start:type_name -> google.protobuf.Timestamp
+	774,  // 1452: o11y_one.agentic.v1.ListPlatformAnnotationsRequest.window_end:type_name -> google.protobuf.Timestamp
+	163,  // 1453: o11y_one.agentic.v1.ListPlatformAnnotationsRequest.kinds:type_name -> o11y_one.agentic.v1.PlatformAnnotationKindV1
+	777,  // 1454: o11y_one.agentic.v1.ListPlatformAnnotationsRequest.page:type_name -> o11y_one.common.v1.PageRequestV1
+	736,  // 1455: o11y_one.agentic.v1.ListPlatformAnnotationsResponse.annotations:type_name -> o11y_one.agentic.v1.PlatformAnnotationV1
+	779,  // 1456: o11y_one.agentic.v1.ListPlatformAnnotationsResponse.page:type_name -> o11y_one.common.v1.PageResponseV1
+	179,  // 1457: o11y_one.agentic.v1.ListPlatformAnnotationsResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	313,  // 1458: o11y_one.agentic.v1.ListPlatformAnnotationsResponse.resync:type_name -> o11y_one.agentic.v1.EvaluationCursorResyncV1
+	88,   // 1459: o11y_one.agentic.v1.EvaluationScorerConfigSummaryV1.kind:type_name -> o11y_one.agentic.v1.EvaluationScorerKindV1
+	174,  // 1460: o11y_one.agentic.v1.EvaluationScorerConfigSummaryV1.version_count_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	774,  // 1461: o11y_one.agentic.v1.EvaluationScorerConfigSummaryV1.archived_at:type_name -> google.protobuf.Timestamp
+	774,  // 1462: o11y_one.agentic.v1.EvaluationScorerConfigSummaryV1.created_at:type_name -> google.protobuf.Timestamp
+	774,  // 1463: o11y_one.agentic.v1.EvaluationScorerConfigSummaryV1.updated_at:type_name -> google.protobuf.Timestamp
+	172,  // 1464: o11y_one.agentic.v1.EvaluationScorerConfigSummaryV1.created_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
+	777,  // 1465: o11y_one.agentic.v1.ListEvaluationScorerConfigsRequest.page:type_name -> o11y_one.common.v1.PageRequestV1
+	88,   // 1466: o11y_one.agentic.v1.ListEvaluationScorerConfigsRequest.kind_filter:type_name -> o11y_one.agentic.v1.EvaluationScorerKindV1
+	166,  // 1467: o11y_one.agentic.v1.ListEvaluationScorerConfigsRequest.archived_filter:type_name -> o11y_one.agentic.v1.EvaluationScorerArchivedFilterV1
+	742,  // 1468: o11y_one.agentic.v1.ListEvaluationScorerConfigsResponse.scorer_configs:type_name -> o11y_one.agentic.v1.EvaluationScorerConfigSummaryV1
+	779,  // 1469: o11y_one.agentic.v1.ListEvaluationScorerConfigsResponse.page:type_name -> o11y_one.common.v1.PageResponseV1
+	173,  // 1470: o11y_one.agentic.v1.ListEvaluationScorerConfigsResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	179,  // 1471: o11y_one.agentic.v1.ListEvaluationScorerConfigsResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	313,  // 1472: o11y_one.agentic.v1.ListEvaluationScorerConfigsResponse.resync:type_name -> o11y_one.agentic.v1.EvaluationCursorResyncV1
+	780,  // 1473: o11y_one.agentic.v1.EvaluationScorerJudgeResolvedExecutionV1.provider:type_name -> o11y_one.agentic.v1.ProviderNameV1
+	745,  // 1474: o11y_one.agentic.v1.EvaluationScorerJudgeResolvedExecutionV1.effective_request_settings:type_name -> o11y_one.agentic.v1.EvaluationScorerJudgeEffectiveSettingsV1
+	461,  // 1475: o11y_one.agentic.v1.EvaluationScorerJudgeDetailV1.rubric_content:type_name -> o11y_one.agentic.v1.EvaluationScorerJudgeRubricV1
+	746,  // 1476: o11y_one.agentic.v1.EvaluationScorerJudgeDetailV1.provider_execution:type_name -> o11y_one.agentic.v1.EvaluationScorerJudgeResolvedExecutionV1
+	88,   // 1477: o11y_one.agentic.v1.EvaluationScorerConfigDetailV1.kind:type_name -> o11y_one.agentic.v1.EvaluationScorerKindV1
+	774,  // 1478: o11y_one.agentic.v1.EvaluationScorerConfigDetailV1.archived_at:type_name -> google.protobuf.Timestamp
+	456,  // 1479: o11y_one.agentic.v1.EvaluationScorerConfigDetailV1.deterministic:type_name -> o11y_one.agentic.v1.EvaluationScorerDeterministicSpecV1
+	457,  // 1480: o11y_one.agentic.v1.EvaluationScorerConfigDetailV1.review_policy:type_name -> o11y_one.agentic.v1.EvaluationScorerReviewPolicySpecV1
+	747,  // 1481: o11y_one.agentic.v1.EvaluationScorerConfigDetailV1.judge:type_name -> o11y_one.agentic.v1.EvaluationScorerJudgeDetailV1
+	174,  // 1482: o11y_one.agentic.v1.EvaluationScorerConfigDetailV1.version_count_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	774,  // 1483: o11y_one.agentic.v1.EvaluationScorerConfigDetailV1.created_at:type_name -> google.protobuf.Timestamp
+	774,  // 1484: o11y_one.agentic.v1.EvaluationScorerConfigDetailV1.updated_at:type_name -> google.protobuf.Timestamp
+	172,  // 1485: o11y_one.agentic.v1.EvaluationScorerConfigDetailV1.created_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
+	750,  // 1486: o11y_one.agentic.v1.EvaluationScorerConfigUsageV1.suite:type_name -> o11y_one.agentic.v1.EvaluationScorerSuiteRefV1
+	174,  // 1487: o11y_one.agentic.v1.EvaluationScorerConfigUsageV1.suite_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 1488: o11y_one.agentic.v1.EvaluationScorerConfigUsageV1.pinned_run_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 1489: o11y_one.agentic.v1.EvaluationScorerConfigUsageV1.definition_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	174,  // 1490: o11y_one.agentic.v1.EvaluationScorerConfigUsageV1.production_rule_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	748,  // 1491: o11y_one.agentic.v1.GetEvaluationScorerConfigResponse.scorer_config:type_name -> o11y_one.agentic.v1.EvaluationScorerConfigDetailV1
+	749,  // 1492: o11y_one.agentic.v1.GetEvaluationScorerConfigResponse.usage:type_name -> o11y_one.agentic.v1.EvaluationScorerConfigUsageV1
+	173,  // 1493: o11y_one.agentic.v1.GetEvaluationScorerConfigResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	179,  // 1494: o11y_one.agentic.v1.GetEvaluationScorerConfigResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	774,  // 1495: o11y_one.agentic.v1.EvaluationScorerConfigVersionV1.created_at:type_name -> google.protobuf.Timestamp
+	172,  // 1496: o11y_one.agentic.v1.EvaluationScorerConfigVersionV1.created_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
+	777,  // 1497: o11y_one.agentic.v1.ListEvaluationScorerConfigVersionsRequest.page:type_name -> o11y_one.common.v1.PageRequestV1
+	753,  // 1498: o11y_one.agentic.v1.ListEvaluationScorerConfigVersionsResponse.versions:type_name -> o11y_one.agentic.v1.EvaluationScorerConfigVersionV1
+	779,  // 1499: o11y_one.agentic.v1.ListEvaluationScorerConfigVersionsResponse.page:type_name -> o11y_one.common.v1.PageResponseV1
+	174,  // 1500: o11y_one.agentic.v1.ListEvaluationScorerConfigVersionsResponse.history_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	173,  // 1501: o11y_one.agentic.v1.ListEvaluationScorerConfigVersionsResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	179,  // 1502: o11y_one.agentic.v1.ListEvaluationScorerConfigVersionsResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	313,  // 1503: o11y_one.agentic.v1.ListEvaluationScorerConfigVersionsResponse.resync:type_name -> o11y_one.agentic.v1.EvaluationCursorResyncV1
+	16,   // 1504: o11y_one.agentic.v1.EvaluationScorerSuiteSummaryV1.combine_rule:type_name -> o11y_one.agentic.v1.EvaluationScorerSuiteCombineRuleV1
+	774,  // 1505: o11y_one.agentic.v1.EvaluationScorerSuiteSummaryV1.archived_at:type_name -> google.protobuf.Timestamp
+	774,  // 1506: o11y_one.agentic.v1.EvaluationScorerSuiteSummaryV1.created_at:type_name -> google.protobuf.Timestamp
+	774,  // 1507: o11y_one.agentic.v1.EvaluationScorerSuiteSummaryV1.updated_at:type_name -> google.protobuf.Timestamp
+	172,  // 1508: o11y_one.agentic.v1.EvaluationScorerSuiteSummaryV1.created_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
+	88,   // 1509: o11y_one.agentic.v1.EvaluationScorerSuiteMemberDetailV1.kind:type_name -> o11y_one.agentic.v1.EvaluationScorerKindV1
+	16,   // 1510: o11y_one.agentic.v1.EvaluationScorerSuiteDetailV1.combine_rule:type_name -> o11y_one.agentic.v1.EvaluationScorerSuiteCombineRuleV1
+	757,  // 1511: o11y_one.agentic.v1.EvaluationScorerSuiteDetailV1.members:type_name -> o11y_one.agentic.v1.EvaluationScorerSuiteMemberDetailV1
+	774,  // 1512: o11y_one.agentic.v1.EvaluationScorerSuiteDetailV1.archived_at:type_name -> google.protobuf.Timestamp
+	774,  // 1513: o11y_one.agentic.v1.EvaluationScorerSuiteDetailV1.created_at:type_name -> google.protobuf.Timestamp
+	774,  // 1514: o11y_one.agentic.v1.EvaluationScorerSuiteDetailV1.updated_at:type_name -> google.protobuf.Timestamp
+	172,  // 1515: o11y_one.agentic.v1.EvaluationScorerSuiteDetailV1.created_by:type_name -> o11y_one.agentic.v1.PrincipalRefV1
+	174,  // 1516: o11y_one.agentic.v1.EvaluationScorerSuiteDetailV1.revision_history_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	777,  // 1517: o11y_one.agentic.v1.ListEvaluationScorerSuitesRequest.page:type_name -> o11y_one.common.v1.PageRequestV1
+	166,  // 1518: o11y_one.agentic.v1.ListEvaluationScorerSuitesRequest.archived_filter:type_name -> o11y_one.agentic.v1.EvaluationScorerArchivedFilterV1
+	756,  // 1519: o11y_one.agentic.v1.ListEvaluationScorerSuitesResponse.scorer_suites:type_name -> o11y_one.agentic.v1.EvaluationScorerSuiteSummaryV1
+	779,  // 1520: o11y_one.agentic.v1.ListEvaluationScorerSuitesResponse.page:type_name -> o11y_one.common.v1.PageResponseV1
+	173,  // 1521: o11y_one.agentic.v1.ListEvaluationScorerSuitesResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	179,  // 1522: o11y_one.agentic.v1.ListEvaluationScorerSuitesResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	313,  // 1523: o11y_one.agentic.v1.ListEvaluationScorerSuitesResponse.resync:type_name -> o11y_one.agentic.v1.EvaluationCursorResyncV1
+	758,  // 1524: o11y_one.agentic.v1.GetEvaluationScorerSuiteResponse.scorer_suite:type_name -> o11y_one.agentic.v1.EvaluationScorerSuiteDetailV1
+	173,  // 1525: o11y_one.agentic.v1.GetEvaluationScorerSuiteResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	179,  // 1526: o11y_one.agentic.v1.GetEvaluationScorerSuiteResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	742,  // 1527: o11y_one.agentic.v1.ArchiveEvaluationScorerConfigResponse.scorer_config:type_name -> o11y_one.agentic.v1.EvaluationScorerConfigSummaryV1
+	749,  // 1528: o11y_one.agentic.v1.ArchiveEvaluationScorerConfigResponse.standing_references:type_name -> o11y_one.agentic.v1.EvaluationScorerConfigUsageV1
+	179,  // 1529: o11y_one.agentic.v1.ArchiveEvaluationScorerConfigResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	756,  // 1530: o11y_one.agentic.v1.ArchiveEvaluationScorerSuiteResponse.scorer_suite:type_name -> o11y_one.agentic.v1.EvaluationScorerSuiteSummaryV1
+	174,  // 1531: o11y_one.agentic.v1.ArchiveEvaluationScorerSuiteResponse.production_rule_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	179,  // 1532: o11y_one.agentic.v1.ArchiveEvaluationScorerSuiteResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	774,  // 1533: o11y_one.agentic.v1.DatasetCollectionSummaryV1.created_at:type_name -> google.protobuf.Timestamp
+	774,  // 1534: o11y_one.agentic.v1.DatasetCollectionSummaryV1.updated_at:type_name -> google.protobuf.Timestamp
+	645,  // 1535: o11y_one.agentic.v1.DatasetCollectionSummaryV1.active_version:type_name -> o11y_one.agentic.v1.DatasetVersionSummaryV1
+	174,  // 1536: o11y_one.agentic.v1.DatasetCollectionSummaryV1.active_version_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	767,  // 1537: o11y_one.agentic.v1.ListEvaluationDatasetCollectionsResponse.collections:type_name -> o11y_one.agentic.v1.DatasetCollectionSummaryV1
+	173,  // 1538: o11y_one.agentic.v1.ListEvaluationDatasetCollectionsResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	179,  // 1539: o11y_one.agentic.v1.ListEvaluationDatasetCollectionsResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	313,  // 1540: o11y_one.agentic.v1.ListEvaluationDatasetCollectionsResponse.resync:type_name -> o11y_one.agentic.v1.EvaluationCursorResyncV1
+	663,  // 1541: o11y_one.agentic.v1.GetDatasetChangesetResponse.changeset:type_name -> o11y_one.agentic.v1.DatasetChangesetV1
+	174,  // 1542: o11y_one.agentic.v1.GetDatasetChangesetResponse.base_version_moved_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	173,  // 1543: o11y_one.agentic.v1.GetDatasetChangesetResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	179,  // 1544: o11y_one.agentic.v1.GetDatasetChangesetResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	147,  // 1545: o11y_one.agentic.v1.ListDatasetChangesetsRequest.states:type_name -> o11y_one.agentic.v1.DatasetChangesetStateV1
+	663,  // 1546: o11y_one.agentic.v1.ListDatasetChangesetsResponse.changesets:type_name -> o11y_one.agentic.v1.DatasetChangesetV1
+	173,  // 1547: o11y_one.agentic.v1.ListDatasetChangesetsResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	179,  // 1548: o11y_one.agentic.v1.ListDatasetChangesetsResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	217,  // 1549: o11y_one.agentic.v1.AgenticEvaluationService.CreateEvaluationDefinition:input_type -> o11y_one.agentic.v1.CreateEvaluationDefinitionRequest
+	220,  // 1550: o11y_one.agentic.v1.AgenticEvaluationService.UpdateEvaluationDefinition:input_type -> o11y_one.agentic.v1.UpdateEvaluationDefinitionRequest
+	222,  // 1551: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationDefinition:input_type -> o11y_one.agentic.v1.GetEvaluationDefinitionRequest
+	224,  // 1552: o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationDefinitions:input_type -> o11y_one.agentic.v1.ListEvaluationDefinitionsRequest
+	233,  // 1553: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationBuilderContext:input_type -> o11y_one.agentic.v1.GetEvaluationBuilderContextRequest
+	272,  // 1554: o11y_one.agentic.v1.AgenticEvaluationService.PreviewEvaluationRun:input_type -> o11y_one.agentic.v1.PreviewEvaluationRunRequest
+	274,  // 1555: o11y_one.agentic.v1.AgenticEvaluationService.CreateEvaluationRun:input_type -> o11y_one.agentic.v1.CreateEvaluationRunRequest
+	277,  // 1556: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationOperation:input_type -> o11y_one.agentic.v1.GetEvaluationOperationRequest
+	279,  // 1557: o11y_one.agentic.v1.AgenticEvaluationService.CancelEvaluationRun:input_type -> o11y_one.agentic.v1.CancelEvaluationRunRequest
+	340,  // 1558: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationRunOverview:input_type -> o11y_one.agentic.v1.GetEvaluationRunOverviewRequest
+	284,  // 1559: o11y_one.agentic.v1.AgenticEvaluationService.PreviewRetryEvaluationCells:input_type -> o11y_one.agentic.v1.PreviewRetryEvaluationCellsRequest
+	286,  // 1560: o11y_one.agentic.v1.AgenticEvaluationService.RetryEvaluationCells:input_type -> o11y_one.agentic.v1.RetryEvaluationCellsRequest
+	342,  // 1561: o11y_one.agentic.v1.AgenticEvaluationService.PreviewEvaluationDecision:input_type -> o11y_one.agentic.v1.PreviewEvaluationDecisionRequest
+	344,  // 1562: o11y_one.agentic.v1.AgenticEvaluationService.AdoptEvaluationDecisionRevision:input_type -> o11y_one.agentic.v1.AdoptEvaluationDecisionRevisionRequest
+	353,  // 1563: o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationMatrixRows:input_type -> o11y_one.agentic.v1.ListEvaluationMatrixRowsRequest
+	362,  // 1564: o11y_one.agentic.v1.AgenticEvaluationService.BatchGetEvaluationCellDetails:input_type -> o11y_one.agentic.v1.BatchGetEvaluationCellDetailsRequest
+	373,  // 1565: o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationRunChanges:input_type -> o11y_one.agentic.v1.ListEvaluationRunChangesRequest
+	378,  // 1566: o11y_one.agentic.v1.AgenticEvaluationService.GetExecutionArtifactContent:input_type -> o11y_one.agentic.v1.GetEvaluationArtifactContentRequest
+	380,  // 1567: o11y_one.agentic.v1.AgenticEvaluationService.BatchGetExecutionArtifactContents:input_type -> o11y_one.agentic.v1.BatchGetEvaluationArtifactContentsRequest
+	393,  // 1568: o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationReviewTasks:input_type -> o11y_one.agentic.v1.ListEvaluationReviewTasksRequest
+	395,  // 1569: o11y_one.agentic.v1.AgenticEvaluationService.ClaimEvaluationReviewTasks:input_type -> o11y_one.agentic.v1.ClaimEvaluationReviewTasksRequest
+	397,  // 1570: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationReviewTask:input_type -> o11y_one.agentic.v1.GetEvaluationReviewTaskRequest
+	399,  // 1571: o11y_one.agentic.v1.AgenticEvaluationService.SubmitEvaluationReview:input_type -> o11y_one.agentic.v1.SubmitEvaluationReviewRequest
+	402,  // 1572: o11y_one.agentic.v1.AgenticEvaluationService.CreateEvaluationExport:input_type -> o11y_one.agentic.v1.CreateEvaluationExportRequest
+	404,  // 1573: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationExport:input_type -> o11y_one.agentic.v1.GetEvaluationExportRequest
+	407,  // 1574: o11y_one.agentic.v1.AgenticEvaluationService.CreateEvaluationShare:input_type -> o11y_one.agentic.v1.CreateEvaluationShareRequest
+	409,  // 1575: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationShare:input_type -> o11y_one.agentic.v1.GetEvaluationShareRequest
+	411,  // 1576: o11y_one.agentic.v1.AgenticEvaluationService.RevokeEvaluationShare:input_type -> o11y_one.agentic.v1.RevokeEvaluationShareRequest
+	416,  // 1577: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationOperationBreakdown:input_type -> o11y_one.agentic.v1.GetEvaluationOperationBreakdownRequest
+	419,  // 1578: o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationDefinitionRevisions:input_type -> o11y_one.agentic.v1.ListEvaluationDefinitionRevisionsRequest
+	422,  // 1579: o11y_one.agentic.v1.AgenticEvaluationService.AdjudicateEvaluationReviewConflict:input_type -> o11y_one.agentic.v1.AdjudicateEvaluationReviewConflictRequest
+	291,  // 1580: o11y_one.agentic.v1.AgenticEvaluationService.PreviewRetryEvaluationScorers:input_type -> o11y_one.agentic.v1.PreviewRetryEvaluationScorersRequest
+	293,  // 1581: o11y_one.agentic.v1.AgenticEvaluationService.RetryEvaluationScorers:input_type -> o11y_one.agentic.v1.RetryEvaluationScorersRequest
+	425,  // 1582: o11y_one.agentic.v1.AgenticEvaluationService.RecordEvaluationOrgNegotiatedRate:input_type -> o11y_one.agentic.v1.RecordEvaluationOrgNegotiatedRateRequest
+	427,  // 1583: o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationOrgNegotiatedRates:input_type -> o11y_one.agentic.v1.ListEvaluationOrgNegotiatedRatesRequest
+	429,  // 1584: o11y_one.agentic.v1.AgenticEvaluationService.EndEvaluationOrgNegotiatedRate:input_type -> o11y_one.agentic.v1.EndEvaluationOrgNegotiatedRateRequest
+	431,  // 1585: o11y_one.agentic.v1.AgenticEvaluationService.VoidEvaluationOrgNegotiatedRate:input_type -> o11y_one.agentic.v1.VoidEvaluationOrgNegotiatedRateRequest
+	437,  // 1586: o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationScoreSeries:input_type -> o11y_one.agentic.v1.ListEvaluationScoreSeriesRequest
+	446,  // 1587: o11y_one.agentic.v1.AgenticEvaluationService.CaptureEvaluationCase:input_type -> o11y_one.agentic.v1.CaptureEvaluationCaseRequest
+	454,  // 1588: o11y_one.agentic.v1.AgenticEvaluationService.RegisterEvaluationProviderCredential:input_type -> o11y_one.agentic.v1.RegisterEvaluationProviderCredentialRequest
+	465,  // 1589: o11y_one.agentic.v1.AgenticEvaluationService.CreateEvaluationScorerConfig:input_type -> o11y_one.agentic.v1.CreateEvaluationScorerConfigRequest
+	471,  // 1590: o11y_one.agentic.v1.AgenticEvaluationService.CreateEvaluationDatasetVersion:input_type -> o11y_one.agentic.v1.CreateEvaluationDatasetVersionRequest
+	473,  // 1591: o11y_one.agentic.v1.AgenticEvaluationService.SetEvaluationProviderCredentialEnabled:input_type -> o11y_one.agentic.v1.SetEvaluationProviderCredentialEnabledRequest
+	478,  // 1592: o11y_one.agentic.v1.AgenticEvaluationService.CreateEvaluationScorerSuite:input_type -> o11y_one.agentic.v1.CreateEvaluationScorerSuiteRequest
+	488,  // 1593: o11y_one.agentic.v1.AgenticEvaluationService.RequestEvaluationJudgeRegrade:input_type -> o11y_one.agentic.v1.RequestEvaluationJudgeRegradeRequest
+	490,  // 1594: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationJudgeRegradeJob:input_type -> o11y_one.agentic.v1.GetEvaluationJudgeRegradeJobRequest
+	493,  // 1595: o11y_one.agentic.v1.AgenticEvaluationService.PreviewEvaluationJudgeRegrade:input_type -> o11y_one.agentic.v1.PreviewEvaluationJudgeRegradeRequest
+	497,  // 1596: o11y_one.agentic.v1.AgenticEvaluationService.CancelEvaluationJudgeRegradeJob:input_type -> o11y_one.agentic.v1.CancelEvaluationJudgeRegradeJobRequest
+	501,  // 1597: o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationRuns:input_type -> o11y_one.agentic.v1.ListEvaluationRunsRequest
+	504,  // 1598: o11y_one.agentic.v1.AgenticEvaluationService.ReleaseEvaluationReviewTasks:input_type -> o11y_one.agentic.v1.ReleaseEvaluationReviewTasksRequest
+	506,  // 1599: o11y_one.agentic.v1.AgenticEvaluationService.RequeueEvaluationReviewTasks:input_type -> o11y_one.agentic.v1.RequeueEvaluationReviewTasksRequest
+	450,  // 1600: o11y_one.agentic.v1.AgenticEvaluationService.PreviewEvaluationCaseCapture:input_type -> o11y_one.agentic.v1.PreviewEvaluationCaseCaptureRequest
+	527,  // 1601: o11y_one.agentic.v1.AgenticEvaluationService.ListProductionEvaluationRules:input_type -> o11y_one.agentic.v1.ListProductionEvaluationRulesRequest
+	529,  // 1602: o11y_one.agentic.v1.AgenticEvaluationService.GetProductionEvaluationRule:input_type -> o11y_one.agentic.v1.GetProductionEvaluationRuleRequest
+	521,  // 1603: o11y_one.agentic.v1.AgenticEvaluationService.CreateProductionEvaluationRule:input_type -> o11y_one.agentic.v1.CreateProductionEvaluationRuleRequest
+	523,  // 1604: o11y_one.agentic.v1.AgenticEvaluationService.CreateProductionEvaluationRuleVersion:input_type -> o11y_one.agentic.v1.CreateProductionEvaluationRuleVersionRequest
+	525,  // 1605: o11y_one.agentic.v1.AgenticEvaluationService.SetProductionEvaluationRuleVersionState:input_type -> o11y_one.agentic.v1.SetProductionEvaluationRuleVersionStateRequest
+	683,  // 1606: o11y_one.agentic.v1.AgenticEvaluationService.PreviewProductionEvaluationRule:input_type -> o11y_one.agentic.v1.PreviewProductionEvaluationRuleRequest
+	542,  // 1607: o11y_one.agentic.v1.AgenticEvaluationService.ListProductionEvaluationWorkflowExecutions:input_type -> o11y_one.agentic.v1.ListProductionEvaluationWorkflowExecutionsRequest
+	544,  // 1608: o11y_one.agentic.v1.AgenticEvaluationService.GetProductionEvaluationWorkflowExecution:input_type -> o11y_one.agentic.v1.GetProductionEvaluationWorkflowExecutionRequest
+	539,  // 1609: o11y_one.agentic.v1.AgenticEvaluationService.StartProductionEvaluationWorkflow:input_type -> o11y_one.agentic.v1.StartProductionEvaluationWorkflowRequest
+	546,  // 1610: o11y_one.agentic.v1.AgenticEvaluationService.RetryProductionEvaluationWorkflowStep:input_type -> o11y_one.agentic.v1.RetryProductionEvaluationWorkflowStepRequest
+	549,  // 1611: o11y_one.agentic.v1.AgenticEvaluationService.ListProductionEvaluationReleaseBlocks:input_type -> o11y_one.agentic.v1.ListProductionEvaluationReleaseBlocksRequest
+	551,  // 1612: o11y_one.agentic.v1.AgenticEvaluationService.OverrideProductionEvaluationReleaseBlock:input_type -> o11y_one.agentic.v1.OverrideProductionEvaluationReleaseBlockRequest
+	568,  // 1613: o11y_one.agentic.v1.AgenticEvaluationService.CreateReleaseIntegration:input_type -> o11y_one.agentic.v1.CreateReleaseIntegrationRequest
+	570,  // 1614: o11y_one.agentic.v1.AgenticEvaluationService.GetReleaseIntegration:input_type -> o11y_one.agentic.v1.GetReleaseIntegrationRequest
+	573,  // 1615: o11y_one.agentic.v1.AgenticEvaluationService.ListReleaseIntegrations:input_type -> o11y_one.agentic.v1.ListReleaseIntegrationsRequest
+	576,  // 1616: o11y_one.agentic.v1.AgenticEvaluationService.UpdateReleaseIntegration:input_type -> o11y_one.agentic.v1.UpdateReleaseIntegrationRequest
+	578,  // 1617: o11y_one.agentic.v1.AgenticEvaluationService.ArchiveReleaseIntegration:input_type -> o11y_one.agentic.v1.ArchiveReleaseIntegrationRequest
+	582,  // 1618: o11y_one.agentic.v1.AgenticEvaluationService.CreateRelease:input_type -> o11y_one.agentic.v1.CreateReleaseRequest
+	586,  // 1619: o11y_one.agentic.v1.AgenticEvaluationService.GetRelease:input_type -> o11y_one.agentic.v1.GetReleaseRequest
+	589,  // 1620: o11y_one.agentic.v1.AgenticEvaluationService.ListReleases:input_type -> o11y_one.agentic.v1.ListReleasesRequest
+	584,  // 1621: o11y_one.agentic.v1.AgenticEvaluationService.PreviewRelease:input_type -> o11y_one.agentic.v1.PreviewReleaseRequest
+	591,  // 1622: o11y_one.agentic.v1.AgenticEvaluationService.StartReleaseCanary:input_type -> o11y_one.agentic.v1.StartReleaseCanaryRequest
+	593,  // 1623: o11y_one.agentic.v1.AgenticEvaluationService.PromoteRelease:input_type -> o11y_one.agentic.v1.PromoteReleaseRequest
+	595,  // 1624: o11y_one.agentic.v1.AgenticEvaluationService.HoldRelease:input_type -> o11y_one.agentic.v1.HoldReleaseRequest
+	597,  // 1625: o11y_one.agentic.v1.AgenticEvaluationService.AbortRelease:input_type -> o11y_one.agentic.v1.AbortReleaseRequest
+	599,  // 1626: o11y_one.agentic.v1.AgenticEvaluationService.RollbackRelease:input_type -> o11y_one.agentic.v1.RollbackReleaseRequest
+	601,  // 1627: o11y_one.agentic.v1.AgenticEvaluationService.GetReleaseAction:input_type -> o11y_one.agentic.v1.GetReleaseActionRequest
+	604,  // 1628: o11y_one.agentic.v1.AgenticEvaluationService.ListReleaseActions:input_type -> o11y_one.agentic.v1.ListReleaseActionsRequest
+	647,  // 1629: o11y_one.agentic.v1.AgenticEvaluationService.GetDatasetSchemaRevision:input_type -> o11y_one.agentic.v1.GetDatasetSchemaRevisionRequest
+	649,  // 1630: o11y_one.agentic.v1.AgenticEvaluationService.ListDatasetCases:input_type -> o11y_one.agentic.v1.ListDatasetCasesRequest
+	651,  // 1631: o11y_one.agentic.v1.AgenticEvaluationService.GetDatasetCase:input_type -> o11y_one.agentic.v1.GetDatasetCaseRequest
+	653,  // 1632: o11y_one.agentic.v1.AgenticEvaluationService.GetDatasetOverview:input_type -> o11y_one.agentic.v1.GetDatasetOverviewRequest
+	655,  // 1633: o11y_one.agentic.v1.AgenticEvaluationService.ListDatasetVersions:input_type -> o11y_one.agentic.v1.ListEvaluationDatasetVersionsRequest
+	657,  // 1634: o11y_one.agentic.v1.AgenticEvaluationService.ListDatasetUsage:input_type -> o11y_one.agentic.v1.ListDatasetUsageRequest
+	667,  // 1635: o11y_one.agentic.v1.AgenticEvaluationService.GetDatasetCaseDraft:input_type -> o11y_one.agentic.v1.GetDatasetCaseDraftRequest
+	669,  // 1636: o11y_one.agentic.v1.AgenticEvaluationService.ListDatasetCaseDrafts:input_type -> o11y_one.agentic.v1.ListDatasetCaseDraftsRequest
+	671,  // 1637: o11y_one.agentic.v1.AgenticEvaluationService.UpdateDatasetCaseDraft:input_type -> o11y_one.agentic.v1.UpdateDatasetCaseDraftRequest
+	673,  // 1638: o11y_one.agentic.v1.AgenticEvaluationService.ApproveDatasetCaseDraft:input_type -> o11y_one.agentic.v1.ApproveDatasetCaseDraftRequest
+	675,  // 1639: o11y_one.agentic.v1.AgenticEvaluationService.RejectDatasetCaseDraft:input_type -> o11y_one.agentic.v1.RejectDatasetCaseDraftRequest
+	677,  // 1640: o11y_one.agentic.v1.AgenticEvaluationService.MergeDatasetCaseDraft:input_type -> o11y_one.agentic.v1.MergeDatasetCaseDraftRequest
+	679,  // 1641: o11y_one.agentic.v1.AgenticEvaluationService.PreviewPublishDatasetChangeset:input_type -> o11y_one.agentic.v1.PreviewPublishDatasetChangesetRequest
+	681,  // 1642: o11y_one.agentic.v1.AgenticEvaluationService.PublishDatasetCaseDrafts:input_type -> o11y_one.agentic.v1.PublishDatasetCaseDraftsRequest
+	706,  // 1643: o11y_one.agentic.v1.AgenticEvaluationService.CreateMachinePrincipal:input_type -> o11y_one.agentic.v1.CreateMachinePrincipalRequest
+	708,  // 1644: o11y_one.agentic.v1.AgenticEvaluationService.ListMachinePrincipals:input_type -> o11y_one.agentic.v1.ListMachinePrincipalsRequest
+	711,  // 1645: o11y_one.agentic.v1.AgenticEvaluationService.CreateMachineCredential:input_type -> o11y_one.agentic.v1.CreateMachineCredentialRequest
+	713,  // 1646: o11y_one.agentic.v1.AgenticEvaluationService.RevokeMachineCredential:input_type -> o11y_one.agentic.v1.RevokeMachineCredentialRequest
+	715,  // 1647: o11y_one.agentic.v1.AgenticEvaluationService.RevokeMachinePrincipal:input_type -> o11y_one.agentic.v1.RevokeMachinePrincipalRequest
+	717,  // 1648: o11y_one.agentic.v1.AgenticEvaluationService.GetCallerPrincipal:input_type -> o11y_one.agentic.v1.GetCallerPrincipalRequest
+	726,  // 1649: o11y_one.agentic.v1.AgenticEvaluationService.LeaseEvaluationCases:input_type -> o11y_one.agentic.v1.LeaseEvaluationCasesRequest
+	728,  // 1650: o11y_one.agentic.v1.AgenticEvaluationService.RenewEvaluationCaseLease:input_type -> o11y_one.agentic.v1.RenewEvaluationCaseLeaseRequest
+	730,  // 1651: o11y_one.agentic.v1.AgenticEvaluationService.SubmitEvaluationCaseOutputs:input_type -> o11y_one.agentic.v1.SubmitEvaluationCaseOutputsRequest
+	732,  // 1652: o11y_one.agentic.v1.AgenticEvaluationService.ReleaseEvaluationCaseLease:input_type -> o11y_one.agentic.v1.ReleaseEvaluationCaseLeaseRequest
+	738,  // 1653: o11y_one.agentic.v1.AgenticEvaluationService.RecordPlatformAnnotation:input_type -> o11y_one.agentic.v1.RecordPlatformAnnotationRequest
+	740,  // 1654: o11y_one.agentic.v1.AgenticEvaluationService.ListPlatformAnnotations:input_type -> o11y_one.agentic.v1.ListPlatformAnnotationsRequest
+	743,  // 1655: o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationScorerConfigs:input_type -> o11y_one.agentic.v1.ListEvaluationScorerConfigsRequest
+	751,  // 1656: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationScorerConfig:input_type -> o11y_one.agentic.v1.GetEvaluationScorerConfigRequest
+	754,  // 1657: o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationScorerConfigVersions:input_type -> o11y_one.agentic.v1.ListEvaluationScorerConfigVersionsRequest
+	759,  // 1658: o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationScorerSuites:input_type -> o11y_one.agentic.v1.ListEvaluationScorerSuitesRequest
+	761,  // 1659: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationScorerSuite:input_type -> o11y_one.agentic.v1.GetEvaluationScorerSuiteRequest
+	763,  // 1660: o11y_one.agentic.v1.AgenticEvaluationService.ArchiveEvaluationScorerConfig:input_type -> o11y_one.agentic.v1.ArchiveEvaluationScorerConfigRequest
+	765,  // 1661: o11y_one.agentic.v1.AgenticEvaluationService.ArchiveEvaluationScorerSuite:input_type -> o11y_one.agentic.v1.ArchiveEvaluationScorerSuiteRequest
+	768,  // 1662: o11y_one.agentic.v1.AgenticEvaluationService.ListDatasetCollections:input_type -> o11y_one.agentic.v1.ListEvaluationDatasetCollectionsRequest
+	770,  // 1663: o11y_one.agentic.v1.AgenticEvaluationService.GetDatasetChangeset:input_type -> o11y_one.agentic.v1.GetDatasetChangesetRequest
+	772,  // 1664: o11y_one.agentic.v1.AgenticEvaluationService.ListDatasetChangesets:input_type -> o11y_one.agentic.v1.ListDatasetChangesetsRequest
+	218,  // 1665: o11y_one.agentic.v1.AgenticEvaluationService.CreateEvaluationDefinition:output_type -> o11y_one.agentic.v1.CreateEvaluationDefinitionResponse
+	221,  // 1666: o11y_one.agentic.v1.AgenticEvaluationService.UpdateEvaluationDefinition:output_type -> o11y_one.agentic.v1.UpdateEvaluationDefinitionResponse
+	223,  // 1667: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationDefinition:output_type -> o11y_one.agentic.v1.GetEvaluationDefinitionResponse
+	225,  // 1668: o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationDefinitions:output_type -> o11y_one.agentic.v1.ListEvaluationDefinitionsResponse
+	245,  // 1669: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationBuilderContext:output_type -> o11y_one.agentic.v1.GetEvaluationBuilderContextResponse
+	273,  // 1670: o11y_one.agentic.v1.AgenticEvaluationService.PreviewEvaluationRun:output_type -> o11y_one.agentic.v1.PreviewEvaluationRunResponse
+	275,  // 1671: o11y_one.agentic.v1.AgenticEvaluationService.CreateEvaluationRun:output_type -> o11y_one.agentic.v1.CreateEvaluationRunResponse
+	278,  // 1672: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationOperation:output_type -> o11y_one.agentic.v1.GetEvaluationOperationResponse
+	280,  // 1673: o11y_one.agentic.v1.AgenticEvaluationService.CancelEvaluationRun:output_type -> o11y_one.agentic.v1.CancelEvaluationRunResponse
+	341,  // 1674: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationRunOverview:output_type -> o11y_one.agentic.v1.GetEvaluationRunOverviewResponse
+	285,  // 1675: o11y_one.agentic.v1.AgenticEvaluationService.PreviewRetryEvaluationCells:output_type -> o11y_one.agentic.v1.PreviewRetryEvaluationCellsResponse
+	287,  // 1676: o11y_one.agentic.v1.AgenticEvaluationService.RetryEvaluationCells:output_type -> o11y_one.agentic.v1.RetryEvaluationCellsResponse
+	343,  // 1677: o11y_one.agentic.v1.AgenticEvaluationService.PreviewEvaluationDecision:output_type -> o11y_one.agentic.v1.PreviewEvaluationDecisionResponse
+	345,  // 1678: o11y_one.agentic.v1.AgenticEvaluationService.AdoptEvaluationDecisionRevision:output_type -> o11y_one.agentic.v1.AdoptEvaluationDecisionRevisionResponse
+	354,  // 1679: o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationMatrixRows:output_type -> o11y_one.agentic.v1.ListEvaluationMatrixRowsResponse
+	363,  // 1680: o11y_one.agentic.v1.AgenticEvaluationService.BatchGetEvaluationCellDetails:output_type -> o11y_one.agentic.v1.BatchGetEvaluationCellDetailsResponse
+	374,  // 1681: o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationRunChanges:output_type -> o11y_one.agentic.v1.ListEvaluationRunChangesResponse
+	379,  // 1682: o11y_one.agentic.v1.AgenticEvaluationService.GetExecutionArtifactContent:output_type -> o11y_one.agentic.v1.GetEvaluationArtifactContentResponse
+	381,  // 1683: o11y_one.agentic.v1.AgenticEvaluationService.BatchGetExecutionArtifactContents:output_type -> o11y_one.agentic.v1.BatchGetEvaluationArtifactContentsResponse
+	394,  // 1684: o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationReviewTasks:output_type -> o11y_one.agentic.v1.ListEvaluationReviewTasksResponse
+	396,  // 1685: o11y_one.agentic.v1.AgenticEvaluationService.ClaimEvaluationReviewTasks:output_type -> o11y_one.agentic.v1.ClaimEvaluationReviewTasksResponse
+	398,  // 1686: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationReviewTask:output_type -> o11y_one.agentic.v1.GetEvaluationReviewTaskResponse
+	400,  // 1687: o11y_one.agentic.v1.AgenticEvaluationService.SubmitEvaluationReview:output_type -> o11y_one.agentic.v1.SubmitEvaluationReviewResponse
+	403,  // 1688: o11y_one.agentic.v1.AgenticEvaluationService.CreateEvaluationExport:output_type -> o11y_one.agentic.v1.CreateEvaluationExportResponse
+	405,  // 1689: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationExport:output_type -> o11y_one.agentic.v1.GetEvaluationExportResponse
+	408,  // 1690: o11y_one.agentic.v1.AgenticEvaluationService.CreateEvaluationShare:output_type -> o11y_one.agentic.v1.CreateEvaluationShareResponse
+	410,  // 1691: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationShare:output_type -> o11y_one.agentic.v1.GetEvaluationShareResponse
+	412,  // 1692: o11y_one.agentic.v1.AgenticEvaluationService.RevokeEvaluationShare:output_type -> o11y_one.agentic.v1.RevokeEvaluationShareResponse
+	417,  // 1693: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationOperationBreakdown:output_type -> o11y_one.agentic.v1.GetEvaluationOperationBreakdownResponse
+	420,  // 1694: o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationDefinitionRevisions:output_type -> o11y_one.agentic.v1.ListEvaluationDefinitionRevisionsResponse
+	423,  // 1695: o11y_one.agentic.v1.AgenticEvaluationService.AdjudicateEvaluationReviewConflict:output_type -> o11y_one.agentic.v1.AdjudicateEvaluationReviewConflictResponse
+	292,  // 1696: o11y_one.agentic.v1.AgenticEvaluationService.PreviewRetryEvaluationScorers:output_type -> o11y_one.agentic.v1.PreviewRetryEvaluationScorersResponse
+	295,  // 1697: o11y_one.agentic.v1.AgenticEvaluationService.RetryEvaluationScorers:output_type -> o11y_one.agentic.v1.RetryEvaluationScorersResponse
+	426,  // 1698: o11y_one.agentic.v1.AgenticEvaluationService.RecordEvaluationOrgNegotiatedRate:output_type -> o11y_one.agentic.v1.RecordEvaluationOrgNegotiatedRateResponse
+	428,  // 1699: o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationOrgNegotiatedRates:output_type -> o11y_one.agentic.v1.ListEvaluationOrgNegotiatedRatesResponse
+	430,  // 1700: o11y_one.agentic.v1.AgenticEvaluationService.EndEvaluationOrgNegotiatedRate:output_type -> o11y_one.agentic.v1.EndEvaluationOrgNegotiatedRateResponse
+	432,  // 1701: o11y_one.agentic.v1.AgenticEvaluationService.VoidEvaluationOrgNegotiatedRate:output_type -> o11y_one.agentic.v1.VoidEvaluationOrgNegotiatedRateResponse
+	438,  // 1702: o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationScoreSeries:output_type -> o11y_one.agentic.v1.ListEvaluationScoreSeriesResponse
+	447,  // 1703: o11y_one.agentic.v1.AgenticEvaluationService.CaptureEvaluationCase:output_type -> o11y_one.agentic.v1.CaptureEvaluationCaseResponse
+	455,  // 1704: o11y_one.agentic.v1.AgenticEvaluationService.RegisterEvaluationProviderCredential:output_type -> o11y_one.agentic.v1.RegisterEvaluationProviderCredentialResponse
+	466,  // 1705: o11y_one.agentic.v1.AgenticEvaluationService.CreateEvaluationScorerConfig:output_type -> o11y_one.agentic.v1.CreateEvaluationScorerConfigResponse
+	472,  // 1706: o11y_one.agentic.v1.AgenticEvaluationService.CreateEvaluationDatasetVersion:output_type -> o11y_one.agentic.v1.CreateEvaluationDatasetVersionResponse
+	475,  // 1707: o11y_one.agentic.v1.AgenticEvaluationService.SetEvaluationProviderCredentialEnabled:output_type -> o11y_one.agentic.v1.SetEvaluationProviderCredentialEnabledResponse
+	480,  // 1708: o11y_one.agentic.v1.AgenticEvaluationService.CreateEvaluationScorerSuite:output_type -> o11y_one.agentic.v1.CreateEvaluationScorerSuiteResponse
+	489,  // 1709: o11y_one.agentic.v1.AgenticEvaluationService.RequestEvaluationJudgeRegrade:output_type -> o11y_one.agentic.v1.RequestEvaluationJudgeRegradeResponse
+	491,  // 1710: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationJudgeRegradeJob:output_type -> o11y_one.agentic.v1.GetEvaluationJudgeRegradeJobResponse
+	494,  // 1711: o11y_one.agentic.v1.AgenticEvaluationService.PreviewEvaluationJudgeRegrade:output_type -> o11y_one.agentic.v1.PreviewEvaluationJudgeRegradeResponse
+	498,  // 1712: o11y_one.agentic.v1.AgenticEvaluationService.CancelEvaluationJudgeRegradeJob:output_type -> o11y_one.agentic.v1.CancelEvaluationJudgeRegradeJobResponse
+	502,  // 1713: o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationRuns:output_type -> o11y_one.agentic.v1.ListEvaluationRunsResponse
+	505,  // 1714: o11y_one.agentic.v1.AgenticEvaluationService.ReleaseEvaluationReviewTasks:output_type -> o11y_one.agentic.v1.ReleaseEvaluationReviewTasksResponse
+	507,  // 1715: o11y_one.agentic.v1.AgenticEvaluationService.RequeueEvaluationReviewTasks:output_type -> o11y_one.agentic.v1.RequeueEvaluationReviewTasksResponse
+	451,  // 1716: o11y_one.agentic.v1.AgenticEvaluationService.PreviewEvaluationCaseCapture:output_type -> o11y_one.agentic.v1.PreviewEvaluationCaseCaptureResponse
+	528,  // 1717: o11y_one.agentic.v1.AgenticEvaluationService.ListProductionEvaluationRules:output_type -> o11y_one.agentic.v1.ListProductionEvaluationRulesResponse
+	530,  // 1718: o11y_one.agentic.v1.AgenticEvaluationService.GetProductionEvaluationRule:output_type -> o11y_one.agentic.v1.GetProductionEvaluationRuleResponse
+	522,  // 1719: o11y_one.agentic.v1.AgenticEvaluationService.CreateProductionEvaluationRule:output_type -> o11y_one.agentic.v1.CreateProductionEvaluationRuleResponse
+	524,  // 1720: o11y_one.agentic.v1.AgenticEvaluationService.CreateProductionEvaluationRuleVersion:output_type -> o11y_one.agentic.v1.CreateProductionEvaluationRuleVersionResponse
+	526,  // 1721: o11y_one.agentic.v1.AgenticEvaluationService.SetProductionEvaluationRuleVersionState:output_type -> o11y_one.agentic.v1.SetProductionEvaluationRuleVersionStateResponse
+	702,  // 1722: o11y_one.agentic.v1.AgenticEvaluationService.PreviewProductionEvaluationRule:output_type -> o11y_one.agentic.v1.PreviewProductionEvaluationRuleResponse
+	543,  // 1723: o11y_one.agentic.v1.AgenticEvaluationService.ListProductionEvaluationWorkflowExecutions:output_type -> o11y_one.agentic.v1.ListProductionEvaluationWorkflowExecutionsResponse
+	545,  // 1724: o11y_one.agentic.v1.AgenticEvaluationService.GetProductionEvaluationWorkflowExecution:output_type -> o11y_one.agentic.v1.GetProductionEvaluationWorkflowExecutionResponse
+	540,  // 1725: o11y_one.agentic.v1.AgenticEvaluationService.StartProductionEvaluationWorkflow:output_type -> o11y_one.agentic.v1.StartProductionEvaluationWorkflowResponse
+	547,  // 1726: o11y_one.agentic.v1.AgenticEvaluationService.RetryProductionEvaluationWorkflowStep:output_type -> o11y_one.agentic.v1.RetryProductionEvaluationWorkflowStepResponse
+	550,  // 1727: o11y_one.agentic.v1.AgenticEvaluationService.ListProductionEvaluationReleaseBlocks:output_type -> o11y_one.agentic.v1.ListProductionEvaluationReleaseBlocksResponse
+	552,  // 1728: o11y_one.agentic.v1.AgenticEvaluationService.OverrideProductionEvaluationReleaseBlock:output_type -> o11y_one.agentic.v1.OverrideProductionEvaluationReleaseBlockResponse
+	569,  // 1729: o11y_one.agentic.v1.AgenticEvaluationService.CreateReleaseIntegration:output_type -> o11y_one.agentic.v1.CreateReleaseIntegrationResponse
+	571,  // 1730: o11y_one.agentic.v1.AgenticEvaluationService.GetReleaseIntegration:output_type -> o11y_one.agentic.v1.GetReleaseIntegrationResponse
+	574,  // 1731: o11y_one.agentic.v1.AgenticEvaluationService.ListReleaseIntegrations:output_type -> o11y_one.agentic.v1.ListReleaseIntegrationsResponse
+	577,  // 1732: o11y_one.agentic.v1.AgenticEvaluationService.UpdateReleaseIntegration:output_type -> o11y_one.agentic.v1.UpdateReleaseIntegrationResponse
+	579,  // 1733: o11y_one.agentic.v1.AgenticEvaluationService.ArchiveReleaseIntegration:output_type -> o11y_one.agentic.v1.ArchiveReleaseIntegrationResponse
+	583,  // 1734: o11y_one.agentic.v1.AgenticEvaluationService.CreateRelease:output_type -> o11y_one.agentic.v1.CreateReleaseResponse
+	587,  // 1735: o11y_one.agentic.v1.AgenticEvaluationService.GetRelease:output_type -> o11y_one.agentic.v1.GetReleaseResponse
+	590,  // 1736: o11y_one.agentic.v1.AgenticEvaluationService.ListReleases:output_type -> o11y_one.agentic.v1.ListReleasesResponse
+	585,  // 1737: o11y_one.agentic.v1.AgenticEvaluationService.PreviewRelease:output_type -> o11y_one.agentic.v1.PreviewReleaseResponse
+	592,  // 1738: o11y_one.agentic.v1.AgenticEvaluationService.StartReleaseCanary:output_type -> o11y_one.agentic.v1.StartReleaseCanaryResponse
+	594,  // 1739: o11y_one.agentic.v1.AgenticEvaluationService.PromoteRelease:output_type -> o11y_one.agentic.v1.PromoteReleaseResponse
+	596,  // 1740: o11y_one.agentic.v1.AgenticEvaluationService.HoldRelease:output_type -> o11y_one.agentic.v1.HoldReleaseResponse
+	598,  // 1741: o11y_one.agentic.v1.AgenticEvaluationService.AbortRelease:output_type -> o11y_one.agentic.v1.AbortReleaseResponse
+	600,  // 1742: o11y_one.agentic.v1.AgenticEvaluationService.RollbackRelease:output_type -> o11y_one.agentic.v1.RollbackReleaseResponse
+	602,  // 1743: o11y_one.agentic.v1.AgenticEvaluationService.GetReleaseAction:output_type -> o11y_one.agentic.v1.GetReleaseActionResponse
+	605,  // 1744: o11y_one.agentic.v1.AgenticEvaluationService.ListReleaseActions:output_type -> o11y_one.agentic.v1.ListReleaseActionsResponse
+	648,  // 1745: o11y_one.agentic.v1.AgenticEvaluationService.GetDatasetSchemaRevision:output_type -> o11y_one.agentic.v1.GetDatasetSchemaRevisionResponse
+	650,  // 1746: o11y_one.agentic.v1.AgenticEvaluationService.ListDatasetCases:output_type -> o11y_one.agentic.v1.ListDatasetCasesResponse
+	652,  // 1747: o11y_one.agentic.v1.AgenticEvaluationService.GetDatasetCase:output_type -> o11y_one.agentic.v1.GetDatasetCaseResponse
+	654,  // 1748: o11y_one.agentic.v1.AgenticEvaluationService.GetDatasetOverview:output_type -> o11y_one.agentic.v1.GetDatasetOverviewResponse
+	656,  // 1749: o11y_one.agentic.v1.AgenticEvaluationService.ListDatasetVersions:output_type -> o11y_one.agentic.v1.ListEvaluationDatasetVersionsResponse
+	658,  // 1750: o11y_one.agentic.v1.AgenticEvaluationService.ListDatasetUsage:output_type -> o11y_one.agentic.v1.ListDatasetUsageResponse
+	668,  // 1751: o11y_one.agentic.v1.AgenticEvaluationService.GetDatasetCaseDraft:output_type -> o11y_one.agentic.v1.GetDatasetCaseDraftResponse
+	670,  // 1752: o11y_one.agentic.v1.AgenticEvaluationService.ListDatasetCaseDrafts:output_type -> o11y_one.agentic.v1.ListDatasetCaseDraftsResponse
+	672,  // 1753: o11y_one.agentic.v1.AgenticEvaluationService.UpdateDatasetCaseDraft:output_type -> o11y_one.agentic.v1.UpdateDatasetCaseDraftResponse
+	674,  // 1754: o11y_one.agentic.v1.AgenticEvaluationService.ApproveDatasetCaseDraft:output_type -> o11y_one.agentic.v1.ApproveDatasetCaseDraftResponse
+	676,  // 1755: o11y_one.agentic.v1.AgenticEvaluationService.RejectDatasetCaseDraft:output_type -> o11y_one.agentic.v1.RejectDatasetCaseDraftResponse
+	678,  // 1756: o11y_one.agentic.v1.AgenticEvaluationService.MergeDatasetCaseDraft:output_type -> o11y_one.agentic.v1.MergeDatasetCaseDraftResponse
+	680,  // 1757: o11y_one.agentic.v1.AgenticEvaluationService.PreviewPublishDatasetChangeset:output_type -> o11y_one.agentic.v1.PreviewPublishDatasetChangesetResponse
+	682,  // 1758: o11y_one.agentic.v1.AgenticEvaluationService.PublishDatasetCaseDrafts:output_type -> o11y_one.agentic.v1.PublishDatasetCaseDraftsResponse
+	707,  // 1759: o11y_one.agentic.v1.AgenticEvaluationService.CreateMachinePrincipal:output_type -> o11y_one.agentic.v1.CreateMachinePrincipalResponse
+	710,  // 1760: o11y_one.agentic.v1.AgenticEvaluationService.ListMachinePrincipals:output_type -> o11y_one.agentic.v1.ListMachinePrincipalsResponse
+	712,  // 1761: o11y_one.agentic.v1.AgenticEvaluationService.CreateMachineCredential:output_type -> o11y_one.agentic.v1.CreateMachineCredentialResponse
+	714,  // 1762: o11y_one.agentic.v1.AgenticEvaluationService.RevokeMachineCredential:output_type -> o11y_one.agentic.v1.RevokeMachineCredentialResponse
+	716,  // 1763: o11y_one.agentic.v1.AgenticEvaluationService.RevokeMachinePrincipal:output_type -> o11y_one.agentic.v1.RevokeMachinePrincipalResponse
+	718,  // 1764: o11y_one.agentic.v1.AgenticEvaluationService.GetCallerPrincipal:output_type -> o11y_one.agentic.v1.GetCallerPrincipalResponse
+	727,  // 1765: o11y_one.agentic.v1.AgenticEvaluationService.LeaseEvaluationCases:output_type -> o11y_one.agentic.v1.LeaseEvaluationCasesResponse
+	729,  // 1766: o11y_one.agentic.v1.AgenticEvaluationService.RenewEvaluationCaseLease:output_type -> o11y_one.agentic.v1.RenewEvaluationCaseLeaseResponse
+	731,  // 1767: o11y_one.agentic.v1.AgenticEvaluationService.SubmitEvaluationCaseOutputs:output_type -> o11y_one.agentic.v1.SubmitEvaluationCaseOutputsResponse
+	733,  // 1768: o11y_one.agentic.v1.AgenticEvaluationService.ReleaseEvaluationCaseLease:output_type -> o11y_one.agentic.v1.ReleaseEvaluationCaseLeaseResponse
+	739,  // 1769: o11y_one.agentic.v1.AgenticEvaluationService.RecordPlatformAnnotation:output_type -> o11y_one.agentic.v1.RecordPlatformAnnotationResponse
+	741,  // 1770: o11y_one.agentic.v1.AgenticEvaluationService.ListPlatformAnnotations:output_type -> o11y_one.agentic.v1.ListPlatformAnnotationsResponse
+	744,  // 1771: o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationScorerConfigs:output_type -> o11y_one.agentic.v1.ListEvaluationScorerConfigsResponse
+	752,  // 1772: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationScorerConfig:output_type -> o11y_one.agentic.v1.GetEvaluationScorerConfigResponse
+	755,  // 1773: o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationScorerConfigVersions:output_type -> o11y_one.agentic.v1.ListEvaluationScorerConfigVersionsResponse
+	760,  // 1774: o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationScorerSuites:output_type -> o11y_one.agentic.v1.ListEvaluationScorerSuitesResponse
+	762,  // 1775: o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationScorerSuite:output_type -> o11y_one.agentic.v1.GetEvaluationScorerSuiteResponse
+	764,  // 1776: o11y_one.agentic.v1.AgenticEvaluationService.ArchiveEvaluationScorerConfig:output_type -> o11y_one.agentic.v1.ArchiveEvaluationScorerConfigResponse
+	766,  // 1777: o11y_one.agentic.v1.AgenticEvaluationService.ArchiveEvaluationScorerSuite:output_type -> o11y_one.agentic.v1.ArchiveEvaluationScorerSuiteResponse
+	769,  // 1778: o11y_one.agentic.v1.AgenticEvaluationService.ListDatasetCollections:output_type -> o11y_one.agentic.v1.ListEvaluationDatasetCollectionsResponse
+	771,  // 1779: o11y_one.agentic.v1.AgenticEvaluationService.GetDatasetChangeset:output_type -> o11y_one.agentic.v1.GetDatasetChangesetResponse
+	773,  // 1780: o11y_one.agentic.v1.AgenticEvaluationService.ListDatasetChangesets:output_type -> o11y_one.agentic.v1.ListDatasetChangesetsResponse
+	1665, // [1665:1781] is the sub-list for method output_type
+	1549, // [1549:1665] is the sub-list for method input_type
+	1549, // [1549:1549] is the sub-list for extension type_name
+	1549, // [1549:1549] is the sub-list for extension extendee
+	0,    // [0:1549] is the sub-list for field type_name
 }
 
 func init() { file_o11y_one_agentic_v1_evaluation_proto_init() }
@@ -68517,6 +76271,7 @@ func file_o11y_one_agentic_v1_evaluation_proto_init() {
 	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[481].OneofWrappers = []any{}
 	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[482].OneofWrappers = []any{}
 	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[483].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[487].OneofWrappers = []any{}
 	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[488].OneofWrappers = []any{}
 	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[489].OneofWrappers = []any{}
 	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[490].OneofWrappers = []any{}
@@ -68549,13 +76304,80 @@ func file_o11y_one_agentic_v1_evaluation_proto_init() {
 	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[532].OneofWrappers = []any{}
 	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[533].OneofWrappers = []any{}
 	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[536].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[537].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[538].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[539].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[541].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[543].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[544].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[546].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[548].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[551].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[553].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[555].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[556].OneofWrappers = []any{
+		(*ExternalCaseOutputV1_OutputPayloadJson)(nil),
+		(*ExternalCaseOutputV1_Failure)(nil),
+	}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[557].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[558].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[560].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[562].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[564].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[566].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[569].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[570].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[571].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[574].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[575].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[576].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[577].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[578].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[579].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[580].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[581].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[583].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[584].OneofWrappers = []any{
+		(*GetEvaluationScorerConfigRequest_ScoreConfigId)(nil),
+		(*GetEvaluationScorerConfigRequest_ConfigKey)(nil),
+	}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[585].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[586].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[587].OneofWrappers = []any{
+		(*ListEvaluationScorerConfigVersionsRequest_ScoreConfigId)(nil),
+		(*ListEvaluationScorerConfigVersionsRequest_ConfigKey)(nil),
+	}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[588].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[589].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[590].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[591].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[592].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[593].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[594].OneofWrappers = []any{
+		(*GetEvaluationScorerSuiteRequest_ScorerSuiteId)(nil),
+		(*GetEvaluationScorerSuiteRequest_SuiteKey)(nil),
+	}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[596].OneofWrappers = []any{
+		(*ArchiveEvaluationScorerConfigRequest_ScoreConfigId)(nil),
+		(*ArchiveEvaluationScorerConfigRequest_ConfigKey)(nil),
+	}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[598].OneofWrappers = []any{
+		(*ArchiveEvaluationScorerSuiteRequest_ScorerSuiteId)(nil),
+		(*ArchiveEvaluationScorerSuiteRequest_SuiteKey)(nil),
+	}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[600].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[601].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[602].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[604].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[605].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_evaluation_proto_msgTypes[606].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_o11y_one_agentic_v1_evaluation_proto_rawDesc), len(file_o11y_one_agentic_v1_evaluation_proto_rawDesc)),
-			NumEnums:      158,
-			NumMessages:   537,
+			NumEnums:      167,
+			NumMessages:   607,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

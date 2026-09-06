@@ -336,6 +336,72 @@ const (
 	// AgenticEvaluationServicePublishDatasetCaseDraftsProcedure is the fully-qualified name of the
 	// AgenticEvaluationService's PublishDatasetCaseDrafts RPC.
 	AgenticEvaluationServicePublishDatasetCaseDraftsProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/PublishDatasetCaseDrafts"
+	// AgenticEvaluationServiceCreateMachinePrincipalProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's CreateMachinePrincipal RPC.
+	AgenticEvaluationServiceCreateMachinePrincipalProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/CreateMachinePrincipal"
+	// AgenticEvaluationServiceListMachinePrincipalsProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's ListMachinePrincipals RPC.
+	AgenticEvaluationServiceListMachinePrincipalsProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/ListMachinePrincipals"
+	// AgenticEvaluationServiceCreateMachineCredentialProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's CreateMachineCredential RPC.
+	AgenticEvaluationServiceCreateMachineCredentialProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/CreateMachineCredential"
+	// AgenticEvaluationServiceRevokeMachineCredentialProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's RevokeMachineCredential RPC.
+	AgenticEvaluationServiceRevokeMachineCredentialProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/RevokeMachineCredential"
+	// AgenticEvaluationServiceRevokeMachinePrincipalProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's RevokeMachinePrincipal RPC.
+	AgenticEvaluationServiceRevokeMachinePrincipalProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/RevokeMachinePrincipal"
+	// AgenticEvaluationServiceGetCallerPrincipalProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's GetCallerPrincipal RPC.
+	AgenticEvaluationServiceGetCallerPrincipalProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/GetCallerPrincipal"
+	// AgenticEvaluationServiceLeaseEvaluationCasesProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's LeaseEvaluationCases RPC.
+	AgenticEvaluationServiceLeaseEvaluationCasesProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/LeaseEvaluationCases"
+	// AgenticEvaluationServiceRenewEvaluationCaseLeaseProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's RenewEvaluationCaseLease RPC.
+	AgenticEvaluationServiceRenewEvaluationCaseLeaseProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/RenewEvaluationCaseLease"
+	// AgenticEvaluationServiceSubmitEvaluationCaseOutputsProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's SubmitEvaluationCaseOutputs RPC.
+	AgenticEvaluationServiceSubmitEvaluationCaseOutputsProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/SubmitEvaluationCaseOutputs"
+	// AgenticEvaluationServiceReleaseEvaluationCaseLeaseProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's ReleaseEvaluationCaseLease RPC.
+	AgenticEvaluationServiceReleaseEvaluationCaseLeaseProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/ReleaseEvaluationCaseLease"
+	// AgenticEvaluationServiceRecordPlatformAnnotationProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's RecordPlatformAnnotation RPC.
+	AgenticEvaluationServiceRecordPlatformAnnotationProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/RecordPlatformAnnotation"
+	// AgenticEvaluationServiceListPlatformAnnotationsProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's ListPlatformAnnotations RPC.
+	AgenticEvaluationServiceListPlatformAnnotationsProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/ListPlatformAnnotations"
+	// AgenticEvaluationServiceListEvaluationScorerConfigsProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's ListEvaluationScorerConfigs RPC.
+	AgenticEvaluationServiceListEvaluationScorerConfigsProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/ListEvaluationScorerConfigs"
+	// AgenticEvaluationServiceGetEvaluationScorerConfigProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's GetEvaluationScorerConfig RPC.
+	AgenticEvaluationServiceGetEvaluationScorerConfigProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/GetEvaluationScorerConfig"
+	// AgenticEvaluationServiceListEvaluationScorerConfigVersionsProcedure is the fully-qualified name
+	// of the AgenticEvaluationService's ListEvaluationScorerConfigVersions RPC.
+	AgenticEvaluationServiceListEvaluationScorerConfigVersionsProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/ListEvaluationScorerConfigVersions"
+	// AgenticEvaluationServiceListEvaluationScorerSuitesProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's ListEvaluationScorerSuites RPC.
+	AgenticEvaluationServiceListEvaluationScorerSuitesProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/ListEvaluationScorerSuites"
+	// AgenticEvaluationServiceGetEvaluationScorerSuiteProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's GetEvaluationScorerSuite RPC.
+	AgenticEvaluationServiceGetEvaluationScorerSuiteProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/GetEvaluationScorerSuite"
+	// AgenticEvaluationServiceArchiveEvaluationScorerConfigProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's ArchiveEvaluationScorerConfig RPC.
+	AgenticEvaluationServiceArchiveEvaluationScorerConfigProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/ArchiveEvaluationScorerConfig"
+	// AgenticEvaluationServiceArchiveEvaluationScorerSuiteProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's ArchiveEvaluationScorerSuite RPC.
+	AgenticEvaluationServiceArchiveEvaluationScorerSuiteProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/ArchiveEvaluationScorerSuite"
+	// AgenticEvaluationServiceListDatasetCollectionsProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's ListDatasetCollections RPC.
+	AgenticEvaluationServiceListDatasetCollectionsProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/ListDatasetCollections"
+	// AgenticEvaluationServiceGetDatasetChangesetProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's GetDatasetChangeset RPC.
+	AgenticEvaluationServiceGetDatasetChangesetProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/GetDatasetChangeset"
+	// AgenticEvaluationServiceListDatasetChangesetsProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's ListDatasetChangesets RPC.
+	AgenticEvaluationServiceListDatasetChangesetsProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/ListDatasetChangesets"
 )
 
 // AgenticEvaluationServiceClient is a client for the o11y_one.agentic.v1.AgenticEvaluationService
@@ -592,6 +658,198 @@ type AgenticEvaluationServiceClient interface {
 	// through the one launch path. A downstream failure leaves the version
 	// intact (`P5-18`).
 	PublishDatasetCaseDrafts(context.Context, *connect.Request[v1.PublishDatasetCaseDraftsRequest]) (*connect.Response[v1.PublishDatasetCaseDraftsResponse], error)
+	// Mint an org-scoped machine principal carrying a typed `ScopeSet`. An
+	// unknown scope discriminant is `INVALID_ARGUMENT` (0a §6.4), never a
+	// silently dropped element — a principal that was created with fewer powers
+	// than the caller asked for is a security surprise in the safe direction and
+	// a debugging nightmare in every other one.
+	CreateMachinePrincipal(context.Context, *connect.Request[v1.CreateMachinePrincipalRequest]) (*connect.Response[v1.CreateMachinePrincipalResponse], error)
+	// Management list. Carries no secret material and no credential secrets: the
+	// credential summaries it embeds are the same `MachineCredentialV1` the rest
+	// of the surface uses, which has no field material could travel in.
+	ListMachinePrincipals(context.Context, *connect.Request[v1.ListMachinePrincipalsRequest]) (*connect.Response[v1.ListMachinePrincipalsResponse], error)
+	// The ONLY message in this contract that carries plaintext credential
+	// material, in the field `plaintext_token_once`, exactly once, with no
+	// read-back path anywhere (0a §6.3, NN8 `:160`). Losing it means rotating,
+	// which is why a principal may hold several ACTIVE credentials at a time.
+	CreateMachineCredential(context.Context, *connect.Request[v1.CreateMachineCredentialRequest]) (*connect.Response[v1.CreateMachineCredentialResponse], error)
+	// Revocation takes effect on the NEXT request, not on a cache-TTL boundary:
+	// the token cache is invalidated in the same call, following the precedent at
+	// `server/src/services/api_tokens/handlers.rs:199-217`.
+	RevokeMachineCredential(context.Context, *connect.Request[v1.RevokeMachineCredentialRequest]) (*connect.Response[v1.RevokeMachineCredentialResponse], error)
+	// Revokes the principal AND every credential it holds, each with its own
+	// cache invalidation. A principal whose credentials outlived it would be a
+	// revocation that did not revoke.
+	RevokeMachinePrincipal(context.Context, *connect.Request[v1.RevokeMachinePrincipalRequest]) (*connect.Response[v1.RevokeMachinePrincipalResponse], error)
+	// J8.1: "Is my token valid and what can it do?" — the first call an SDK
+	// makes. Reachable by any valid machine credential with NO scope requirement,
+	// because requiring a scope to ask which scopes you hold makes the question
+	// unanswerable for exactly the token that needs to ask it. It introspects the
+	// caller and only the caller; there is no principal id in the request.
+	//
+	// A browser session may also call it, and gets its own USER principal back —
+	// which is what lets one SDK code path work in both modes without branching.
+	GetCallerPrincipal(context.Context, *connect.Request[v1.GetCallerPrincipalRequest]) (*connect.Response[v1.GetCallerPrincipalResponse], error)
+	// The claim. Bounded batch, one statement, and a reclaim: a lease whose
+	// holder vanished is retaken by the next claim rather than by a sweep, which
+	// is the property that makes an abandoned runtime cost one TTL and not a run.
+	LeaseEvaluationCases(context.Context, *connect.Request[v1.LeaseEvaluationCasesRequest]) (*connect.Response[v1.LeaseEvaluationCasesResponse], error)
+	// The heartbeat. Expiry-only and fenced, never a re-claim: a renewal that
+	// could also claim would let a heartbeat silently grow its own batch.
+	RenewEvaluationCaseLease(context.Context, *connect.Request[v1.RenewEvaluationCaseLeaseRequest]) (*connect.Response[v1.RenewEvaluationCaseLeaseResponse], error)
+	// The fenced submit. Idempotent by coordinate and generation, so a resubmitted
+	// batch converges with no duplicate facts and no double-counted economics
+	// (`PLAN:1937`); partial by construction, so one malformed case never fails
+	// its batch (`PLAN:1928`). Scoring is NOT done here — the submission moves the
+	// cell to the frozen `QUEUED` and the server's own executor scores it, which
+	// is `PLAN:1969`'s "server-side scorer fan-out unchanged" taken literally.
+	SubmitEvaluationCaseOutputs(context.Context, *connect.Request[v1.SubmitEvaluationCaseOutputsRequest]) (*connect.Response[v1.SubmitEvaluationCaseOutputsResponse], error)
+	// The good citizen's exit. Without it, a runtime that fails cleanly must wait
+	// out its whole TTL before anyone can retake its cases, and typed abandonment
+	// would be the only way to give work back.
+	ReleaseEvaluationCaseLease(context.Context, *connect.Request[v1.ReleaseEvaluationCaseLeaseRequest]) (*connect.Response[v1.ReleaseEvaluationCaseLeaseResponse], error)
+	// `MUTATION_ACK`. Idempotency-keyed, machine-principal attributable, and
+	// required-scope `PLATFORM_ANNOTATION_WRITE` (wave 50 lane A's fifth
+	// discriminant, minted on this lane's ask).
+	//
+	// A deploy marker whose kind this build does not know is REFUSED, and the
+	// refusal carries the capability envelope — so a newer runner learns which
+	// kinds this server supports and can downgrade to `_MARKER` rather than
+	// dropping the annotation on the floor.
+	RecordPlatformAnnotation(context.Context, *connect.Request[v1.RecordPlatformAnnotationRequest]) (*connect.Response[v1.RecordPlatformAnnotationResponse], error)
+	// `INITIAL_PAGE`. A time window, an optional kind filter, keyset-paged,
+	// newest-first. Constant in the page size and in the filter's cardinality.
+	ListPlatformAnnotations(context.Context, *connect.Request[v1.ListPlatformAnnotationsRequest]) (*connect.Response[v1.ListPlatformAnnotationsResponse], error)
+	// `INITIAL_PAGE`. The library page, keyset-paged on `config_key`.
+	//
+	// EVERY score configuration in the organisation, not only the v2-authored
+	// ones — the same set `GetEvaluationBuilderContext.scorer_choices[]` serves,
+	// PLUS the archived rows its `is_archived = FALSE` predicate hides, and
+	// WITHOUT that picker's `max_scorers = 50` ceiling, which is a picker bound
+	// and not an inventory bound. `authored_on_this_surface` says which half a
+	// row is in; `kind = UNSPECIFIED` is a real answer and means a scorer
+	// authored outside `CreateEvaluationScorerConfig`.
+	ListEvaluationScorerConfigs(context.Context, *connect.Request[v1.ListEvaluationScorerConfigsRequest]) (*connect.Response[v1.ListEvaluationScorerConfigsResponse], error)
+	// `SELECTED_DETAIL`. The read `17` §8.1 calls "the largest gap on this page"
+	// and `17` §9 question 1 puts to the backend by name.
+	//
+	// The WHOLE authored spec: a judge's `instructions`, `verdict_mappings` and
+	// `subject_path` — written to `evaluator_templates.config` since wave 45 and
+	// read by nothing until now — plus the resolved provider execution, plus the
+	// deterministic spec and the review policy for the other two kinds. Optional
+	// `version_discriminator` addresses a superseded version.
+	GetEvaluationScorerConfig(context.Context, *connect.Request[v1.GetEvaluationScorerConfigRequest]) (*connect.Response[v1.GetEvaluationScorerConfigResponse], error)
+	// `PAGE`. The version history `05` §8 says is "not derivable".
+	//
+	// It is derivable and always has been: the v2 create has minted one
+	// `evaluator_templates` row per version since wave 31 lane A, keyed
+	// `scorer:{config_key}:{version}` and UNIQUE per tenant, and a revision mints
+	// a fresh row rather than mutating the old one. Those rows ARE the history.
+	ListEvaluationScorerConfigVersions(context.Context, *connect.Request[v1.ListEvaluationScorerConfigVersionsRequest]) (*connect.Response[v1.ListEvaluationScorerConfigVersionsResponse], error)
+	// `INITIAL_PAGE` / `SELECTED_DETAIL`. The suite reads `05` §2 records as
+	// ABSENT on the v2 plane.
+	//
+	// The detail's members carry their OWN posture — archived, kind, version —
+	// which `EvaluationScorerSuiteMemberV1` cannot: that message is embedded in
+	// `EvaluationScorerSuiteSnapshotV1`, which "must never gain a field that
+	// moves". Without the posture a suite page cannot say "this member is
+	// archived", and the customer meets it at launch instead, as a
+	// `MISSING_DEPENDENCY` / `scorer_archived` blocker.
+	ListEvaluationScorerSuites(context.Context, *connect.Request[v1.ListEvaluationScorerSuitesRequest]) (*connect.Response[v1.ListEvaluationScorerSuitesResponse], error)
+	GetEvaluationScorerSuite(context.Context, *connect.Request[v1.GetEvaluationScorerSuiteRequest]) (*connect.Response[v1.GetEvaluationScorerSuiteResponse], error)
+	// `MUTATION_ACK`. Retirement, and it is UNCONDITIONAL.
+	//
+	// Three shipped facts settle the semantics and the increment argues them in
+	// full (§0.5). (1) `score_configs.is_archived` has existed since
+	// `20260515123000` and the v2 picker already filters on it, so this verb
+	// introduces no lifecycle — it writes a flag the surface already honours.
+	// (2) The launch path ALREADY refuses an archived scorer by name
+	// (`run_handlers.rs`, blocker `scorer_archived`), for an explicit selection
+	// and for a suite member alike. (3) The production-rule plane ALREADY
+	// disables a dependent rule version with `dependency_archived`.
+	//
+	// So archiving is never refused for a suite membership, a definition
+	// reference, a production rule or a run pin. A pin makes REVISION unsafe
+	// because the executor reads the template live; archiving mutates no template
+	// and no manifest, and pins never expire, so that refusal would mean "you may
+	// never retire a scorer that was ever used". Instead the response returns the
+	// STANDING REFERENCES, so an operator sees the blast radius at the one moment
+	// it changes a decision — the shape `ArchiveReleaseIntegrationResponse`
+	// already uses.
+	//
+	// There is no unarchive verb and no idempotency key: a monotone state flip is
+	// replayable by construction, and `already_archived` rides back on the
+	// response rather than being an error.
+	ArchiveEvaluationScorerConfig(context.Context, *connect.Request[v1.ArchiveEvaluationScorerConfigRequest]) (*connect.Response[v1.ArchiveEvaluationScorerConfigResponse], error)
+	// `MUTATION_ACK`. Same semantics, and NO launched-run refusal — the suite
+	// migration's own header is the argument: "Nothing reads THIS table at
+	// execution or at read time … launched runs are immune by construction. A
+	// revision is therefore always permitted." Archiving is weaker than the
+	// revision that is already unconditional.
+	ArchiveEvaluationScorerSuite(context.Context, *connect.Request[v1.ArchiveEvaluationScorerSuiteRequest]) (*connect.Response[v1.ArchiveEvaluationScorerSuiteResponse], error)
+	// ---- wave 52 lane A: the dataset read plane's entry points ----
+	//
+	// Wave 42 built every dataset screen GIVEN AN ID and shipped nothing that
+	// hands a client its first id. These three verbs are that residue of A2 gap
+	// `G23`, and all three are RECORDED AMENDMENTS: `PLAN:462`-`:477` is the
+	// dataset plane's whole approved inventory and reserves no collection-list
+	// and no changeset-read name, and `0b :213`-`:214` reserves exactly the three
+	// tab verbs wave 42 built. Every name here was checked against both lists
+	// before it was declared, and none of them was on either — which is why they
+	// are amendments and say so, rather than being quietly minted as if approved.
+	//
+	// `A-52A-1` `ListDatasetCollections`. The verb collides with the LEGACY
+	// `AgenticObservabilityService.ListDatasetCollections`
+	// (`agentic.proto:4533-4550`) exactly as `ListDatasetVersions` already does,
+	// and it is resolved the same way, for the reason recorded on
+	// `ListEvaluationDatasetVersionsRequest`: the verb name is the plane's, the
+	// MESSAGE name carries the `Evaluation` infix to disambiguate inside one
+	// protobuf package. Different service, different messages, different plane —
+	// the legacy verb carries no availability posture, no freshness, and no
+	// knowledge of the changeset plane.
+	//
+	// `PAGE`. Three request-scoped SQL statements — scope, the page, the total —
+	// and the per-collection sub-counts are LATERAL sub-selects INSIDE the page
+	// statement, on `GetEvaluationBuilderContext`'s own precedent and for the
+	// reason `PLAN:1520` exists: a count issued per row is the cost this plane
+	// was built not to pay. The count is therefore constant in the page size.
+	ListDatasetCollections(context.Context, *connect.Request[v1.ListEvaluationDatasetCollectionsRequest]) (*connect.Response[v1.ListEvaluationDatasetCollectionsResponse], error)
+	// `A-52A-2` / `A-52A-3`. The CONTAINER reads.
+	//
+	// `evaluation_dataset_version_drafts` — the row this wire models as
+	// `DatasetChangesetV1` — is written by capture, moved by
+	// `PreviewPublishDatasetChangeset` and committed by
+	// `PublishDatasetCaseDrafts`, and until this wave was reachable through no
+	// read verb at all. Every mutation on it takes a `changeset_id` a client
+	// could only have obtained from a capture response IN THE SAME SESSION: a
+	// reviewer who came back tomorrow had no verb that would tell them a
+	// changeset was open on this collection, what state it was in, or whether its
+	// base version had moved under it. This is the half of doc `08` §8's fourth
+	// row that wave 42 did not close — that section named TWO absent verbs, and
+	// wave 42 shipped `ListEvaluationProposedCases` as `ListDatasetCaseDrafts`
+	// and left the container.
+	//
+	// NAMED `Changeset` AND NOT `Draft`, deliberately. Doc `08` §8 wrote the name
+	// `GetEvaluationDatasetDraft` in 2026-08-31 for a thing that did not exist,
+	// and the wave-42 wire since settled on a different word for it:
+	// `DatasetChangesetV1`, `DatasetChangesetStateV1`,
+	// `PreviewPublishDatasetChangeset`. A `GetDatasetDraft` sitting beside the
+	// shipped `GetDatasetCaseDraft` would ask a client to learn which of the two
+	// is a case and which is the container from the ABSENCE of an infix. One
+	// plane, one word.
+	//
+	// `SELECTED_DETAIL`, three statements: scope, the changeset, and the
+	// collection's ACTIVE version — because "has my base moved?" is a question
+	// the server answers, not one the client reassembles from two reads and a
+	// rule it reimplemented.
+	GetDatasetChangeset(context.Context, *connect.Request[v1.GetDatasetChangesetRequest]) (*connect.Response[v1.GetDatasetChangesetResponse], error)
+	// `PAGE`. Offset-paged and state-filtered, matching `ListDatasetCaseDrafts` —
+	// its sibling queue over the very same rows one level down — rather than
+	// inventing a second paging shape for one plane. An EMPTY `states` means the
+	// LIVE set and never "all", for the reason that request records: a queue
+	// whose default included committed and abandoned changesets would bury the
+	// work under its own history.
+	ListDatasetChangesets(context.Context, *connect.Request[v1.ListDatasetChangesetsRequest]) (*connect.Response[v1.ListDatasetChangesetsResponse], error)
 }
 
 // NewAgenticEvaluationServiceClient constructs a client for the
@@ -1170,6 +1428,138 @@ func NewAgenticEvaluationServiceClient(httpClient connect.HTTPClient, baseURL st
 			connect.WithSchema(agenticEvaluationServiceMethods.ByName("PublishDatasetCaseDrafts")),
 			connect.WithClientOptions(opts...),
 		),
+		createMachinePrincipal: connect.NewClient[v1.CreateMachinePrincipalRequest, v1.CreateMachinePrincipalResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceCreateMachinePrincipalProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("CreateMachinePrincipal")),
+			connect.WithClientOptions(opts...),
+		),
+		listMachinePrincipals: connect.NewClient[v1.ListMachinePrincipalsRequest, v1.ListMachinePrincipalsResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceListMachinePrincipalsProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("ListMachinePrincipals")),
+			connect.WithClientOptions(opts...),
+		),
+		createMachineCredential: connect.NewClient[v1.CreateMachineCredentialRequest, v1.CreateMachineCredentialResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceCreateMachineCredentialProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("CreateMachineCredential")),
+			connect.WithClientOptions(opts...),
+		),
+		revokeMachineCredential: connect.NewClient[v1.RevokeMachineCredentialRequest, v1.RevokeMachineCredentialResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceRevokeMachineCredentialProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("RevokeMachineCredential")),
+			connect.WithClientOptions(opts...),
+		),
+		revokeMachinePrincipal: connect.NewClient[v1.RevokeMachinePrincipalRequest, v1.RevokeMachinePrincipalResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceRevokeMachinePrincipalProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("RevokeMachinePrincipal")),
+			connect.WithClientOptions(opts...),
+		),
+		getCallerPrincipal: connect.NewClient[v1.GetCallerPrincipalRequest, v1.GetCallerPrincipalResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceGetCallerPrincipalProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("GetCallerPrincipal")),
+			connect.WithClientOptions(opts...),
+		),
+		leaseEvaluationCases: connect.NewClient[v1.LeaseEvaluationCasesRequest, v1.LeaseEvaluationCasesResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceLeaseEvaluationCasesProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("LeaseEvaluationCases")),
+			connect.WithClientOptions(opts...),
+		),
+		renewEvaluationCaseLease: connect.NewClient[v1.RenewEvaluationCaseLeaseRequest, v1.RenewEvaluationCaseLeaseResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceRenewEvaluationCaseLeaseProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("RenewEvaluationCaseLease")),
+			connect.WithClientOptions(opts...),
+		),
+		submitEvaluationCaseOutputs: connect.NewClient[v1.SubmitEvaluationCaseOutputsRequest, v1.SubmitEvaluationCaseOutputsResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceSubmitEvaluationCaseOutputsProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("SubmitEvaluationCaseOutputs")),
+			connect.WithClientOptions(opts...),
+		),
+		releaseEvaluationCaseLease: connect.NewClient[v1.ReleaseEvaluationCaseLeaseRequest, v1.ReleaseEvaluationCaseLeaseResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceReleaseEvaluationCaseLeaseProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("ReleaseEvaluationCaseLease")),
+			connect.WithClientOptions(opts...),
+		),
+		recordPlatformAnnotation: connect.NewClient[v1.RecordPlatformAnnotationRequest, v1.RecordPlatformAnnotationResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceRecordPlatformAnnotationProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("RecordPlatformAnnotation")),
+			connect.WithClientOptions(opts...),
+		),
+		listPlatformAnnotations: connect.NewClient[v1.ListPlatformAnnotationsRequest, v1.ListPlatformAnnotationsResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceListPlatformAnnotationsProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("ListPlatformAnnotations")),
+			connect.WithClientOptions(opts...),
+		),
+		listEvaluationScorerConfigs: connect.NewClient[v1.ListEvaluationScorerConfigsRequest, v1.ListEvaluationScorerConfigsResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceListEvaluationScorerConfigsProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("ListEvaluationScorerConfigs")),
+			connect.WithClientOptions(opts...),
+		),
+		getEvaluationScorerConfig: connect.NewClient[v1.GetEvaluationScorerConfigRequest, v1.GetEvaluationScorerConfigResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceGetEvaluationScorerConfigProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("GetEvaluationScorerConfig")),
+			connect.WithClientOptions(opts...),
+		),
+		listEvaluationScorerConfigVersions: connect.NewClient[v1.ListEvaluationScorerConfigVersionsRequest, v1.ListEvaluationScorerConfigVersionsResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceListEvaluationScorerConfigVersionsProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("ListEvaluationScorerConfigVersions")),
+			connect.WithClientOptions(opts...),
+		),
+		listEvaluationScorerSuites: connect.NewClient[v1.ListEvaluationScorerSuitesRequest, v1.ListEvaluationScorerSuitesResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceListEvaluationScorerSuitesProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("ListEvaluationScorerSuites")),
+			connect.WithClientOptions(opts...),
+		),
+		getEvaluationScorerSuite: connect.NewClient[v1.GetEvaluationScorerSuiteRequest, v1.GetEvaluationScorerSuiteResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceGetEvaluationScorerSuiteProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("GetEvaluationScorerSuite")),
+			connect.WithClientOptions(opts...),
+		),
+		archiveEvaluationScorerConfig: connect.NewClient[v1.ArchiveEvaluationScorerConfigRequest, v1.ArchiveEvaluationScorerConfigResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceArchiveEvaluationScorerConfigProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("ArchiveEvaluationScorerConfig")),
+			connect.WithClientOptions(opts...),
+		),
+		archiveEvaluationScorerSuite: connect.NewClient[v1.ArchiveEvaluationScorerSuiteRequest, v1.ArchiveEvaluationScorerSuiteResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceArchiveEvaluationScorerSuiteProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("ArchiveEvaluationScorerSuite")),
+			connect.WithClientOptions(opts...),
+		),
+		listDatasetCollections: connect.NewClient[v1.ListEvaluationDatasetCollectionsRequest, v1.ListEvaluationDatasetCollectionsResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceListDatasetCollectionsProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("ListDatasetCollections")),
+			connect.WithClientOptions(opts...),
+		),
+		getDatasetChangeset: connect.NewClient[v1.GetDatasetChangesetRequest, v1.GetDatasetChangesetResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceGetDatasetChangesetProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("GetDatasetChangeset")),
+			connect.WithClientOptions(opts...),
+		),
+		listDatasetChangesets: connect.NewClient[v1.ListDatasetChangesetsRequest, v1.ListDatasetChangesetsResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceListDatasetChangesetsProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("ListDatasetChangesets")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -1269,6 +1659,28 @@ type agenticEvaluationServiceClient struct {
 	mergeDatasetCaseDraft                      *connect.Client[v1.MergeDatasetCaseDraftRequest, v1.MergeDatasetCaseDraftResponse]
 	previewPublishDatasetChangeset             *connect.Client[v1.PreviewPublishDatasetChangesetRequest, v1.PreviewPublishDatasetChangesetResponse]
 	publishDatasetCaseDrafts                   *connect.Client[v1.PublishDatasetCaseDraftsRequest, v1.PublishDatasetCaseDraftsResponse]
+	createMachinePrincipal                     *connect.Client[v1.CreateMachinePrincipalRequest, v1.CreateMachinePrincipalResponse]
+	listMachinePrincipals                      *connect.Client[v1.ListMachinePrincipalsRequest, v1.ListMachinePrincipalsResponse]
+	createMachineCredential                    *connect.Client[v1.CreateMachineCredentialRequest, v1.CreateMachineCredentialResponse]
+	revokeMachineCredential                    *connect.Client[v1.RevokeMachineCredentialRequest, v1.RevokeMachineCredentialResponse]
+	revokeMachinePrincipal                     *connect.Client[v1.RevokeMachinePrincipalRequest, v1.RevokeMachinePrincipalResponse]
+	getCallerPrincipal                         *connect.Client[v1.GetCallerPrincipalRequest, v1.GetCallerPrincipalResponse]
+	leaseEvaluationCases                       *connect.Client[v1.LeaseEvaluationCasesRequest, v1.LeaseEvaluationCasesResponse]
+	renewEvaluationCaseLease                   *connect.Client[v1.RenewEvaluationCaseLeaseRequest, v1.RenewEvaluationCaseLeaseResponse]
+	submitEvaluationCaseOutputs                *connect.Client[v1.SubmitEvaluationCaseOutputsRequest, v1.SubmitEvaluationCaseOutputsResponse]
+	releaseEvaluationCaseLease                 *connect.Client[v1.ReleaseEvaluationCaseLeaseRequest, v1.ReleaseEvaluationCaseLeaseResponse]
+	recordPlatformAnnotation                   *connect.Client[v1.RecordPlatformAnnotationRequest, v1.RecordPlatformAnnotationResponse]
+	listPlatformAnnotations                    *connect.Client[v1.ListPlatformAnnotationsRequest, v1.ListPlatformAnnotationsResponse]
+	listEvaluationScorerConfigs                *connect.Client[v1.ListEvaluationScorerConfigsRequest, v1.ListEvaluationScorerConfigsResponse]
+	getEvaluationScorerConfig                  *connect.Client[v1.GetEvaluationScorerConfigRequest, v1.GetEvaluationScorerConfigResponse]
+	listEvaluationScorerConfigVersions         *connect.Client[v1.ListEvaluationScorerConfigVersionsRequest, v1.ListEvaluationScorerConfigVersionsResponse]
+	listEvaluationScorerSuites                 *connect.Client[v1.ListEvaluationScorerSuitesRequest, v1.ListEvaluationScorerSuitesResponse]
+	getEvaluationScorerSuite                   *connect.Client[v1.GetEvaluationScorerSuiteRequest, v1.GetEvaluationScorerSuiteResponse]
+	archiveEvaluationScorerConfig              *connect.Client[v1.ArchiveEvaluationScorerConfigRequest, v1.ArchiveEvaluationScorerConfigResponse]
+	archiveEvaluationScorerSuite               *connect.Client[v1.ArchiveEvaluationScorerSuiteRequest, v1.ArchiveEvaluationScorerSuiteResponse]
+	listDatasetCollections                     *connect.Client[v1.ListEvaluationDatasetCollectionsRequest, v1.ListEvaluationDatasetCollectionsResponse]
+	getDatasetChangeset                        *connect.Client[v1.GetDatasetChangesetRequest, v1.GetDatasetChangesetResponse]
+	listDatasetChangesets                      *connect.Client[v1.ListDatasetChangesetsRequest, v1.ListDatasetChangesetsResponse]
 }
 
 // CreateEvaluationDefinition calls
@@ -1799,6 +2211,130 @@ func (c *agenticEvaluationServiceClient) PublishDatasetCaseDrafts(ctx context.Co
 	return c.publishDatasetCaseDrafts.CallUnary(ctx, req)
 }
 
+// CreateMachinePrincipal calls o11y_one.agentic.v1.AgenticEvaluationService.CreateMachinePrincipal.
+func (c *agenticEvaluationServiceClient) CreateMachinePrincipal(ctx context.Context, req *connect.Request[v1.CreateMachinePrincipalRequest]) (*connect.Response[v1.CreateMachinePrincipalResponse], error) {
+	return c.createMachinePrincipal.CallUnary(ctx, req)
+}
+
+// ListMachinePrincipals calls o11y_one.agentic.v1.AgenticEvaluationService.ListMachinePrincipals.
+func (c *agenticEvaluationServiceClient) ListMachinePrincipals(ctx context.Context, req *connect.Request[v1.ListMachinePrincipalsRequest]) (*connect.Response[v1.ListMachinePrincipalsResponse], error) {
+	return c.listMachinePrincipals.CallUnary(ctx, req)
+}
+
+// CreateMachineCredential calls
+// o11y_one.agentic.v1.AgenticEvaluationService.CreateMachineCredential.
+func (c *agenticEvaluationServiceClient) CreateMachineCredential(ctx context.Context, req *connect.Request[v1.CreateMachineCredentialRequest]) (*connect.Response[v1.CreateMachineCredentialResponse], error) {
+	return c.createMachineCredential.CallUnary(ctx, req)
+}
+
+// RevokeMachineCredential calls
+// o11y_one.agentic.v1.AgenticEvaluationService.RevokeMachineCredential.
+func (c *agenticEvaluationServiceClient) RevokeMachineCredential(ctx context.Context, req *connect.Request[v1.RevokeMachineCredentialRequest]) (*connect.Response[v1.RevokeMachineCredentialResponse], error) {
+	return c.revokeMachineCredential.CallUnary(ctx, req)
+}
+
+// RevokeMachinePrincipal calls o11y_one.agentic.v1.AgenticEvaluationService.RevokeMachinePrincipal.
+func (c *agenticEvaluationServiceClient) RevokeMachinePrincipal(ctx context.Context, req *connect.Request[v1.RevokeMachinePrincipalRequest]) (*connect.Response[v1.RevokeMachinePrincipalResponse], error) {
+	return c.revokeMachinePrincipal.CallUnary(ctx, req)
+}
+
+// GetCallerPrincipal calls o11y_one.agentic.v1.AgenticEvaluationService.GetCallerPrincipal.
+func (c *agenticEvaluationServiceClient) GetCallerPrincipal(ctx context.Context, req *connect.Request[v1.GetCallerPrincipalRequest]) (*connect.Response[v1.GetCallerPrincipalResponse], error) {
+	return c.getCallerPrincipal.CallUnary(ctx, req)
+}
+
+// LeaseEvaluationCases calls o11y_one.agentic.v1.AgenticEvaluationService.LeaseEvaluationCases.
+func (c *agenticEvaluationServiceClient) LeaseEvaluationCases(ctx context.Context, req *connect.Request[v1.LeaseEvaluationCasesRequest]) (*connect.Response[v1.LeaseEvaluationCasesResponse], error) {
+	return c.leaseEvaluationCases.CallUnary(ctx, req)
+}
+
+// RenewEvaluationCaseLease calls
+// o11y_one.agentic.v1.AgenticEvaluationService.RenewEvaluationCaseLease.
+func (c *agenticEvaluationServiceClient) RenewEvaluationCaseLease(ctx context.Context, req *connect.Request[v1.RenewEvaluationCaseLeaseRequest]) (*connect.Response[v1.RenewEvaluationCaseLeaseResponse], error) {
+	return c.renewEvaluationCaseLease.CallUnary(ctx, req)
+}
+
+// SubmitEvaluationCaseOutputs calls
+// o11y_one.agentic.v1.AgenticEvaluationService.SubmitEvaluationCaseOutputs.
+func (c *agenticEvaluationServiceClient) SubmitEvaluationCaseOutputs(ctx context.Context, req *connect.Request[v1.SubmitEvaluationCaseOutputsRequest]) (*connect.Response[v1.SubmitEvaluationCaseOutputsResponse], error) {
+	return c.submitEvaluationCaseOutputs.CallUnary(ctx, req)
+}
+
+// ReleaseEvaluationCaseLease calls
+// o11y_one.agentic.v1.AgenticEvaluationService.ReleaseEvaluationCaseLease.
+func (c *agenticEvaluationServiceClient) ReleaseEvaluationCaseLease(ctx context.Context, req *connect.Request[v1.ReleaseEvaluationCaseLeaseRequest]) (*connect.Response[v1.ReleaseEvaluationCaseLeaseResponse], error) {
+	return c.releaseEvaluationCaseLease.CallUnary(ctx, req)
+}
+
+// RecordPlatformAnnotation calls
+// o11y_one.agentic.v1.AgenticEvaluationService.RecordPlatformAnnotation.
+func (c *agenticEvaluationServiceClient) RecordPlatformAnnotation(ctx context.Context, req *connect.Request[v1.RecordPlatformAnnotationRequest]) (*connect.Response[v1.RecordPlatformAnnotationResponse], error) {
+	return c.recordPlatformAnnotation.CallUnary(ctx, req)
+}
+
+// ListPlatformAnnotations calls
+// o11y_one.agentic.v1.AgenticEvaluationService.ListPlatformAnnotations.
+func (c *agenticEvaluationServiceClient) ListPlatformAnnotations(ctx context.Context, req *connect.Request[v1.ListPlatformAnnotationsRequest]) (*connect.Response[v1.ListPlatformAnnotationsResponse], error) {
+	return c.listPlatformAnnotations.CallUnary(ctx, req)
+}
+
+// ListEvaluationScorerConfigs calls
+// o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationScorerConfigs.
+func (c *agenticEvaluationServiceClient) ListEvaluationScorerConfigs(ctx context.Context, req *connect.Request[v1.ListEvaluationScorerConfigsRequest]) (*connect.Response[v1.ListEvaluationScorerConfigsResponse], error) {
+	return c.listEvaluationScorerConfigs.CallUnary(ctx, req)
+}
+
+// GetEvaluationScorerConfig calls
+// o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationScorerConfig.
+func (c *agenticEvaluationServiceClient) GetEvaluationScorerConfig(ctx context.Context, req *connect.Request[v1.GetEvaluationScorerConfigRequest]) (*connect.Response[v1.GetEvaluationScorerConfigResponse], error) {
+	return c.getEvaluationScorerConfig.CallUnary(ctx, req)
+}
+
+// ListEvaluationScorerConfigVersions calls
+// o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationScorerConfigVersions.
+func (c *agenticEvaluationServiceClient) ListEvaluationScorerConfigVersions(ctx context.Context, req *connect.Request[v1.ListEvaluationScorerConfigVersionsRequest]) (*connect.Response[v1.ListEvaluationScorerConfigVersionsResponse], error) {
+	return c.listEvaluationScorerConfigVersions.CallUnary(ctx, req)
+}
+
+// ListEvaluationScorerSuites calls
+// o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationScorerSuites.
+func (c *agenticEvaluationServiceClient) ListEvaluationScorerSuites(ctx context.Context, req *connect.Request[v1.ListEvaluationScorerSuitesRequest]) (*connect.Response[v1.ListEvaluationScorerSuitesResponse], error) {
+	return c.listEvaluationScorerSuites.CallUnary(ctx, req)
+}
+
+// GetEvaluationScorerSuite calls
+// o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationScorerSuite.
+func (c *agenticEvaluationServiceClient) GetEvaluationScorerSuite(ctx context.Context, req *connect.Request[v1.GetEvaluationScorerSuiteRequest]) (*connect.Response[v1.GetEvaluationScorerSuiteResponse], error) {
+	return c.getEvaluationScorerSuite.CallUnary(ctx, req)
+}
+
+// ArchiveEvaluationScorerConfig calls
+// o11y_one.agentic.v1.AgenticEvaluationService.ArchiveEvaluationScorerConfig.
+func (c *agenticEvaluationServiceClient) ArchiveEvaluationScorerConfig(ctx context.Context, req *connect.Request[v1.ArchiveEvaluationScorerConfigRequest]) (*connect.Response[v1.ArchiveEvaluationScorerConfigResponse], error) {
+	return c.archiveEvaluationScorerConfig.CallUnary(ctx, req)
+}
+
+// ArchiveEvaluationScorerSuite calls
+// o11y_one.agentic.v1.AgenticEvaluationService.ArchiveEvaluationScorerSuite.
+func (c *agenticEvaluationServiceClient) ArchiveEvaluationScorerSuite(ctx context.Context, req *connect.Request[v1.ArchiveEvaluationScorerSuiteRequest]) (*connect.Response[v1.ArchiveEvaluationScorerSuiteResponse], error) {
+	return c.archiveEvaluationScorerSuite.CallUnary(ctx, req)
+}
+
+// ListDatasetCollections calls o11y_one.agentic.v1.AgenticEvaluationService.ListDatasetCollections.
+func (c *agenticEvaluationServiceClient) ListDatasetCollections(ctx context.Context, req *connect.Request[v1.ListEvaluationDatasetCollectionsRequest]) (*connect.Response[v1.ListEvaluationDatasetCollectionsResponse], error) {
+	return c.listDatasetCollections.CallUnary(ctx, req)
+}
+
+// GetDatasetChangeset calls o11y_one.agentic.v1.AgenticEvaluationService.GetDatasetChangeset.
+func (c *agenticEvaluationServiceClient) GetDatasetChangeset(ctx context.Context, req *connect.Request[v1.GetDatasetChangesetRequest]) (*connect.Response[v1.GetDatasetChangesetResponse], error) {
+	return c.getDatasetChangeset.CallUnary(ctx, req)
+}
+
+// ListDatasetChangesets calls o11y_one.agentic.v1.AgenticEvaluationService.ListDatasetChangesets.
+func (c *agenticEvaluationServiceClient) ListDatasetChangesets(ctx context.Context, req *connect.Request[v1.ListDatasetChangesetsRequest]) (*connect.Response[v1.ListDatasetChangesetsResponse], error) {
+	return c.listDatasetChangesets.CallUnary(ctx, req)
+}
+
 // AgenticEvaluationServiceHandler is an implementation of the
 // o11y_one.agentic.v1.AgenticEvaluationService service.
 type AgenticEvaluationServiceHandler interface {
@@ -2053,6 +2589,198 @@ type AgenticEvaluationServiceHandler interface {
 	// through the one launch path. A downstream failure leaves the version
 	// intact (`P5-18`).
 	PublishDatasetCaseDrafts(context.Context, *connect.Request[v1.PublishDatasetCaseDraftsRequest]) (*connect.Response[v1.PublishDatasetCaseDraftsResponse], error)
+	// Mint an org-scoped machine principal carrying a typed `ScopeSet`. An
+	// unknown scope discriminant is `INVALID_ARGUMENT` (0a §6.4), never a
+	// silently dropped element — a principal that was created with fewer powers
+	// than the caller asked for is a security surprise in the safe direction and
+	// a debugging nightmare in every other one.
+	CreateMachinePrincipal(context.Context, *connect.Request[v1.CreateMachinePrincipalRequest]) (*connect.Response[v1.CreateMachinePrincipalResponse], error)
+	// Management list. Carries no secret material and no credential secrets: the
+	// credential summaries it embeds are the same `MachineCredentialV1` the rest
+	// of the surface uses, which has no field material could travel in.
+	ListMachinePrincipals(context.Context, *connect.Request[v1.ListMachinePrincipalsRequest]) (*connect.Response[v1.ListMachinePrincipalsResponse], error)
+	// The ONLY message in this contract that carries plaintext credential
+	// material, in the field `plaintext_token_once`, exactly once, with no
+	// read-back path anywhere (0a §6.3, NN8 `:160`). Losing it means rotating,
+	// which is why a principal may hold several ACTIVE credentials at a time.
+	CreateMachineCredential(context.Context, *connect.Request[v1.CreateMachineCredentialRequest]) (*connect.Response[v1.CreateMachineCredentialResponse], error)
+	// Revocation takes effect on the NEXT request, not on a cache-TTL boundary:
+	// the token cache is invalidated in the same call, following the precedent at
+	// `server/src/services/api_tokens/handlers.rs:199-217`.
+	RevokeMachineCredential(context.Context, *connect.Request[v1.RevokeMachineCredentialRequest]) (*connect.Response[v1.RevokeMachineCredentialResponse], error)
+	// Revokes the principal AND every credential it holds, each with its own
+	// cache invalidation. A principal whose credentials outlived it would be a
+	// revocation that did not revoke.
+	RevokeMachinePrincipal(context.Context, *connect.Request[v1.RevokeMachinePrincipalRequest]) (*connect.Response[v1.RevokeMachinePrincipalResponse], error)
+	// J8.1: "Is my token valid and what can it do?" — the first call an SDK
+	// makes. Reachable by any valid machine credential with NO scope requirement,
+	// because requiring a scope to ask which scopes you hold makes the question
+	// unanswerable for exactly the token that needs to ask it. It introspects the
+	// caller and only the caller; there is no principal id in the request.
+	//
+	// A browser session may also call it, and gets its own USER principal back —
+	// which is what lets one SDK code path work in both modes without branching.
+	GetCallerPrincipal(context.Context, *connect.Request[v1.GetCallerPrincipalRequest]) (*connect.Response[v1.GetCallerPrincipalResponse], error)
+	// The claim. Bounded batch, one statement, and a reclaim: a lease whose
+	// holder vanished is retaken by the next claim rather than by a sweep, which
+	// is the property that makes an abandoned runtime cost one TTL and not a run.
+	LeaseEvaluationCases(context.Context, *connect.Request[v1.LeaseEvaluationCasesRequest]) (*connect.Response[v1.LeaseEvaluationCasesResponse], error)
+	// The heartbeat. Expiry-only and fenced, never a re-claim: a renewal that
+	// could also claim would let a heartbeat silently grow its own batch.
+	RenewEvaluationCaseLease(context.Context, *connect.Request[v1.RenewEvaluationCaseLeaseRequest]) (*connect.Response[v1.RenewEvaluationCaseLeaseResponse], error)
+	// The fenced submit. Idempotent by coordinate and generation, so a resubmitted
+	// batch converges with no duplicate facts and no double-counted economics
+	// (`PLAN:1937`); partial by construction, so one malformed case never fails
+	// its batch (`PLAN:1928`). Scoring is NOT done here — the submission moves the
+	// cell to the frozen `QUEUED` and the server's own executor scores it, which
+	// is `PLAN:1969`'s "server-side scorer fan-out unchanged" taken literally.
+	SubmitEvaluationCaseOutputs(context.Context, *connect.Request[v1.SubmitEvaluationCaseOutputsRequest]) (*connect.Response[v1.SubmitEvaluationCaseOutputsResponse], error)
+	// The good citizen's exit. Without it, a runtime that fails cleanly must wait
+	// out its whole TTL before anyone can retake its cases, and typed abandonment
+	// would be the only way to give work back.
+	ReleaseEvaluationCaseLease(context.Context, *connect.Request[v1.ReleaseEvaluationCaseLeaseRequest]) (*connect.Response[v1.ReleaseEvaluationCaseLeaseResponse], error)
+	// `MUTATION_ACK`. Idempotency-keyed, machine-principal attributable, and
+	// required-scope `PLATFORM_ANNOTATION_WRITE` (wave 50 lane A's fifth
+	// discriminant, minted on this lane's ask).
+	//
+	// A deploy marker whose kind this build does not know is REFUSED, and the
+	// refusal carries the capability envelope — so a newer runner learns which
+	// kinds this server supports and can downgrade to `_MARKER` rather than
+	// dropping the annotation on the floor.
+	RecordPlatformAnnotation(context.Context, *connect.Request[v1.RecordPlatformAnnotationRequest]) (*connect.Response[v1.RecordPlatformAnnotationResponse], error)
+	// `INITIAL_PAGE`. A time window, an optional kind filter, keyset-paged,
+	// newest-first. Constant in the page size and in the filter's cardinality.
+	ListPlatformAnnotations(context.Context, *connect.Request[v1.ListPlatformAnnotationsRequest]) (*connect.Response[v1.ListPlatformAnnotationsResponse], error)
+	// `INITIAL_PAGE`. The library page, keyset-paged on `config_key`.
+	//
+	// EVERY score configuration in the organisation, not only the v2-authored
+	// ones — the same set `GetEvaluationBuilderContext.scorer_choices[]` serves,
+	// PLUS the archived rows its `is_archived = FALSE` predicate hides, and
+	// WITHOUT that picker's `max_scorers = 50` ceiling, which is a picker bound
+	// and not an inventory bound. `authored_on_this_surface` says which half a
+	// row is in; `kind = UNSPECIFIED` is a real answer and means a scorer
+	// authored outside `CreateEvaluationScorerConfig`.
+	ListEvaluationScorerConfigs(context.Context, *connect.Request[v1.ListEvaluationScorerConfigsRequest]) (*connect.Response[v1.ListEvaluationScorerConfigsResponse], error)
+	// `SELECTED_DETAIL`. The read `17` §8.1 calls "the largest gap on this page"
+	// and `17` §9 question 1 puts to the backend by name.
+	//
+	// The WHOLE authored spec: a judge's `instructions`, `verdict_mappings` and
+	// `subject_path` — written to `evaluator_templates.config` since wave 45 and
+	// read by nothing until now — plus the resolved provider execution, plus the
+	// deterministic spec and the review policy for the other two kinds. Optional
+	// `version_discriminator` addresses a superseded version.
+	GetEvaluationScorerConfig(context.Context, *connect.Request[v1.GetEvaluationScorerConfigRequest]) (*connect.Response[v1.GetEvaluationScorerConfigResponse], error)
+	// `PAGE`. The version history `05` §8 says is "not derivable".
+	//
+	// It is derivable and always has been: the v2 create has minted one
+	// `evaluator_templates` row per version since wave 31 lane A, keyed
+	// `scorer:{config_key}:{version}` and UNIQUE per tenant, and a revision mints
+	// a fresh row rather than mutating the old one. Those rows ARE the history.
+	ListEvaluationScorerConfigVersions(context.Context, *connect.Request[v1.ListEvaluationScorerConfigVersionsRequest]) (*connect.Response[v1.ListEvaluationScorerConfigVersionsResponse], error)
+	// `INITIAL_PAGE` / `SELECTED_DETAIL`. The suite reads `05` §2 records as
+	// ABSENT on the v2 plane.
+	//
+	// The detail's members carry their OWN posture — archived, kind, version —
+	// which `EvaluationScorerSuiteMemberV1` cannot: that message is embedded in
+	// `EvaluationScorerSuiteSnapshotV1`, which "must never gain a field that
+	// moves". Without the posture a suite page cannot say "this member is
+	// archived", and the customer meets it at launch instead, as a
+	// `MISSING_DEPENDENCY` / `scorer_archived` blocker.
+	ListEvaluationScorerSuites(context.Context, *connect.Request[v1.ListEvaluationScorerSuitesRequest]) (*connect.Response[v1.ListEvaluationScorerSuitesResponse], error)
+	GetEvaluationScorerSuite(context.Context, *connect.Request[v1.GetEvaluationScorerSuiteRequest]) (*connect.Response[v1.GetEvaluationScorerSuiteResponse], error)
+	// `MUTATION_ACK`. Retirement, and it is UNCONDITIONAL.
+	//
+	// Three shipped facts settle the semantics and the increment argues them in
+	// full (§0.5). (1) `score_configs.is_archived` has existed since
+	// `20260515123000` and the v2 picker already filters on it, so this verb
+	// introduces no lifecycle — it writes a flag the surface already honours.
+	// (2) The launch path ALREADY refuses an archived scorer by name
+	// (`run_handlers.rs`, blocker `scorer_archived`), for an explicit selection
+	// and for a suite member alike. (3) The production-rule plane ALREADY
+	// disables a dependent rule version with `dependency_archived`.
+	//
+	// So archiving is never refused for a suite membership, a definition
+	// reference, a production rule or a run pin. A pin makes REVISION unsafe
+	// because the executor reads the template live; archiving mutates no template
+	// and no manifest, and pins never expire, so that refusal would mean "you may
+	// never retire a scorer that was ever used". Instead the response returns the
+	// STANDING REFERENCES, so an operator sees the blast radius at the one moment
+	// it changes a decision — the shape `ArchiveReleaseIntegrationResponse`
+	// already uses.
+	//
+	// There is no unarchive verb and no idempotency key: a monotone state flip is
+	// replayable by construction, and `already_archived` rides back on the
+	// response rather than being an error.
+	ArchiveEvaluationScorerConfig(context.Context, *connect.Request[v1.ArchiveEvaluationScorerConfigRequest]) (*connect.Response[v1.ArchiveEvaluationScorerConfigResponse], error)
+	// `MUTATION_ACK`. Same semantics, and NO launched-run refusal — the suite
+	// migration's own header is the argument: "Nothing reads THIS table at
+	// execution or at read time … launched runs are immune by construction. A
+	// revision is therefore always permitted." Archiving is weaker than the
+	// revision that is already unconditional.
+	ArchiveEvaluationScorerSuite(context.Context, *connect.Request[v1.ArchiveEvaluationScorerSuiteRequest]) (*connect.Response[v1.ArchiveEvaluationScorerSuiteResponse], error)
+	// ---- wave 52 lane A: the dataset read plane's entry points ----
+	//
+	// Wave 42 built every dataset screen GIVEN AN ID and shipped nothing that
+	// hands a client its first id. These three verbs are that residue of A2 gap
+	// `G23`, and all three are RECORDED AMENDMENTS: `PLAN:462`-`:477` is the
+	// dataset plane's whole approved inventory and reserves no collection-list
+	// and no changeset-read name, and `0b :213`-`:214` reserves exactly the three
+	// tab verbs wave 42 built. Every name here was checked against both lists
+	// before it was declared, and none of them was on either — which is why they
+	// are amendments and say so, rather than being quietly minted as if approved.
+	//
+	// `A-52A-1` `ListDatasetCollections`. The verb collides with the LEGACY
+	// `AgenticObservabilityService.ListDatasetCollections`
+	// (`agentic.proto:4533-4550`) exactly as `ListDatasetVersions` already does,
+	// and it is resolved the same way, for the reason recorded on
+	// `ListEvaluationDatasetVersionsRequest`: the verb name is the plane's, the
+	// MESSAGE name carries the `Evaluation` infix to disambiguate inside one
+	// protobuf package. Different service, different messages, different plane —
+	// the legacy verb carries no availability posture, no freshness, and no
+	// knowledge of the changeset plane.
+	//
+	// `PAGE`. Three request-scoped SQL statements — scope, the page, the total —
+	// and the per-collection sub-counts are LATERAL sub-selects INSIDE the page
+	// statement, on `GetEvaluationBuilderContext`'s own precedent and for the
+	// reason `PLAN:1520` exists: a count issued per row is the cost this plane
+	// was built not to pay. The count is therefore constant in the page size.
+	ListDatasetCollections(context.Context, *connect.Request[v1.ListEvaluationDatasetCollectionsRequest]) (*connect.Response[v1.ListEvaluationDatasetCollectionsResponse], error)
+	// `A-52A-2` / `A-52A-3`. The CONTAINER reads.
+	//
+	// `evaluation_dataset_version_drafts` — the row this wire models as
+	// `DatasetChangesetV1` — is written by capture, moved by
+	// `PreviewPublishDatasetChangeset` and committed by
+	// `PublishDatasetCaseDrafts`, and until this wave was reachable through no
+	// read verb at all. Every mutation on it takes a `changeset_id` a client
+	// could only have obtained from a capture response IN THE SAME SESSION: a
+	// reviewer who came back tomorrow had no verb that would tell them a
+	// changeset was open on this collection, what state it was in, or whether its
+	// base version had moved under it. This is the half of doc `08` §8's fourth
+	// row that wave 42 did not close — that section named TWO absent verbs, and
+	// wave 42 shipped `ListEvaluationProposedCases` as `ListDatasetCaseDrafts`
+	// and left the container.
+	//
+	// NAMED `Changeset` AND NOT `Draft`, deliberately. Doc `08` §8 wrote the name
+	// `GetEvaluationDatasetDraft` in 2026-08-31 for a thing that did not exist,
+	// and the wave-42 wire since settled on a different word for it:
+	// `DatasetChangesetV1`, `DatasetChangesetStateV1`,
+	// `PreviewPublishDatasetChangeset`. A `GetDatasetDraft` sitting beside the
+	// shipped `GetDatasetCaseDraft` would ask a client to learn which of the two
+	// is a case and which is the container from the ABSENCE of an infix. One
+	// plane, one word.
+	//
+	// `SELECTED_DETAIL`, three statements: scope, the changeset, and the
+	// collection's ACTIVE version — because "has my base moved?" is a question
+	// the server answers, not one the client reassembles from two reads and a
+	// rule it reimplemented.
+	GetDatasetChangeset(context.Context, *connect.Request[v1.GetDatasetChangesetRequest]) (*connect.Response[v1.GetDatasetChangesetResponse], error)
+	// `PAGE`. Offset-paged and state-filtered, matching `ListDatasetCaseDrafts` —
+	// its sibling queue over the very same rows one level down — rather than
+	// inventing a second paging shape for one plane. An EMPTY `states` means the
+	// LIVE set and never "all", for the reason that request records: a queue
+	// whose default included committed and abandoned changesets would bury the
+	// work under its own history.
+	ListDatasetChangesets(context.Context, *connect.Request[v1.ListDatasetChangesetsRequest]) (*connect.Response[v1.ListDatasetChangesetsResponse], error)
 }
 
 // NewAgenticEvaluationServiceHandler builds an HTTP handler from the service implementation. It
@@ -2626,6 +3354,138 @@ func NewAgenticEvaluationServiceHandler(svc AgenticEvaluationServiceHandler, opt
 		connect.WithSchema(agenticEvaluationServiceMethods.ByName("PublishDatasetCaseDrafts")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agenticEvaluationServiceCreateMachinePrincipalHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceCreateMachinePrincipalProcedure,
+		svc.CreateMachinePrincipal,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("CreateMachinePrincipal")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceListMachinePrincipalsHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceListMachinePrincipalsProcedure,
+		svc.ListMachinePrincipals,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("ListMachinePrincipals")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceCreateMachineCredentialHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceCreateMachineCredentialProcedure,
+		svc.CreateMachineCredential,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("CreateMachineCredential")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceRevokeMachineCredentialHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceRevokeMachineCredentialProcedure,
+		svc.RevokeMachineCredential,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("RevokeMachineCredential")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceRevokeMachinePrincipalHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceRevokeMachinePrincipalProcedure,
+		svc.RevokeMachinePrincipal,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("RevokeMachinePrincipal")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceGetCallerPrincipalHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceGetCallerPrincipalProcedure,
+		svc.GetCallerPrincipal,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("GetCallerPrincipal")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceLeaseEvaluationCasesHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceLeaseEvaluationCasesProcedure,
+		svc.LeaseEvaluationCases,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("LeaseEvaluationCases")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceRenewEvaluationCaseLeaseHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceRenewEvaluationCaseLeaseProcedure,
+		svc.RenewEvaluationCaseLease,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("RenewEvaluationCaseLease")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceSubmitEvaluationCaseOutputsHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceSubmitEvaluationCaseOutputsProcedure,
+		svc.SubmitEvaluationCaseOutputs,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("SubmitEvaluationCaseOutputs")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceReleaseEvaluationCaseLeaseHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceReleaseEvaluationCaseLeaseProcedure,
+		svc.ReleaseEvaluationCaseLease,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("ReleaseEvaluationCaseLease")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceRecordPlatformAnnotationHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceRecordPlatformAnnotationProcedure,
+		svc.RecordPlatformAnnotation,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("RecordPlatformAnnotation")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceListPlatformAnnotationsHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceListPlatformAnnotationsProcedure,
+		svc.ListPlatformAnnotations,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("ListPlatformAnnotations")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceListEvaluationScorerConfigsHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceListEvaluationScorerConfigsProcedure,
+		svc.ListEvaluationScorerConfigs,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("ListEvaluationScorerConfigs")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceGetEvaluationScorerConfigHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceGetEvaluationScorerConfigProcedure,
+		svc.GetEvaluationScorerConfig,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("GetEvaluationScorerConfig")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceListEvaluationScorerConfigVersionsHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceListEvaluationScorerConfigVersionsProcedure,
+		svc.ListEvaluationScorerConfigVersions,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("ListEvaluationScorerConfigVersions")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceListEvaluationScorerSuitesHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceListEvaluationScorerSuitesProcedure,
+		svc.ListEvaluationScorerSuites,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("ListEvaluationScorerSuites")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceGetEvaluationScorerSuiteHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceGetEvaluationScorerSuiteProcedure,
+		svc.GetEvaluationScorerSuite,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("GetEvaluationScorerSuite")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceArchiveEvaluationScorerConfigHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceArchiveEvaluationScorerConfigProcedure,
+		svc.ArchiveEvaluationScorerConfig,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("ArchiveEvaluationScorerConfig")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceArchiveEvaluationScorerSuiteHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceArchiveEvaluationScorerSuiteProcedure,
+		svc.ArchiveEvaluationScorerSuite,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("ArchiveEvaluationScorerSuite")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceListDatasetCollectionsHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceListDatasetCollectionsProcedure,
+		svc.ListDatasetCollections,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("ListDatasetCollections")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceGetDatasetChangesetHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceGetDatasetChangesetProcedure,
+		svc.GetDatasetChangeset,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("GetDatasetChangeset")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceListDatasetChangesetsHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceListDatasetChangesetsProcedure,
+		svc.ListDatasetChangesets,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("ListDatasetChangesets")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/o11y_one.agentic.v1.AgenticEvaluationService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgenticEvaluationServiceCreateEvaluationDefinitionProcedure:
@@ -2816,6 +3676,50 @@ func NewAgenticEvaluationServiceHandler(svc AgenticEvaluationServiceHandler, opt
 			agenticEvaluationServicePreviewPublishDatasetChangesetHandler.ServeHTTP(w, r)
 		case AgenticEvaluationServicePublishDatasetCaseDraftsProcedure:
 			agenticEvaluationServicePublishDatasetCaseDraftsHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceCreateMachinePrincipalProcedure:
+			agenticEvaluationServiceCreateMachinePrincipalHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceListMachinePrincipalsProcedure:
+			agenticEvaluationServiceListMachinePrincipalsHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceCreateMachineCredentialProcedure:
+			agenticEvaluationServiceCreateMachineCredentialHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceRevokeMachineCredentialProcedure:
+			agenticEvaluationServiceRevokeMachineCredentialHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceRevokeMachinePrincipalProcedure:
+			agenticEvaluationServiceRevokeMachinePrincipalHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceGetCallerPrincipalProcedure:
+			agenticEvaluationServiceGetCallerPrincipalHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceLeaseEvaluationCasesProcedure:
+			agenticEvaluationServiceLeaseEvaluationCasesHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceRenewEvaluationCaseLeaseProcedure:
+			agenticEvaluationServiceRenewEvaluationCaseLeaseHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceSubmitEvaluationCaseOutputsProcedure:
+			agenticEvaluationServiceSubmitEvaluationCaseOutputsHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceReleaseEvaluationCaseLeaseProcedure:
+			agenticEvaluationServiceReleaseEvaluationCaseLeaseHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceRecordPlatformAnnotationProcedure:
+			agenticEvaluationServiceRecordPlatformAnnotationHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceListPlatformAnnotationsProcedure:
+			agenticEvaluationServiceListPlatformAnnotationsHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceListEvaluationScorerConfigsProcedure:
+			agenticEvaluationServiceListEvaluationScorerConfigsHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceGetEvaluationScorerConfigProcedure:
+			agenticEvaluationServiceGetEvaluationScorerConfigHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceListEvaluationScorerConfigVersionsProcedure:
+			agenticEvaluationServiceListEvaluationScorerConfigVersionsHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceListEvaluationScorerSuitesProcedure:
+			agenticEvaluationServiceListEvaluationScorerSuitesHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceGetEvaluationScorerSuiteProcedure:
+			agenticEvaluationServiceGetEvaluationScorerSuiteHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceArchiveEvaluationScorerConfigProcedure:
+			agenticEvaluationServiceArchiveEvaluationScorerConfigHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceArchiveEvaluationScorerSuiteProcedure:
+			agenticEvaluationServiceArchiveEvaluationScorerSuiteHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceListDatasetCollectionsProcedure:
+			agenticEvaluationServiceListDatasetCollectionsHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceGetDatasetChangesetProcedure:
+			agenticEvaluationServiceGetDatasetChangesetHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceListDatasetChangesetsProcedure:
+			agenticEvaluationServiceListDatasetChangesetsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -3199,4 +4103,92 @@ func (UnimplementedAgenticEvaluationServiceHandler) PreviewPublishDatasetChanges
 
 func (UnimplementedAgenticEvaluationServiceHandler) PublishDatasetCaseDrafts(context.Context, *connect.Request[v1.PublishDatasetCaseDraftsRequest]) (*connect.Response[v1.PublishDatasetCaseDraftsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.PublishDatasetCaseDrafts is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) CreateMachinePrincipal(context.Context, *connect.Request[v1.CreateMachinePrincipalRequest]) (*connect.Response[v1.CreateMachinePrincipalResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.CreateMachinePrincipal is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) ListMachinePrincipals(context.Context, *connect.Request[v1.ListMachinePrincipalsRequest]) (*connect.Response[v1.ListMachinePrincipalsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.ListMachinePrincipals is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) CreateMachineCredential(context.Context, *connect.Request[v1.CreateMachineCredentialRequest]) (*connect.Response[v1.CreateMachineCredentialResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.CreateMachineCredential is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) RevokeMachineCredential(context.Context, *connect.Request[v1.RevokeMachineCredentialRequest]) (*connect.Response[v1.RevokeMachineCredentialResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.RevokeMachineCredential is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) RevokeMachinePrincipal(context.Context, *connect.Request[v1.RevokeMachinePrincipalRequest]) (*connect.Response[v1.RevokeMachinePrincipalResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.RevokeMachinePrincipal is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) GetCallerPrincipal(context.Context, *connect.Request[v1.GetCallerPrincipalRequest]) (*connect.Response[v1.GetCallerPrincipalResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.GetCallerPrincipal is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) LeaseEvaluationCases(context.Context, *connect.Request[v1.LeaseEvaluationCasesRequest]) (*connect.Response[v1.LeaseEvaluationCasesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.LeaseEvaluationCases is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) RenewEvaluationCaseLease(context.Context, *connect.Request[v1.RenewEvaluationCaseLeaseRequest]) (*connect.Response[v1.RenewEvaluationCaseLeaseResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.RenewEvaluationCaseLease is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) SubmitEvaluationCaseOutputs(context.Context, *connect.Request[v1.SubmitEvaluationCaseOutputsRequest]) (*connect.Response[v1.SubmitEvaluationCaseOutputsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.SubmitEvaluationCaseOutputs is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) ReleaseEvaluationCaseLease(context.Context, *connect.Request[v1.ReleaseEvaluationCaseLeaseRequest]) (*connect.Response[v1.ReleaseEvaluationCaseLeaseResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.ReleaseEvaluationCaseLease is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) RecordPlatformAnnotation(context.Context, *connect.Request[v1.RecordPlatformAnnotationRequest]) (*connect.Response[v1.RecordPlatformAnnotationResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.RecordPlatformAnnotation is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) ListPlatformAnnotations(context.Context, *connect.Request[v1.ListPlatformAnnotationsRequest]) (*connect.Response[v1.ListPlatformAnnotationsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.ListPlatformAnnotations is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) ListEvaluationScorerConfigs(context.Context, *connect.Request[v1.ListEvaluationScorerConfigsRequest]) (*connect.Response[v1.ListEvaluationScorerConfigsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationScorerConfigs is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) GetEvaluationScorerConfig(context.Context, *connect.Request[v1.GetEvaluationScorerConfigRequest]) (*connect.Response[v1.GetEvaluationScorerConfigResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationScorerConfig is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) ListEvaluationScorerConfigVersions(context.Context, *connect.Request[v1.ListEvaluationScorerConfigVersionsRequest]) (*connect.Response[v1.ListEvaluationScorerConfigVersionsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationScorerConfigVersions is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) ListEvaluationScorerSuites(context.Context, *connect.Request[v1.ListEvaluationScorerSuitesRequest]) (*connect.Response[v1.ListEvaluationScorerSuitesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationScorerSuites is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) GetEvaluationScorerSuite(context.Context, *connect.Request[v1.GetEvaluationScorerSuiteRequest]) (*connect.Response[v1.GetEvaluationScorerSuiteResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationScorerSuite is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) ArchiveEvaluationScorerConfig(context.Context, *connect.Request[v1.ArchiveEvaluationScorerConfigRequest]) (*connect.Response[v1.ArchiveEvaluationScorerConfigResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.ArchiveEvaluationScorerConfig is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) ArchiveEvaluationScorerSuite(context.Context, *connect.Request[v1.ArchiveEvaluationScorerSuiteRequest]) (*connect.Response[v1.ArchiveEvaluationScorerSuiteResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.ArchiveEvaluationScorerSuite is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) ListDatasetCollections(context.Context, *connect.Request[v1.ListEvaluationDatasetCollectionsRequest]) (*connect.Response[v1.ListEvaluationDatasetCollectionsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.ListDatasetCollections is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) GetDatasetChangeset(context.Context, *connect.Request[v1.GetDatasetChangesetRequest]) (*connect.Response[v1.GetDatasetChangesetResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.GetDatasetChangeset is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) ListDatasetChangesets(context.Context, *connect.Request[v1.ListDatasetChangesetsRequest]) (*connect.Response[v1.ListDatasetChangesetsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.ListDatasetChangesets is not implemented"))
 }
