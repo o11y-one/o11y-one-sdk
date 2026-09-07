@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    // The generated code is protoc-gen-es output; we do not own its style.
+    // Correctness is still checked (strict is on from the base config), but we
+    // do not fail the build on unused locals it happens to emit.
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": ["src/**/*.ts"]
+}

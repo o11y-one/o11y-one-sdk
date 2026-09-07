@@ -110,11 +110,17 @@ class O11yClient:
     ::
 
         from o11y_one.sdk import O11yClient
-        from o11y_one.billing.v1.billing_connect import BillingUsageServiceClient
+        from o11y_one.agentic.v1.evaluation_connect import AgenticEvaluationServiceClientSync
+        from o11y_one.agentic.v1.evaluation_pb2 import ListEvaluationDefinitionsRequest
 
         o11y = O11yClient(base_url="https://api.o11y.one", credential=os.environ["O11Y_API_KEY"])
-        billing = o11y.service_sync(BillingUsageServiceClient)
-        quota = billing.get_quota_status(GetQuotaStatusRequest())
+        evals = o11y.service_sync(AgenticEvaluationServiceClientSync)
+        defs = evals.list_evaluation_definitions(ListEvaluationDefinitionsRequest())
+
+    The example uses an agentic service because ``o11y-one`` depends on
+    ``o11y-one-api-agentic`` -- the agentic + common subset. To reach another
+    domain, add a dependency on the whole ``o11y-one-api`` and pass its client
+    class here; the transport itself is domain-agnostic.
 
     Protocol note: Connect over HTTP, not gRPC. It is the protocol o11y-web
     already speaks and the one that survives proxies and CI egress rules without

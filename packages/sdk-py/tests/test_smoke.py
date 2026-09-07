@@ -6,7 +6,7 @@ that local validation rejects the common mistakes, and that a server error maps
 onto the right disposition.
 
 They also assert the PEP 420 namespace actually works — that ``o11y_one.sdk``
-(this distribution) and ``o11y_one.billing.v1`` (the generated one) coexist. That
+(this distribution) and ``o11y_one.agentic.v1`` (the generated one) coexist. That
 is the single most fragile thing about the packaging here, so it is tested.
 """
 
@@ -31,14 +31,16 @@ CREDENTIAL = "o11y_mach.AAAAAAAAAAAAAAAAAAAAAA.BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
 
 
 def test_generated_package_shares_the_namespace() -> None:
-    """o11y-one-api and o11y-one both contribute to o11y_one.*."""
-    from o11y_one.billing.v1 import billing_pb2
-    from o11y_one.billing.v1.billing_connect import BillingUsageServiceClientSync
+    """o11y-one-api-agentic and o11y-one both contribute to o11y_one.*."""
+    from o11y_one.agentic.v1 import evaluation_pb2
+    from o11y_one.agentic.v1.evaluation_connect import AgenticEvaluationServiceClientSync
 
     # And the proto package name — the thing the server routes on — survived the
     # import re-rooting described in tools/sync-proto.sh.
-    assert billing_pb2.GetQuotaStatusRequest.DESCRIPTOR.full_name.startswith("o11y_one.billing.v1.")
-    assert BillingUsageServiceClientSync is not None
+    assert evaluation_pb2.ListEvaluationDefinitionsRequest.DESCRIPTOR.full_name.startswith(
+        "o11y_one.agentic.v1."
+    )
+    assert AgenticEvaluationServiceClientSync is not None
 
 
 @pytest.mark.parametrize(
@@ -63,8 +65,8 @@ def test_credential_validation_strips_shell_quotes() -> None:
 def _ctx() -> RequestContext:
     return RequestContext(
         method=MethodInfo(
-            name="GetQuotaStatus",
-            service_name="o11y_one.billing.v1.BillingUsageService",
+            name="ListEvaluationDefinitions",
+            service_name="o11y_one.agentic.v1.AgenticEvaluationService",
             input=object,
             output=object,
             idempotency_level=IdempotencyLevel.UNKNOWN,

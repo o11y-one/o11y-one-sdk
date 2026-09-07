@@ -6,7 +6,7 @@
 # against the generated package from THIS commit rather than whatever is on PyPI.
 
 [tool.uv.workspace]
-members = ["packages/gen-py", "packages/sdk-py"]
+members = ["packages/gen-py", "packages/gen-py-agentic", "packages/sdk-py"]
 
 # --- supply chain -----------------------------------------------------------
 # uv has no age-based equivalent of pnpm's `minimumReleaseAge`; `exclude-newer`
@@ -28,7 +28,7 @@ dev = ["ruff>=0.16.6,<0.17"]
 [tool.ruff]
 line-length = 100
 # The generated tree is not ours to style.
-extend-exclude = ["packages/gen-py/src"]
+extend-exclude = ["packages/gen-py/src", "packages/gen-py-agentic/src"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]

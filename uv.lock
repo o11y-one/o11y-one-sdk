@@ -6,6 +6,7 @@ requires-python = ">=3.11"
 members = [
     "o11y-one",
     "o11y-one-api",
+    "o11y-one-api-agentic",
 ]
 
 [manifest.dependency-groups]
@@ -117,7 +118,7 @@ source = { editable = "packages/sdk-py" }
 dependencies = [
     { name = "connect-python" },
     { name = "httpx" },
-    { name = "o11y-one-api" },
+    { name = "o11y-one-api-agentic" },
 ]
 
 [package.dev-dependencies]
@@ -129,7 +130,7 @@ dev = [
 requires-dist = [
     { name = "connect-python", specifier = ">=0.9.0,<1" },
     { name = "httpx", specifier = ">=0.28" },
-    { name = "o11y-one-api", editable = "packages/gen-py" },
+    { name = "o11y-one-api-agentic", editable = "packages/gen-py-agentic" },
 ]
 
 [package.metadata.requires-dev]
@@ -139,6 +140,21 @@ dev = [{ name = "pytest", specifier = ">=8.4" }]
 name = "o11y-one-api"
 version = "0.0.0"
 source = { editable = "packages/gen-py" }
+dependencies = [
+    { name = "connect-python" },
+    { name = "protobuf" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "connect-python", specifier = ">=0.9.0,<1" },
+    { name = "protobuf", specifier = ">=7.36.1,<8" },
+]
+
+[[package]]
+name = "o11y-one-api-agentic"
+version = "0.0.0"
+source = { editable = "packages/gen-py-agentic" }
 dependencies = [
     { name = "connect-python" },
     { name = "protobuf" },

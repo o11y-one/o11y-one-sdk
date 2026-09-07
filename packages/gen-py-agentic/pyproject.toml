@@ -1,0 +1,43 @@
+[project]
+name = "o11y-one-api-agentic"
+version = "0.0.0"
+description = "Generated Python protobuf messages and Connect clients for the O11y One AGENTIC domain (agentic + common only). A per-domain subset of o11y-one-api so agentic-only consumers do not carry the other domains. Generated from proto at PROTO_PIN — do not edit by hand."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+authors = [{ name = "O11y One" }]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Typing :: Typed",
+]
+
+dependencies = [
+  # protoc-gen-python at the version pinned in buf.gen.yaml (v36.1) emits
+  # gencode that requires a runtime of at least the matching series.
+  "protobuf>=7.36.1,<8",
+  # The runtime half of protoc-gen-connect-python (buf.gen.yaml pins the plugin
+  # to v0.9.0; this is the library the generated *_connect.py import).
+  "connect-python>=0.9.0,<1",
+]
+
+[project.urls]
+Homepage = "https://o11y.one"
+Source = "https://github.com/o11y-one/o11y-one-sdk"
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+# Ship the o11y_one namespace, restricted to the agentic import closure
+# (o11y_one.agentic, o11y_one.common). There is deliberately NO
+# src/o11y_one/__init__.py: o11y_one is a PEP 420 implicit namespace package so
+# that this distribution and o11y-one (the hand-written SDK, which owns
+# o11y_one.sdk) can both contribute to it. tools/generate.sh asserts that no
+# __init__.py appears here.
+packages = ["src/o11y_one"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src", "README.md", "pyproject.toml"]

@@ -42,7 +42,7 @@ import {
   type EvaluationCaptureSpanSourceV1,
   type EvaluationCaptureCellSourceV1,
   type DatasetFieldMappingV1,
-} from "@o11y-one/api/o11y_one/agentic/v1/evaluation_pb";
+} from "@o11y-one/api-agentic/o11y_one/agentic/v1/evaluation_pb";
 
 import type { O11yClient } from "./client.js";
 import type { MachineScope } from "./errors.js";

@@ -34,10 +34,10 @@ gen-check:
     #!/usr/bin/env bash
     set -euo pipefail
     ./tools/generate.sh
-    if ! git diff --quiet --exit-code -- gen packages/gen-ts/src packages/gen-py/src; then
+    if ! git diff --quiet --exit-code -- gen packages/gen-ts/src packages/gen-ts-agentic/src packages/gen-py/src packages/gen-py-agentic/src; then
         echo "generated code is out of date with buf.gen.yaml / the proto snapshot." >&2
         echo "run 'just gen' and commit the result." >&2
-        git --no-pager diff --stat -- gen packages/gen-ts/src packages/gen-py/src >&2
+        git --no-pager diff --stat -- gen packages/gen-ts/src packages/gen-ts-agentic/src packages/gen-py/src packages/gen-py-agentic/src >&2
         exit 1
     fi
     echo "generated code is up to date"
@@ -59,9 +59,12 @@ build: build-ts build-py build-go build-ci-runner build-pr-diff
 build-ts:
     pnpm -r --filter "./packages/**" run build
 
-# Both Python distributions, sdist + wheel, into dist/.
+# All Python distributions, sdist + wheel, into dist/. o11y-one-api is the whole
+# tree (for o11y-web); o11y-one-api-agentic is the agentic + common subset that
+# o11y-one depends on. See docs/proto-subsetting.md.
 build-py:
     uv build --package o11y-one-api --out-dir dist
+    uv build --package o11y-one-api-agentic --out-dir dist
     uv build --package o11y-one --out-dir dist
 
 build-go:

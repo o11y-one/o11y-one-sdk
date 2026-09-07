@@ -35,7 +35,7 @@ import {
   type PlatformAnnotationRejectionV1,
   type EvaluationCursorResyncV1,
   type ExternalCaseOutputAckV1,
-} from "@o11y-one/api/o11y_one/agentic/v1/evaluation_pb";
+} from "@o11y-one/api-agentic/o11y_one/agentic/v1/evaluation_pb";
 
 /**
  * The member name of a numeric proto enum value, e.g.

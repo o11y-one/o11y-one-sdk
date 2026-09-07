@@ -7,7 +7,7 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 
-import { BillingUsageService } from "@o11y-one/api/o11y_one/billing/v1/billing_pb";
+import { AgenticEvaluationService } from "@o11y-one/api-agentic/o11y_one/agentic/v1/evaluation_pb";
 
 import { O11yClient, assertLooksLikeMachineCredential, classify } from "../dist/index.js";
 
@@ -41,10 +41,10 @@ test("the transport stamps credential and scoping headers on every request", asy
     fetch: stubFetch,
   });
 
-  const billing = o11y.service(BillingUsageService);
+  const svc = o11y.service(AgenticEvaluationService);
   let thrown;
   try {
-    await billing.getQuotaStatus({});
+    await svc.listEvaluationDefinitions({});
   } catch (err) {
     thrown = err;
   }

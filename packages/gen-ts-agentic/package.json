@@ -1,14 +1,14 @@
 {
-  "name": "@o11y-one/sdk",
+  "name": "@o11y-one/api-agentic",
   "version": "0.0.0",
-  "description": "Hand-written client wrapper over @o11y-one/api: transport construction, credential injection, and the O11y One error taxonomy.",
+  "description": "Generated TypeScript types and service descriptors for the O11y One AGENTIC domain (agentic + common only). A per-domain subset of @o11y-one/api so agentic-only consumers do not carry the other domains. Generated from proto at PROTO_PIN — do not edit by hand.",
   "license": "Apache-2.0",
   "type": "module",
   "sideEffects": false,
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "default": "./dist/*.js"
     }
   },
   "files": [
@@ -21,11 +21,7 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@bufbuild/protobuf": "^2.14.0",
-    "@connectrpc/connect": "^2.1.2",
-    "@connectrpc/connect-node": "^2.1.2",
-    "@connectrpc/connect-web": "^2.1.2",
-    "@o11y-one/api-agentic": "workspace:*"
+    "@bufbuild/protobuf": "^2.14.0"
   },
   "devDependencies": {
     "typescript": "^6.0.3"
@@ -37,6 +33,6 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/o11y-one/o11y-one-sdk.git",
-    "directory": "packages/sdk-ts"
+    "directory": "packages/gen-ts-agentic"
   }
 }

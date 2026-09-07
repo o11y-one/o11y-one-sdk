@@ -138,12 +138,17 @@ export function createTransport(options: ClientOptions): Transport {
  *
  * ```ts
  * import { O11yClient } from "@o11y-one/sdk";
- * import { BillingUsageService } from "@o11y-one/api/o11y_one/billing/v1/billing_pb";
+ * import { AgenticEvaluationService } from "@o11y-one/api-agentic/o11y_one/agentic/v1/evaluation_pb";
  *
  * const o11y = new O11yClient({ baseUrl, credential: process.env.O11Y_API_KEY });
- * const billing = o11y.service(BillingUsageService);
- * const summary = await billing.getUsageSummary({});
+ * const evals = o11y.service(AgenticEvaluationService);
+ * const defs = await evals.listEvaluationDefinitions({});
  * ```
+ *
+ * The example uses an agentic service because `@o11y-one/sdk` depends on
+ * `@o11y-one/api-agentic` — the agentic + common subset. To reach another
+ * domain, add a dependency on the whole `@o11y-one/api` and pass its descriptor
+ * here; the transport itself is domain-agnostic.
  */
 export class O11yClient {
   readonly transport: Transport;

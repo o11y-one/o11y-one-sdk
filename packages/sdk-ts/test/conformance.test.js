@@ -18,7 +18,7 @@ import {
   EvaluationLaunchRejectionV1Schema,
   PlatformAnnotationRejectionV1Schema,
   EvaluationCursorResyncV1Schema,
-} from "@o11y-one/api/o11y_one/agentic/v1/evaluation_pb";
+} from "@o11y-one/api-agentic/o11y_one/agentic/v1/evaluation_pb";
 
 import {
   toLeaseRefusal,
