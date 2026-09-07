@@ -21,23 +21,20 @@ env:
   # would be a credential in CI that buys nothing.
   BUF_TOKEN: ""
 
+# One job, run sequentially on a single runner. This repo shares a 3000
+# minute/month Actions budget, so CI spins up exactly one runner per event.
+# What used to be three jobs collapsed here:
+#   - gen-check + build-and-test now share one checkout and one mise install
+#     instead of paying for two;
+#   - the 5-target ci-runner cross-compile matrix (5 more runners on every
+#     push) was REMOVED: it duplicated publish.yml's `release-binaries`, which
+#     already builds every target on a release tag. `just build` compiles the
+#     ci-runner for the host here, so a plain build break is still caught on
+#     every PR; a platform-specific build-tag mistake surfaces at release.
 jobs:
-  # ---------------------------------------------------------------------------
-  # The generated code in this repo is committed. This job asserts that what is
-  # committed is exactly what buf produces from the vendored snapshot with the
-  # plugin versions in buf.gen.yaml — i.e. that nobody hand-edited generated
-  # code and nobody bumped a plugin without regenerating.
-  #
-  # LIMITATION, stated plainly: this does NOT verify the vendored .proto files
-  # against o11y-api at PROTO_PIN. o11y-api is private; checking it out here
-  # would mean putting a cross-repo token in this workflow, which is a larger
-  # supply-chain cost than the check is worth. Re-vendoring is a manual, local,
-  # reviewed act (`just sync-proto ../o11y-api`), and the .proto diff is visible
-  # in the PR that moves PROTO_PIN.
-  # ---------------------------------------------------------------------------
-  gen-check:
+  check:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     permissions:
       contents: read
     steps:
@@ -51,6 +48,12 @@ jobs:
           install: true
           cache: true
 
+      # ---- gen-check: the committed generated code is exactly what buf
+      # produces from the vendored snapshot at the pinned plugin versions.
+      # Does NOT verify .proto against o11y-api (private; a cross-repo token
+      # would cost more than the check is worth) — re-vendoring is a manual,
+      # reviewed act and the .proto diff is visible in the PR that moves
+      # PROTO_PIN.
       - name: PROTO_PIN is a well-formed commit sha
         run: |
           pin="$(grep -v '^#' PROTO_PIN | tr -d '[:space:]')"
@@ -78,26 +81,9 @@ jobs:
       - name: Committed generated code matches `just gen`
         run: just gen-check
 
-  # ---------------------------------------------------------------------------
-  build-and-test:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
-        with:
-          version: 2026.9.1
-          install: true
-          cache: true
-
-      # --frozen-lockfile / --locked: CI never resolves. If a manifest and a
-      # lockfile disagree, that is a failure to fix in a PR, not something to
-      # paper over by re-resolving on a runner.
+      # ---- build + test all packages on the host toolchain.
+      # --frozen-lockfile / --locked: CI never resolves. A manifest/lockfile
+      # disagreement is a PR fix, not something to paper over on a runner.
       - name: Install (TypeScript)
         run: pnpm install --frozen-lockfile
 
@@ -112,41 +98,3 @@ jobs:
 
       - name: Test
         run: just test
-
-  # ---------------------------------------------------------------------------
-  # The ci-runner ships as a static binary customers curl into a pipeline, so
-  # every release platform has to at least compile on every PR. Cheap, and it
-  # catches a build-tag mistake long before the release workflow does.
-  # ---------------------------------------------------------------------------
-  ci-runner-cross-compile:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - { goos: linux, goarch: amd64 }
-          - { goos: linux, goarch: arm64 }
-          - { goos: darwin, goarch: amd64 }
-          - { goos: darwin, goarch: arm64 }
-          - { goos: windows, goarch: amd64 }
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
-        with:
-          version: 2026.9.1
-          install: true
-          cache: true
-
-      - name: Build ${{ matrix.goos }}/${{ matrix.goarch }}
-        working-directory: tools/ci-runner
-        env:
-          CGO_ENABLED: "0"
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
-        run: go build -trimpath -o /dev/null .
