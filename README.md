@@ -174,7 +174,10 @@ asserts this, and `packages/sdk-py/tests` proves the two import side by side.
 
 Nothing publishes from a laptop. `just publish-dry` rehearses everything without
 uploading; the real thing happens only in `.github/workflows/publish.yml`, on a
-`v*` tag, in a protected `release` environment.
+`v*` tag, in a protected `release` environment. The one-time registry setup
+that makes this possible (npm bootstrap publish and trusted publishers, PyPI
+pending publishers, repository protections, going public) is in
+[`docs/publishing-setup.md`](docs/publishing-setup.md).
 
 One tag publishes four packages at the same version — `@o11y-one/api-agentic`
 and `@o11y-one/sdk` to npm, `o11y-one-api-agentic` and `o11y-one` to PyPI — plus

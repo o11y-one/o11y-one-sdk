@@ -1,0 +1,62 @@
+# Version updates for every manifest in the repo. Security updates (Dependabot
+# alerts) are switched on in repository settings, not here.
+#
+# `cooldown` mirrors pnpm-workspace.yaml's minimumReleaseAge: Dependabot waits
+# seven days after a release before proposing it, so a compromised package is
+# usually yanked before it reaches a PR here.
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    groups:
+      npm-dependencies:
+        patterns:
+          - "*"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    groups:
+      python-dependencies:
+        patterns:
+          - "*"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: gomod
+    directories:
+      - /tools/ci-runner
+      - /tools/pr-diff
+      - /gen/go
+      - /internal/gen/go
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    groups:
+      go-dependencies:
+        patterns:
+          - "*"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+    open-pull-requests-limit: 5
