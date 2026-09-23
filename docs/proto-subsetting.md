@@ -23,8 +23,7 @@ Chased from the `import` lines in the agentic protos
 
 | proto | imports |
 |---|---|
-| `agentic.proto`    | `google/protobuf/{struct,timestamp}`, `o11y_one/common/v1/common.proto` |
-| `evaluation.proto` | `google/protobuf/timestamp`, `o11y_one/common/v1/common.proto`, `o11y_one/agentic/v1/agentic.proto` |
+| `evaluation.proto` | `google/protobuf/timestamp`, `o11y_one/common/v1/common.proto` |
 | `agent_run.proto`  | `google/protobuf/timestamp`, `o11y_one/agentic/v1/{evaluation,artifact}.proto` |
 | `artifact.proto`   | `google/protobuf/timestamp`, `o11y_one/agentic/v1/evaluation.proto` |
 | `trace_view.proto` | `google/protobuf/timestamp`, `o11y_one/agentic/v1/{evaluation,agent_run,artifact}.proto` |

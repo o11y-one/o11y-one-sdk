@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -35,7 +36,7 @@ func Render(doc DiffDocument) (string, error) {
 	writeNotes(&b, doc.Notes, doc.Verdict.DecisionChanged)
 	writeFailureReasons(&b, doc.FailureReasons)
 
-	writeIdentity(&b, doc.Identity)
+	writeIdentity(&b, doc.Identity, !absent(doc, "identity.sample_count"))
 
 	if len(doc.Metrics) > 0 {
 		b.WriteString("\n")
@@ -119,7 +120,7 @@ func writeVerdictCallout(b *strings.Builder, v Verdict) {
 		b.WriteString("the comparison is not coercible into a pass or fail. ")
 		fmt.Fprintf(b, "Server decision: `%s`.\n", orDash(v.Decision))
 	case OutcomeRegression:
-		b.WriteString("\n> **Regression — the gate failed on evidence.**\n")
+		b.WriteString("\n> **Regression — the server blocked this candidate.**\n")
 	}
 }
 
@@ -136,7 +137,11 @@ func severityIcon(sev string) string {
 func writeNotes(b *strings.Builder, notes []Note, decisionChanged bool) {
 	var lines []string
 	if decisionChanged {
-		lines = append(lines, "⚠️ the release-gate decision changed between the baseline and candidate evaluations.")
+		// Kept for documents that still carry the flag. The current runner
+		// declares verdict.decision_changed absent (one run's adopted decision
+		// has nothing to have changed against), and there is no release gate
+		// behind it any more, so the text names the field, not a gate.
+		lines = append(lines, "⚠️ the server's decision changed between the two evaluations.")
 	}
 	for _, n := range notes {
 		msg := n.Message
@@ -175,7 +180,14 @@ func backtick(ss []string) []string {
 	return out
 }
 
-func writeIdentity(b *strings.Builder, id Identity) {
+// absent reports whether the document explicitly declares `field` unreported.
+// The answer is read off absences[] — the document's own statement — and never
+// inferred from a zero value, which is the one rule the schema doc insists on.
+func absent(doc DiffDocument, field string) bool {
+	return slices.ContainsFunc(doc.Absences, func(a Absence) bool { return a.Field == field })
+}
+
+func writeIdentity(b *strings.Builder, id Identity, showSamples bool) {
 	var lines []string
 	if id.GateID != "" {
 		lines = append(lines, fmt.Sprintf("gate `%s`", id.GateID))
@@ -189,11 +201,11 @@ func writeIdentity(b *strings.Builder, id Identity) {
 		b.WriteString("\n")
 	}
 
-	writeEvalSide(b, "Baseline", id.Baseline)
-	writeEvalSide(b, "Candidate", id.Candidate)
+	writeEvalSide(b, "Baseline", id.Baseline, showSamples)
+	writeEvalSide(b, "Candidate", id.Candidate, showSamples)
 }
 
-func writeEvalSide(b *strings.Builder, label string, s EvalSide) {
+func writeEvalSide(b *strings.Builder, label string, s EvalSide, showSamples bool) {
 	if s.EvaluationID == "" && s.DeploymentID == "" {
 		return
 	}
@@ -204,7 +216,9 @@ func writeEvalSide(b *strings.Builder, label string, s EvalSide) {
 	if s.DeploymentID != "" {
 		parts = append(parts, fmt.Sprintf("deployment `%s`", s.DeploymentID))
 	}
-	parts = append(parts, fmt.Sprintf("%d samples", s.SampleCount))
+	if showSamples {
+		parts = append(parts, fmt.Sprintf("%d samples", s.SampleCount))
+	}
 	if s.BaselineSource != "" {
 		parts = append(parts, fmt.Sprintf("source `%s`", s.BaselineSource))
 	}

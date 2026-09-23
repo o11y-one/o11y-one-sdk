@@ -7,29 +7,37 @@ import "fmt"
 // has to live in the number itself rather than in log output nobody parses.
 //
 // The distinction that matters — and the reason this is an enum and not a
-// bool — is between "the evidence says the change is worse" (Regression) and
-// "there is not enough evidence to say" (Indeterminate) and "the machinery
-// broke" (InfraFailure). Collapsing the last two into the first turns a flaky
-// network into a blocked merge and trains people to bypass the gate; collapsing
-// them into success makes the gate a decoration.
+// bool — is between "the server said this candidate is blocked" (Regression)
+// and "the server did not say" (Indeterminate) and "the machinery broke"
+// (InfraFailure). Collapsing the last two into the first turns a flaky network
+// into a blocked merge and trains people to bypass the check; collapsing them
+// into success makes it a decoration.
+//
+// Every one of these comes from a single fact — the run's adopted decision, as
+// GetEvaluationRunOverview reports it. The runner translates that decision; it
+// never thresholds, averages, or otherwise recomputes one. See
+// outcomeForAdoptedDecision in diffdoc.go, which is the only place the mapping
+// below is applied.
 type Outcome int
 
 const (
-	// OutcomeImprovement: the gate passes. Quality improved, or held within the
-	// configured tolerance. Zero, so `set -e` and every CI default treat it as
-	// success without special-casing.
+	// OutcomeImprovement: the server's adopted decision is available AND
+	// explicitly RECOMMENDED, naming the candidate this invocation put under
+	// test. Nothing weaker earns it. Zero, so `set -e` and every CI default
+	// treat it as success without special-casing.
 	OutcomeImprovement Outcome = 0
 
-	// OutcomeRegression: the gate fails on evidence. A comparison completed and
-	// the result is worse than the baseline by more than the tolerance. This is
-	// the only exit code that means "this change is bad".
+	// OutcomeRegression: the server's adopted decision is available and
+	// explicitly BLOCKED. This is the only exit code that means "this change is
+	// bad", and only the server can say so.
 	OutcomeRegression Outcome = 1
 
-	// OutcomeIndeterminate: the comparison could not reach a verdict — too few
-	// cases, a baseline that does not exist yet, a run that produced no
-	// scoreable output. NOT a regression. Whether this blocks a merge is a
-	// policy decision for the calling workflow, which is exactly why it gets its
-	// own code instead of being folded into 1.
+	// OutcomeIndeterminate: everything else — a decision that is PENDING,
+	// NOT_OBSERVED or absent, a RECOMMENDED naming some other candidate,
+	// NO_CLEAR_WINNER, INSUFFICIENT_EVIDENCE, or an enum this build does not
+	// recognise. NOT a regression, and never a pass. Whether it blocks a merge
+	// is a policy decision for the calling workflow, which is exactly why it
+	// gets its own code instead of being folded into 1.
 	OutcomeIndeterminate Outcome = 2
 
 	// OutcomeInfraFailure: the runner or the platform failed — network,

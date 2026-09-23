@@ -3,12 +3,14 @@
 # The .proto files under proto/o11y_one/ in THIS repo are a vendored snapshot.
 # They are NOT edited here. The source of truth is the o11y-api repo.
 #
-# source_repo:  o11y-api  (private; local checkouts are commonly ../o11y-api or ../o11y-api-agentic)
-# source_path:  proto/o11y_one/
-# source_commit: fb8f5098
+# source_repo:   o11y-api  (private; local checkouts are commonly ../o11y-api)
+# source_path:   proto/o11y_one/
+# source_branch: rework/ingest-and-storage, the integration branch production
+#                runs. o11y-api main lags it; pinning main would generate
+#                clients for RPCs production has already deleted.
 #
 # Regenerate with:
-#   ./tools/sync-proto.sh ../o11y-api-agentic
+#   ./tools/sync-proto.sh ../o11y-api
 # which verifies the checkout is at the commit below, re-vendors proto/o11y_one/,
 # and re-runs `buf generate`. Generated code is committed.
-fd227e875108ea72bab2fcc9bba39c2568562e13
+b959e977ba2289ff392fc9c8b44331b65117650c

@@ -82,6 +82,12 @@ const (
 	// AgenticTraceViewServiceListAgentRunsProcedure is the fully-qualified name of the
 	// AgenticTraceViewService's ListAgentRuns RPC.
 	AgenticTraceViewServiceListAgentRunsProcedure = "/o11y_one.agentic.v1.AgenticTraceViewService/ListAgentRuns"
+	// AgenticTraceViewServiceListAgentTracesProcedure is the fully-qualified name of the
+	// AgenticTraceViewService's ListAgentTraces RPC.
+	AgenticTraceViewServiceListAgentTracesProcedure = "/o11y_one.agentic.v1.AgenticTraceViewService/ListAgentTraces"
+	// AgenticTraceViewServiceGetAgentEvidenceGraphProcedure is the fully-qualified name of the
+	// AgenticTraceViewService's GetAgentEvidenceGraph RPC.
+	AgenticTraceViewServiceGetAgentEvidenceGraphProcedure = "/o11y_one.agentic.v1.AgenticTraceViewService/GetAgentEvidenceGraph"
 	// AgenticTraceViewServiceGetAgentRunProcedure is the fully-qualified name of the
 	// AgenticTraceViewService's GetAgentRun RPC.
 	AgenticTraceViewServiceGetAgentRunProcedure = "/o11y_one.agentic.v1.AgenticTraceViewService/GetAgentRun"
@@ -114,6 +120,15 @@ type AgenticTraceViewServiceClient interface {
 	// does the scanning, and `agent_trace_span_scans_issued()` not moving across
 	// these two calls is how that is proved rather than asserted.
 	ListAgentRuns(context.Context, *connect.Request[v1.ListAgentRunsRequest]) (*connect.Response[v1.ListAgentRunsResponse], error)
+	// W-V1-1 (D2). The `/traces` list, in two reads. It sits beside
+	// `ListAgentRuns` because the two are the same screen at two altitudes —
+	// every trace, and the runs those traces group into.
+	ListAgentTraces(context.Context, *connect.Request[v1.ListAgentTracesRequest]) (*connect.Response[v1.ListAgentTracesResponse], error)
+	// W-V1-1 (D3). The trace sheet's and the agent-run screen's evidence graph,
+	// built by the SAME builders the v1 verb now calls: the two arms moved here
+	// rather than being copied, so the two services cannot answer differently
+	// for the same scope while both exist.
+	GetAgentEvidenceGraph(context.Context, *connect.Request[v1.GetAgentEvidenceGraphRequest]) (*connect.Response[v1.GetAgentEvidenceGraphResponse], error)
 	GetAgentRun(context.Context, *connect.Request[v1.GetAgentRunRequest]) (*connect.Response[v1.GetAgentRunResponse], error)
 	// ---- wave 41 lane C: timeline ----
 	//
@@ -176,6 +191,18 @@ func NewAgenticTraceViewServiceClient(httpClient connect.HTTPClient, baseURL str
 			connect.WithSchema(agenticTraceViewServiceMethods.ByName("ListAgentRuns")),
 			connect.WithClientOptions(opts...),
 		),
+		listAgentTraces: connect.NewClient[v1.ListAgentTracesRequest, v1.ListAgentTracesResponse](
+			httpClient,
+			baseURL+AgenticTraceViewServiceListAgentTracesProcedure,
+			connect.WithSchema(agenticTraceViewServiceMethods.ByName("ListAgentTraces")),
+			connect.WithClientOptions(opts...),
+		),
+		getAgentEvidenceGraph: connect.NewClient[v1.GetAgentEvidenceGraphRequest, v1.GetAgentEvidenceGraphResponse](
+			httpClient,
+			baseURL+AgenticTraceViewServiceGetAgentEvidenceGraphProcedure,
+			connect.WithSchema(agenticTraceViewServiceMethods.ByName("GetAgentEvidenceGraph")),
+			connect.WithClientOptions(opts...),
+		),
 		getAgentRun: connect.NewClient[v1.GetAgentRunRequest, v1.GetAgentRunResponse](
 			httpClient,
 			baseURL+AgenticTraceViewServiceGetAgentRunProcedure,
@@ -215,6 +242,8 @@ type agenticTraceViewServiceClient struct {
 	listAgentTraceSpans         *connect.Client[v1.ListAgentTraceSpansRequest, v1.ListAgentTraceSpansResponse]
 	confirmAgentRunGrouping     *connect.Client[v1.ConfirmAgentRunGroupingRequest, v1.ConfirmAgentRunGroupingResponse]
 	listAgentRuns               *connect.Client[v1.ListAgentRunsRequest, v1.ListAgentRunsResponse]
+	listAgentTraces             *connect.Client[v1.ListAgentTracesRequest, v1.ListAgentTracesResponse]
+	getAgentEvidenceGraph       *connect.Client[v1.GetAgentEvidenceGraphRequest, v1.GetAgentEvidenceGraphResponse]
 	getAgentRun                 *connect.Client[v1.GetAgentRunRequest, v1.GetAgentRunResponse]
 	listAgentRunEvents          *connect.Client[v1.ListAgentRunEventsRequest, v1.ListAgentRunEventsResponse]
 	linkExternalArtifact        *connect.Client[v1.LinkExternalArtifactRequest, v1.LinkExternalArtifactResponse]
@@ -241,6 +270,16 @@ func (c *agenticTraceViewServiceClient) ConfirmAgentRunGrouping(ctx context.Cont
 // ListAgentRuns calls o11y_one.agentic.v1.AgenticTraceViewService.ListAgentRuns.
 func (c *agenticTraceViewServiceClient) ListAgentRuns(ctx context.Context, req *connect.Request[v1.ListAgentRunsRequest]) (*connect.Response[v1.ListAgentRunsResponse], error) {
 	return c.listAgentRuns.CallUnary(ctx, req)
+}
+
+// ListAgentTraces calls o11y_one.agentic.v1.AgenticTraceViewService.ListAgentTraces.
+func (c *agenticTraceViewServiceClient) ListAgentTraces(ctx context.Context, req *connect.Request[v1.ListAgentTracesRequest]) (*connect.Response[v1.ListAgentTracesResponse], error) {
+	return c.listAgentTraces.CallUnary(ctx, req)
+}
+
+// GetAgentEvidenceGraph calls o11y_one.agentic.v1.AgenticTraceViewService.GetAgentEvidenceGraph.
+func (c *agenticTraceViewServiceClient) GetAgentEvidenceGraph(ctx context.Context, req *connect.Request[v1.GetAgentEvidenceGraphRequest]) (*connect.Response[v1.GetAgentEvidenceGraphResponse], error) {
+	return c.getAgentEvidenceGraph.CallUnary(ctx, req)
 }
 
 // GetAgentRun calls o11y_one.agentic.v1.AgenticTraceViewService.GetAgentRun.
@@ -285,6 +324,15 @@ type AgenticTraceViewServiceHandler interface {
 	// does the scanning, and `agent_trace_span_scans_issued()` not moving across
 	// these two calls is how that is proved rather than asserted.
 	ListAgentRuns(context.Context, *connect.Request[v1.ListAgentRunsRequest]) (*connect.Response[v1.ListAgentRunsResponse], error)
+	// W-V1-1 (D2). The `/traces` list, in two reads. It sits beside
+	// `ListAgentRuns` because the two are the same screen at two altitudes —
+	// every trace, and the runs those traces group into.
+	ListAgentTraces(context.Context, *connect.Request[v1.ListAgentTracesRequest]) (*connect.Response[v1.ListAgentTracesResponse], error)
+	// W-V1-1 (D3). The trace sheet's and the agent-run screen's evidence graph,
+	// built by the SAME builders the v1 verb now calls: the two arms moved here
+	// rather than being copied, so the two services cannot answer differently
+	// for the same scope while both exist.
+	GetAgentEvidenceGraph(context.Context, *connect.Request[v1.GetAgentEvidenceGraphRequest]) (*connect.Response[v1.GetAgentEvidenceGraphResponse], error)
 	GetAgentRun(context.Context, *connect.Request[v1.GetAgentRunRequest]) (*connect.Response[v1.GetAgentRunResponse], error)
 	// ---- wave 41 lane C: timeline ----
 	//
@@ -342,6 +390,18 @@ func NewAgenticTraceViewServiceHandler(svc AgenticTraceViewServiceHandler, opts 
 		connect.WithSchema(agenticTraceViewServiceMethods.ByName("ListAgentRuns")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agenticTraceViewServiceListAgentTracesHandler := connect.NewUnaryHandler(
+		AgenticTraceViewServiceListAgentTracesProcedure,
+		svc.ListAgentTraces,
+		connect.WithSchema(agenticTraceViewServiceMethods.ByName("ListAgentTraces")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticTraceViewServiceGetAgentEvidenceGraphHandler := connect.NewUnaryHandler(
+		AgenticTraceViewServiceGetAgentEvidenceGraphProcedure,
+		svc.GetAgentEvidenceGraph,
+		connect.WithSchema(agenticTraceViewServiceMethods.ByName("GetAgentEvidenceGraph")),
+		connect.WithHandlerOptions(opts...),
+	)
 	agenticTraceViewServiceGetAgentRunHandler := connect.NewUnaryHandler(
 		AgenticTraceViewServiceGetAgentRunProcedure,
 		svc.GetAgentRun,
@@ -382,6 +442,10 @@ func NewAgenticTraceViewServiceHandler(svc AgenticTraceViewServiceHandler, opts 
 			agenticTraceViewServiceConfirmAgentRunGroupingHandler.ServeHTTP(w, r)
 		case AgenticTraceViewServiceListAgentRunsProcedure:
 			agenticTraceViewServiceListAgentRunsHandler.ServeHTTP(w, r)
+		case AgenticTraceViewServiceListAgentTracesProcedure:
+			agenticTraceViewServiceListAgentTracesHandler.ServeHTTP(w, r)
+		case AgenticTraceViewServiceGetAgentEvidenceGraphProcedure:
+			agenticTraceViewServiceGetAgentEvidenceGraphHandler.ServeHTTP(w, r)
 		case AgenticTraceViewServiceGetAgentRunProcedure:
 			agenticTraceViewServiceGetAgentRunHandler.ServeHTTP(w, r)
 		case AgenticTraceViewServiceListAgentRunEventsProcedure:
@@ -415,6 +479,14 @@ func (UnimplementedAgenticTraceViewServiceHandler) ConfirmAgentRunGrouping(conte
 
 func (UnimplementedAgenticTraceViewServiceHandler) ListAgentRuns(context.Context, *connect.Request[v1.ListAgentRunsRequest]) (*connect.Response[v1.ListAgentRunsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticTraceViewService.ListAgentRuns is not implemented"))
+}
+
+func (UnimplementedAgenticTraceViewServiceHandler) ListAgentTraces(context.Context, *connect.Request[v1.ListAgentTracesRequest]) (*connect.Response[v1.ListAgentTracesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticTraceViewService.ListAgentTraces is not implemented"))
+}
+
+func (UnimplementedAgenticTraceViewServiceHandler) GetAgentEvidenceGraph(context.Context, *connect.Request[v1.GetAgentEvidenceGraphRequest]) (*connect.Response[v1.GetAgentEvidenceGraphResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticTraceViewService.GetAgentEvidenceGraph is not implemented"))
 }
 
 func (UnimplementedAgenticTraceViewServiceHandler) GetAgentRun(context.Context, *connect.Request[v1.GetAgentRunRequest]) (*connect.Response[v1.GetAgentRunResponse], error) {

@@ -411,7 +411,8 @@ func (TraceSpanCostProvenanceV1) EnumDescriptor() ([]byte, []int) {
 
 // What a trace read can refuse with, and why each one is its own kind. A caller
 // told only "invalid argument" cannot act; each of these names a different next
-// step, and none of them is "we returned a partial answer".
+// step, and none of them is "we returned a partial answer". A cut trace is not
+// among them: it is served, and its critical path carries the availability.
 type TraceReadRefusalKindV1 int32
 
 const (
@@ -424,8 +425,11 @@ const (
 	// trace is not a partial critical path, it is a WRONG one, and a client
 	// cannot tell.
 	TraceReadRefusalKindV1_TRACE_READ_REFUSAL_KIND_V1_SPAN_POPULATION_EXCEEDS_CAP TraceReadRefusalKindV1 = 2
-	// Spans were found, but every one of them has a parent inside the population
-	// — the trace's root started before the requested window.
+	// Deprecated: never constructed. The fold serves a cut trace and marks its
+	// critical path NOT_OBSERVED with reason_code
+	// trace_root_span_not_in_population; render that.
+	//
+	// Deprecated: Marked as deprecated in o11y_one/agentic/v1/trace_view.proto.
 	TraceReadRefusalKindV1_TRACE_READ_REFUSAL_KIND_V1_TRACE_ROOT_NOT_IN_POPULATION TraceReadRefusalKindV1 = 3
 	// The requested window ends before the oldest instant the span plane will
 	// answer for. Distinct from `TRACE_NOT_FOUND` on purpose, and the distinction
@@ -433,6 +437,14 @@ const (
 	// not look that far back" are different facts, and only one of them is about
 	// the caller's trace.
 	TraceReadRefusalKindV1_TRACE_READ_REFUSAL_KIND_V1_WINDOW_OUTSIDE_RETAINED_LOOKBACK TraceReadRefusalKindV1 = 4
+	// The span plane declined to spend the memory the scan asked for, so the read
+	// was refused BEFORE it ran: nothing about the trace is known — not that it is
+	// large, not that it is absent, not that it is anything. Retry later, or ask
+	// for a narrower window. Its own kind rather than an `INTERNAL`, because a
+	// refusal a caller can retry and a failure a caller can only report are
+	// different facts, and the first one spent eight of eight reads looking like
+	// the second.
+	TraceReadRefusalKindV1_TRACE_READ_REFUSAL_KIND_V1_READ_BUDGET_EXHAUSTED TraceReadRefusalKindV1 = 5
 )
 
 // Enum value maps for TraceReadRefusalKindV1.
@@ -443,6 +455,7 @@ var (
 		2: "TRACE_READ_REFUSAL_KIND_V1_SPAN_POPULATION_EXCEEDS_CAP",
 		3: "TRACE_READ_REFUSAL_KIND_V1_TRACE_ROOT_NOT_IN_POPULATION",
 		4: "TRACE_READ_REFUSAL_KIND_V1_WINDOW_OUTSIDE_RETAINED_LOOKBACK",
+		5: "TRACE_READ_REFUSAL_KIND_V1_READ_BUDGET_EXHAUSTED",
 	}
 	TraceReadRefusalKindV1_value = map[string]int32{
 		"TRACE_READ_REFUSAL_KIND_V1_UNSPECIFIED":                      0,
@@ -450,6 +463,7 @@ var (
 		"TRACE_READ_REFUSAL_KIND_V1_SPAN_POPULATION_EXCEEDS_CAP":      2,
 		"TRACE_READ_REFUSAL_KIND_V1_TRACE_ROOT_NOT_IN_POPULATION":     3,
 		"TRACE_READ_REFUSAL_KIND_V1_WINDOW_OUTSIDE_RETAINED_LOOKBACK": 4,
+		"TRACE_READ_REFUSAL_KIND_V1_READ_BUDGET_EXHAUSTED":            5,
 	}
 )
 
@@ -2114,7 +2128,17 @@ type TraceStepSummaryV1 struct {
 	Faults *TraceFaultBreakdownV1 `protobuf:"bytes,14,opt,name=faults,proto3" json:"faults,omitempty"`
 	// Wave 35. The earliest failure in this turn. Absent when the turn had none —
 	// absent, not a zero-valued pointer at a span that did not fail.
-	FirstFailure  *TraceFirstFailureV1 `protobuf:"bytes,15,opt,name=first_failure,json=firstFailure,proto3,oneof" json:"first_failure,omitempty"`
+	FirstFailure *TraceFirstFailureV1 `protobuf:"bytes,15,opt,name=first_failure,json=firstFailure,proto3,oneof" json:"first_failure,omitempty"`
+	// S2. What this turn cost, over the SAME member set `failure_count` and
+	// `faults` use — the turn's spans INCLUDING the turn's own span, because a
+	// turn's money is the money of that turn. It is therefore NOT the sum of
+	// `operation_groups`' rollups whenever the turn's own span carries a cost:
+	// the groups exclude that span, for the same reason `operation_count` does.
+	//
+	// Same type as a group's rollup, so `mixes_stated_and_estimated` and the
+	// unstated-currency reason ride the turn total too: a total that adds a
+	// client's own figure to a list-rate estimate is labelled, not hidden.
+	Cost          *TraceSpanCostRollupV1 `protobuf:"bytes,16,opt,name=cost,proto3" json:"cost,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2250,6 +2274,13 @@ func (x *TraceStepSummaryV1) GetFaults() *TraceFaultBreakdownV1 {
 func (x *TraceStepSummaryV1) GetFirstFailure() *TraceFirstFailureV1 {
 	if x != nil {
 		return x.FirstFailure
+	}
+	return nil
+}
+
+func (x *TraceStepSummaryV1) GetCost() *TraceSpanCostRollupV1 {
+	if x != nil {
+		return x.Cost
 	}
 	return nil
 }
@@ -2619,6 +2650,22 @@ type AgentTraceHeaderV1 struct {
 	// `gen_ai.agent.name` at all, which is a different fact from a trace whose
 	// turns did nothing.
 	StepAvailability *MetricAvailabilityV1 `protobuf:"bytes,8,opt,name=step_availability,json=stepAvailability,proto3" json:"step_availability,omitempty"`
+	// S2. What the whole trace cost, over EVERY span in the population — the
+	// turns, their operations, and the spans that attribute to no turn. Over the
+	// whole population rather than over the steps because a trace whose LLM calls
+	// carry no `gen_ai.agent.name` has no steps at all, and a money total that
+	// read zero there would be reporting the absence of turns as the absence of
+	// spend.
+	//
+	// Same type as a step's and a group's rollup, so the composition counts, the
+	// `mixes_stated_and_estimated` flag and the unstated-currency reason ride the
+	// trace total too. A partial-provenance total is labelled, not hidden.
+	Cost *TraceSpanCostRollupV1 `protobuf:"bytes,9,opt,name=cost,proto3" json:"cost,omitempty"`
+	// S3. Spans that exist only because an earlier attempt failed: members of an
+	// inferred retry chain whose `attempt_index` is greater than one. An honest
+	// zero — the population was read and no chain was found — which is why it is
+	// a count here and an absence on the span.
+	RetriedSpanCount uint32 `protobuf:"varint,10,opt,name=retried_span_count,json=retriedSpanCount,proto3" json:"retried_span_count,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -2709,6 +2756,20 @@ func (x *AgentTraceHeaderV1) GetStepAvailability() *MetricAvailabilityV1 {
 	return nil
 }
 
+func (x *AgentTraceHeaderV1) GetCost() *TraceSpanCostRollupV1 {
+	if x != nil {
+		return x.Cost
+	}
+	return nil
+}
+
+func (x *AgentTraceHeaderV1) GetRetriedSpanCount() uint32 {
+	if x != nil {
+		return x.RetriedSpanCount
+	}
+	return 0
+}
+
 // A span's input and output as this build actually holds them: storage
 // references, not bodies.
 //
@@ -2770,6 +2831,90 @@ func (x *TraceSpanContentRefV1) GetStorageUri() string {
 	return ""
 }
 
+// S3. One span's place in a retry chain.
+//
+// INFERRED, and the capability says so. Nothing in this build marks a span as a
+// retry of another: no `retry`, `resend` or `attempt` key reaches a typed
+// column, and span links arrive at the lake with their ATTRIBUTES DROPPED, so
+// OTel's own relational mechanism cannot say WHY it links. What is left is the
+// shape — one parent, one name, one kind, one target, non-overlapping in time,
+// every attempt but the last in error — and `trace_view_retry_chain` publishes
+// `retry_chain_inference = 1` so a client renders this as a reading of the
+// trace rather than as something the caller reported.
+//
+// Absent on a span that is in no chain. Never a one-attempt chain, and never a
+// zero standing in for "this call was made once".
+type TraceSpanRetryV1 struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The parent span id, the operation kind, the span name and the target,
+	// joined. It is the grouping key itself, so two spans carry one id exactly
+	// when they are in one chain. Deterministic, so two reads of one trace name
+	// the chain identically and a fixture is byte-stable. The kind and the target
+	// are in it because two sibling groups can share a name and differ only in
+	// the kind, or only in the model or tool they called. Key by it; it is not
+	// meant to be parsed.
+	ChainId string `protobuf:"bytes,1,opt,name=chain_id,json=chainId,proto3" json:"chain_id,omitempty"`
+	// 1-based. The first attempt is attempt 1, not a retry of anything.
+	AttemptIndex uint32 `protobuf:"varint,2,opt,name=attempt_index,json=attemptIndex,proto3" json:"attempt_index,omitempty"`
+	// Attempts in this chain, including the one that finally succeeded. A chain
+	// whose last attempt also failed is a chain that never succeeded, and this
+	// count does not say which — `status` on each member does.
+	AttemptCount  uint32 `protobuf:"varint,3,opt,name=attempt_count,json=attemptCount,proto3" json:"attempt_count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TraceSpanRetryV1) Reset() {
+	*x = TraceSpanRetryV1{}
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TraceSpanRetryV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TraceSpanRetryV1) ProtoMessage() {}
+
+func (x *TraceSpanRetryV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TraceSpanRetryV1.ProtoReflect.Descriptor instead.
+func (*TraceSpanRetryV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *TraceSpanRetryV1) GetChainId() string {
+	if x != nil {
+		return x.ChainId
+	}
+	return ""
+}
+
+func (x *TraceSpanRetryV1) GetAttemptIndex() uint32 {
+	if x != nil {
+		return x.AttemptIndex
+	}
+	return 0
+}
+
+func (x *TraceSpanRetryV1) GetAttemptCount() uint32 {
+	if x != nil {
+		return x.AttemptCount
+	}
+	return 0
+}
+
 // Level 3. One raw span row.
 type TraceSpanV1 struct {
 	state        protoimpl.MessageState `protogen:"open.v1"`
@@ -2813,14 +2958,17 @@ type TraceSpanV1 struct {
 	// the client's own instrumented figure, an estimate off the provider's
 	// published list price, or a typed absence. Display plane only — see
 	// `TraceSpanCostV1`.
-	Cost          *TraceSpanCostV1 `protobuf:"bytes,19,opt,name=cost,proto3" json:"cost,omitempty"`
+	Cost *TraceSpanCostV1 `protobuf:"bytes,19,opt,name=cost,proto3" json:"cost,omitempty"`
+	// S3. Where this span sits in an inferred retry chain, or absent when it sits
+	// in none. See `TraceSpanRetryV1` for what "inferred" buys and costs.
+	Retry         *TraceSpanRetryV1 `protobuf:"bytes,20,opt,name=retry,proto3,oneof" json:"retry,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *TraceSpanV1) Reset() {
 	*x = TraceSpanV1{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[19]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2832,7 +2980,7 @@ func (x *TraceSpanV1) String() string {
 func (*TraceSpanV1) ProtoMessage() {}
 
 func (x *TraceSpanV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[19]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2845,7 +2993,7 @@ func (x *TraceSpanV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TraceSpanV1.ProtoReflect.Descriptor instead.
 func (*TraceSpanV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{19}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *TraceSpanV1) GetSpanId() string {
@@ -2981,6 +3129,13 @@ func (x *TraceSpanV1) GetCost() *TraceSpanCostV1 {
 	return nil
 }
 
+func (x *TraceSpanV1) GetRetry() *TraceSpanRetryV1 {
+	if x != nil {
+		return x.Retry
+	}
+	return nil
+}
+
 type GetAgentTraceDetailRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Lowercase hex, as `SessionV1.trace_ids` spells it.
@@ -2995,7 +3150,7 @@ type GetAgentTraceDetailRequest struct {
 
 func (x *GetAgentTraceDetailRequest) Reset() {
 	*x = GetAgentTraceDetailRequest{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[20]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3007,7 +3162,7 @@ func (x *GetAgentTraceDetailRequest) String() string {
 func (*GetAgentTraceDetailRequest) ProtoMessage() {}
 
 func (x *GetAgentTraceDetailRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[20]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3020,7 +3175,7 @@ func (x *GetAgentTraceDetailRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAgentTraceDetailRequest.ProtoReflect.Descriptor instead.
 func (*GetAgentTraceDetailRequest) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{20}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *GetAgentTraceDetailRequest) GetTraceId() string {
@@ -3067,7 +3222,7 @@ type GetAgentTraceDetailResponse struct {
 
 func (x *GetAgentTraceDetailResponse) Reset() {
 	*x = GetAgentTraceDetailResponse{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[21]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3079,7 +3234,7 @@ func (x *GetAgentTraceDetailResponse) String() string {
 func (*GetAgentTraceDetailResponse) ProtoMessage() {}
 
 func (x *GetAgentTraceDetailResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[21]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3092,7 +3247,7 @@ func (x *GetAgentTraceDetailResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAgentTraceDetailResponse.ProtoReflect.Descriptor instead.
 func (*GetAgentTraceDetailResponse) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{21}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *GetAgentTraceDetailResponse) GetHeader() *AgentTraceHeaderV1 {
@@ -3176,7 +3331,7 @@ type ListAgentTraceSpansRequest struct {
 
 func (x *ListAgentTraceSpansRequest) Reset() {
 	*x = ListAgentTraceSpansRequest{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[22]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3188,7 +3343,7 @@ func (x *ListAgentTraceSpansRequest) String() string {
 func (*ListAgentTraceSpansRequest) ProtoMessage() {}
 
 func (x *ListAgentTraceSpansRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[22]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3201,7 +3356,7 @@ func (x *ListAgentTraceSpansRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAgentTraceSpansRequest.ProtoReflect.Descriptor instead.
 func (*ListAgentTraceSpansRequest) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{22}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ListAgentTraceSpansRequest) GetTraceId() string {
@@ -3274,7 +3429,7 @@ type ListAgentTraceSpansResponse struct {
 
 func (x *ListAgentTraceSpansResponse) Reset() {
 	*x = ListAgentTraceSpansResponse{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[23]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3286,7 +3441,7 @@ func (x *ListAgentTraceSpansResponse) String() string {
 func (*ListAgentTraceSpansResponse) ProtoMessage() {}
 
 func (x *ListAgentTraceSpansResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[23]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3299,7 +3454,7 @@ func (x *ListAgentTraceSpansResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAgentTraceSpansResponse.ProtoReflect.Descriptor instead.
 func (*ListAgentTraceSpansResponse) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{23}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *ListAgentTraceSpansResponse) GetSpans() []*TraceSpanV1 {
@@ -3364,7 +3519,7 @@ type AgentRunOutcomeInputV1 struct {
 
 func (x *AgentRunOutcomeInputV1) Reset() {
 	*x = AgentRunOutcomeInputV1{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[24]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3376,7 +3531,7 @@ func (x *AgentRunOutcomeInputV1) String() string {
 func (*AgentRunOutcomeInputV1) ProtoMessage() {}
 
 func (x *AgentRunOutcomeInputV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[24]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3389,7 +3544,7 @@ func (x *AgentRunOutcomeInputV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentRunOutcomeInputV1.ProtoReflect.Descriptor instead.
 func (*AgentRunOutcomeInputV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{24}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *AgentRunOutcomeInputV1) GetKind() AgentRunOutcomeInputKindV1 {
@@ -3434,7 +3589,7 @@ type AgentRunOutcomeAssessmentV1 struct {
 
 func (x *AgentRunOutcomeAssessmentV1) Reset() {
 	*x = AgentRunOutcomeAssessmentV1{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[25]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3446,7 +3601,7 @@ func (x *AgentRunOutcomeAssessmentV1) String() string {
 func (*AgentRunOutcomeAssessmentV1) ProtoMessage() {}
 
 func (x *AgentRunOutcomeAssessmentV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[25]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3459,7 +3614,7 @@ func (x *AgentRunOutcomeAssessmentV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentRunOutcomeAssessmentV1.ProtoReflect.Descriptor instead.
 func (*AgentRunOutcomeAssessmentV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{25}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *AgentRunOutcomeAssessmentV1) GetOutcome() AgentRunOutcomeV1 {
@@ -3515,7 +3670,7 @@ type AgentRunCostLineItemV1 struct {
 
 func (x *AgentRunCostLineItemV1) Reset() {
 	*x = AgentRunCostLineItemV1{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[26]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3527,7 +3682,7 @@ func (x *AgentRunCostLineItemV1) String() string {
 func (*AgentRunCostLineItemV1) ProtoMessage() {}
 
 func (x *AgentRunCostLineItemV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[26]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3540,7 +3695,7 @@ func (x *AgentRunCostLineItemV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentRunCostLineItemV1.ProtoReflect.Descriptor instead.
 func (*AgentRunCostLineItemV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{26}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *AgentRunCostLineItemV1) GetKind() TraceOperationKindV1 {
@@ -3598,7 +3753,7 @@ type AgentRunUsageTotalsV1 struct {
 
 func (x *AgentRunUsageTotalsV1) Reset() {
 	*x = AgentRunUsageTotalsV1{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[27]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3610,7 +3765,7 @@ func (x *AgentRunUsageTotalsV1) String() string {
 func (*AgentRunUsageTotalsV1) ProtoMessage() {}
 
 func (x *AgentRunUsageTotalsV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[27]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3623,7 +3778,7 @@ func (x *AgentRunUsageTotalsV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentRunUsageTotalsV1.ProtoReflect.Descriptor instead.
 func (*AgentRunUsageTotalsV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{27}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *AgentRunUsageTotalsV1) GetInputTokens() int64 {
@@ -3715,7 +3870,7 @@ type AgentRunScorePostureV1 struct {
 
 func (x *AgentRunScorePostureV1) Reset() {
 	*x = AgentRunScorePostureV1{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[28]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3727,7 +3882,7 @@ func (x *AgentRunScorePostureV1) String() string {
 func (*AgentRunScorePostureV1) ProtoMessage() {}
 
 func (x *AgentRunScorePostureV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[28]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3740,7 +3895,7 @@ func (x *AgentRunScorePostureV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentRunScorePostureV1.ProtoReflect.Descriptor instead.
 func (*AgentRunScorePostureV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{28}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *AgentRunScorePostureV1) GetScoreCount() uint32 {
@@ -3811,7 +3966,7 @@ type AgentRunDimensionV1 struct {
 
 func (x *AgentRunDimensionV1) Reset() {
 	*x = AgentRunDimensionV1{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[29]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3823,7 +3978,7 @@ func (x *AgentRunDimensionV1) String() string {
 func (*AgentRunDimensionV1) ProtoMessage() {}
 
 func (x *AgentRunDimensionV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[29]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3836,7 +3991,7 @@ func (x *AgentRunDimensionV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentRunDimensionV1.ProtoReflect.Descriptor instead.
 func (*AgentRunDimensionV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{29}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *AgentRunDimensionV1) GetValue() string {
@@ -3877,7 +4032,7 @@ type AgentRunVersionContextV1 struct {
 
 func (x *AgentRunVersionContextV1) Reset() {
 	*x = AgentRunVersionContextV1{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[30]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3889,7 +4044,7 @@ func (x *AgentRunVersionContextV1) String() string {
 func (*AgentRunVersionContextV1) ProtoMessage() {}
 
 func (x *AgentRunVersionContextV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[30]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3902,7 +4057,7 @@ func (x *AgentRunVersionContextV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentRunVersionContextV1.ProtoReflect.Descriptor instead.
 func (*AgentRunVersionContextV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{30}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *AgentRunVersionContextV1) GetPromptVersion() *AgentRunDimensionV1 {
@@ -3953,7 +4108,7 @@ type AgentRunReleaseContextV1 struct {
 
 func (x *AgentRunReleaseContextV1) Reset() {
 	*x = AgentRunReleaseContextV1{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[31]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3965,7 +4120,7 @@ func (x *AgentRunReleaseContextV1) String() string {
 func (*AgentRunReleaseContextV1) ProtoMessage() {}
 
 func (x *AgentRunReleaseContextV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[31]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3978,7 +4133,7 @@ func (x *AgentRunReleaseContextV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentRunReleaseContextV1.ProtoReflect.Descriptor instead.
 func (*AgentRunReleaseContextV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{31}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *AgentRunReleaseContextV1) GetReleaseKeys() []string {
@@ -4023,7 +4178,7 @@ type AgentRunCoverageReferenceV1 struct {
 
 func (x *AgentRunCoverageReferenceV1) Reset() {
 	*x = AgentRunCoverageReferenceV1{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[32]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4035,7 +4190,7 @@ func (x *AgentRunCoverageReferenceV1) String() string {
 func (*AgentRunCoverageReferenceV1) ProtoMessage() {}
 
 func (x *AgentRunCoverageReferenceV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[32]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4048,7 +4203,7 @@ func (x *AgentRunCoverageReferenceV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentRunCoverageReferenceV1.ProtoReflect.Descriptor instead.
 func (*AgentRunCoverageReferenceV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{32}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *AgentRunCoverageReferenceV1) GetReferenceKind() string {
@@ -4092,7 +4247,7 @@ type AgentRunEvaluationCoverageV1 struct {
 
 func (x *AgentRunEvaluationCoverageV1) Reset() {
 	*x = AgentRunEvaluationCoverageV1{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[33]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4104,7 +4259,7 @@ func (x *AgentRunEvaluationCoverageV1) String() string {
 func (*AgentRunEvaluationCoverageV1) ProtoMessage() {}
 
 func (x *AgentRunEvaluationCoverageV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[33]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4117,7 +4272,7 @@ func (x *AgentRunEvaluationCoverageV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentRunEvaluationCoverageV1.ProtoReflect.Descriptor instead.
 func (*AgentRunEvaluationCoverageV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{33}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *AgentRunEvaluationCoverageV1) GetVerdict() AgentRunCoverageVerdictV1 {
@@ -4196,7 +4351,7 @@ type AgentRunInstrumentationCompletenessV1 struct {
 
 func (x *AgentRunInstrumentationCompletenessV1) Reset() {
 	*x = AgentRunInstrumentationCompletenessV1{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[34]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4208,7 +4363,7 @@ func (x *AgentRunInstrumentationCompletenessV1) String() string {
 func (*AgentRunInstrumentationCompletenessV1) ProtoMessage() {}
 
 func (x *AgentRunInstrumentationCompletenessV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[34]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4221,7 +4376,7 @@ func (x *AgentRunInstrumentationCompletenessV1) ProtoReflect() protoreflect.Mess
 
 // Deprecated: Use AgentRunInstrumentationCompletenessV1.ProtoReflect.Descriptor instead.
 func (*AgentRunInstrumentationCompletenessV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{34}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *AgentRunInstrumentationCompletenessV1) GetState() CompletenessStateV1 {
@@ -4370,7 +4525,7 @@ type AgentRunSummaryV1 struct {
 
 func (x *AgentRunSummaryV1) Reset() {
 	*x = AgentRunSummaryV1{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[35]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4382,7 +4537,7 @@ func (x *AgentRunSummaryV1) String() string {
 func (*AgentRunSummaryV1) ProtoMessage() {}
 
 func (x *AgentRunSummaryV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[35]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4395,7 +4550,7 @@ func (x *AgentRunSummaryV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentRunSummaryV1.ProtoReflect.Descriptor instead.
 func (*AgentRunSummaryV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{35}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *AgentRunSummaryV1) GetAgentRunId() string {
@@ -4687,7 +4842,7 @@ type AgentRunListFilterV1 struct {
 
 func (x *AgentRunListFilterV1) Reset() {
 	*x = AgentRunListFilterV1{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[36]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4699,7 +4854,7 @@ func (x *AgentRunListFilterV1) String() string {
 func (*AgentRunListFilterV1) ProtoMessage() {}
 
 func (x *AgentRunListFilterV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[36]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4712,7 +4867,7 @@ func (x *AgentRunListFilterV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentRunListFilterV1.ProtoReflect.Descriptor instead.
 func (*AgentRunListFilterV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{36}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *AgentRunListFilterV1) GetCustomerId() string {
@@ -4800,7 +4955,7 @@ type ListAgentRunsRequest struct {
 
 func (x *ListAgentRunsRequest) Reset() {
 	*x = ListAgentRunsRequest{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[37]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4812,7 +4967,7 @@ func (x *ListAgentRunsRequest) String() string {
 func (*ListAgentRunsRequest) ProtoMessage() {}
 
 func (x *ListAgentRunsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[37]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4825,7 +4980,7 @@ func (x *ListAgentRunsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAgentRunsRequest.ProtoReflect.Descriptor instead.
 func (*ListAgentRunsRequest) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{37}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *ListAgentRunsRequest) GetStart() *timestamppb.Timestamp {
@@ -4890,7 +5045,7 @@ type ListAgentRunsResponse struct {
 
 func (x *ListAgentRunsResponse) Reset() {
 	*x = ListAgentRunsResponse{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[38]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4902,7 +5057,7 @@ func (x *ListAgentRunsResponse) String() string {
 func (*ListAgentRunsResponse) ProtoMessage() {}
 
 func (x *ListAgentRunsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[38]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4915,7 +5070,7 @@ func (x *ListAgentRunsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAgentRunsResponse.ProtoReflect.Descriptor instead.
 func (*ListAgentRunsResponse) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{38}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *ListAgentRunsResponse) GetRuns() []*AgentRunSummaryV1 {
@@ -5001,7 +5156,7 @@ type GetAgentRunRequest struct {
 
 func (x *GetAgentRunRequest) Reset() {
 	*x = GetAgentRunRequest{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[39]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5013,7 +5168,7 @@ func (x *GetAgentRunRequest) String() string {
 func (*GetAgentRunRequest) ProtoMessage() {}
 
 func (x *GetAgentRunRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[39]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5026,7 +5181,7 @@ func (x *GetAgentRunRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAgentRunRequest.ProtoReflect.Descriptor instead.
 func (*GetAgentRunRequest) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{39}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *GetAgentRunRequest) GetAgentRunId() string {
@@ -5054,7 +5209,7 @@ type GetAgentRunResponse struct {
 
 func (x *GetAgentRunResponse) Reset() {
 	*x = GetAgentRunResponse{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[40]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5066,7 +5221,7 @@ func (x *GetAgentRunResponse) String() string {
 func (*GetAgentRunResponse) ProtoMessage() {}
 
 func (x *GetAgentRunResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[40]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5079,7 +5234,7 @@ func (x *GetAgentRunResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAgentRunResponse.ProtoReflect.Descriptor instead.
 func (*GetAgentRunResponse) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{40}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *GetAgentRunResponse) GetSummary() *AgentRunSummaryV1 {
@@ -5152,7 +5307,7 @@ type AgentRunEventKindCoverageV1 struct {
 
 func (x *AgentRunEventKindCoverageV1) Reset() {
 	*x = AgentRunEventKindCoverageV1{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[41]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5164,7 +5319,7 @@ func (x *AgentRunEventKindCoverageV1) String() string {
 func (*AgentRunEventKindCoverageV1) ProtoMessage() {}
 
 func (x *AgentRunEventKindCoverageV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[41]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5177,7 +5332,7 @@ func (x *AgentRunEventKindCoverageV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentRunEventKindCoverageV1.ProtoReflect.Descriptor instead.
 func (*AgentRunEventKindCoverageV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{41}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *AgentRunEventKindCoverageV1) GetKind() string {
@@ -5214,7 +5369,7 @@ type AgentRunArtifactSourceCoverageV1 struct {
 
 func (x *AgentRunArtifactSourceCoverageV1) Reset() {
 	*x = AgentRunArtifactSourceCoverageV1{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[42]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5226,7 +5381,7 @@ func (x *AgentRunArtifactSourceCoverageV1) String() string {
 func (*AgentRunArtifactSourceCoverageV1) ProtoMessage() {}
 
 func (x *AgentRunArtifactSourceCoverageV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[42]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5239,7 +5394,7 @@ func (x *AgentRunArtifactSourceCoverageV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentRunArtifactSourceCoverageV1.ProtoReflect.Descriptor instead.
 func (*AgentRunArtifactSourceCoverageV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{42}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *AgentRunArtifactSourceCoverageV1) GetSourceKind() ArtifactLinkSourceKindV1 {
@@ -5277,7 +5432,7 @@ type AgentRunEventAttributeProvenanceV1 struct {
 
 func (x *AgentRunEventAttributeProvenanceV1) Reset() {
 	*x = AgentRunEventAttributeProvenanceV1{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[43]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5289,7 +5444,7 @@ func (x *AgentRunEventAttributeProvenanceV1) String() string {
 func (*AgentRunEventAttributeProvenanceV1) ProtoMessage() {}
 
 func (x *AgentRunEventAttributeProvenanceV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[43]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5302,7 +5457,7 @@ func (x *AgentRunEventAttributeProvenanceV1) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use AgentRunEventAttributeProvenanceV1.ProtoReflect.Descriptor instead.
 func (*AgentRunEventAttributeProvenanceV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{43}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *AgentRunEventAttributeProvenanceV1) GetCanonicalField() string {
@@ -5355,7 +5510,7 @@ type AgentRunEventUsageV1 struct {
 
 func (x *AgentRunEventUsageV1) Reset() {
 	*x = AgentRunEventUsageV1{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[44]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5367,7 +5522,7 @@ func (x *AgentRunEventUsageV1) String() string {
 func (*AgentRunEventUsageV1) ProtoMessage() {}
 
 func (x *AgentRunEventUsageV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[44]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5380,7 +5535,7 @@ func (x *AgentRunEventUsageV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentRunEventUsageV1.ProtoReflect.Descriptor instead.
 func (*AgentRunEventUsageV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{44}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *AgentRunEventUsageV1) GetInputTokens() int64 {
@@ -5446,7 +5601,7 @@ type AgentRunEventGenerationV1 struct {
 
 func (x *AgentRunEventGenerationV1) Reset() {
 	*x = AgentRunEventGenerationV1{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[45]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5458,7 +5613,7 @@ func (x *AgentRunEventGenerationV1) String() string {
 func (*AgentRunEventGenerationV1) ProtoMessage() {}
 
 func (x *AgentRunEventGenerationV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[45]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5471,7 +5626,7 @@ func (x *AgentRunEventGenerationV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentRunEventGenerationV1.ProtoReflect.Descriptor instead.
 func (*AgentRunEventGenerationV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{45}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *AgentRunEventGenerationV1) GetRequestModel() string {
@@ -5506,7 +5661,7 @@ type AgentRunLaneV1 struct {
 
 func (x *AgentRunLaneV1) Reset() {
 	*x = AgentRunLaneV1{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[46]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5518,7 +5673,7 @@ func (x *AgentRunLaneV1) String() string {
 func (*AgentRunLaneV1) ProtoMessage() {}
 
 func (x *AgentRunLaneV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[46]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5531,7 +5686,7 @@ func (x *AgentRunLaneV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentRunLaneV1.ProtoReflect.Descriptor instead.
 func (*AgentRunLaneV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{46}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *AgentRunLaneV1) GetLaneId() string {
@@ -5569,7 +5724,7 @@ type AgentRunChildSummaryV1 struct {
 
 func (x *AgentRunChildSummaryV1) Reset() {
 	*x = AgentRunChildSummaryV1{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[47]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5581,7 +5736,7 @@ func (x *AgentRunChildSummaryV1) String() string {
 func (*AgentRunChildSummaryV1) ProtoMessage() {}
 
 func (x *AgentRunChildSummaryV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[47]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5594,7 +5749,7 @@ func (x *AgentRunChildSummaryV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentRunChildSummaryV1.ProtoReflect.Descriptor instead.
 func (*AgentRunChildSummaryV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{47}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *AgentRunChildSummaryV1) GetEventId() string {
@@ -5674,7 +5829,7 @@ type AgentRunArtifactSummaryV1 struct {
 
 func (x *AgentRunArtifactSummaryV1) Reset() {
 	*x = AgentRunArtifactSummaryV1{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[48]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5686,7 +5841,7 @@ func (x *AgentRunArtifactSummaryV1) String() string {
 func (*AgentRunArtifactSummaryV1) ProtoMessage() {}
 
 func (x *AgentRunArtifactSummaryV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[48]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5699,7 +5854,7 @@ func (x *AgentRunArtifactSummaryV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentRunArtifactSummaryV1.ProtoReflect.Descriptor instead.
 func (*AgentRunArtifactSummaryV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{48}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *AgentRunArtifactSummaryV1) GetLinkId() []byte {
@@ -5842,7 +5997,7 @@ type AgentRunArtifactDiagnosticV1 struct {
 
 func (x *AgentRunArtifactDiagnosticV1) Reset() {
 	*x = AgentRunArtifactDiagnosticV1{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[49]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5854,7 +6009,7 @@ func (x *AgentRunArtifactDiagnosticV1) String() string {
 func (*AgentRunArtifactDiagnosticV1) ProtoMessage() {}
 
 func (x *AgentRunArtifactDiagnosticV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[49]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5867,7 +6022,7 @@ func (x *AgentRunArtifactDiagnosticV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentRunArtifactDiagnosticV1.ProtoReflect.Descriptor instead.
 func (*AgentRunArtifactDiagnosticV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{49}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *AgentRunArtifactDiagnosticV1) GetReasonCode() string {
@@ -5901,7 +6056,7 @@ type AgentRunNestedCapsV1 struct {
 
 func (x *AgentRunNestedCapsV1) Reset() {
 	*x = AgentRunNestedCapsV1{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[50]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5913,7 +6068,7 @@ func (x *AgentRunNestedCapsV1) String() string {
 func (*AgentRunNestedCapsV1) ProtoMessage() {}
 
 func (x *AgentRunNestedCapsV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[50]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5926,7 +6081,7 @@ func (x *AgentRunNestedCapsV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentRunNestedCapsV1.ProtoReflect.Descriptor instead.
 func (*AgentRunNestedCapsV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{50}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *AgentRunNestedCapsV1) GetChildrenOmitted() uint32 {
@@ -6019,7 +6174,7 @@ type AgentRunEventV1 struct {
 
 func (x *AgentRunEventV1) Reset() {
 	*x = AgentRunEventV1{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[51]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6031,7 +6186,7 @@ func (x *AgentRunEventV1) String() string {
 func (*AgentRunEventV1) ProtoMessage() {}
 
 func (x *AgentRunEventV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[51]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6044,7 +6199,7 @@ func (x *AgentRunEventV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentRunEventV1.ProtoReflect.Descriptor instead.
 func (*AgentRunEventV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{51}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *AgentRunEventV1) GetEventId() string {
@@ -6317,7 +6472,7 @@ type AgentRunTimelineModeEffectV1 struct {
 
 func (x *AgentRunTimelineModeEffectV1) Reset() {
 	*x = AgentRunTimelineModeEffectV1{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[52]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6329,7 +6484,7 @@ func (x *AgentRunTimelineModeEffectV1) String() string {
 func (*AgentRunTimelineModeEffectV1) ProtoMessage() {}
 
 func (x *AgentRunTimelineModeEffectV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[52]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6342,7 +6497,7 @@ func (x *AgentRunTimelineModeEffectV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentRunTimelineModeEffectV1.ProtoReflect.Descriptor instead.
 func (*AgentRunTimelineModeEffectV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{52}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *AgentRunTimelineModeEffectV1) GetMode() AgentRunTimelineModeV1 {
@@ -6404,7 +6559,7 @@ type AgentRunTimelineCursorV1 struct {
 
 func (x *AgentRunTimelineCursorV1) Reset() {
 	*x = AgentRunTimelineCursorV1{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[53]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6416,7 +6571,7 @@ func (x *AgentRunTimelineCursorV1) String() string {
 func (*AgentRunTimelineCursorV1) ProtoMessage() {}
 
 func (x *AgentRunTimelineCursorV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[53]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6429,7 +6584,7 @@ func (x *AgentRunTimelineCursorV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentRunTimelineCursorV1.ProtoReflect.Descriptor instead.
 func (*AgentRunTimelineCursorV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{53}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *AgentRunTimelineCursorV1) GetNextPageToken() string {
@@ -6482,7 +6637,7 @@ type AgentRunTimelineCostDriverV1 struct {
 
 func (x *AgentRunTimelineCostDriverV1) Reset() {
 	*x = AgentRunTimelineCostDriverV1{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[54]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6494,7 +6649,7 @@ func (x *AgentRunTimelineCostDriverV1) String() string {
 func (*AgentRunTimelineCostDriverV1) ProtoMessage() {}
 
 func (x *AgentRunTimelineCostDriverV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[54]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6507,7 +6662,7 @@ func (x *AgentRunTimelineCostDriverV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentRunTimelineCostDriverV1.ProtoReflect.Descriptor instead.
 func (*AgentRunTimelineCostDriverV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{54}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *AgentRunTimelineCostDriverV1) GetEventId() string {
@@ -6550,7 +6705,7 @@ type ListAgentRunEventsRequest struct {
 
 func (x *ListAgentRunEventsRequest) Reset() {
 	*x = ListAgentRunEventsRequest{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[55]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6562,7 +6717,7 @@ func (x *ListAgentRunEventsRequest) String() string {
 func (*ListAgentRunEventsRequest) ProtoMessage() {}
 
 func (x *ListAgentRunEventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[55]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6575,7 +6730,7 @@ func (x *ListAgentRunEventsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAgentRunEventsRequest.ProtoReflect.Descriptor instead.
 func (*ListAgentRunEventsRequest) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{55}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *ListAgentRunEventsRequest) GetAgentRunId() string {
@@ -6656,7 +6811,7 @@ type ListAgentRunEventsResponse struct {
 
 func (x *ListAgentRunEventsResponse) Reset() {
 	*x = ListAgentRunEventsResponse{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[56]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6668,7 +6823,7 @@ func (x *ListAgentRunEventsResponse) String() string {
 func (*ListAgentRunEventsResponse) ProtoMessage() {}
 
 func (x *ListAgentRunEventsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[56]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6681,7 +6836,7 @@ func (x *ListAgentRunEventsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAgentRunEventsResponse.ProtoReflect.Descriptor instead.
 func (*ListAgentRunEventsResponse) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{56}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *ListAgentRunEventsResponse) GetAgentRunId() string {
@@ -6841,7 +6996,7 @@ type RevokeExternalArtifactLinkRequest struct {
 
 func (x *RevokeExternalArtifactLinkRequest) Reset() {
 	*x = RevokeExternalArtifactLinkRequest{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[57]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6853,7 +7008,7 @@ func (x *RevokeExternalArtifactLinkRequest) String() string {
 func (*RevokeExternalArtifactLinkRequest) ProtoMessage() {}
 
 func (x *RevokeExternalArtifactLinkRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[57]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6866,7 +7021,7 @@ func (x *RevokeExternalArtifactLinkRequest) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use RevokeExternalArtifactLinkRequest.ProtoReflect.Descriptor instead.
 func (*RevokeExternalArtifactLinkRequest) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{57}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{58}
 }
 
 func (x *RevokeExternalArtifactLinkRequest) GetPrincipal() *PrincipalRefV1 {
@@ -6909,7 +7064,7 @@ type RevokeExternalArtifactLinkResponse struct {
 
 func (x *RevokeExternalArtifactLinkResponse) Reset() {
 	*x = RevokeExternalArtifactLinkResponse{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[58]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6921,7 +7076,7 @@ func (x *RevokeExternalArtifactLinkResponse) String() string {
 func (*RevokeExternalArtifactLinkResponse) ProtoMessage() {}
 
 func (x *RevokeExternalArtifactLinkResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[58]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6934,7 +7089,7 @@ func (x *RevokeExternalArtifactLinkResponse) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use RevokeExternalArtifactLinkResponse.ProtoReflect.Descriptor instead.
 func (*RevokeExternalArtifactLinkResponse) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{58}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{59}
 }
 
 func (x *RevokeExternalArtifactLinkResponse) GetLink() *ArtifactLinkV1 {
@@ -6970,7 +7125,7 @@ type ResolveExternalArtifactLinkRequest struct {
 
 func (x *ResolveExternalArtifactLinkRequest) Reset() {
 	*x = ResolveExternalArtifactLinkRequest{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[59]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6982,7 +7137,7 @@ func (x *ResolveExternalArtifactLinkRequest) String() string {
 func (*ResolveExternalArtifactLinkRequest) ProtoMessage() {}
 
 func (x *ResolveExternalArtifactLinkRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[59]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6995,7 +7150,7 @@ func (x *ResolveExternalArtifactLinkRequest) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use ResolveExternalArtifactLinkRequest.ProtoReflect.Descriptor instead.
 func (*ResolveExternalArtifactLinkRequest) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{59}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *ResolveExternalArtifactLinkRequest) GetPrincipal() *PrincipalRefV1 {
@@ -7030,7 +7185,7 @@ type ResolveExternalArtifactLinkResponse struct {
 
 func (x *ResolveExternalArtifactLinkResponse) Reset() {
 	*x = ResolveExternalArtifactLinkResponse{}
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[60]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7042,7 +7197,7 @@ func (x *ResolveExternalArtifactLinkResponse) String() string {
 func (*ResolveExternalArtifactLinkResponse) ProtoMessage() {}
 
 func (x *ResolveExternalArtifactLinkResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[60]
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7055,7 +7210,7 @@ func (x *ResolveExternalArtifactLinkResponse) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use ResolveExternalArtifactLinkResponse.ProtoReflect.Descriptor instead.
 func (*ResolveExternalArtifactLinkResponse) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{60}
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{61}
 }
 
 func (x *ResolveExternalArtifactLinkResponse) GetPosture() ArtifactResolverPostureV1 {
@@ -7075,6 +7230,862 @@ func (x *ResolveExternalArtifactLinkResponse) GetReasonCode() string {
 func (x *ResolveExternalArtifactLinkResponse) GetAttemptedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.AttemptedAt
+	}
+	return nil
+}
+
+// One trace, as the list renders it.
+//
+// The aggregate's own columns and nothing derived from a second plane.
+// `AgentRunScorePostureV1` is DELIBERATELY ABSENT: it is a read of `eval_scores`
+// and of the production-rule verdicts per trace, which is a third statement for
+// a column a list sorts by but cannot act on. `GetAgentRun` carries the posture
+// for the run a reader pivots to, which is where it is worth a read.
+type AgentTraceRowV1 struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Lowercase hex, as `AgentTraceHeaderV1.trace_id` spells it.
+	TraceId string `protobuf:"bytes,1,opt,name=trace_id,json=traceId,proto3" json:"trace_id,omitempty"`
+	// MIN(start) and MAX(end) over this trace's spans in the window. Absent when
+	// the plane carried no instant — zero is an absence, not the Unix epoch.
+	StartedAt *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
+	EndedAt   *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=ended_at,json=endedAt,proto3" json:"ended_at,omitempty"`
+	// `ended_at - started_at`, not a sum of span durations: a trace's wall time is
+	// its interval, and adding concurrent spans would over-count it.
+	WallTimeMicros int64  `protobuf:"varint,4,opt,name=wall_time_micros,json=wallTimeMicros,proto3" json:"wall_time_micros,omitempty"`
+	SpanCount      uint32 `protobuf:"varint,5,opt,name=span_count,json=spanCount,proto3" json:"span_count,omitempty"`
+	// Spans the ingest classifier marked failed. A trace with one is a trace the
+	// `errors_only` filter keeps.
+	ErrorCount uint32 `protobuf:"varint,6,opt,name=error_count,json=errorCount,proto3" json:"error_count,omitempty"`
+	// Distinct agent, model and tool names — the same column rules
+	// `agent_run/fold.rs` folds a RUN's counts from, so the two surfaces cannot
+	// drift into disagreeing about what a tool is.
+	AgentCount uint32 `protobuf:"varint,7,opt,name=agent_count,json=agentCount,proto3" json:"agent_count,omitempty"`
+	ModelCount uint32 `protobuf:"varint,8,opt,name=model_count,json=modelCount,proto3" json:"model_count,omitempty"`
+	ToolCount  uint32 `protobuf:"varint,9,opt,name=tool_count,json=toolCount,proto3" json:"tool_count,omitempty"`
+	// The dimensions, with their distinct counts: a trace whose spans state two
+	// deployments says so rather than letting one of them silently win.
+	Customer   *AgentRunDimensionV1      `protobuf:"bytes,10,opt,name=customer,proto3" json:"customer,omitempty"`
+	Deployment *AgentRunDimensionV1      `protobuf:"bytes,11,opt,name=deployment,proto3" json:"deployment,omitempty"`
+	Versions   *AgentRunVersionContextV1 `protobuf:"bytes,12,opt,name=versions,proto3" json:"versions,omitempty"`
+	// The run this trace is a member of, from `evaluation_agent_run_members`.
+	// Absent means the grouping pass has not reached this trace, NEVER that the
+	// trace belongs to no run.
+	AgentRunId    *string `protobuf:"bytes,13,opt,name=agent_run_id,json=agentRunId,proto3,oneof" json:"agent_run_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AgentTraceRowV1) Reset() {
+	*x = AgentTraceRowV1{}
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[62]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AgentTraceRowV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AgentTraceRowV1) ProtoMessage() {}
+
+func (x *AgentTraceRowV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[62]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AgentTraceRowV1.ProtoReflect.Descriptor instead.
+func (*AgentTraceRowV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{62}
+}
+
+func (x *AgentTraceRowV1) GetTraceId() string {
+	if x != nil {
+		return x.TraceId
+	}
+	return ""
+}
+
+func (x *AgentTraceRowV1) GetStartedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.StartedAt
+	}
+	return nil
+}
+
+func (x *AgentTraceRowV1) GetEndedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.EndedAt
+	}
+	return nil
+}
+
+func (x *AgentTraceRowV1) GetWallTimeMicros() int64 {
+	if x != nil {
+		return x.WallTimeMicros
+	}
+	return 0
+}
+
+func (x *AgentTraceRowV1) GetSpanCount() uint32 {
+	if x != nil {
+		return x.SpanCount
+	}
+	return 0
+}
+
+func (x *AgentTraceRowV1) GetErrorCount() uint32 {
+	if x != nil {
+		return x.ErrorCount
+	}
+	return 0
+}
+
+func (x *AgentTraceRowV1) GetAgentCount() uint32 {
+	if x != nil {
+		return x.AgentCount
+	}
+	return 0
+}
+
+func (x *AgentTraceRowV1) GetModelCount() uint32 {
+	if x != nil {
+		return x.ModelCount
+	}
+	return 0
+}
+
+func (x *AgentTraceRowV1) GetToolCount() uint32 {
+	if x != nil {
+		return x.ToolCount
+	}
+	return 0
+}
+
+func (x *AgentTraceRowV1) GetCustomer() *AgentRunDimensionV1 {
+	if x != nil {
+		return x.Customer
+	}
+	return nil
+}
+
+func (x *AgentTraceRowV1) GetDeployment() *AgentRunDimensionV1 {
+	if x != nil {
+		return x.Deployment
+	}
+	return nil
+}
+
+func (x *AgentTraceRowV1) GetVersions() *AgentRunVersionContextV1 {
+	if x != nil {
+		return x.Versions
+	}
+	return nil
+}
+
+func (x *AgentTraceRowV1) GetAgentRunId() string {
+	if x != nil && x.AgentRunId != nil {
+		return *x.AgentRunId
+	}
+	return ""
+}
+
+type ListAgentTracesRequest struct {
+	state  protoimpl.MessageState  `protogen:"open.v1"`
+	Start  *timestamppb.Timestamp  `protobuf:"bytes,1,opt,name=start,proto3,oneof" json:"start,omitempty"`
+	End    *timestamppb.Timestamp  `protobuf:"bytes,2,opt,name=end,proto3,oneof" json:"end,omitempty"`
+	Filter *AgentTraceListFilterV1 `protobuf:"bytes,3,opt,name=filter,proto3" json:"filter,omitempty"`
+	Limit  *uint32                 `protobuf:"varint,4,opt,name=limit,proto3,oneof" json:"limit,omitempty"`
+	// Opaque keyset cursor over `(started_at DESC, trace_id DESC)`. Never an
+	// offset: an offset over a list whose rows move is a promise the span plane
+	// cannot keep.
+	PageToken     *string `protobuf:"bytes,5,opt,name=page_token,json=pageToken,proto3,oneof" json:"page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAgentTracesRequest) Reset() {
+	*x = ListAgentTracesRequest{}
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[63]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAgentTracesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAgentTracesRequest) ProtoMessage() {}
+
+func (x *ListAgentTracesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[63]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAgentTracesRequest.ProtoReflect.Descriptor instead.
+func (*ListAgentTracesRequest) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{63}
+}
+
+func (x *ListAgentTracesRequest) GetStart() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Start
+	}
+	return nil
+}
+
+func (x *ListAgentTracesRequest) GetEnd() *timestamppb.Timestamp {
+	if x != nil {
+		return x.End
+	}
+	return nil
+}
+
+func (x *ListAgentTracesRequest) GetFilter() *AgentTraceListFilterV1 {
+	if x != nil {
+		return x.Filter
+	}
+	return nil
+}
+
+func (x *ListAgentTracesRequest) GetLimit() uint32 {
+	if x != nil && x.Limit != nil {
+		return *x.Limit
+	}
+	return 0
+}
+
+func (x *ListAgentTracesRequest) GetPageToken() string {
+	if x != nil && x.PageToken != nil {
+		return *x.PageToken
+	}
+	return ""
+}
+
+type ListAgentTracesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Traces        []*AgentTraceRowV1     `protobuf:"bytes,1,rep,name=traces,proto3" json:"traces,omitempty"`
+	NextPageToken *string                `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3,oneof" json:"next_page_token,omitempty"`
+	HasMore       bool                   `protobuf:"varint,3,opt,name=has_more,json=hasMore,proto3" json:"has_more,omitempty"`
+	// Clamped IN BAND, with the reason, exactly as `ListAgentRuns` reports it.
+	Window   *TraceWindowV1                 `protobuf:"bytes,4,opt,name=window,proto3" json:"window,omitempty"`
+	Boundary *TraceSpanPopulationBoundaryV1 `protobuf:"bytes,5,opt,name=boundary,proto3" json:"boundary,omitempty"`
+	// `keyset_started_desc_late_data_resurfaces_at_head_v1`. A trace whose first
+	// span arrives late sorts by that span's instant, so it surfaces at the head
+	// of a fresh first page rather than inside an older cursor's continuation.
+	CursorSemanticsCode string                           `protobuf:"bytes,6,opt,name=cursor_semantics_code,json=cursorSemanticsCode,proto3" json:"cursor_semantics_code,omitempty"`
+	Freshness           *EvaluationFreshnessV1           `protobuf:"bytes,7,opt,name=freshness,proto3" json:"freshness,omitempty"`
+	Capabilities        *AgenticEvaluationCapabilitiesV1 `protobuf:"bytes,8,opt,name=capabilities,proto3" json:"capabilities,omitempty"`
+	Refusal             *TraceReadRefusalV1              `protobuf:"bytes,9,opt,name=refusal,proto3,oneof" json:"refusal,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *ListAgentTracesResponse) Reset() {
+	*x = ListAgentTracesResponse{}
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[64]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAgentTracesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAgentTracesResponse) ProtoMessage() {}
+
+func (x *ListAgentTracesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[64]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAgentTracesResponse.ProtoReflect.Descriptor instead.
+func (*ListAgentTracesResponse) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{64}
+}
+
+func (x *ListAgentTracesResponse) GetTraces() []*AgentTraceRowV1 {
+	if x != nil {
+		return x.Traces
+	}
+	return nil
+}
+
+func (x *ListAgentTracesResponse) GetNextPageToken() string {
+	if x != nil && x.NextPageToken != nil {
+		return *x.NextPageToken
+	}
+	return ""
+}
+
+func (x *ListAgentTracesResponse) GetHasMore() bool {
+	if x != nil {
+		return x.HasMore
+	}
+	return false
+}
+
+func (x *ListAgentTracesResponse) GetWindow() *TraceWindowV1 {
+	if x != nil {
+		return x.Window
+	}
+	return nil
+}
+
+func (x *ListAgentTracesResponse) GetBoundary() *TraceSpanPopulationBoundaryV1 {
+	if x != nil {
+		return x.Boundary
+	}
+	return nil
+}
+
+func (x *ListAgentTracesResponse) GetCursorSemanticsCode() string {
+	if x != nil {
+		return x.CursorSemanticsCode
+	}
+	return ""
+}
+
+func (x *ListAgentTracesResponse) GetFreshness() *EvaluationFreshnessV1 {
+	if x != nil {
+		return x.Freshness
+	}
+	return nil
+}
+
+func (x *ListAgentTracesResponse) GetCapabilities() *AgenticEvaluationCapabilitiesV1 {
+	if x != nil {
+		return x.Capabilities
+	}
+	return nil
+}
+
+func (x *ListAgentTracesResponse) GetRefusal() *TraceReadRefusalV1 {
+	if x != nil {
+		return x.Refusal
+	}
+	return nil
+}
+
+type TraceInvestigationUnavailableReasonV1 struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Section       string                 `protobuf:"bytes,1,opt,name=section,proto3" json:"section,omitempty"`
+	ReasonCode    string                 `protobuf:"bytes,2,opt,name=reason_code,json=reasonCode,proto3" json:"reason_code,omitempty"`
+	Message       string                 `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
+	Retryable     bool                   `protobuf:"varint,4,opt,name=retryable,proto3" json:"retryable,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TraceInvestigationUnavailableReasonV1) Reset() {
+	*x = TraceInvestigationUnavailableReasonV1{}
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[65]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TraceInvestigationUnavailableReasonV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TraceInvestigationUnavailableReasonV1) ProtoMessage() {}
+
+func (x *TraceInvestigationUnavailableReasonV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[65]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TraceInvestigationUnavailableReasonV1.ProtoReflect.Descriptor instead.
+func (*TraceInvestigationUnavailableReasonV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{65}
+}
+
+func (x *TraceInvestigationUnavailableReasonV1) GetSection() string {
+	if x != nil {
+		return x.Section
+	}
+	return ""
+}
+
+func (x *TraceInvestigationUnavailableReasonV1) GetReasonCode() string {
+	if x != nil {
+		return x.ReasonCode
+	}
+	return ""
+}
+
+func (x *TraceInvestigationUnavailableReasonV1) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *TraceInvestigationUnavailableReasonV1) GetRetryable() bool {
+	if x != nil {
+		return x.Retryable
+	}
+	return false
+}
+
+type TraceInvestigationEvidenceLinkV1 struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	EvidenceType  string                 `protobuf:"bytes,1,opt,name=evidence_type,json=evidenceType,proto3" json:"evidence_type,omitempty"`
+	EvidenceId    string                 `protobuf:"bytes,2,opt,name=evidence_id,json=evidenceId,proto3" json:"evidence_id,omitempty"`
+	TraceId       *string                `protobuf:"bytes,3,opt,name=trace_id,json=traceId,proto3,oneof" json:"trace_id,omitempty"`
+	SpanId        *string                `protobuf:"bytes,4,opt,name=span_id,json=spanId,proto3,oneof" json:"span_id,omitempty"`
+	Label         *string                `protobuf:"bytes,5,opt,name=label,proto3,oneof" json:"label,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TraceInvestigationEvidenceLinkV1) Reset() {
+	*x = TraceInvestigationEvidenceLinkV1{}
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[66]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TraceInvestigationEvidenceLinkV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TraceInvestigationEvidenceLinkV1) ProtoMessage() {}
+
+func (x *TraceInvestigationEvidenceLinkV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[66]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TraceInvestigationEvidenceLinkV1.ProtoReflect.Descriptor instead.
+func (*TraceInvestigationEvidenceLinkV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{66}
+}
+
+func (x *TraceInvestigationEvidenceLinkV1) GetEvidenceType() string {
+	if x != nil {
+		return x.EvidenceType
+	}
+	return ""
+}
+
+func (x *TraceInvestigationEvidenceLinkV1) GetEvidenceId() string {
+	if x != nil {
+		return x.EvidenceId
+	}
+	return ""
+}
+
+func (x *TraceInvestigationEvidenceLinkV1) GetTraceId() string {
+	if x != nil && x.TraceId != nil {
+		return *x.TraceId
+	}
+	return ""
+}
+
+func (x *TraceInvestigationEvidenceLinkV1) GetSpanId() string {
+	if x != nil && x.SpanId != nil {
+		return *x.SpanId
+	}
+	return ""
+}
+
+func (x *TraceInvestigationEvidenceLinkV1) GetLabel() string {
+	if x != nil && x.Label != nil {
+		return *x.Label
+	}
+	return ""
+}
+
+type AgenticEvidenceGraphNodeV1 struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	NodeId   string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	NodeType string                 `protobuf:"bytes,2,opt,name=node_type,json=nodeType,proto3" json:"node_type,omitempty"`
+	Label    string                 `protobuf:"bytes,3,opt,name=label,proto3" json:"label,omitempty"`
+	Status   *string                `protobuf:"bytes,4,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	// Display-only facts about the node (a score's value, a run's grouping
+	// state), serialised JSON. A string rather than `google.protobuf.Struct`
+	// because the v2 contract carries no untyped document a service could branch
+	// on (`PLAN:1895`); this one is rendered, never read back.
+	MetadataJson  string                              `protobuf:"bytes,7,opt,name=metadata_json,json=metadataJson,proto3" json:"metadata_json,omitempty"`
+	EvidenceLinks []*TraceInvestigationEvidenceLinkV1 `protobuf:"bytes,6,rep,name=evidence_links,json=evidenceLinks,proto3" json:"evidence_links,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AgenticEvidenceGraphNodeV1) Reset() {
+	*x = AgenticEvidenceGraphNodeV1{}
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[67]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AgenticEvidenceGraphNodeV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AgenticEvidenceGraphNodeV1) ProtoMessage() {}
+
+func (x *AgenticEvidenceGraphNodeV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[67]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AgenticEvidenceGraphNodeV1.ProtoReflect.Descriptor instead.
+func (*AgenticEvidenceGraphNodeV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{67}
+}
+
+func (x *AgenticEvidenceGraphNodeV1) GetNodeId() string {
+	if x != nil {
+		return x.NodeId
+	}
+	return ""
+}
+
+func (x *AgenticEvidenceGraphNodeV1) GetNodeType() string {
+	if x != nil {
+		return x.NodeType
+	}
+	return ""
+}
+
+func (x *AgenticEvidenceGraphNodeV1) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *AgenticEvidenceGraphNodeV1) GetStatus() string {
+	if x != nil && x.Status != nil {
+		return *x.Status
+	}
+	return ""
+}
+
+func (x *AgenticEvidenceGraphNodeV1) GetMetadataJson() string {
+	if x != nil {
+		return x.MetadataJson
+	}
+	return ""
+}
+
+func (x *AgenticEvidenceGraphNodeV1) GetEvidenceLinks() []*TraceInvestigationEvidenceLinkV1 {
+	if x != nil {
+		return x.EvidenceLinks
+	}
+	return nil
+}
+
+type AgenticEvidenceGraphEdgeV1 struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SourceNodeId  string                 `protobuf:"bytes,1,opt,name=source_node_id,json=sourceNodeId,proto3" json:"source_node_id,omitempty"`
+	TargetNodeId  string                 `protobuf:"bytes,2,opt,name=target_node_id,json=targetNodeId,proto3" json:"target_node_id,omitempty"`
+	Relationship  string                 `protobuf:"bytes,3,opt,name=relationship,proto3" json:"relationship,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AgenticEvidenceGraphEdgeV1) Reset() {
+	*x = AgenticEvidenceGraphEdgeV1{}
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[68]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AgenticEvidenceGraphEdgeV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AgenticEvidenceGraphEdgeV1) ProtoMessage() {}
+
+func (x *AgenticEvidenceGraphEdgeV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[68]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AgenticEvidenceGraphEdgeV1.ProtoReflect.Descriptor instead.
+func (*AgenticEvidenceGraphEdgeV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{68}
+}
+
+func (x *AgenticEvidenceGraphEdgeV1) GetSourceNodeId() string {
+	if x != nil {
+		return x.SourceNodeId
+	}
+	return ""
+}
+
+func (x *AgenticEvidenceGraphEdgeV1) GetTargetNodeId() string {
+	if x != nil {
+		return x.TargetNodeId
+	}
+	return ""
+}
+
+func (x *AgenticEvidenceGraphEdgeV1) GetRelationship() string {
+	if x != nil {
+		return x.Relationship
+	}
+	return ""
+}
+
+type AgenticEvidenceGraphV1 struct {
+	state              protoimpl.MessageState                   `protogen:"open.v1"`
+	Nodes              []*AgenticEvidenceGraphNodeV1            `protobuf:"bytes,1,rep,name=nodes,proto3" json:"nodes,omitempty"`
+	Edges              []*AgenticEvidenceGraphEdgeV1            `protobuf:"bytes,2,rep,name=edges,proto3" json:"edges,omitempty"`
+	Truncated          bool                                     `protobuf:"varint,3,opt,name=truncated,proto3" json:"truncated,omitempty"`
+	UnavailableReasons []*TraceInvestigationUnavailableReasonV1 `protobuf:"bytes,4,rep,name=unavailable_reasons,json=unavailableReasons,proto3" json:"unavailable_reasons,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *AgenticEvidenceGraphV1) Reset() {
+	*x = AgenticEvidenceGraphV1{}
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[69]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AgenticEvidenceGraphV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AgenticEvidenceGraphV1) ProtoMessage() {}
+
+func (x *AgenticEvidenceGraphV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[69]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AgenticEvidenceGraphV1.ProtoReflect.Descriptor instead.
+func (*AgenticEvidenceGraphV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{69}
+}
+
+func (x *AgenticEvidenceGraphV1) GetNodes() []*AgenticEvidenceGraphNodeV1 {
+	if x != nil {
+		return x.Nodes
+	}
+	return nil
+}
+
+func (x *AgenticEvidenceGraphV1) GetEdges() []*AgenticEvidenceGraphEdgeV1 {
+	if x != nil {
+		return x.Edges
+	}
+	return nil
+}
+
+func (x *AgenticEvidenceGraphV1) GetTruncated() bool {
+	if x != nil {
+		return x.Truncated
+	}
+	return false
+}
+
+func (x *AgenticEvidenceGraphV1) GetUnavailableReasons() []*TraceInvestigationUnavailableReasonV1 {
+	if x != nil {
+		return x.UnavailableReasons
+	}
+	return nil
+}
+
+// The two arms that survive v1. Six die with it — session, dataset item, eval
+// job, experiment run item, release gate evaluation, annotation task — and
+// every one of them names a v1-only concept.
+type GetAgentEvidenceGraphRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Scope:
+	//
+	//	*GetAgentEvidenceGraphRequest_TraceId
+	//	*GetAgentEvidenceGraphRequest_AgentRunId
+	Scope isGetAgentEvidenceGraphRequest_Scope `protobuf_oneof:"scope"`
+	// Default 64, clamped to 8..=512. The clamp is silent, exactly as the v1 verb
+	// clamps it: a client that asked for 4,000 nodes gets 512 and no field says
+	// so, and changing that is a contract change rather than a move.
+	NodeLimit     *uint32 `protobuf:"varint,3,opt,name=node_limit,json=nodeLimit,proto3,oneof" json:"node_limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAgentEvidenceGraphRequest) Reset() {
+	*x = GetAgentEvidenceGraphRequest{}
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[70]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAgentEvidenceGraphRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAgentEvidenceGraphRequest) ProtoMessage() {}
+
+func (x *GetAgentEvidenceGraphRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[70]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAgentEvidenceGraphRequest.ProtoReflect.Descriptor instead.
+func (*GetAgentEvidenceGraphRequest) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{70}
+}
+
+func (x *GetAgentEvidenceGraphRequest) GetScope() isGetAgentEvidenceGraphRequest_Scope {
+	if x != nil {
+		return x.Scope
+	}
+	return nil
+}
+
+func (x *GetAgentEvidenceGraphRequest) GetTraceId() string {
+	if x != nil {
+		if x, ok := x.Scope.(*GetAgentEvidenceGraphRequest_TraceId); ok {
+			return x.TraceId
+		}
+	}
+	return ""
+}
+
+func (x *GetAgentEvidenceGraphRequest) GetAgentRunId() string {
+	if x != nil {
+		if x, ok := x.Scope.(*GetAgentEvidenceGraphRequest_AgentRunId); ok {
+			return x.AgentRunId
+		}
+	}
+	return ""
+}
+
+func (x *GetAgentEvidenceGraphRequest) GetNodeLimit() uint32 {
+	if x != nil && x.NodeLimit != nil {
+		return *x.NodeLimit
+	}
+	return 0
+}
+
+type isGetAgentEvidenceGraphRequest_Scope interface {
+	isGetAgentEvidenceGraphRequest_Scope()
+}
+
+type GetAgentEvidenceGraphRequest_TraceId struct {
+	// Lowercase hex, as `AgentTraceHeaderV1.trace_id` spells it.
+	TraceId string `protobuf:"bytes,1,opt,name=trace_id,json=traceId,proto3,oneof"`
+}
+
+type GetAgentEvidenceGraphRequest_AgentRunId struct {
+	// A stale (`_MERGED_AWAY` / `_SPLIT_AWAY`) id resolves through the grouping
+	// redirect and answers with the CANONICAL run, never `NOT_FOUND` (`P7-6`).
+	AgentRunId string `protobuf:"bytes,2,opt,name=agent_run_id,json=agentRunId,proto3,oneof"`
+}
+
+func (*GetAgentEvidenceGraphRequest_TraceId) isGetAgentEvidenceGraphRequest_Scope() {}
+
+func (*GetAgentEvidenceGraphRequest_AgentRunId) isGetAgentEvidenceGraphRequest_Scope() {}
+
+type GetAgentEvidenceGraphResponse struct {
+	state         protoimpl.MessageState  `protogen:"open.v1"`
+	Graph         *AgenticEvidenceGraphV1 `protobuf:"bytes,1,opt,name=graph,proto3" json:"graph,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAgentEvidenceGraphResponse) Reset() {
+	*x = GetAgentEvidenceGraphResponse{}
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[71]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAgentEvidenceGraphResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAgentEvidenceGraphResponse) ProtoMessage() {}
+
+func (x *GetAgentEvidenceGraphResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_trace_view_proto_msgTypes[71]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAgentEvidenceGraphResponse.ProtoReflect.Descriptor instead.
+func (*GetAgentEvidenceGraphResponse) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{71}
+}
+
+func (x *GetAgentEvidenceGraphResponse) GetGraph() *AgenticEvidenceGraphV1 {
+	if x != nil {
+		return x.Graph
 	}
 	return nil
 }
@@ -7183,7 +8194,7 @@ const file_o11y_one_agentic_v1_trace_view_proto_rawDesc = "" +
 	"\x06faults\x18\n" +
 	" \x01(\v2*.o11y_one.agentic.v1.TraceFaultBreakdownV1R\x06faults\x12>\n" +
 	"\x04cost\x18\v \x01(\v2*.o11y_one.agentic.v1.TraceSpanCostRollupV1R\x04costB\x16\n" +
-	"\x14_p95_duration_micros\"\xaa\a\n" +
+	"\x14_p95_duration_micros\"\xea\a\n" +
 	"\x12TraceStepSummaryV1\x12\x17\n" +
 	"\astep_id\x18\x01 \x01(\tR\x06stepId\x12\x1b\n" +
 	"\tstep_name\x18\x02 \x01(\tR\bstepName\x12\"\n" +
@@ -7202,7 +8213,8 @@ const file_o11y_one_agentic_v1_trace_view_proto_rawDesc = "" +
 	"\x10operation_groups\x18\f \x03(\v2*.o11y_one.agentic.v1.TraceOperationGroupV1R\x0foperationGroups\x12A\n" +
 	"\x1domitted_operation_group_count\x18\r \x01(\rR\x1aomittedOperationGroupCount\x12B\n" +
 	"\x06faults\x18\x0e \x01(\v2*.o11y_one.agentic.v1.TraceFaultBreakdownV1R\x06faults\x12R\n" +
-	"\rfirst_failure\x18\x0f \x01(\v2(.o11y_one.agentic.v1.TraceFirstFailureV1H\x03R\ffirstFailure\x88\x01\x01B\r\n" +
+	"\rfirst_failure\x18\x0f \x01(\v2(.o11y_one.agentic.v1.TraceFirstFailureV1H\x03R\ffirstFailure\x88\x01\x01\x12>\n" +
+	"\x04cost\x18\x10 \x01(\v2*.o11y_one.agentic.v1.TraceSpanCostRollupV1R\x04costB\r\n" +
 	"\v_agent_nameB\v\n" +
 	"\t_agent_idB\x1f\n" +
 	"\x1d_wall_time_share_basis_pointsB\x10\n" +
@@ -7242,7 +8254,7 @@ const file_o11y_one_agentic_v1_trace_view_proto_rawDesc = "" +
 	"\n" +
 	"warn_count\x18\x03 \x01(\rR\twarnCount\x12,\n" +
 	"\x12slow_outlier_count\x18\x04 \x01(\rR\x10slowOutlierCount\x12,\n" +
-	"\x12omitted_item_count\x18\x05 \x01(\rR\x10omittedItemCount\"\x99\x03\n" +
+	"\x12omitted_item_count\x18\x05 \x01(\rR\x10omittedItemCount\"\x87\x04\n" +
 	"\x12AgentTraceHeaderV1\x12\x19\n" +
 	"\btrace_id\x18\x01 \x01(\tR\atraceId\x129\n" +
 	"\n" +
@@ -7254,11 +8266,18 @@ const file_o11y_one_agentic_v1_trace_view_proto_rawDesc = "" +
 	"\n" +
 	"step_count\x18\x06 \x01(\rR\tstepCount\x126\n" +
 	"\x17unattributed_span_count\x18\a \x01(\rR\x15unattributedSpanCount\x12V\n" +
-	"\x11step_availability\x18\b \x01(\v2).o11y_one.agentic.v1.MetricAvailabilityV1R\x10stepAvailability\"]\n" +
+	"\x11step_availability\x18\b \x01(\v2).o11y_one.agentic.v1.MetricAvailabilityV1R\x10stepAvailability\x12>\n" +
+	"\x04cost\x18\t \x01(\v2*.o11y_one.agentic.v1.TraceSpanCostRollupV1R\x04cost\x12,\n" +
+	"\x12retried_span_count\x18\n" +
+	" \x01(\rR\x10retriedSpanCount\"]\n" +
 	"\x15TraceSpanContentRefV1\x12#\n" +
 	"\rcontent_class\x18\x01 \x01(\tR\fcontentClass\x12\x1f\n" +
 	"\vstorage_uri\x18\x02 \x01(\tR\n" +
-	"storageUri\"\x96\b\n" +
+	"storageUri\"w\n" +
+	"\x10TraceSpanRetryV1\x12\x19\n" +
+	"\bchain_id\x18\x01 \x01(\tR\achainId\x12#\n" +
+	"\rattempt_index\x18\x02 \x01(\rR\fattemptIndex\x12#\n" +
+	"\rattempt_count\x18\x03 \x01(\rR\fattemptCount\"\xe2\b\n" +
 	"\vTraceSpanV1\x12\x17\n" +
 	"\aspan_id\x18\x01 \x01(\tR\x06spanId\x12)\n" +
 	"\x0eparent_span_id\x18\x02 \x01(\tH\x00R\fparentSpanId\x88\x01\x01\x12\x1c\n" +
@@ -7281,13 +8300,15 @@ const file_o11y_one_agentic_v1_trace_view_proto_rawDesc = "" +
 	"\x0everbatim_usage\x18\x10 \x01(\v2*.o11y_one.agentic.v1.ProviderUsageRecordV1R\rverbatimUsage\x12q\n" +
 	" time_to_first_token_availability\x18\x11 \x01(\v2).o11y_one.agentic.v1.MetricAvailabilityV1R\x1ctimeToFirstTokenAvailability\x12M\n" +
 	"\fcontent_refs\x18\x12 \x03(\v2*.o11y_one.agentic.v1.TraceSpanContentRefV1R\vcontentRefs\x128\n" +
-	"\x04cost\x18\x13 \x01(\v2$.o11y_one.agentic.v1.TraceSpanCostV1R\x04costB\x11\n" +
+	"\x04cost\x18\x13 \x01(\v2$.o11y_one.agentic.v1.TraceSpanCostV1R\x04cost\x12@\n" +
+	"\x05retry\x18\x14 \x01(\v2%.o11y_one.agentic.v1.TraceSpanRetryV1H\x05R\x05retry\x88\x01\x01B\x11\n" +
 	"\x0f_parent_span_idB\n" +
 	"\n" +
 	"\b_step_idB\x0f\n" +
 	"\r_service_nameB\r\n" +
 	"\v_error_typeB\x10\n" +
-	"\x0e_error_message\"\xb3\x01\n" +
+	"\x0e_error_messageB\b\n" +
+	"\x06_retry\"\xb3\x01\n" +
 	"\x1aGetAgentTraceDetailRequest\x12\x19\n" +
 	"\btrace_id\x18\x01 \x01(\tR\atraceId\x125\n" +
 	"\x05start\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampH\x00R\x05start\x88\x01\x01\x121\n" +
@@ -7746,7 +8767,100 @@ const file_o11y_one_agentic_v1_trace_view_proto_rawDesc = "" +
 	"\aposture\x18\x01 \x01(\x0e2..o11y_one.agentic.v1.ArtifactResolverPostureV1R\aposture\x12\x1f\n" +
 	"\vreason_code\x18\x02 \x01(\tR\n" +
 	"reasonCode\x12=\n" +
-	"\fattempted_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\vattemptedAt*\x8e\x02\n" +
+	"\fattempted_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\vattemptedAt\"\xfc\x04\n" +
+	"\x0fAgentTraceRowV1\x12\x19\n" +
+	"\btrace_id\x18\x01 \x01(\tR\atraceId\x129\n" +
+	"\n" +
+	"started_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x125\n" +
+	"\bended_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\aendedAt\x12(\n" +
+	"\x10wall_time_micros\x18\x04 \x01(\x03R\x0ewallTimeMicros\x12\x1d\n" +
+	"\n" +
+	"span_count\x18\x05 \x01(\rR\tspanCount\x12\x1f\n" +
+	"\verror_count\x18\x06 \x01(\rR\n" +
+	"errorCount\x12\x1f\n" +
+	"\vagent_count\x18\a \x01(\rR\n" +
+	"agentCount\x12\x1f\n" +
+	"\vmodel_count\x18\b \x01(\rR\n" +
+	"modelCount\x12\x1d\n" +
+	"\n" +
+	"tool_count\x18\t \x01(\rR\ttoolCount\x12D\n" +
+	"\bcustomer\x18\n" +
+	" \x01(\v2(.o11y_one.agentic.v1.AgentRunDimensionV1R\bcustomer\x12H\n" +
+	"\n" +
+	"deployment\x18\v \x01(\v2(.o11y_one.agentic.v1.AgentRunDimensionV1R\n" +
+	"deployment\x12I\n" +
+	"\bversions\x18\f \x01(\v2-.o11y_one.agentic.v1.AgentRunVersionContextV1R\bversions\x12%\n" +
+	"\fagent_run_id\x18\r \x01(\tH\x00R\n" +
+	"agentRunId\x88\x01\x01B\x0f\n" +
+	"\r_agent_run_id\"\xb1\x02\n" +
+	"\x16ListAgentTracesRequest\x125\n" +
+	"\x05start\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampH\x00R\x05start\x88\x01\x01\x121\n" +
+	"\x03end\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampH\x01R\x03end\x88\x01\x01\x12C\n" +
+	"\x06filter\x18\x03 \x01(\v2+.o11y_one.agentic.v1.AgentTraceListFilterV1R\x06filter\x12\x19\n" +
+	"\x05limit\x18\x04 \x01(\rH\x02R\x05limit\x88\x01\x01\x12\"\n" +
+	"\n" +
+	"page_token\x18\x05 \x01(\tH\x03R\tpageToken\x88\x01\x01B\b\n" +
+	"\x06_startB\x06\n" +
+	"\x04_endB\b\n" +
+	"\x06_limitB\r\n" +
+	"\v_page_token\"\xeb\x04\n" +
+	"\x17ListAgentTracesResponse\x12<\n" +
+	"\x06traces\x18\x01 \x03(\v2$.o11y_one.agentic.v1.AgentTraceRowV1R\x06traces\x12+\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tH\x00R\rnextPageToken\x88\x01\x01\x12\x19\n" +
+	"\bhas_more\x18\x03 \x01(\bR\ahasMore\x12:\n" +
+	"\x06window\x18\x04 \x01(\v2\".o11y_one.agentic.v1.TraceWindowV1R\x06window\x12N\n" +
+	"\bboundary\x18\x05 \x01(\v22.o11y_one.agentic.v1.TraceSpanPopulationBoundaryV1R\bboundary\x122\n" +
+	"\x15cursor_semantics_code\x18\x06 \x01(\tR\x13cursorSemanticsCode\x12H\n" +
+	"\tfreshness\x18\a \x01(\v2*.o11y_one.agentic.v1.EvaluationFreshnessV1R\tfreshness\x12X\n" +
+	"\fcapabilities\x18\b \x01(\v24.o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1R\fcapabilities\x12F\n" +
+	"\arefusal\x18\t \x01(\v2'.o11y_one.agentic.v1.TraceReadRefusalV1H\x01R\arefusal\x88\x01\x01B\x12\n" +
+	"\x10_next_page_tokenB\n" +
+	"\n" +
+	"\b_refusal\"\x9a\x01\n" +
+	"%TraceInvestigationUnavailableReasonV1\x12\x18\n" +
+	"\asection\x18\x01 \x01(\tR\asection\x12\x1f\n" +
+	"\vreason_code\x18\x02 \x01(\tR\n" +
+	"reasonCode\x12\x18\n" +
+	"\amessage\x18\x03 \x01(\tR\amessage\x12\x1c\n" +
+	"\tretryable\x18\x04 \x01(\bR\tretryable\"\xe4\x01\n" +
+	" TraceInvestigationEvidenceLinkV1\x12#\n" +
+	"\revidence_type\x18\x01 \x01(\tR\fevidenceType\x12\x1f\n" +
+	"\vevidence_id\x18\x02 \x01(\tR\n" +
+	"evidenceId\x12\x1e\n" +
+	"\btrace_id\x18\x03 \x01(\tH\x00R\atraceId\x88\x01\x01\x12\x1c\n" +
+	"\aspan_id\x18\x04 \x01(\tH\x01R\x06spanId\x88\x01\x01\x12\x19\n" +
+	"\x05label\x18\x05 \x01(\tH\x02R\x05label\x88\x01\x01B\v\n" +
+	"\t_trace_idB\n" +
+	"\n" +
+	"\b_span_idB\b\n" +
+	"\x06_label\"\xa3\x02\n" +
+	"\x1aAgenticEvidenceGraphNodeV1\x12\x17\n" +
+	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12\x1b\n" +
+	"\tnode_type\x18\x02 \x01(\tR\bnodeType\x12\x14\n" +
+	"\x05label\x18\x03 \x01(\tR\x05label\x12\x1b\n" +
+	"\x06status\x18\x04 \x01(\tH\x00R\x06status\x88\x01\x01\x12#\n" +
+	"\rmetadata_json\x18\a \x01(\tR\fmetadataJson\x12\\\n" +
+	"\x0eevidence_links\x18\x06 \x03(\v25.o11y_one.agentic.v1.TraceInvestigationEvidenceLinkV1R\revidenceLinksB\t\n" +
+	"\a_statusJ\x04\b\x05\x10\x06R\bmetadata\"\x8c\x01\n" +
+	"\x1aAgenticEvidenceGraphEdgeV1\x12$\n" +
+	"\x0esource_node_id\x18\x01 \x01(\tR\fsourceNodeId\x12$\n" +
+	"\x0etarget_node_id\x18\x02 \x01(\tR\ftargetNodeId\x12\"\n" +
+	"\frelationship\x18\x03 \x01(\tR\frelationship\"\xb1\x02\n" +
+	"\x16AgenticEvidenceGraphV1\x12E\n" +
+	"\x05nodes\x18\x01 \x03(\v2/.o11y_one.agentic.v1.AgenticEvidenceGraphNodeV1R\x05nodes\x12E\n" +
+	"\x05edges\x18\x02 \x03(\v2/.o11y_one.agentic.v1.AgenticEvidenceGraphEdgeV1R\x05edges\x12\x1c\n" +
+	"\ttruncated\x18\x03 \x01(\bR\ttruncated\x12k\n" +
+	"\x13unavailable_reasons\x18\x04 \x03(\v2:.o11y_one.agentic.v1.TraceInvestigationUnavailableReasonV1R\x12unavailableReasons\"\x9b\x01\n" +
+	"\x1cGetAgentEvidenceGraphRequest\x12\x1b\n" +
+	"\btrace_id\x18\x01 \x01(\tH\x00R\atraceId\x12\"\n" +
+	"\fagent_run_id\x18\x02 \x01(\tH\x00R\n" +
+	"agentRunId\x12\"\n" +
+	"\n" +
+	"node_limit\x18\x03 \x01(\rH\x01R\tnodeLimit\x88\x01\x01B\a\n" +
+	"\x05scopeB\r\n" +
+	"\v_node_limit\"b\n" +
+	"\x1dGetAgentEvidenceGraphResponse\x12A\n" +
+	"\x05graph\x18\x01 \x01(\v2+.o11y_one.agentic.v1.AgenticEvidenceGraphV1R\x05graph*\x8e\x02\n" +
 	"\x14TraceOperationKindV1\x12'\n" +
 	"#TRACE_OPERATION_KIND_V1_UNSPECIFIED\x10\x00\x12\x1f\n" +
 	"\x1bTRACE_OPERATION_KIND_V1_LLM\x10\x01\x12 \n" +
@@ -7785,13 +8899,14 @@ const file_o11y_one_agentic_v1_trace_view_proto_rawDesc = "" +
 	"\x19TraceSpanCostProvenanceV1\x12-\n" +
 	")TRACE_SPAN_COST_PROVENANCE_V1_UNSPECIFIED\x10\x00\x12/\n" +
 	"+TRACE_SPAN_COST_PROVENANCE_V1_CLIENT_STATED\x10\x01\x124\n" +
-	"0TRACE_SPAN_COST_PROVENANCE_V1_LIST_RATE_ESTIMATE\x10\x02*\xae\x02\n" +
+	"0TRACE_SPAN_COST_PROVENANCE_V1_LIST_RATE_ESTIMATE\x10\x02*\xe8\x02\n" +
 	"\x16TraceReadRefusalKindV1\x12*\n" +
 	"&TRACE_READ_REFUSAL_KIND_V1_UNSPECIFIED\x10\x00\x12.\n" +
 	"*TRACE_READ_REFUSAL_KIND_V1_TRACE_NOT_FOUND\x10\x01\x12:\n" +
-	"6TRACE_READ_REFUSAL_KIND_V1_SPAN_POPULATION_EXCEEDS_CAP\x10\x02\x12;\n" +
-	"7TRACE_READ_REFUSAL_KIND_V1_TRACE_ROOT_NOT_IN_POPULATION\x10\x03\x12?\n" +
-	";TRACE_READ_REFUSAL_KIND_V1_WINDOW_OUTSIDE_RETAINED_LOOKBACK\x10\x04*\xeb\x01\n" +
+	"6TRACE_READ_REFUSAL_KIND_V1_SPAN_POPULATION_EXCEEDS_CAP\x10\x02\x12?\n" +
+	"7TRACE_READ_REFUSAL_KIND_V1_TRACE_ROOT_NOT_IN_POPULATION\x10\x03\x1a\x02\b\x01\x12?\n" +
+	";TRACE_READ_REFUSAL_KIND_V1_WINDOW_OUTSIDE_RETAINED_LOOKBACK\x10\x04\x124\n" +
+	"0TRACE_READ_REFUSAL_KIND_V1_READ_BUDGET_EXHAUSTED\x10\x05*\xeb\x01\n" +
 	"\x11AgentRunOutcomeV1\x12$\n" +
 	" AGENT_RUN_OUTCOME_V1_UNSPECIFIED\x10\x00\x12 \n" +
 	"\x1cAGENT_RUN_OUTCOME_V1_UNKNOWN\x10\x01\x12\"\n" +
@@ -7834,12 +8949,15 @@ const file_o11y_one_agentic_v1_trace_view_proto_rawDesc = "" +
 	"'AGENT_RUN_ATTRIBUTE_SOURCE_V1_CANONICAL\x10\x01\x12.\n" +
 	"*AGENT_RUN_ATTRIBUTE_SOURCE_V1_LEGACY_ALIAS\x10\x02\x12,\n" +
 	"(AGENT_RUN_ATTRIBUTE_SOURCE_V1_BOTH_EQUAL\x10\x03\x12*\n" +
-	"&AGENT_RUN_ATTRIBUTE_SOURCE_V1_CONFLICT\x10\x042\xf5\b\n" +
+	"&AGENT_RUN_ATTRIBUTE_SOURCE_V1_CONFLICT\x10\x042\xe3\n" +
+	"\n" +
 	"\x17AgenticTraceViewService\x12x\n" +
 	"\x13GetAgentTraceDetail\x12/.o11y_one.agentic.v1.GetAgentTraceDetailRequest\x1a0.o11y_one.agentic.v1.GetAgentTraceDetailResponse\x12x\n" +
 	"\x13ListAgentTraceSpans\x12/.o11y_one.agentic.v1.ListAgentTraceSpansRequest\x1a0.o11y_one.agentic.v1.ListAgentTraceSpansResponse\x12\x84\x01\n" +
 	"\x17ConfirmAgentRunGrouping\x123.o11y_one.agentic.v1.ConfirmAgentRunGroupingRequest\x1a4.o11y_one.agentic.v1.ConfirmAgentRunGroupingResponse\x12f\n" +
-	"\rListAgentRuns\x12).o11y_one.agentic.v1.ListAgentRunsRequest\x1a*.o11y_one.agentic.v1.ListAgentRunsResponse\x12`\n" +
+	"\rListAgentRuns\x12).o11y_one.agentic.v1.ListAgentRunsRequest\x1a*.o11y_one.agentic.v1.ListAgentRunsResponse\x12l\n" +
+	"\x0fListAgentTraces\x12+.o11y_one.agentic.v1.ListAgentTracesRequest\x1a,.o11y_one.agentic.v1.ListAgentTracesResponse\x12~\n" +
+	"\x15GetAgentEvidenceGraph\x121.o11y_one.agentic.v1.GetAgentEvidenceGraphRequest\x1a2.o11y_one.agentic.v1.GetAgentEvidenceGraphResponse\x12`\n" +
 	"\vGetAgentRun\x12'.o11y_one.agentic.v1.GetAgentRunRequest\x1a(.o11y_one.agentic.v1.GetAgentRunResponse\x12u\n" +
 	"\x12ListAgentRunEvents\x12..o11y_one.agentic.v1.ListAgentRunEventsRequest\x1a/.o11y_one.agentic.v1.ListAgentRunEventsResponse\x12{\n" +
 	"\x14LinkExternalArtifact\x120.o11y_one.agentic.v1.LinkExternalArtifactRequest\x1a1.o11y_one.agentic.v1.LinkExternalArtifactResponse\x12\x8d\x01\n" +
@@ -7860,7 +8978,7 @@ func file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP() []byte {
 }
 
 var file_o11y_one_agentic_v1_trace_view_proto_enumTypes = make([]protoimpl.EnumInfo, 13)
-var file_o11y_one_agentic_v1_trace_view_proto_msgTypes = make([]protoimpl.MessageInfo, 61)
+var file_o11y_one_agentic_v1_trace_view_proto_msgTypes = make([]protoimpl.MessageInfo, 72)
 var file_o11y_one_agentic_v1_trace_view_proto_goTypes = []any{
 	(TraceOperationKindV1)(0),                     // 0: o11y_one.agentic.v1.TraceOperationKindV1
 	(TraceSpanStatusV1)(0),                        // 1: o11y_one.agentic.v1.TraceSpanStatusV1
@@ -7894,296 +9012,334 @@ var file_o11y_one_agentic_v1_trace_view_proto_goTypes = []any{
 	(*TraceNeedsAttentionSetV1)(nil),              // 29: o11y_one.agentic.v1.TraceNeedsAttentionSetV1
 	(*AgentTraceHeaderV1)(nil),                    // 30: o11y_one.agentic.v1.AgentTraceHeaderV1
 	(*TraceSpanContentRefV1)(nil),                 // 31: o11y_one.agentic.v1.TraceSpanContentRefV1
-	(*TraceSpanV1)(nil),                           // 32: o11y_one.agentic.v1.TraceSpanV1
-	(*GetAgentTraceDetailRequest)(nil),            // 33: o11y_one.agentic.v1.GetAgentTraceDetailRequest
-	(*GetAgentTraceDetailResponse)(nil),           // 34: o11y_one.agentic.v1.GetAgentTraceDetailResponse
-	(*ListAgentTraceSpansRequest)(nil),            // 35: o11y_one.agentic.v1.ListAgentTraceSpansRequest
-	(*ListAgentTraceSpansResponse)(nil),           // 36: o11y_one.agentic.v1.ListAgentTraceSpansResponse
-	(*AgentRunOutcomeInputV1)(nil),                // 37: o11y_one.agentic.v1.AgentRunOutcomeInputV1
-	(*AgentRunOutcomeAssessmentV1)(nil),           // 38: o11y_one.agentic.v1.AgentRunOutcomeAssessmentV1
-	(*AgentRunCostLineItemV1)(nil),                // 39: o11y_one.agentic.v1.AgentRunCostLineItemV1
-	(*AgentRunUsageTotalsV1)(nil),                 // 40: o11y_one.agentic.v1.AgentRunUsageTotalsV1
-	(*AgentRunScorePostureV1)(nil),                // 41: o11y_one.agentic.v1.AgentRunScorePostureV1
-	(*AgentRunDimensionV1)(nil),                   // 42: o11y_one.agentic.v1.AgentRunDimensionV1
-	(*AgentRunVersionContextV1)(nil),              // 43: o11y_one.agentic.v1.AgentRunVersionContextV1
-	(*AgentRunReleaseContextV1)(nil),              // 44: o11y_one.agentic.v1.AgentRunReleaseContextV1
-	(*AgentRunCoverageReferenceV1)(nil),           // 45: o11y_one.agentic.v1.AgentRunCoverageReferenceV1
-	(*AgentRunEvaluationCoverageV1)(nil),          // 46: o11y_one.agentic.v1.AgentRunEvaluationCoverageV1
-	(*AgentRunInstrumentationCompletenessV1)(nil), // 47: o11y_one.agentic.v1.AgentRunInstrumentationCompletenessV1
-	(*AgentRunSummaryV1)(nil),                     // 48: o11y_one.agentic.v1.AgentRunSummaryV1
-	(*AgentRunListFilterV1)(nil),                  // 49: o11y_one.agentic.v1.AgentRunListFilterV1
-	(*ListAgentRunsRequest)(nil),                  // 50: o11y_one.agentic.v1.ListAgentRunsRequest
-	(*ListAgentRunsResponse)(nil),                 // 51: o11y_one.agentic.v1.ListAgentRunsResponse
-	(*GetAgentRunRequest)(nil),                    // 52: o11y_one.agentic.v1.GetAgentRunRequest
-	(*GetAgentRunResponse)(nil),                   // 53: o11y_one.agentic.v1.GetAgentRunResponse
-	(*AgentRunEventKindCoverageV1)(nil),           // 54: o11y_one.agentic.v1.AgentRunEventKindCoverageV1
-	(*AgentRunArtifactSourceCoverageV1)(nil),      // 55: o11y_one.agentic.v1.AgentRunArtifactSourceCoverageV1
-	(*AgentRunEventAttributeProvenanceV1)(nil),    // 56: o11y_one.agentic.v1.AgentRunEventAttributeProvenanceV1
-	(*AgentRunEventUsageV1)(nil),                  // 57: o11y_one.agentic.v1.AgentRunEventUsageV1
-	(*AgentRunEventGenerationV1)(nil),             // 58: o11y_one.agentic.v1.AgentRunEventGenerationV1
-	(*AgentRunLaneV1)(nil),                        // 59: o11y_one.agentic.v1.AgentRunLaneV1
-	(*AgentRunChildSummaryV1)(nil),                // 60: o11y_one.agentic.v1.AgentRunChildSummaryV1
-	(*AgentRunArtifactSummaryV1)(nil),             // 61: o11y_one.agentic.v1.AgentRunArtifactSummaryV1
-	(*AgentRunArtifactDiagnosticV1)(nil),          // 62: o11y_one.agentic.v1.AgentRunArtifactDiagnosticV1
-	(*AgentRunNestedCapsV1)(nil),                  // 63: o11y_one.agentic.v1.AgentRunNestedCapsV1
-	(*AgentRunEventV1)(nil),                       // 64: o11y_one.agentic.v1.AgentRunEventV1
-	(*AgentRunTimelineModeEffectV1)(nil),          // 65: o11y_one.agentic.v1.AgentRunTimelineModeEffectV1
-	(*AgentRunTimelineCursorV1)(nil),              // 66: o11y_one.agentic.v1.AgentRunTimelineCursorV1
-	(*AgentRunTimelineCostDriverV1)(nil),          // 67: o11y_one.agentic.v1.AgentRunTimelineCostDriverV1
-	(*ListAgentRunEventsRequest)(nil),             // 68: o11y_one.agentic.v1.ListAgentRunEventsRequest
-	(*ListAgentRunEventsResponse)(nil),            // 69: o11y_one.agentic.v1.ListAgentRunEventsResponse
-	(*RevokeExternalArtifactLinkRequest)(nil),     // 70: o11y_one.agentic.v1.RevokeExternalArtifactLinkRequest
-	(*RevokeExternalArtifactLinkResponse)(nil),    // 71: o11y_one.agentic.v1.RevokeExternalArtifactLinkResponse
-	(*ResolveExternalArtifactLinkRequest)(nil),    // 72: o11y_one.agentic.v1.ResolveExternalArtifactLinkRequest
-	(*ResolveExternalArtifactLinkResponse)(nil),   // 73: o11y_one.agentic.v1.ResolveExternalArtifactLinkResponse
-	(EvaluationOperationDimensionV1)(0),           // 74: o11y_one.agentic.v1.EvaluationOperationDimensionV1
-	(*timestamppb.Timestamp)(nil),                 // 75: google.protobuf.Timestamp
-	(RecoveryActionV1)(0),                         // 76: o11y_one.agentic.v1.RecoveryActionV1
-	(*MetricAvailabilityV1)(nil),                  // 77: o11y_one.agentic.v1.MetricAvailabilityV1
-	(*EvaluationTokenAccountingV1)(nil),           // 78: o11y_one.agentic.v1.EvaluationTokenAccountingV1
-	(*EvaluationRateDimensionNoteV1)(nil),         // 79: o11y_one.agentic.v1.EvaluationRateDimensionNoteV1
-	(*CostAmountV1)(nil),                          // 80: o11y_one.agentic.v1.CostAmountV1
-	(*ProviderUsageRecordV1)(nil),                 // 81: o11y_one.agentic.v1.ProviderUsageRecordV1
-	(*EvaluationFreshnessV1)(nil),                 // 82: o11y_one.agentic.v1.EvaluationFreshnessV1
-	(*AgenticEvaluationCapabilitiesV1)(nil),       // 83: o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	(CompletenessStateV1)(0),                      // 84: o11y_one.agentic.v1.CompletenessStateV1
-	(*AgentRunGroupingV1)(nil),                    // 85: o11y_one.agentic.v1.AgentRunGroupingV1
-	(*ConversationCompletenessV1)(nil),            // 86: o11y_one.agentic.v1.ConversationCompletenessV1
-	(AgentRunGroupingConfidenceV1)(0),             // 87: o11y_one.agentic.v1.AgentRunGroupingConfidenceV1
-	(ConversationCompletenessStateV1)(0),          // 88: o11y_one.agentic.v1.ConversationCompletenessStateV1
-	(ArtifactLinkSourceKindV1)(0),                 // 89: o11y_one.agentic.v1.ArtifactLinkSourceKindV1
-	(ArtifactTypeV1)(0),                           // 90: o11y_one.agentic.v1.ArtifactTypeV1
-	(ArtifactRoleV1)(0),                           // 91: o11y_one.agentic.v1.ArtifactRoleV1
-	(ArtifactRelationV1)(0),                       // 92: o11y_one.agentic.v1.ArtifactRelationV1
-	(ArtifactLinkStatusV1)(0),                     // 93: o11y_one.agentic.v1.ArtifactLinkStatusV1
-	(ArtifactLinkConflictPostureV1)(0),            // 94: o11y_one.agentic.v1.ArtifactLinkConflictPostureV1
-	(ArtifactResolverPostureV1)(0),                // 95: o11y_one.agentic.v1.ArtifactResolverPostureV1
-	(ArtifactLinkFallbackReasonV1)(0),             // 96: o11y_one.agentic.v1.ArtifactLinkFallbackReasonV1
-	(*EvidenceAnchorV1)(nil),                      // 97: o11y_one.agentic.v1.EvidenceAnchorV1
-	(*GroupingRedirectV1)(nil),                    // 98: o11y_one.agentic.v1.GroupingRedirectV1
-	(*PrincipalRefV1)(nil),                        // 99: o11y_one.agentic.v1.PrincipalRefV1
-	(*ArtifactLinkV1)(nil),                        // 100: o11y_one.agentic.v1.ArtifactLinkV1
-	(*ConfirmAgentRunGroupingRequest)(nil),        // 101: o11y_one.agentic.v1.ConfirmAgentRunGroupingRequest
-	(*LinkExternalArtifactRequest)(nil),           // 102: o11y_one.agentic.v1.LinkExternalArtifactRequest
-	(*ConfirmAgentRunGroupingResponse)(nil),       // 103: o11y_one.agentic.v1.ConfirmAgentRunGroupingResponse
-	(*LinkExternalArtifactResponse)(nil),          // 104: o11y_one.agentic.v1.LinkExternalArtifactResponse
+	(*TraceSpanRetryV1)(nil),                      // 32: o11y_one.agentic.v1.TraceSpanRetryV1
+	(*TraceSpanV1)(nil),                           // 33: o11y_one.agentic.v1.TraceSpanV1
+	(*GetAgentTraceDetailRequest)(nil),            // 34: o11y_one.agentic.v1.GetAgentTraceDetailRequest
+	(*GetAgentTraceDetailResponse)(nil),           // 35: o11y_one.agentic.v1.GetAgentTraceDetailResponse
+	(*ListAgentTraceSpansRequest)(nil),            // 36: o11y_one.agentic.v1.ListAgentTraceSpansRequest
+	(*ListAgentTraceSpansResponse)(nil),           // 37: o11y_one.agentic.v1.ListAgentTraceSpansResponse
+	(*AgentRunOutcomeInputV1)(nil),                // 38: o11y_one.agentic.v1.AgentRunOutcomeInputV1
+	(*AgentRunOutcomeAssessmentV1)(nil),           // 39: o11y_one.agentic.v1.AgentRunOutcomeAssessmentV1
+	(*AgentRunCostLineItemV1)(nil),                // 40: o11y_one.agentic.v1.AgentRunCostLineItemV1
+	(*AgentRunUsageTotalsV1)(nil),                 // 41: o11y_one.agentic.v1.AgentRunUsageTotalsV1
+	(*AgentRunScorePostureV1)(nil),                // 42: o11y_one.agentic.v1.AgentRunScorePostureV1
+	(*AgentRunDimensionV1)(nil),                   // 43: o11y_one.agentic.v1.AgentRunDimensionV1
+	(*AgentRunVersionContextV1)(nil),              // 44: o11y_one.agentic.v1.AgentRunVersionContextV1
+	(*AgentRunReleaseContextV1)(nil),              // 45: o11y_one.agentic.v1.AgentRunReleaseContextV1
+	(*AgentRunCoverageReferenceV1)(nil),           // 46: o11y_one.agentic.v1.AgentRunCoverageReferenceV1
+	(*AgentRunEvaluationCoverageV1)(nil),          // 47: o11y_one.agentic.v1.AgentRunEvaluationCoverageV1
+	(*AgentRunInstrumentationCompletenessV1)(nil), // 48: o11y_one.agentic.v1.AgentRunInstrumentationCompletenessV1
+	(*AgentRunSummaryV1)(nil),                     // 49: o11y_one.agentic.v1.AgentRunSummaryV1
+	(*AgentRunListFilterV1)(nil),                  // 50: o11y_one.agentic.v1.AgentRunListFilterV1
+	(*ListAgentRunsRequest)(nil),                  // 51: o11y_one.agentic.v1.ListAgentRunsRequest
+	(*ListAgentRunsResponse)(nil),                 // 52: o11y_one.agentic.v1.ListAgentRunsResponse
+	(*GetAgentRunRequest)(nil),                    // 53: o11y_one.agentic.v1.GetAgentRunRequest
+	(*GetAgentRunResponse)(nil),                   // 54: o11y_one.agentic.v1.GetAgentRunResponse
+	(*AgentRunEventKindCoverageV1)(nil),           // 55: o11y_one.agentic.v1.AgentRunEventKindCoverageV1
+	(*AgentRunArtifactSourceCoverageV1)(nil),      // 56: o11y_one.agentic.v1.AgentRunArtifactSourceCoverageV1
+	(*AgentRunEventAttributeProvenanceV1)(nil),    // 57: o11y_one.agentic.v1.AgentRunEventAttributeProvenanceV1
+	(*AgentRunEventUsageV1)(nil),                  // 58: o11y_one.agentic.v1.AgentRunEventUsageV1
+	(*AgentRunEventGenerationV1)(nil),             // 59: o11y_one.agentic.v1.AgentRunEventGenerationV1
+	(*AgentRunLaneV1)(nil),                        // 60: o11y_one.agentic.v1.AgentRunLaneV1
+	(*AgentRunChildSummaryV1)(nil),                // 61: o11y_one.agentic.v1.AgentRunChildSummaryV1
+	(*AgentRunArtifactSummaryV1)(nil),             // 62: o11y_one.agentic.v1.AgentRunArtifactSummaryV1
+	(*AgentRunArtifactDiagnosticV1)(nil),          // 63: o11y_one.agentic.v1.AgentRunArtifactDiagnosticV1
+	(*AgentRunNestedCapsV1)(nil),                  // 64: o11y_one.agentic.v1.AgentRunNestedCapsV1
+	(*AgentRunEventV1)(nil),                       // 65: o11y_one.agentic.v1.AgentRunEventV1
+	(*AgentRunTimelineModeEffectV1)(nil),          // 66: o11y_one.agentic.v1.AgentRunTimelineModeEffectV1
+	(*AgentRunTimelineCursorV1)(nil),              // 67: o11y_one.agentic.v1.AgentRunTimelineCursorV1
+	(*AgentRunTimelineCostDriverV1)(nil),          // 68: o11y_one.agentic.v1.AgentRunTimelineCostDriverV1
+	(*ListAgentRunEventsRequest)(nil),             // 69: o11y_one.agentic.v1.ListAgentRunEventsRequest
+	(*ListAgentRunEventsResponse)(nil),            // 70: o11y_one.agentic.v1.ListAgentRunEventsResponse
+	(*RevokeExternalArtifactLinkRequest)(nil),     // 71: o11y_one.agentic.v1.RevokeExternalArtifactLinkRequest
+	(*RevokeExternalArtifactLinkResponse)(nil),    // 72: o11y_one.agentic.v1.RevokeExternalArtifactLinkResponse
+	(*ResolveExternalArtifactLinkRequest)(nil),    // 73: o11y_one.agentic.v1.ResolveExternalArtifactLinkRequest
+	(*ResolveExternalArtifactLinkResponse)(nil),   // 74: o11y_one.agentic.v1.ResolveExternalArtifactLinkResponse
+	(*AgentTraceRowV1)(nil),                       // 75: o11y_one.agentic.v1.AgentTraceRowV1
+	(*ListAgentTracesRequest)(nil),                // 76: o11y_one.agentic.v1.ListAgentTracesRequest
+	(*ListAgentTracesResponse)(nil),               // 77: o11y_one.agentic.v1.ListAgentTracesResponse
+	(*TraceInvestigationUnavailableReasonV1)(nil), // 78: o11y_one.agentic.v1.TraceInvestigationUnavailableReasonV1
+	(*TraceInvestigationEvidenceLinkV1)(nil),      // 79: o11y_one.agentic.v1.TraceInvestigationEvidenceLinkV1
+	(*AgenticEvidenceGraphNodeV1)(nil),            // 80: o11y_one.agentic.v1.AgenticEvidenceGraphNodeV1
+	(*AgenticEvidenceGraphEdgeV1)(nil),            // 81: o11y_one.agentic.v1.AgenticEvidenceGraphEdgeV1
+	(*AgenticEvidenceGraphV1)(nil),                // 82: o11y_one.agentic.v1.AgenticEvidenceGraphV1
+	(*GetAgentEvidenceGraphRequest)(nil),          // 83: o11y_one.agentic.v1.GetAgentEvidenceGraphRequest
+	(*GetAgentEvidenceGraphResponse)(nil),         // 84: o11y_one.agentic.v1.GetAgentEvidenceGraphResponse
+	(EvaluationOperationDimensionV1)(0),           // 85: o11y_one.agentic.v1.EvaluationOperationDimensionV1
+	(*timestamppb.Timestamp)(nil),                 // 86: google.protobuf.Timestamp
+	(RecoveryActionV1)(0),                         // 87: o11y_one.agentic.v1.RecoveryActionV1
+	(*MetricAvailabilityV1)(nil),                  // 88: o11y_one.agentic.v1.MetricAvailabilityV1
+	(*EvaluationTokenAccountingV1)(nil),           // 89: o11y_one.agentic.v1.EvaluationTokenAccountingV1
+	(*EvaluationRateDimensionNoteV1)(nil),         // 90: o11y_one.agentic.v1.EvaluationRateDimensionNoteV1
+	(*CostAmountV1)(nil),                          // 91: o11y_one.agentic.v1.CostAmountV1
+	(*ProviderUsageRecordV1)(nil),                 // 92: o11y_one.agentic.v1.ProviderUsageRecordV1
+	(*EvaluationFreshnessV1)(nil),                 // 93: o11y_one.agentic.v1.EvaluationFreshnessV1
+	(*AgenticEvaluationCapabilitiesV1)(nil),       // 94: o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	(CompletenessStateV1)(0),                      // 95: o11y_one.agentic.v1.CompletenessStateV1
+	(*AgentRunGroupingV1)(nil),                    // 96: o11y_one.agentic.v1.AgentRunGroupingV1
+	(*ConversationCompletenessV1)(nil),            // 97: o11y_one.agentic.v1.ConversationCompletenessV1
+	(AgentRunGroupingConfidenceV1)(0),             // 98: o11y_one.agentic.v1.AgentRunGroupingConfidenceV1
+	(ConversationCompletenessStateV1)(0),          // 99: o11y_one.agentic.v1.ConversationCompletenessStateV1
+	(ArtifactLinkSourceKindV1)(0),                 // 100: o11y_one.agentic.v1.ArtifactLinkSourceKindV1
+	(ArtifactTypeV1)(0),                           // 101: o11y_one.agentic.v1.ArtifactTypeV1
+	(ArtifactRoleV1)(0),                           // 102: o11y_one.agentic.v1.ArtifactRoleV1
+	(ArtifactRelationV1)(0),                       // 103: o11y_one.agentic.v1.ArtifactRelationV1
+	(ArtifactLinkStatusV1)(0),                     // 104: o11y_one.agentic.v1.ArtifactLinkStatusV1
+	(ArtifactLinkConflictPostureV1)(0),            // 105: o11y_one.agentic.v1.ArtifactLinkConflictPostureV1
+	(ArtifactResolverPostureV1)(0),                // 106: o11y_one.agentic.v1.ArtifactResolverPostureV1
+	(ArtifactLinkFallbackReasonV1)(0),             // 107: o11y_one.agentic.v1.ArtifactLinkFallbackReasonV1
+	(*EvidenceAnchorV1)(nil),                      // 108: o11y_one.agentic.v1.EvidenceAnchorV1
+	(*GroupingRedirectV1)(nil),                    // 109: o11y_one.agentic.v1.GroupingRedirectV1
+	(*PrincipalRefV1)(nil),                        // 110: o11y_one.agentic.v1.PrincipalRefV1
+	(*ArtifactLinkV1)(nil),                        // 111: o11y_one.agentic.v1.ArtifactLinkV1
+	(*AgentTraceListFilterV1)(nil),                // 112: o11y_one.agentic.v1.AgentTraceListFilterV1
+	(*ConfirmAgentRunGroupingRequest)(nil),        // 113: o11y_one.agentic.v1.ConfirmAgentRunGroupingRequest
+	(*LinkExternalArtifactRequest)(nil),           // 114: o11y_one.agentic.v1.LinkExternalArtifactRequest
+	(*ConfirmAgentRunGroupingResponse)(nil),       // 115: o11y_one.agentic.v1.ConfirmAgentRunGroupingResponse
+	(*LinkExternalArtifactResponse)(nil),          // 116: o11y_one.agentic.v1.LinkExternalArtifactResponse
 }
 var file_o11y_one_agentic_v1_trace_view_proto_depIdxs = []int32{
-	74,  // 0: o11y_one.agentic.v1.TraceSpanPopulationBoundaryV1.dimension:type_name -> o11y_one.agentic.v1.EvaluationOperationDimensionV1
-	75,  // 1: o11y_one.agentic.v1.TraceWindowV1.start:type_name -> google.protobuf.Timestamp
-	75,  // 2: o11y_one.agentic.v1.TraceWindowV1.end:type_name -> google.protobuf.Timestamp
+	85,  // 0: o11y_one.agentic.v1.TraceSpanPopulationBoundaryV1.dimension:type_name -> o11y_one.agentic.v1.EvaluationOperationDimensionV1
+	86,  // 1: o11y_one.agentic.v1.TraceWindowV1.start:type_name -> google.protobuf.Timestamp
+	86,  // 2: o11y_one.agentic.v1.TraceWindowV1.end:type_name -> google.protobuf.Timestamp
 	5,   // 3: o11y_one.agentic.v1.TraceReadRefusalV1.kind:type_name -> o11y_one.agentic.v1.TraceReadRefusalKindV1
-	76,  // 4: o11y_one.agentic.v1.TraceReadRefusalV1.recovery_action:type_name -> o11y_one.agentic.v1.RecoveryActionV1
+	87,  // 4: o11y_one.agentic.v1.TraceReadRefusalV1.recovery_action:type_name -> o11y_one.agentic.v1.RecoveryActionV1
 	3,   // 5: o11y_one.agentic.v1.TraceFaultCategoryCountV1.category:type_name -> o11y_one.agentic.v1.TraceFaultCategoryV1
 	1,   // 6: o11y_one.agentic.v1.TraceFaultStatusCountV1.status:type_name -> o11y_one.agentic.v1.TraceSpanStatusV1
-	77,  // 7: o11y_one.agentic.v1.TraceFaultBreakdownV1.exception_event_count_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	88,  // 7: o11y_one.agentic.v1.TraceFaultBreakdownV1.exception_event_count_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
 	16,  // 8: o11y_one.agentic.v1.TraceFaultBreakdownV1.category_counts:type_name -> o11y_one.agentic.v1.TraceFaultCategoryCountV1
 	17,  // 9: o11y_one.agentic.v1.TraceFaultBreakdownV1.status_counts:type_name -> o11y_one.agentic.v1.TraceFaultStatusCountV1
-	77,  // 10: o11y_one.agentic.v1.TraceFaultBreakdownV1.fault_share_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	88,  // 10: o11y_one.agentic.v1.TraceFaultBreakdownV1.fault_share_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
 	3,   // 11: o11y_one.agentic.v1.TraceFirstFailureV1.category:type_name -> o11y_one.agentic.v1.TraceFaultCategoryV1
-	75,  // 12: o11y_one.agentic.v1.TraceFirstFailureV1.started_at:type_name -> google.protobuf.Timestamp
-	78,  // 13: o11y_one.agentic.v1.TraceSpanRateBasisV1.token_accounting:type_name -> o11y_one.agentic.v1.EvaluationTokenAccountingV1
-	79,  // 14: o11y_one.agentic.v1.TraceSpanRateBasisV1.dimension_notes:type_name -> o11y_one.agentic.v1.EvaluationRateDimensionNoteV1
+	86,  // 12: o11y_one.agentic.v1.TraceFirstFailureV1.started_at:type_name -> google.protobuf.Timestamp
+	89,  // 13: o11y_one.agentic.v1.TraceSpanRateBasisV1.token_accounting:type_name -> o11y_one.agentic.v1.EvaluationTokenAccountingV1
+	90,  // 14: o11y_one.agentic.v1.TraceSpanRateBasisV1.dimension_notes:type_name -> o11y_one.agentic.v1.EvaluationRateDimensionNoteV1
 	4,   // 15: o11y_one.agentic.v1.TraceSpanCostV1.provenance:type_name -> o11y_one.agentic.v1.TraceSpanCostProvenanceV1
-	80,  // 16: o11y_one.agentic.v1.TraceSpanCostV1.amount:type_name -> o11y_one.agentic.v1.CostAmountV1
+	91,  // 16: o11y_one.agentic.v1.TraceSpanCostV1.amount:type_name -> o11y_one.agentic.v1.CostAmountV1
 	20,  // 17: o11y_one.agentic.v1.TraceSpanCostV1.rate_basis:type_name -> o11y_one.agentic.v1.TraceSpanRateBasisV1
-	77,  // 18: o11y_one.agentic.v1.TraceSpanCostV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	77,  // 19: o11y_one.agentic.v1.TraceSpanCostV1.currency_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	80,  // 20: o11y_one.agentic.v1.TraceSpanCostRollupV1.total:type_name -> o11y_one.agentic.v1.CostAmountV1
-	77,  // 21: o11y_one.agentic.v1.TraceSpanCostRollupV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	88,  // 18: o11y_one.agentic.v1.TraceSpanCostV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	88,  // 19: o11y_one.agentic.v1.TraceSpanCostV1.currency_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	91,  // 20: o11y_one.agentic.v1.TraceSpanCostRollupV1.total:type_name -> o11y_one.agentic.v1.CostAmountV1
+	88,  // 21: o11y_one.agentic.v1.TraceSpanCostRollupV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
 	0,   // 22: o11y_one.agentic.v1.TraceOperationGroupV1.kind:type_name -> o11y_one.agentic.v1.TraceOperationKindV1
-	77,  // 23: o11y_one.agentic.v1.TraceOperationGroupV1.p95_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	88,  // 23: o11y_one.agentic.v1.TraceOperationGroupV1.p95_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
 	23,  // 24: o11y_one.agentic.v1.TraceOperationGroupV1.outliers:type_name -> o11y_one.agentic.v1.TraceSpanOutlierV1
 	18,  // 25: o11y_one.agentic.v1.TraceOperationGroupV1.faults:type_name -> o11y_one.agentic.v1.TraceFaultBreakdownV1
 	22,  // 26: o11y_one.agentic.v1.TraceOperationGroupV1.cost:type_name -> o11y_one.agentic.v1.TraceSpanCostRollupV1
-	75,  // 27: o11y_one.agentic.v1.TraceStepSummaryV1.started_at:type_name -> google.protobuf.Timestamp
-	75,  // 28: o11y_one.agentic.v1.TraceStepSummaryV1.ended_at:type_name -> google.protobuf.Timestamp
-	77,  // 29: o11y_one.agentic.v1.TraceStepSummaryV1.wall_time_share_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	86,  // 27: o11y_one.agentic.v1.TraceStepSummaryV1.started_at:type_name -> google.protobuf.Timestamp
+	86,  // 28: o11y_one.agentic.v1.TraceStepSummaryV1.ended_at:type_name -> google.protobuf.Timestamp
+	88,  // 29: o11y_one.agentic.v1.TraceStepSummaryV1.wall_time_share_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
 	24,  // 30: o11y_one.agentic.v1.TraceStepSummaryV1.operation_groups:type_name -> o11y_one.agentic.v1.TraceOperationGroupV1
 	18,  // 31: o11y_one.agentic.v1.TraceStepSummaryV1.faults:type_name -> o11y_one.agentic.v1.TraceFaultBreakdownV1
 	19,  // 32: o11y_one.agentic.v1.TraceStepSummaryV1.first_failure:type_name -> o11y_one.agentic.v1.TraceFirstFailureV1
-	0,   // 33: o11y_one.agentic.v1.TraceCriticalPathStepV1.kind:type_name -> o11y_one.agentic.v1.TraceOperationKindV1
-	26,  // 34: o11y_one.agentic.v1.TraceCriticalPathV1.steps:type_name -> o11y_one.agentic.v1.TraceCriticalPathStepV1
-	77,  // 35: o11y_one.agentic.v1.TraceCriticalPathV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	2,   // 36: o11y_one.agentic.v1.TraceAttentionItemV1.kind:type_name -> o11y_one.agentic.v1.TraceAttentionKindV1
-	28,  // 37: o11y_one.agentic.v1.TraceNeedsAttentionSetV1.items:type_name -> o11y_one.agentic.v1.TraceAttentionItemV1
-	75,  // 38: o11y_one.agentic.v1.AgentTraceHeaderV1.started_at:type_name -> google.protobuf.Timestamp
-	75,  // 39: o11y_one.agentic.v1.AgentTraceHeaderV1.ended_at:type_name -> google.protobuf.Timestamp
-	77,  // 40: o11y_one.agentic.v1.AgentTraceHeaderV1.step_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	0,   // 41: o11y_one.agentic.v1.TraceSpanV1.kind:type_name -> o11y_one.agentic.v1.TraceOperationKindV1
-	75,  // 42: o11y_one.agentic.v1.TraceSpanV1.started_at:type_name -> google.protobuf.Timestamp
-	75,  // 43: o11y_one.agentic.v1.TraceSpanV1.ended_at:type_name -> google.protobuf.Timestamp
-	1,   // 44: o11y_one.agentic.v1.TraceSpanV1.status:type_name -> o11y_one.agentic.v1.TraceSpanStatusV1
-	81,  // 45: o11y_one.agentic.v1.TraceSpanV1.verbatim_usage:type_name -> o11y_one.agentic.v1.ProviderUsageRecordV1
-	77,  // 46: o11y_one.agentic.v1.TraceSpanV1.time_to_first_token_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	31,  // 47: o11y_one.agentic.v1.TraceSpanV1.content_refs:type_name -> o11y_one.agentic.v1.TraceSpanContentRefV1
-	21,  // 48: o11y_one.agentic.v1.TraceSpanV1.cost:type_name -> o11y_one.agentic.v1.TraceSpanCostV1
-	75,  // 49: o11y_one.agentic.v1.GetAgentTraceDetailRequest.start:type_name -> google.protobuf.Timestamp
-	75,  // 50: o11y_one.agentic.v1.GetAgentTraceDetailRequest.end:type_name -> google.protobuf.Timestamp
-	30,  // 51: o11y_one.agentic.v1.GetAgentTraceDetailResponse.header:type_name -> o11y_one.agentic.v1.AgentTraceHeaderV1
-	25,  // 52: o11y_one.agentic.v1.GetAgentTraceDetailResponse.steps:type_name -> o11y_one.agentic.v1.TraceStepSummaryV1
-	27,  // 53: o11y_one.agentic.v1.GetAgentTraceDetailResponse.critical_path:type_name -> o11y_one.agentic.v1.TraceCriticalPathV1
-	29,  // 54: o11y_one.agentic.v1.GetAgentTraceDetailResponse.needs_attention:type_name -> o11y_one.agentic.v1.TraceNeedsAttentionSetV1
-	13,  // 55: o11y_one.agentic.v1.GetAgentTraceDetailResponse.boundary:type_name -> o11y_one.agentic.v1.TraceSpanPopulationBoundaryV1
-	14,  // 56: o11y_one.agentic.v1.GetAgentTraceDetailResponse.window:type_name -> o11y_one.agentic.v1.TraceWindowV1
-	82,  // 57: o11y_one.agentic.v1.GetAgentTraceDetailResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	83,  // 58: o11y_one.agentic.v1.GetAgentTraceDetailResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	15,  // 59: o11y_one.agentic.v1.GetAgentTraceDetailResponse.refusal:type_name -> o11y_one.agentic.v1.TraceReadRefusalV1
-	75,  // 60: o11y_one.agentic.v1.ListAgentTraceSpansRequest.start:type_name -> google.protobuf.Timestamp
-	75,  // 61: o11y_one.agentic.v1.ListAgentTraceSpansRequest.end:type_name -> google.protobuf.Timestamp
-	2,   // 62: o11y_one.agentic.v1.ListAgentTraceSpansRequest.attention_filter:type_name -> o11y_one.agentic.v1.TraceAttentionKindV1
-	32,  // 63: o11y_one.agentic.v1.ListAgentTraceSpansResponse.spans:type_name -> o11y_one.agentic.v1.TraceSpanV1
-	13,  // 64: o11y_one.agentic.v1.ListAgentTraceSpansResponse.boundary:type_name -> o11y_one.agentic.v1.TraceSpanPopulationBoundaryV1
-	14,  // 65: o11y_one.agentic.v1.ListAgentTraceSpansResponse.window:type_name -> o11y_one.agentic.v1.TraceWindowV1
-	82,  // 66: o11y_one.agentic.v1.ListAgentTraceSpansResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	15,  // 67: o11y_one.agentic.v1.ListAgentTraceSpansResponse.refusal:type_name -> o11y_one.agentic.v1.TraceReadRefusalV1
-	7,   // 68: o11y_one.agentic.v1.AgentRunOutcomeInputV1.kind:type_name -> o11y_one.agentic.v1.AgentRunOutcomeInputKindV1
-	6,   // 69: o11y_one.agentic.v1.AgentRunOutcomeAssessmentV1.outcome:type_name -> o11y_one.agentic.v1.AgentRunOutcomeV1
-	37,  // 70: o11y_one.agentic.v1.AgentRunOutcomeAssessmentV1.inputs:type_name -> o11y_one.agentic.v1.AgentRunOutcomeInputV1
-	0,   // 71: o11y_one.agentic.v1.AgentRunCostLineItemV1.kind:type_name -> o11y_one.agentic.v1.TraceOperationKindV1
-	22,  // 72: o11y_one.agentic.v1.AgentRunCostLineItemV1.rollup:type_name -> o11y_one.agentic.v1.TraceSpanCostRollupV1
-	77,  // 73: o11y_one.agentic.v1.AgentRunUsageTotalsV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	78,  // 74: o11y_one.agentic.v1.AgentRunUsageTotalsV1.token_accounting:type_name -> o11y_one.agentic.v1.EvaluationTokenAccountingV1
-	77,  // 75: o11y_one.agentic.v1.AgentRunScorePostureV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	77,  // 76: o11y_one.agentic.v1.AgentRunDimensionV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	42,  // 77: o11y_one.agentic.v1.AgentRunVersionContextV1.prompt_version:type_name -> o11y_one.agentic.v1.AgentRunDimensionV1
-	42,  // 78: o11y_one.agentic.v1.AgentRunVersionContextV1.model_version:type_name -> o11y_one.agentic.v1.AgentRunDimensionV1
-	42,  // 79: o11y_one.agentic.v1.AgentRunVersionContextV1.tool_version:type_name -> o11y_one.agentic.v1.AgentRunDimensionV1
-	77,  // 80: o11y_one.agentic.v1.AgentRunVersionContextV1.retrieval_version_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	77,  // 81: o11y_one.agentic.v1.AgentRunReleaseContextV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	8,   // 82: o11y_one.agentic.v1.AgentRunEvaluationCoverageV1.verdict:type_name -> o11y_one.agentic.v1.AgentRunCoverageVerdictV1
-	45,  // 83: o11y_one.agentic.v1.AgentRunEvaluationCoverageV1.references:type_name -> o11y_one.agentic.v1.AgentRunCoverageReferenceV1
-	77,  // 84: o11y_one.agentic.v1.AgentRunEvaluationCoverageV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	84,  // 85: o11y_one.agentic.v1.AgentRunInstrumentationCompletenessV1.state:type_name -> o11y_one.agentic.v1.CompletenessStateV1
-	77,  // 86: o11y_one.agentic.v1.AgentRunInstrumentationCompletenessV1.retry_count_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	77,  // 87: o11y_one.agentic.v1.AgentRunInstrumentationCompletenessV1.handoff_count_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	77,  // 88: o11y_one.agentic.v1.AgentRunInstrumentationCompletenessV1.guardrail_count_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	77,  // 89: o11y_one.agentic.v1.AgentRunInstrumentationCompletenessV1.memory_operation_count_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	77,  // 90: o11y_one.agentic.v1.AgentRunInstrumentationCompletenessV1.time_to_first_token_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	77,  // 91: o11y_one.agentic.v1.AgentRunInstrumentationCompletenessV1.counts_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	85,  // 92: o11y_one.agentic.v1.AgentRunSummaryV1.grouping:type_name -> o11y_one.agentic.v1.AgentRunGroupingV1
-	86,  // 93: o11y_one.agentic.v1.AgentRunSummaryV1.completeness:type_name -> o11y_one.agentic.v1.ConversationCompletenessV1
-	38,  // 94: o11y_one.agentic.v1.AgentRunSummaryV1.outcome:type_name -> o11y_one.agentic.v1.AgentRunOutcomeAssessmentV1
-	75,  // 95: o11y_one.agentic.v1.AgentRunSummaryV1.started_at:type_name -> google.protobuf.Timestamp
-	75,  // 96: o11y_one.agentic.v1.AgentRunSummaryV1.ended_at:type_name -> google.protobuf.Timestamp
-	75,  // 97: o11y_one.agentic.v1.AgentRunSummaryV1.last_seen_at:type_name -> google.protobuf.Timestamp
-	77,  // 98: o11y_one.agentic.v1.AgentRunSummaryV1.span_event_count_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	18,  // 99: o11y_one.agentic.v1.AgentRunSummaryV1.faults:type_name -> o11y_one.agentic.v1.TraceFaultBreakdownV1
-	19,  // 100: o11y_one.agentic.v1.AgentRunSummaryV1.first_failure:type_name -> o11y_one.agentic.v1.TraceFirstFailureV1
-	77,  // 101: o11y_one.agentic.v1.AgentRunSummaryV1.critical_path_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	39,  // 102: o11y_one.agentic.v1.AgentRunSummaryV1.cost_line_items:type_name -> o11y_one.agentic.v1.AgentRunCostLineItemV1
-	40,  // 103: o11y_one.agentic.v1.AgentRunSummaryV1.usage:type_name -> o11y_one.agentic.v1.AgentRunUsageTotalsV1
-	41,  // 104: o11y_one.agentic.v1.AgentRunSummaryV1.score_posture:type_name -> o11y_one.agentic.v1.AgentRunScorePostureV1
-	42,  // 105: o11y_one.agentic.v1.AgentRunSummaryV1.customer:type_name -> o11y_one.agentic.v1.AgentRunDimensionV1
-	42,  // 106: o11y_one.agentic.v1.AgentRunSummaryV1.deployment:type_name -> o11y_one.agentic.v1.AgentRunDimensionV1
-	43,  // 107: o11y_one.agentic.v1.AgentRunSummaryV1.versions:type_name -> o11y_one.agentic.v1.AgentRunVersionContextV1
-	44,  // 108: o11y_one.agentic.v1.AgentRunSummaryV1.release_context:type_name -> o11y_one.agentic.v1.AgentRunReleaseContextV1
-	47,  // 109: o11y_one.agentic.v1.AgentRunSummaryV1.instrumentation:type_name -> o11y_one.agentic.v1.AgentRunInstrumentationCompletenessV1
-	75,  // 110: o11y_one.agentic.v1.AgentRunSummaryV1.refreshed_at:type_name -> google.protobuf.Timestamp
-	82,  // 111: o11y_one.agentic.v1.AgentRunSummaryV1.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	6,   // 112: o11y_one.agentic.v1.AgentRunListFilterV1.outcomes:type_name -> o11y_one.agentic.v1.AgentRunOutcomeV1
-	87,  // 113: o11y_one.agentic.v1.AgentRunListFilterV1.grouping_confidences:type_name -> o11y_one.agentic.v1.AgentRunGroupingConfidenceV1
-	88,  // 114: o11y_one.agentic.v1.AgentRunListFilterV1.completeness_states:type_name -> o11y_one.agentic.v1.ConversationCompletenessStateV1
-	84,  // 115: o11y_one.agentic.v1.AgentRunListFilterV1.instrumentation_states:type_name -> o11y_one.agentic.v1.CompletenessStateV1
-	75,  // 116: o11y_one.agentic.v1.ListAgentRunsRequest.start:type_name -> google.protobuf.Timestamp
-	75,  // 117: o11y_one.agentic.v1.ListAgentRunsRequest.end:type_name -> google.protobuf.Timestamp
-	49,  // 118: o11y_one.agentic.v1.ListAgentRunsRequest.filter:type_name -> o11y_one.agentic.v1.AgentRunListFilterV1
-	48,  // 119: o11y_one.agentic.v1.ListAgentRunsResponse.runs:type_name -> o11y_one.agentic.v1.AgentRunSummaryV1
-	14,  // 120: o11y_one.agentic.v1.ListAgentRunsResponse.window:type_name -> o11y_one.agentic.v1.TraceWindowV1
-	13,  // 121: o11y_one.agentic.v1.ListAgentRunsResponse.boundary:type_name -> o11y_one.agentic.v1.TraceSpanPopulationBoundaryV1
-	82,  // 122: o11y_one.agentic.v1.ListAgentRunsResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	83,  // 123: o11y_one.agentic.v1.ListAgentRunsResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	15,  // 124: o11y_one.agentic.v1.ListAgentRunsResponse.refusal:type_name -> o11y_one.agentic.v1.TraceReadRefusalV1
-	48,  // 125: o11y_one.agentic.v1.GetAgentRunResponse.summary:type_name -> o11y_one.agentic.v1.AgentRunSummaryV1
-	46,  // 126: o11y_one.agentic.v1.GetAgentRunResponse.evaluation_coverage:type_name -> o11y_one.agentic.v1.AgentRunEvaluationCoverageV1
-	14,  // 127: o11y_one.agentic.v1.GetAgentRunResponse.window:type_name -> o11y_one.agentic.v1.TraceWindowV1
-	13,  // 128: o11y_one.agentic.v1.GetAgentRunResponse.boundary:type_name -> o11y_one.agentic.v1.TraceSpanPopulationBoundaryV1
-	82,  // 129: o11y_one.agentic.v1.GetAgentRunResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	83,  // 130: o11y_one.agentic.v1.GetAgentRunResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	15,  // 131: o11y_one.agentic.v1.GetAgentRunResponse.refusal:type_name -> o11y_one.agentic.v1.TraceReadRefusalV1
-	77,  // 132: o11y_one.agentic.v1.AgentRunEventKindCoverageV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	89,  // 133: o11y_one.agentic.v1.AgentRunArtifactSourceCoverageV1.source_kind:type_name -> o11y_one.agentic.v1.ArtifactLinkSourceKindV1
-	77,  // 134: o11y_one.agentic.v1.AgentRunArtifactSourceCoverageV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	12,  // 135: o11y_one.agentic.v1.AgentRunEventAttributeProvenanceV1.source:type_name -> o11y_one.agentic.v1.AgentRunAttributeSourceV1
-	77,  // 136: o11y_one.agentic.v1.AgentRunEventUsageV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	10,  // 137: o11y_one.agentic.v1.AgentRunChildSummaryV1.kind:type_name -> o11y_one.agentic.v1.AgentRunEventKindV1
-	90,  // 138: o11y_one.agentic.v1.AgentRunArtifactSummaryV1.artifact_type:type_name -> o11y_one.agentic.v1.ArtifactTypeV1
-	91,  // 139: o11y_one.agentic.v1.AgentRunArtifactSummaryV1.role:type_name -> o11y_one.agentic.v1.ArtifactRoleV1
-	92,  // 140: o11y_one.agentic.v1.AgentRunArtifactSummaryV1.relation:type_name -> o11y_one.agentic.v1.ArtifactRelationV1
-	93,  // 141: o11y_one.agentic.v1.AgentRunArtifactSummaryV1.status:type_name -> o11y_one.agentic.v1.ArtifactLinkStatusV1
-	94,  // 142: o11y_one.agentic.v1.AgentRunArtifactSummaryV1.conflict_posture:type_name -> o11y_one.agentic.v1.ArtifactLinkConflictPostureV1
-	95,  // 143: o11y_one.agentic.v1.AgentRunArtifactSummaryV1.resolver_posture:type_name -> o11y_one.agentic.v1.ArtifactResolverPostureV1
-	89,  // 144: o11y_one.agentic.v1.AgentRunArtifactSummaryV1.source_kind:type_name -> o11y_one.agentic.v1.ArtifactLinkSourceKindV1
-	96,  // 145: o11y_one.agentic.v1.AgentRunArtifactSummaryV1.fallback_reason:type_name -> o11y_one.agentic.v1.ArtifactLinkFallbackReasonV1
-	75,  // 146: o11y_one.agentic.v1.AgentRunArtifactSummaryV1.observed_at:type_name -> google.protobuf.Timestamp
-	97,  // 147: o11y_one.agentic.v1.AgentRunArtifactSummaryV1.anchor:type_name -> o11y_one.agentic.v1.EvidenceAnchorV1
-	11,  // 148: o11y_one.agentic.v1.AgentRunEventV1.delivery:type_name -> o11y_one.agentic.v1.AgentRunEventDeliveryV1
-	10,  // 149: o11y_one.agentic.v1.AgentRunEventV1.kind:type_name -> o11y_one.agentic.v1.AgentRunEventKindV1
-	0,   // 150: o11y_one.agentic.v1.AgentRunEventV1.operation_kind:type_name -> o11y_one.agentic.v1.TraceOperationKindV1
-	77,  // 151: o11y_one.agentic.v1.AgentRunEventV1.observation_id_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	75,  // 152: o11y_one.agentic.v1.AgentRunEventV1.started_at:type_name -> google.protobuf.Timestamp
-	75,  // 153: o11y_one.agentic.v1.AgentRunEventV1.ended_at:type_name -> google.protobuf.Timestamp
-	1,   // 154: o11y_one.agentic.v1.AgentRunEventV1.status:type_name -> o11y_one.agentic.v1.TraceSpanStatusV1
-	3,   // 155: o11y_one.agentic.v1.AgentRunEventV1.fault_category:type_name -> o11y_one.agentic.v1.TraceFaultCategoryV1
-	58,  // 156: o11y_one.agentic.v1.AgentRunEventV1.generation:type_name -> o11y_one.agentic.v1.AgentRunEventGenerationV1
-	57,  // 157: o11y_one.agentic.v1.AgentRunEventV1.usage:type_name -> o11y_one.agentic.v1.AgentRunEventUsageV1
-	21,  // 158: o11y_one.agentic.v1.AgentRunEventV1.cost:type_name -> o11y_one.agentic.v1.TraceSpanCostV1
-	31,  // 159: o11y_one.agentic.v1.AgentRunEventV1.content_refs:type_name -> o11y_one.agentic.v1.TraceSpanContentRefV1
-	56,  // 160: o11y_one.agentic.v1.AgentRunEventV1.attribute_provenance:type_name -> o11y_one.agentic.v1.AgentRunEventAttributeProvenanceV1
-	60,  // 161: o11y_one.agentic.v1.AgentRunEventV1.children:type_name -> o11y_one.agentic.v1.AgentRunChildSummaryV1
-	61,  // 162: o11y_one.agentic.v1.AgentRunEventV1.artifacts:type_name -> o11y_one.agentic.v1.AgentRunArtifactSummaryV1
-	63,  // 163: o11y_one.agentic.v1.AgentRunEventV1.nested_caps:type_name -> o11y_one.agentic.v1.AgentRunNestedCapsV1
-	9,   // 164: o11y_one.agentic.v1.AgentRunTimelineModeEffectV1.mode:type_name -> o11y_one.agentic.v1.AgentRunTimelineModeV1
-	21,  // 165: o11y_one.agentic.v1.AgentRunTimelineCostDriverV1.cost:type_name -> o11y_one.agentic.v1.TraceSpanCostV1
-	77,  // 166: o11y_one.agentic.v1.AgentRunTimelineCostDriverV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	9,   // 167: o11y_one.agentic.v1.ListAgentRunEventsRequest.mode:type_name -> o11y_one.agentic.v1.AgentRunTimelineModeV1
-	98,  // 168: o11y_one.agentic.v1.ListAgentRunEventsResponse.redirect:type_name -> o11y_one.agentic.v1.GroupingRedirectV1
-	64,  // 169: o11y_one.agentic.v1.ListAgentRunEventsResponse.events:type_name -> o11y_one.agentic.v1.AgentRunEventV1
-	59,  // 170: o11y_one.agentic.v1.ListAgentRunEventsResponse.lanes:type_name -> o11y_one.agentic.v1.AgentRunLaneV1
-	65,  // 171: o11y_one.agentic.v1.ListAgentRunEventsResponse.mode_effect:type_name -> o11y_one.agentic.v1.AgentRunTimelineModeEffectV1
-	66,  // 172: o11y_one.agentic.v1.ListAgentRunEventsResponse.cursor:type_name -> o11y_one.agentic.v1.AgentRunTimelineCursorV1
-	86,  // 173: o11y_one.agentic.v1.ListAgentRunEventsResponse.completeness:type_name -> o11y_one.agentic.v1.ConversationCompletenessV1
-	54,  // 174: o11y_one.agentic.v1.ListAgentRunEventsResponse.event_kind_coverage:type_name -> o11y_one.agentic.v1.AgentRunEventKindCoverageV1
-	55,  // 175: o11y_one.agentic.v1.ListAgentRunEventsResponse.artifact_source_coverage:type_name -> o11y_one.agentic.v1.AgentRunArtifactSourceCoverageV1
-	62,  // 176: o11y_one.agentic.v1.ListAgentRunEventsResponse.artifact_diagnostics:type_name -> o11y_one.agentic.v1.AgentRunArtifactDiagnosticV1
-	77,  // 177: o11y_one.agentic.v1.ListAgentRunEventsResponse.event_score_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	77,  // 178: o11y_one.agentic.v1.ListAgentRunEventsResponse.downstream_reference_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
-	19,  // 179: o11y_one.agentic.v1.ListAgentRunEventsResponse.first_failure:type_name -> o11y_one.agentic.v1.TraceFirstFailureV1
-	67,  // 180: o11y_one.agentic.v1.ListAgentRunEventsResponse.cost_driver:type_name -> o11y_one.agentic.v1.AgentRunTimelineCostDriverV1
-	14,  // 181: o11y_one.agentic.v1.ListAgentRunEventsResponse.window:type_name -> o11y_one.agentic.v1.TraceWindowV1
-	13,  // 182: o11y_one.agentic.v1.ListAgentRunEventsResponse.boundary:type_name -> o11y_one.agentic.v1.TraceSpanPopulationBoundaryV1
-	82,  // 183: o11y_one.agentic.v1.ListAgentRunEventsResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
-	83,  // 184: o11y_one.agentic.v1.ListAgentRunEventsResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
-	15,  // 185: o11y_one.agentic.v1.ListAgentRunEventsResponse.refusal:type_name -> o11y_one.agentic.v1.TraceReadRefusalV1
-	61,  // 186: o11y_one.agentic.v1.ListAgentRunEventsResponse.run_artifacts:type_name -> o11y_one.agentic.v1.AgentRunArtifactSummaryV1
-	99,  // 187: o11y_one.agentic.v1.RevokeExternalArtifactLinkRequest.principal:type_name -> o11y_one.agentic.v1.PrincipalRefV1
-	100, // 188: o11y_one.agentic.v1.RevokeExternalArtifactLinkResponse.link:type_name -> o11y_one.agentic.v1.ArtifactLinkV1
-	99,  // 189: o11y_one.agentic.v1.ResolveExternalArtifactLinkRequest.principal:type_name -> o11y_one.agentic.v1.PrincipalRefV1
-	95,  // 190: o11y_one.agentic.v1.ResolveExternalArtifactLinkResponse.posture:type_name -> o11y_one.agentic.v1.ArtifactResolverPostureV1
-	75,  // 191: o11y_one.agentic.v1.ResolveExternalArtifactLinkResponse.attempted_at:type_name -> google.protobuf.Timestamp
-	33,  // 192: o11y_one.agentic.v1.AgenticTraceViewService.GetAgentTraceDetail:input_type -> o11y_one.agentic.v1.GetAgentTraceDetailRequest
-	35,  // 193: o11y_one.agentic.v1.AgenticTraceViewService.ListAgentTraceSpans:input_type -> o11y_one.agentic.v1.ListAgentTraceSpansRequest
-	101, // 194: o11y_one.agentic.v1.AgenticTraceViewService.ConfirmAgentRunGrouping:input_type -> o11y_one.agentic.v1.ConfirmAgentRunGroupingRequest
-	50,  // 195: o11y_one.agentic.v1.AgenticTraceViewService.ListAgentRuns:input_type -> o11y_one.agentic.v1.ListAgentRunsRequest
-	52,  // 196: o11y_one.agentic.v1.AgenticTraceViewService.GetAgentRun:input_type -> o11y_one.agentic.v1.GetAgentRunRequest
-	68,  // 197: o11y_one.agentic.v1.AgenticTraceViewService.ListAgentRunEvents:input_type -> o11y_one.agentic.v1.ListAgentRunEventsRequest
-	102, // 198: o11y_one.agentic.v1.AgenticTraceViewService.LinkExternalArtifact:input_type -> o11y_one.agentic.v1.LinkExternalArtifactRequest
-	70,  // 199: o11y_one.agentic.v1.AgenticTraceViewService.RevokeExternalArtifactLink:input_type -> o11y_one.agentic.v1.RevokeExternalArtifactLinkRequest
-	72,  // 200: o11y_one.agentic.v1.AgenticTraceViewService.ResolveExternalArtifactLink:input_type -> o11y_one.agentic.v1.ResolveExternalArtifactLinkRequest
-	34,  // 201: o11y_one.agentic.v1.AgenticTraceViewService.GetAgentTraceDetail:output_type -> o11y_one.agentic.v1.GetAgentTraceDetailResponse
-	36,  // 202: o11y_one.agentic.v1.AgenticTraceViewService.ListAgentTraceSpans:output_type -> o11y_one.agentic.v1.ListAgentTraceSpansResponse
-	103, // 203: o11y_one.agentic.v1.AgenticTraceViewService.ConfirmAgentRunGrouping:output_type -> o11y_one.agentic.v1.ConfirmAgentRunGroupingResponse
-	51,  // 204: o11y_one.agentic.v1.AgenticTraceViewService.ListAgentRuns:output_type -> o11y_one.agentic.v1.ListAgentRunsResponse
-	53,  // 205: o11y_one.agentic.v1.AgenticTraceViewService.GetAgentRun:output_type -> o11y_one.agentic.v1.GetAgentRunResponse
-	69,  // 206: o11y_one.agentic.v1.AgenticTraceViewService.ListAgentRunEvents:output_type -> o11y_one.agentic.v1.ListAgentRunEventsResponse
-	104, // 207: o11y_one.agentic.v1.AgenticTraceViewService.LinkExternalArtifact:output_type -> o11y_one.agentic.v1.LinkExternalArtifactResponse
-	71,  // 208: o11y_one.agentic.v1.AgenticTraceViewService.RevokeExternalArtifactLink:output_type -> o11y_one.agentic.v1.RevokeExternalArtifactLinkResponse
-	73,  // 209: o11y_one.agentic.v1.AgenticTraceViewService.ResolveExternalArtifactLink:output_type -> o11y_one.agentic.v1.ResolveExternalArtifactLinkResponse
-	201, // [201:210] is the sub-list for method output_type
-	192, // [192:201] is the sub-list for method input_type
-	192, // [192:192] is the sub-list for extension type_name
-	192, // [192:192] is the sub-list for extension extendee
-	0,   // [0:192] is the sub-list for field type_name
+	22,  // 33: o11y_one.agentic.v1.TraceStepSummaryV1.cost:type_name -> o11y_one.agentic.v1.TraceSpanCostRollupV1
+	0,   // 34: o11y_one.agentic.v1.TraceCriticalPathStepV1.kind:type_name -> o11y_one.agentic.v1.TraceOperationKindV1
+	26,  // 35: o11y_one.agentic.v1.TraceCriticalPathV1.steps:type_name -> o11y_one.agentic.v1.TraceCriticalPathStepV1
+	88,  // 36: o11y_one.agentic.v1.TraceCriticalPathV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	2,   // 37: o11y_one.agentic.v1.TraceAttentionItemV1.kind:type_name -> o11y_one.agentic.v1.TraceAttentionKindV1
+	28,  // 38: o11y_one.agentic.v1.TraceNeedsAttentionSetV1.items:type_name -> o11y_one.agentic.v1.TraceAttentionItemV1
+	86,  // 39: o11y_one.agentic.v1.AgentTraceHeaderV1.started_at:type_name -> google.protobuf.Timestamp
+	86,  // 40: o11y_one.agentic.v1.AgentTraceHeaderV1.ended_at:type_name -> google.protobuf.Timestamp
+	88,  // 41: o11y_one.agentic.v1.AgentTraceHeaderV1.step_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	22,  // 42: o11y_one.agentic.v1.AgentTraceHeaderV1.cost:type_name -> o11y_one.agentic.v1.TraceSpanCostRollupV1
+	0,   // 43: o11y_one.agentic.v1.TraceSpanV1.kind:type_name -> o11y_one.agentic.v1.TraceOperationKindV1
+	86,  // 44: o11y_one.agentic.v1.TraceSpanV1.started_at:type_name -> google.protobuf.Timestamp
+	86,  // 45: o11y_one.agentic.v1.TraceSpanV1.ended_at:type_name -> google.protobuf.Timestamp
+	1,   // 46: o11y_one.agentic.v1.TraceSpanV1.status:type_name -> o11y_one.agentic.v1.TraceSpanStatusV1
+	92,  // 47: o11y_one.agentic.v1.TraceSpanV1.verbatim_usage:type_name -> o11y_one.agentic.v1.ProviderUsageRecordV1
+	88,  // 48: o11y_one.agentic.v1.TraceSpanV1.time_to_first_token_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	31,  // 49: o11y_one.agentic.v1.TraceSpanV1.content_refs:type_name -> o11y_one.agentic.v1.TraceSpanContentRefV1
+	21,  // 50: o11y_one.agentic.v1.TraceSpanV1.cost:type_name -> o11y_one.agentic.v1.TraceSpanCostV1
+	32,  // 51: o11y_one.agentic.v1.TraceSpanV1.retry:type_name -> o11y_one.agentic.v1.TraceSpanRetryV1
+	86,  // 52: o11y_one.agentic.v1.GetAgentTraceDetailRequest.start:type_name -> google.protobuf.Timestamp
+	86,  // 53: o11y_one.agentic.v1.GetAgentTraceDetailRequest.end:type_name -> google.protobuf.Timestamp
+	30,  // 54: o11y_one.agentic.v1.GetAgentTraceDetailResponse.header:type_name -> o11y_one.agentic.v1.AgentTraceHeaderV1
+	25,  // 55: o11y_one.agentic.v1.GetAgentTraceDetailResponse.steps:type_name -> o11y_one.agentic.v1.TraceStepSummaryV1
+	27,  // 56: o11y_one.agentic.v1.GetAgentTraceDetailResponse.critical_path:type_name -> o11y_one.agentic.v1.TraceCriticalPathV1
+	29,  // 57: o11y_one.agentic.v1.GetAgentTraceDetailResponse.needs_attention:type_name -> o11y_one.agentic.v1.TraceNeedsAttentionSetV1
+	13,  // 58: o11y_one.agentic.v1.GetAgentTraceDetailResponse.boundary:type_name -> o11y_one.agentic.v1.TraceSpanPopulationBoundaryV1
+	14,  // 59: o11y_one.agentic.v1.GetAgentTraceDetailResponse.window:type_name -> o11y_one.agentic.v1.TraceWindowV1
+	93,  // 60: o11y_one.agentic.v1.GetAgentTraceDetailResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	94,  // 61: o11y_one.agentic.v1.GetAgentTraceDetailResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	15,  // 62: o11y_one.agentic.v1.GetAgentTraceDetailResponse.refusal:type_name -> o11y_one.agentic.v1.TraceReadRefusalV1
+	86,  // 63: o11y_one.agentic.v1.ListAgentTraceSpansRequest.start:type_name -> google.protobuf.Timestamp
+	86,  // 64: o11y_one.agentic.v1.ListAgentTraceSpansRequest.end:type_name -> google.protobuf.Timestamp
+	2,   // 65: o11y_one.agentic.v1.ListAgentTraceSpansRequest.attention_filter:type_name -> o11y_one.agentic.v1.TraceAttentionKindV1
+	33,  // 66: o11y_one.agentic.v1.ListAgentTraceSpansResponse.spans:type_name -> o11y_one.agentic.v1.TraceSpanV1
+	13,  // 67: o11y_one.agentic.v1.ListAgentTraceSpansResponse.boundary:type_name -> o11y_one.agentic.v1.TraceSpanPopulationBoundaryV1
+	14,  // 68: o11y_one.agentic.v1.ListAgentTraceSpansResponse.window:type_name -> o11y_one.agentic.v1.TraceWindowV1
+	93,  // 69: o11y_one.agentic.v1.ListAgentTraceSpansResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	15,  // 70: o11y_one.agentic.v1.ListAgentTraceSpansResponse.refusal:type_name -> o11y_one.agentic.v1.TraceReadRefusalV1
+	7,   // 71: o11y_one.agentic.v1.AgentRunOutcomeInputV1.kind:type_name -> o11y_one.agentic.v1.AgentRunOutcomeInputKindV1
+	6,   // 72: o11y_one.agentic.v1.AgentRunOutcomeAssessmentV1.outcome:type_name -> o11y_one.agentic.v1.AgentRunOutcomeV1
+	38,  // 73: o11y_one.agentic.v1.AgentRunOutcomeAssessmentV1.inputs:type_name -> o11y_one.agentic.v1.AgentRunOutcomeInputV1
+	0,   // 74: o11y_one.agentic.v1.AgentRunCostLineItemV1.kind:type_name -> o11y_one.agentic.v1.TraceOperationKindV1
+	22,  // 75: o11y_one.agentic.v1.AgentRunCostLineItemV1.rollup:type_name -> o11y_one.agentic.v1.TraceSpanCostRollupV1
+	88,  // 76: o11y_one.agentic.v1.AgentRunUsageTotalsV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	89,  // 77: o11y_one.agentic.v1.AgentRunUsageTotalsV1.token_accounting:type_name -> o11y_one.agentic.v1.EvaluationTokenAccountingV1
+	88,  // 78: o11y_one.agentic.v1.AgentRunScorePostureV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	88,  // 79: o11y_one.agentic.v1.AgentRunDimensionV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	43,  // 80: o11y_one.agentic.v1.AgentRunVersionContextV1.prompt_version:type_name -> o11y_one.agentic.v1.AgentRunDimensionV1
+	43,  // 81: o11y_one.agentic.v1.AgentRunVersionContextV1.model_version:type_name -> o11y_one.agentic.v1.AgentRunDimensionV1
+	43,  // 82: o11y_one.agentic.v1.AgentRunVersionContextV1.tool_version:type_name -> o11y_one.agentic.v1.AgentRunDimensionV1
+	88,  // 83: o11y_one.agentic.v1.AgentRunVersionContextV1.retrieval_version_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	88,  // 84: o11y_one.agentic.v1.AgentRunReleaseContextV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	8,   // 85: o11y_one.agentic.v1.AgentRunEvaluationCoverageV1.verdict:type_name -> o11y_one.agentic.v1.AgentRunCoverageVerdictV1
+	46,  // 86: o11y_one.agentic.v1.AgentRunEvaluationCoverageV1.references:type_name -> o11y_one.agentic.v1.AgentRunCoverageReferenceV1
+	88,  // 87: o11y_one.agentic.v1.AgentRunEvaluationCoverageV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	95,  // 88: o11y_one.agentic.v1.AgentRunInstrumentationCompletenessV1.state:type_name -> o11y_one.agentic.v1.CompletenessStateV1
+	88,  // 89: o11y_one.agentic.v1.AgentRunInstrumentationCompletenessV1.retry_count_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	88,  // 90: o11y_one.agentic.v1.AgentRunInstrumentationCompletenessV1.handoff_count_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	88,  // 91: o11y_one.agentic.v1.AgentRunInstrumentationCompletenessV1.guardrail_count_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	88,  // 92: o11y_one.agentic.v1.AgentRunInstrumentationCompletenessV1.memory_operation_count_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	88,  // 93: o11y_one.agentic.v1.AgentRunInstrumentationCompletenessV1.time_to_first_token_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	88,  // 94: o11y_one.agentic.v1.AgentRunInstrumentationCompletenessV1.counts_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	96,  // 95: o11y_one.agentic.v1.AgentRunSummaryV1.grouping:type_name -> o11y_one.agentic.v1.AgentRunGroupingV1
+	97,  // 96: o11y_one.agentic.v1.AgentRunSummaryV1.completeness:type_name -> o11y_one.agentic.v1.ConversationCompletenessV1
+	39,  // 97: o11y_one.agentic.v1.AgentRunSummaryV1.outcome:type_name -> o11y_one.agentic.v1.AgentRunOutcomeAssessmentV1
+	86,  // 98: o11y_one.agentic.v1.AgentRunSummaryV1.started_at:type_name -> google.protobuf.Timestamp
+	86,  // 99: o11y_one.agentic.v1.AgentRunSummaryV1.ended_at:type_name -> google.protobuf.Timestamp
+	86,  // 100: o11y_one.agentic.v1.AgentRunSummaryV1.last_seen_at:type_name -> google.protobuf.Timestamp
+	88,  // 101: o11y_one.agentic.v1.AgentRunSummaryV1.span_event_count_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	18,  // 102: o11y_one.agentic.v1.AgentRunSummaryV1.faults:type_name -> o11y_one.agentic.v1.TraceFaultBreakdownV1
+	19,  // 103: o11y_one.agentic.v1.AgentRunSummaryV1.first_failure:type_name -> o11y_one.agentic.v1.TraceFirstFailureV1
+	88,  // 104: o11y_one.agentic.v1.AgentRunSummaryV1.critical_path_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	40,  // 105: o11y_one.agentic.v1.AgentRunSummaryV1.cost_line_items:type_name -> o11y_one.agentic.v1.AgentRunCostLineItemV1
+	41,  // 106: o11y_one.agentic.v1.AgentRunSummaryV1.usage:type_name -> o11y_one.agentic.v1.AgentRunUsageTotalsV1
+	42,  // 107: o11y_one.agentic.v1.AgentRunSummaryV1.score_posture:type_name -> o11y_one.agentic.v1.AgentRunScorePostureV1
+	43,  // 108: o11y_one.agentic.v1.AgentRunSummaryV1.customer:type_name -> o11y_one.agentic.v1.AgentRunDimensionV1
+	43,  // 109: o11y_one.agentic.v1.AgentRunSummaryV1.deployment:type_name -> o11y_one.agentic.v1.AgentRunDimensionV1
+	44,  // 110: o11y_one.agentic.v1.AgentRunSummaryV1.versions:type_name -> o11y_one.agentic.v1.AgentRunVersionContextV1
+	45,  // 111: o11y_one.agentic.v1.AgentRunSummaryV1.release_context:type_name -> o11y_one.agentic.v1.AgentRunReleaseContextV1
+	48,  // 112: o11y_one.agentic.v1.AgentRunSummaryV1.instrumentation:type_name -> o11y_one.agentic.v1.AgentRunInstrumentationCompletenessV1
+	86,  // 113: o11y_one.agentic.v1.AgentRunSummaryV1.refreshed_at:type_name -> google.protobuf.Timestamp
+	93,  // 114: o11y_one.agentic.v1.AgentRunSummaryV1.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	6,   // 115: o11y_one.agentic.v1.AgentRunListFilterV1.outcomes:type_name -> o11y_one.agentic.v1.AgentRunOutcomeV1
+	98,  // 116: o11y_one.agentic.v1.AgentRunListFilterV1.grouping_confidences:type_name -> o11y_one.agentic.v1.AgentRunGroupingConfidenceV1
+	99,  // 117: o11y_one.agentic.v1.AgentRunListFilterV1.completeness_states:type_name -> o11y_one.agentic.v1.ConversationCompletenessStateV1
+	95,  // 118: o11y_one.agentic.v1.AgentRunListFilterV1.instrumentation_states:type_name -> o11y_one.agentic.v1.CompletenessStateV1
+	86,  // 119: o11y_one.agentic.v1.ListAgentRunsRequest.start:type_name -> google.protobuf.Timestamp
+	86,  // 120: o11y_one.agentic.v1.ListAgentRunsRequest.end:type_name -> google.protobuf.Timestamp
+	50,  // 121: o11y_one.agentic.v1.ListAgentRunsRequest.filter:type_name -> o11y_one.agentic.v1.AgentRunListFilterV1
+	49,  // 122: o11y_one.agentic.v1.ListAgentRunsResponse.runs:type_name -> o11y_one.agentic.v1.AgentRunSummaryV1
+	14,  // 123: o11y_one.agentic.v1.ListAgentRunsResponse.window:type_name -> o11y_one.agentic.v1.TraceWindowV1
+	13,  // 124: o11y_one.agentic.v1.ListAgentRunsResponse.boundary:type_name -> o11y_one.agentic.v1.TraceSpanPopulationBoundaryV1
+	93,  // 125: o11y_one.agentic.v1.ListAgentRunsResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	94,  // 126: o11y_one.agentic.v1.ListAgentRunsResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	15,  // 127: o11y_one.agentic.v1.ListAgentRunsResponse.refusal:type_name -> o11y_one.agentic.v1.TraceReadRefusalV1
+	49,  // 128: o11y_one.agentic.v1.GetAgentRunResponse.summary:type_name -> o11y_one.agentic.v1.AgentRunSummaryV1
+	47,  // 129: o11y_one.agentic.v1.GetAgentRunResponse.evaluation_coverage:type_name -> o11y_one.agentic.v1.AgentRunEvaluationCoverageV1
+	14,  // 130: o11y_one.agentic.v1.GetAgentRunResponse.window:type_name -> o11y_one.agentic.v1.TraceWindowV1
+	13,  // 131: o11y_one.agentic.v1.GetAgentRunResponse.boundary:type_name -> o11y_one.agentic.v1.TraceSpanPopulationBoundaryV1
+	93,  // 132: o11y_one.agentic.v1.GetAgentRunResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	94,  // 133: o11y_one.agentic.v1.GetAgentRunResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	15,  // 134: o11y_one.agentic.v1.GetAgentRunResponse.refusal:type_name -> o11y_one.agentic.v1.TraceReadRefusalV1
+	88,  // 135: o11y_one.agentic.v1.AgentRunEventKindCoverageV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	100, // 136: o11y_one.agentic.v1.AgentRunArtifactSourceCoverageV1.source_kind:type_name -> o11y_one.agentic.v1.ArtifactLinkSourceKindV1
+	88,  // 137: o11y_one.agentic.v1.AgentRunArtifactSourceCoverageV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	12,  // 138: o11y_one.agentic.v1.AgentRunEventAttributeProvenanceV1.source:type_name -> o11y_one.agentic.v1.AgentRunAttributeSourceV1
+	88,  // 139: o11y_one.agentic.v1.AgentRunEventUsageV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	10,  // 140: o11y_one.agentic.v1.AgentRunChildSummaryV1.kind:type_name -> o11y_one.agentic.v1.AgentRunEventKindV1
+	101, // 141: o11y_one.agentic.v1.AgentRunArtifactSummaryV1.artifact_type:type_name -> o11y_one.agentic.v1.ArtifactTypeV1
+	102, // 142: o11y_one.agentic.v1.AgentRunArtifactSummaryV1.role:type_name -> o11y_one.agentic.v1.ArtifactRoleV1
+	103, // 143: o11y_one.agentic.v1.AgentRunArtifactSummaryV1.relation:type_name -> o11y_one.agentic.v1.ArtifactRelationV1
+	104, // 144: o11y_one.agentic.v1.AgentRunArtifactSummaryV1.status:type_name -> o11y_one.agentic.v1.ArtifactLinkStatusV1
+	105, // 145: o11y_one.agentic.v1.AgentRunArtifactSummaryV1.conflict_posture:type_name -> o11y_one.agentic.v1.ArtifactLinkConflictPostureV1
+	106, // 146: o11y_one.agentic.v1.AgentRunArtifactSummaryV1.resolver_posture:type_name -> o11y_one.agentic.v1.ArtifactResolverPostureV1
+	100, // 147: o11y_one.agentic.v1.AgentRunArtifactSummaryV1.source_kind:type_name -> o11y_one.agentic.v1.ArtifactLinkSourceKindV1
+	107, // 148: o11y_one.agentic.v1.AgentRunArtifactSummaryV1.fallback_reason:type_name -> o11y_one.agentic.v1.ArtifactLinkFallbackReasonV1
+	86,  // 149: o11y_one.agentic.v1.AgentRunArtifactSummaryV1.observed_at:type_name -> google.protobuf.Timestamp
+	108, // 150: o11y_one.agentic.v1.AgentRunArtifactSummaryV1.anchor:type_name -> o11y_one.agentic.v1.EvidenceAnchorV1
+	11,  // 151: o11y_one.agentic.v1.AgentRunEventV1.delivery:type_name -> o11y_one.agentic.v1.AgentRunEventDeliveryV1
+	10,  // 152: o11y_one.agentic.v1.AgentRunEventV1.kind:type_name -> o11y_one.agentic.v1.AgentRunEventKindV1
+	0,   // 153: o11y_one.agentic.v1.AgentRunEventV1.operation_kind:type_name -> o11y_one.agentic.v1.TraceOperationKindV1
+	88,  // 154: o11y_one.agentic.v1.AgentRunEventV1.observation_id_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	86,  // 155: o11y_one.agentic.v1.AgentRunEventV1.started_at:type_name -> google.protobuf.Timestamp
+	86,  // 156: o11y_one.agentic.v1.AgentRunEventV1.ended_at:type_name -> google.protobuf.Timestamp
+	1,   // 157: o11y_one.agentic.v1.AgentRunEventV1.status:type_name -> o11y_one.agentic.v1.TraceSpanStatusV1
+	3,   // 158: o11y_one.agentic.v1.AgentRunEventV1.fault_category:type_name -> o11y_one.agentic.v1.TraceFaultCategoryV1
+	59,  // 159: o11y_one.agentic.v1.AgentRunEventV1.generation:type_name -> o11y_one.agentic.v1.AgentRunEventGenerationV1
+	58,  // 160: o11y_one.agentic.v1.AgentRunEventV1.usage:type_name -> o11y_one.agentic.v1.AgentRunEventUsageV1
+	21,  // 161: o11y_one.agentic.v1.AgentRunEventV1.cost:type_name -> o11y_one.agentic.v1.TraceSpanCostV1
+	31,  // 162: o11y_one.agentic.v1.AgentRunEventV1.content_refs:type_name -> o11y_one.agentic.v1.TraceSpanContentRefV1
+	57,  // 163: o11y_one.agentic.v1.AgentRunEventV1.attribute_provenance:type_name -> o11y_one.agentic.v1.AgentRunEventAttributeProvenanceV1
+	61,  // 164: o11y_one.agentic.v1.AgentRunEventV1.children:type_name -> o11y_one.agentic.v1.AgentRunChildSummaryV1
+	62,  // 165: o11y_one.agentic.v1.AgentRunEventV1.artifacts:type_name -> o11y_one.agentic.v1.AgentRunArtifactSummaryV1
+	64,  // 166: o11y_one.agentic.v1.AgentRunEventV1.nested_caps:type_name -> o11y_one.agentic.v1.AgentRunNestedCapsV1
+	9,   // 167: o11y_one.agentic.v1.AgentRunTimelineModeEffectV1.mode:type_name -> o11y_one.agentic.v1.AgentRunTimelineModeV1
+	21,  // 168: o11y_one.agentic.v1.AgentRunTimelineCostDriverV1.cost:type_name -> o11y_one.agentic.v1.TraceSpanCostV1
+	88,  // 169: o11y_one.agentic.v1.AgentRunTimelineCostDriverV1.availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	9,   // 170: o11y_one.agentic.v1.ListAgentRunEventsRequest.mode:type_name -> o11y_one.agentic.v1.AgentRunTimelineModeV1
+	109, // 171: o11y_one.agentic.v1.ListAgentRunEventsResponse.redirect:type_name -> o11y_one.agentic.v1.GroupingRedirectV1
+	65,  // 172: o11y_one.agentic.v1.ListAgentRunEventsResponse.events:type_name -> o11y_one.agentic.v1.AgentRunEventV1
+	60,  // 173: o11y_one.agentic.v1.ListAgentRunEventsResponse.lanes:type_name -> o11y_one.agentic.v1.AgentRunLaneV1
+	66,  // 174: o11y_one.agentic.v1.ListAgentRunEventsResponse.mode_effect:type_name -> o11y_one.agentic.v1.AgentRunTimelineModeEffectV1
+	67,  // 175: o11y_one.agentic.v1.ListAgentRunEventsResponse.cursor:type_name -> o11y_one.agentic.v1.AgentRunTimelineCursorV1
+	97,  // 176: o11y_one.agentic.v1.ListAgentRunEventsResponse.completeness:type_name -> o11y_one.agentic.v1.ConversationCompletenessV1
+	55,  // 177: o11y_one.agentic.v1.ListAgentRunEventsResponse.event_kind_coverage:type_name -> o11y_one.agentic.v1.AgentRunEventKindCoverageV1
+	56,  // 178: o11y_one.agentic.v1.ListAgentRunEventsResponse.artifact_source_coverage:type_name -> o11y_one.agentic.v1.AgentRunArtifactSourceCoverageV1
+	63,  // 179: o11y_one.agentic.v1.ListAgentRunEventsResponse.artifact_diagnostics:type_name -> o11y_one.agentic.v1.AgentRunArtifactDiagnosticV1
+	88,  // 180: o11y_one.agentic.v1.ListAgentRunEventsResponse.event_score_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	88,  // 181: o11y_one.agentic.v1.ListAgentRunEventsResponse.downstream_reference_availability:type_name -> o11y_one.agentic.v1.MetricAvailabilityV1
+	19,  // 182: o11y_one.agentic.v1.ListAgentRunEventsResponse.first_failure:type_name -> o11y_one.agentic.v1.TraceFirstFailureV1
+	68,  // 183: o11y_one.agentic.v1.ListAgentRunEventsResponse.cost_driver:type_name -> o11y_one.agentic.v1.AgentRunTimelineCostDriverV1
+	14,  // 184: o11y_one.agentic.v1.ListAgentRunEventsResponse.window:type_name -> o11y_one.agentic.v1.TraceWindowV1
+	13,  // 185: o11y_one.agentic.v1.ListAgentRunEventsResponse.boundary:type_name -> o11y_one.agentic.v1.TraceSpanPopulationBoundaryV1
+	93,  // 186: o11y_one.agentic.v1.ListAgentRunEventsResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	94,  // 187: o11y_one.agentic.v1.ListAgentRunEventsResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	15,  // 188: o11y_one.agentic.v1.ListAgentRunEventsResponse.refusal:type_name -> o11y_one.agentic.v1.TraceReadRefusalV1
+	62,  // 189: o11y_one.agentic.v1.ListAgentRunEventsResponse.run_artifacts:type_name -> o11y_one.agentic.v1.AgentRunArtifactSummaryV1
+	110, // 190: o11y_one.agentic.v1.RevokeExternalArtifactLinkRequest.principal:type_name -> o11y_one.agentic.v1.PrincipalRefV1
+	111, // 191: o11y_one.agentic.v1.RevokeExternalArtifactLinkResponse.link:type_name -> o11y_one.agentic.v1.ArtifactLinkV1
+	110, // 192: o11y_one.agentic.v1.ResolveExternalArtifactLinkRequest.principal:type_name -> o11y_one.agentic.v1.PrincipalRefV1
+	106, // 193: o11y_one.agentic.v1.ResolveExternalArtifactLinkResponse.posture:type_name -> o11y_one.agentic.v1.ArtifactResolverPostureV1
+	86,  // 194: o11y_one.agentic.v1.ResolveExternalArtifactLinkResponse.attempted_at:type_name -> google.protobuf.Timestamp
+	86,  // 195: o11y_one.agentic.v1.AgentTraceRowV1.started_at:type_name -> google.protobuf.Timestamp
+	86,  // 196: o11y_one.agentic.v1.AgentTraceRowV1.ended_at:type_name -> google.protobuf.Timestamp
+	43,  // 197: o11y_one.agentic.v1.AgentTraceRowV1.customer:type_name -> o11y_one.agentic.v1.AgentRunDimensionV1
+	43,  // 198: o11y_one.agentic.v1.AgentTraceRowV1.deployment:type_name -> o11y_one.agentic.v1.AgentRunDimensionV1
+	44,  // 199: o11y_one.agentic.v1.AgentTraceRowV1.versions:type_name -> o11y_one.agentic.v1.AgentRunVersionContextV1
+	86,  // 200: o11y_one.agentic.v1.ListAgentTracesRequest.start:type_name -> google.protobuf.Timestamp
+	86,  // 201: o11y_one.agentic.v1.ListAgentTracesRequest.end:type_name -> google.protobuf.Timestamp
+	112, // 202: o11y_one.agentic.v1.ListAgentTracesRequest.filter:type_name -> o11y_one.agentic.v1.AgentTraceListFilterV1
+	75,  // 203: o11y_one.agentic.v1.ListAgentTracesResponse.traces:type_name -> o11y_one.agentic.v1.AgentTraceRowV1
+	14,  // 204: o11y_one.agentic.v1.ListAgentTracesResponse.window:type_name -> o11y_one.agentic.v1.TraceWindowV1
+	13,  // 205: o11y_one.agentic.v1.ListAgentTracesResponse.boundary:type_name -> o11y_one.agentic.v1.TraceSpanPopulationBoundaryV1
+	93,  // 206: o11y_one.agentic.v1.ListAgentTracesResponse.freshness:type_name -> o11y_one.agentic.v1.EvaluationFreshnessV1
+	94,  // 207: o11y_one.agentic.v1.ListAgentTracesResponse.capabilities:type_name -> o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1
+	15,  // 208: o11y_one.agentic.v1.ListAgentTracesResponse.refusal:type_name -> o11y_one.agentic.v1.TraceReadRefusalV1
+	79,  // 209: o11y_one.agentic.v1.AgenticEvidenceGraphNodeV1.evidence_links:type_name -> o11y_one.agentic.v1.TraceInvestigationEvidenceLinkV1
+	80,  // 210: o11y_one.agentic.v1.AgenticEvidenceGraphV1.nodes:type_name -> o11y_one.agentic.v1.AgenticEvidenceGraphNodeV1
+	81,  // 211: o11y_one.agentic.v1.AgenticEvidenceGraphV1.edges:type_name -> o11y_one.agentic.v1.AgenticEvidenceGraphEdgeV1
+	78,  // 212: o11y_one.agentic.v1.AgenticEvidenceGraphV1.unavailable_reasons:type_name -> o11y_one.agentic.v1.TraceInvestigationUnavailableReasonV1
+	82,  // 213: o11y_one.agentic.v1.GetAgentEvidenceGraphResponse.graph:type_name -> o11y_one.agentic.v1.AgenticEvidenceGraphV1
+	34,  // 214: o11y_one.agentic.v1.AgenticTraceViewService.GetAgentTraceDetail:input_type -> o11y_one.agentic.v1.GetAgentTraceDetailRequest
+	36,  // 215: o11y_one.agentic.v1.AgenticTraceViewService.ListAgentTraceSpans:input_type -> o11y_one.agentic.v1.ListAgentTraceSpansRequest
+	113, // 216: o11y_one.agentic.v1.AgenticTraceViewService.ConfirmAgentRunGrouping:input_type -> o11y_one.agentic.v1.ConfirmAgentRunGroupingRequest
+	51,  // 217: o11y_one.agentic.v1.AgenticTraceViewService.ListAgentRuns:input_type -> o11y_one.agentic.v1.ListAgentRunsRequest
+	76,  // 218: o11y_one.agentic.v1.AgenticTraceViewService.ListAgentTraces:input_type -> o11y_one.agentic.v1.ListAgentTracesRequest
+	83,  // 219: o11y_one.agentic.v1.AgenticTraceViewService.GetAgentEvidenceGraph:input_type -> o11y_one.agentic.v1.GetAgentEvidenceGraphRequest
+	53,  // 220: o11y_one.agentic.v1.AgenticTraceViewService.GetAgentRun:input_type -> o11y_one.agentic.v1.GetAgentRunRequest
+	69,  // 221: o11y_one.agentic.v1.AgenticTraceViewService.ListAgentRunEvents:input_type -> o11y_one.agentic.v1.ListAgentRunEventsRequest
+	114, // 222: o11y_one.agentic.v1.AgenticTraceViewService.LinkExternalArtifact:input_type -> o11y_one.agentic.v1.LinkExternalArtifactRequest
+	71,  // 223: o11y_one.agentic.v1.AgenticTraceViewService.RevokeExternalArtifactLink:input_type -> o11y_one.agentic.v1.RevokeExternalArtifactLinkRequest
+	73,  // 224: o11y_one.agentic.v1.AgenticTraceViewService.ResolveExternalArtifactLink:input_type -> o11y_one.agentic.v1.ResolveExternalArtifactLinkRequest
+	35,  // 225: o11y_one.agentic.v1.AgenticTraceViewService.GetAgentTraceDetail:output_type -> o11y_one.agentic.v1.GetAgentTraceDetailResponse
+	37,  // 226: o11y_one.agentic.v1.AgenticTraceViewService.ListAgentTraceSpans:output_type -> o11y_one.agentic.v1.ListAgentTraceSpansResponse
+	115, // 227: o11y_one.agentic.v1.AgenticTraceViewService.ConfirmAgentRunGrouping:output_type -> o11y_one.agentic.v1.ConfirmAgentRunGroupingResponse
+	52,  // 228: o11y_one.agentic.v1.AgenticTraceViewService.ListAgentRuns:output_type -> o11y_one.agentic.v1.ListAgentRunsResponse
+	77,  // 229: o11y_one.agentic.v1.AgenticTraceViewService.ListAgentTraces:output_type -> o11y_one.agentic.v1.ListAgentTracesResponse
+	84,  // 230: o11y_one.agentic.v1.AgenticTraceViewService.GetAgentEvidenceGraph:output_type -> o11y_one.agentic.v1.GetAgentEvidenceGraphResponse
+	54,  // 231: o11y_one.agentic.v1.AgenticTraceViewService.GetAgentRun:output_type -> o11y_one.agentic.v1.GetAgentRunResponse
+	70,  // 232: o11y_one.agentic.v1.AgenticTraceViewService.ListAgentRunEvents:output_type -> o11y_one.agentic.v1.ListAgentRunEventsResponse
+	116, // 233: o11y_one.agentic.v1.AgenticTraceViewService.LinkExternalArtifact:output_type -> o11y_one.agentic.v1.LinkExternalArtifactResponse
+	72,  // 234: o11y_one.agentic.v1.AgenticTraceViewService.RevokeExternalArtifactLink:output_type -> o11y_one.agentic.v1.RevokeExternalArtifactLinkResponse
+	74,  // 235: o11y_one.agentic.v1.AgenticTraceViewService.ResolveExternalArtifactLink:output_type -> o11y_one.agentic.v1.ResolveExternalArtifactLinkResponse
+	225, // [225:236] is the sub-list for method output_type
+	214, // [214:225] is the sub-list for method input_type
+	214, // [214:214] is the sub-list for extension type_name
+	214, // [214:214] is the sub-list for extension extendee
+	0,   // [0:214] is the sub-list for field type_name
 }
 
 func init() { file_o11y_one_agentic_v1_trace_view_proto_init() }
@@ -8204,41 +9360,50 @@ func file_o11y_one_agentic_v1_trace_view_proto_init() {
 	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[12].OneofWrappers = []any{}
 	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[13].OneofWrappers = []any{}
 	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[15].OneofWrappers = []any{}
-	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[19].OneofWrappers = []any{}
 	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[20].OneofWrappers = []any{}
 	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[21].OneofWrappers = []any{}
 	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[22].OneofWrappers = []any{}
 	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[23].OneofWrappers = []any{}
-	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[25].OneofWrappers = []any{}
-	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[27].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[24].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[26].OneofWrappers = []any{}
 	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[28].OneofWrappers = []any{}
 	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[29].OneofWrappers = []any{}
-	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[32].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[30].OneofWrappers = []any{}
 	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[33].OneofWrappers = []any{}
 	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[34].OneofWrappers = []any{}
 	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[35].OneofWrappers = []any{}
 	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[36].OneofWrappers = []any{}
 	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[37].OneofWrappers = []any{}
 	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[38].OneofWrappers = []any{}
-	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[40].OneofWrappers = []any{}
-	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[43].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[39].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[41].OneofWrappers = []any{}
 	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[44].OneofWrappers = []any{}
 	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[45].OneofWrappers = []any{}
 	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[46].OneofWrappers = []any{}
-	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[48].OneofWrappers = []any{}
-	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[51].OneofWrappers = []any{}
-	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[53].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[47].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[49].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[52].OneofWrappers = []any{}
 	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[54].OneofWrappers = []any{}
 	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[55].OneofWrappers = []any{}
 	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[56].OneofWrappers = []any{}
-	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[58].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[57].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[59].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[62].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[63].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[64].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[66].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[67].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_trace_view_proto_msgTypes[70].OneofWrappers = []any{
+		(*GetAgentEvidenceGraphRequest_TraceId)(nil),
+		(*GetAgentEvidenceGraphRequest_AgentRunId)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_o11y_one_agentic_v1_trace_view_proto_rawDesc), len(file_o11y_one_agentic_v1_trace_view_proto_rawDesc)),
 			NumEnums:      13,
-			NumMessages:   61,
+			NumMessages:   72,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -162,12 +162,6 @@ packages already expose every service; a facade over 29 of them would be a secon
 API surface to keep in sync with the proto, and it would rot on the first field
 addition upstream.
 
-### The Go module path is a placeholder
-
-`github.com/o11y-one/o11y-one-sdk` is not claimed yet. Go bakes module paths into
-every generated import, so it had to be a concrete string before the org name is
-settled. `gen/go/README.md` has the one-command rename for when it is.
-
 ### `o11y_one` is a shared Python namespace
 
 `o11y-one-api-agentic` and `o11y-one` both contribute to the `o11y_one` package,
@@ -234,16 +228,29 @@ The verdict **is** the exit code, because a CI system sees nothing else:
 
 | code | meaning |
 |---|---|
-| `0` | improvement — gate passes |
-| `1` | regression — a comparison completed and the result is worse than baseline |
-| `2` | indeterminate — no verdict reachable (too few cases, no baseline) |
+| `0` | improvement — the server recommends the candidate under test |
+| `1` | regression — the server blocked the candidate under test |
+| `2` | indeterminate — no verdict reachable; this is not a pass |
 | `3` | infra-failure — the runner or platform broke; says nothing about the change |
 | `64` | usage-error — bad invocation |
 
 `2` and `3` exist so that a flaky network never gets reported as a regression,
-and so that a stub never gets reported as a pass. **Today every subcommand
-returns `3`**: the runner is a scaffold whose RPCs do not exist in the snapshot
-at `PROTO_PIN` yet. It says so when you run it.
+and so that an unreachable verdict never gets reported as a pass. The verdict
+comes from exactly one place — the run's adopted decision, read back over
+`GetEvaluationRunOverview` — and the runner translates it rather than
+recomputing it:
+
+```sh
+o11y-eval diff --run <run-id> --candidate <candidate-key>
+```
+
+`0` needs an adopted decision the server marked available **and** an explicit
+`RECOMMENDED` naming that `--candidate`. `1` needs an explicit `BLOCKED`.
+Everything else is `2`: a pending or unobserved decision, a recommendation for
+some other candidate, `NO_CLEAR_WINNER`, `INSUFFICIENT_EVIDENCE`, or an enum
+this build does not recognise. The diff document the run emits carries
+`coercible: false` to say that out loud — `2` is its own state, and whether it
+blocks a merge is the calling workflow's policy, not the runner's.
 
 ## License
 

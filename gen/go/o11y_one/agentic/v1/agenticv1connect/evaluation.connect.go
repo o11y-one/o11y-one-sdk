@@ -104,6 +104,9 @@ const (
 	// AgenticEvaluationServiceListEvaluationRunChangesProcedure is the fully-qualified name of the
 	// AgenticEvaluationService's ListEvaluationRunChanges RPC.
 	AgenticEvaluationServiceListEvaluationRunChangesProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/ListEvaluationRunChanges"
+	// AgenticEvaluationServiceWatchEvaluationRunChangesProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's WatchEvaluationRunChanges RPC.
+	AgenticEvaluationServiceWatchEvaluationRunChangesProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/WatchEvaluationRunChanges"
 	// AgenticEvaluationServiceGetExecutionArtifactContentProcedure is the fully-qualified name of the
 	// AgenticEvaluationService's GetExecutionArtifactContent RPC.
 	AgenticEvaluationServiceGetExecutionArtifactContentProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/GetExecutionArtifactContent"
@@ -372,6 +375,24 @@ const (
 	// AgenticEvaluationServiceListPlatformAnnotationsProcedure is the fully-qualified name of the
 	// AgenticEvaluationService's ListPlatformAnnotations RPC.
 	AgenticEvaluationServiceListPlatformAnnotationsProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/ListPlatformAnnotations"
+	// AgenticEvaluationServiceCaptureScoreProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's CaptureScore RPC.
+	AgenticEvaluationServiceCaptureScoreProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/CaptureScore"
+	// AgenticEvaluationServiceCaptureFeedbackProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's CaptureFeedback RPC.
+	AgenticEvaluationServiceCaptureFeedbackProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/CaptureFeedback"
+	// AgenticEvaluationServiceCaptureOutcomeProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's CaptureOutcome RPC.
+	AgenticEvaluationServiceCaptureOutcomeProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/CaptureOutcome"
+	// AgenticEvaluationServiceCaptureContentManifestProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's CaptureContentManifest RPC.
+	AgenticEvaluationServiceCaptureContentManifestProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/CaptureContentManifest"
+	// AgenticEvaluationServiceUpsertEvaluationPromptTemplateProcedure is the fully-qualified name of
+	// the AgenticEvaluationService's UpsertEvaluationPromptTemplate RPC.
+	AgenticEvaluationServiceUpsertEvaluationPromptTemplateProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/UpsertEvaluationPromptTemplate"
+	// AgenticEvaluationServiceListEvaluationPromptTemplatesProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's ListEvaluationPromptTemplates RPC.
+	AgenticEvaluationServiceListEvaluationPromptTemplatesProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/ListEvaluationPromptTemplates"
 	// AgenticEvaluationServiceListEvaluationScorerConfigsProcedure is the fully-qualified name of the
 	// AgenticEvaluationService's ListEvaluationScorerConfigs RPC.
 	AgenticEvaluationServiceListEvaluationScorerConfigsProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/ListEvaluationScorerConfigs"
@@ -402,6 +423,12 @@ const (
 	// AgenticEvaluationServiceListDatasetChangesetsProcedure is the fully-qualified name of the
 	// AgenticEvaluationService's ListDatasetChangesets RPC.
 	AgenticEvaluationServiceListDatasetChangesetsProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/ListDatasetChangesets"
+	// AgenticEvaluationServiceListProductionAttentionItemsProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's ListProductionAttentionItems RPC.
+	AgenticEvaluationServiceListProductionAttentionItemsProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/ListProductionAttentionItems"
+	// AgenticEvaluationServiceGetAgenticEvaluationCapabilitiesProcedure is the fully-qualified name of
+	// the AgenticEvaluationService's GetAgenticEvaluationCapabilities RPC.
+	AgenticEvaluationServiceGetAgenticEvaluationCapabilitiesProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/GetAgenticEvaluationCapabilities"
 )
 
 // AgenticEvaluationServiceClient is a client for the o11y_one.agentic.v1.AgenticEvaluationService
@@ -424,6 +451,14 @@ type AgenticEvaluationServiceClient interface {
 	ListEvaluationMatrixRows(context.Context, *connect.Request[v1.ListEvaluationMatrixRowsRequest]) (*connect.Response[v1.ListEvaluationMatrixRowsResponse], error)
 	BatchGetEvaluationCellDetails(context.Context, *connect.Request[v1.BatchGetEvaluationCellDetailsRequest]) (*connect.Response[v1.BatchGetEvaluationCellDetailsResponse], error)
 	ListEvaluationRunChanges(context.Context, *connect.Request[v1.ListEvaluationRunChangesRequest]) (*connect.Response[v1.ListEvaluationRunChangesResponse], error)
+	// The same feed as `ListEvaluationRunChanges`, pushed instead of polled: same
+	// request, same response message, same cursor semantics — it IS that verb, on
+	// one RPC. The server re-reads the journal every poll interval and sends a
+	// page whenever that read found changes. The first page is always sent, so
+	// `run_terminal`, `allowed_actions` and `capabilities` arrive immediately
+	// rather than after the first change. The stream ends, `OK`, once a page
+	// reports `run_terminal` with no further page to drain.
+	WatchEvaluationRunChanges(context.Context, *connect.Request[v1.ListEvaluationRunChangesRequest]) (*connect.ServerStreamForClient[v1.ListEvaluationRunChangesResponse], error)
 	GetExecutionArtifactContent(context.Context, *connect.Request[v1.GetEvaluationArtifactContentRequest]) (*connect.Response[v1.GetEvaluationArtifactContentResponse], error)
 	BatchGetExecutionArtifactContents(context.Context, *connect.Request[v1.BatchGetEvaluationArtifactContentsRequest]) (*connect.Response[v1.BatchGetEvaluationArtifactContentsResponse], error)
 	ListEvaluationReviewTasks(context.Context, *connect.Request[v1.ListEvaluationReviewTasksRequest]) (*connect.Response[v1.ListEvaluationReviewTasksResponse], error)
@@ -720,6 +755,23 @@ type AgenticEvaluationServiceClient interface {
 	// `INITIAL_PAGE`. A time window, an optional kind filter, keyset-paged,
 	// newest-first. Constant in the page size and in the filter's cardinality.
 	ListPlatformAnnotations(context.Context, *connect.Request[v1.ListPlatformAnnotationsRequest]) (*connect.Response[v1.ListPlatformAnnotationsResponse], error)
+	// ---- O11Y-366: the capture plane ----
+	//
+	// The same rows the legacy `Submit*` verbs write, through this service's
+	// scope and rollout path. Machine callers are refused: these attribute
+	// through an unkinded `actor_user_id` column, the same reason
+	// `CaptureEvaluationCase` holds no `REQUIRED_SCOPES` row.
+	CaptureScore(context.Context, *connect.Request[v1.CaptureScoreRequest]) (*connect.Response[v1.CaptureScoreResponse], error)
+	CaptureFeedback(context.Context, *connect.Request[v1.CaptureFeedbackRequest]) (*connect.Response[v1.CaptureFeedbackResponse], error)
+	CaptureOutcome(context.Context, *connect.Request[v1.CaptureOutcomeRequest]) (*connect.Response[v1.CaptureOutcomeResponse], error)
+	CaptureContentManifest(context.Context, *connect.Request[v1.CaptureContentManifestRequest]) (*connect.Response[v1.CaptureContentManifestResponse], error)
+	// ---- O11Y-367: prompt templates ----
+	//
+	// `MUTATION_ACK` and `INITIAL_PAGE`. The store is the v1 `prompt_templates` /
+	// `prompt_versions` pair, which moves to the shared, v2-owned list; the v1
+	// verbs are untouched until W-V1-2.
+	UpsertEvaluationPromptTemplate(context.Context, *connect.Request[v1.UpsertEvaluationPromptTemplateRequest]) (*connect.Response[v1.UpsertEvaluationPromptTemplateResponse], error)
+	ListEvaluationPromptTemplates(context.Context, *connect.Request[v1.ListEvaluationPromptTemplatesRequest]) (*connect.Response[v1.ListEvaluationPromptTemplatesResponse], error)
 	// `INITIAL_PAGE`. The library page, keyset-paged on `config_key`.
 	//
 	// EVERY score configuration in the organisation, not only the v2-authored
@@ -850,6 +902,26 @@ type AgenticEvaluationServiceClient interface {
 	// whose default included committed and abandoned changesets would bury the
 	// work under its own history.
 	ListDatasetChangesets(context.Context, *connect.Request[v1.ListDatasetChangesetsRequest]) (*connect.Response[v1.ListDatasetChangesetsResponse], error)
+	// A2 `G22`, the Production Attention inbox (`BP:723-742`). One read over the
+	// projections that ALREADY exist, never an inbox-specific computation: 0b
+	// §3.6's coverage note is that every item kind has a typed source, and the
+	// two kinds that have none are reported as typed absences rather than
+	// omitted. See the block at the end of this file.
+	ListProductionAttentionItems(context.Context, *connect.Request[v1.ListProductionAttentionItemsRequest]) (*connect.Response[v1.ListProductionAttentionItemsResponse], error)
+	// The capability set, served once instead of ridden 88 times.
+	//
+	// Every response on this surface and on `AgenticTraceViewService` embeds an
+	// `AgenticEvaluationCapabilitiesV1`; from version 51 that embedded copy is a
+	// STAMP — version and instant, no postures — and this is where the postures
+	// live. One RPC serves both services: the set is a property of the build, and
+	// a second verb on the trace-view service would be a second answer to a
+	// question that has one.
+	//
+	// `SUMMARY`, no statement of its own beyond the scope resolution every verb
+	// here pays. Scope-free for a machine principal, on `GetCallerPrincipal`'s
+	// reasoning: a machine that must discover what it may do before it plans
+	// cannot be asked for a scope in order to ask.
+	GetAgenticEvaluationCapabilities(context.Context, *connect.Request[v1.GetAgenticEvaluationCapabilitiesRequest]) (*connect.Response[v1.GetAgenticEvaluationCapabilitiesResponse], error)
 }
 
 // NewAgenticEvaluationServiceClient constructs a client for the
@@ -964,6 +1036,12 @@ func NewAgenticEvaluationServiceClient(httpClient connect.HTTPClient, baseURL st
 			httpClient,
 			baseURL+AgenticEvaluationServiceListEvaluationRunChangesProcedure,
 			connect.WithSchema(agenticEvaluationServiceMethods.ByName("ListEvaluationRunChanges")),
+			connect.WithClientOptions(opts...),
+		),
+		watchEvaluationRunChanges: connect.NewClient[v1.ListEvaluationRunChangesRequest, v1.ListEvaluationRunChangesResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceWatchEvaluationRunChangesProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("WatchEvaluationRunChanges")),
 			connect.WithClientOptions(opts...),
 		),
 		getExecutionArtifactContent: connect.NewClient[v1.GetEvaluationArtifactContentRequest, v1.GetEvaluationArtifactContentResponse](
@@ -1500,6 +1578,42 @@ func NewAgenticEvaluationServiceClient(httpClient connect.HTTPClient, baseURL st
 			connect.WithSchema(agenticEvaluationServiceMethods.ByName("ListPlatformAnnotations")),
 			connect.WithClientOptions(opts...),
 		),
+		captureScore: connect.NewClient[v1.CaptureScoreRequest, v1.CaptureScoreResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceCaptureScoreProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("CaptureScore")),
+			connect.WithClientOptions(opts...),
+		),
+		captureFeedback: connect.NewClient[v1.CaptureFeedbackRequest, v1.CaptureFeedbackResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceCaptureFeedbackProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("CaptureFeedback")),
+			connect.WithClientOptions(opts...),
+		),
+		captureOutcome: connect.NewClient[v1.CaptureOutcomeRequest, v1.CaptureOutcomeResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceCaptureOutcomeProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("CaptureOutcome")),
+			connect.WithClientOptions(opts...),
+		),
+		captureContentManifest: connect.NewClient[v1.CaptureContentManifestRequest, v1.CaptureContentManifestResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceCaptureContentManifestProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("CaptureContentManifest")),
+			connect.WithClientOptions(opts...),
+		),
+		upsertEvaluationPromptTemplate: connect.NewClient[v1.UpsertEvaluationPromptTemplateRequest, v1.UpsertEvaluationPromptTemplateResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceUpsertEvaluationPromptTemplateProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("UpsertEvaluationPromptTemplate")),
+			connect.WithClientOptions(opts...),
+		),
+		listEvaluationPromptTemplates: connect.NewClient[v1.ListEvaluationPromptTemplatesRequest, v1.ListEvaluationPromptTemplatesResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceListEvaluationPromptTemplatesProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("ListEvaluationPromptTemplates")),
+			connect.WithClientOptions(opts...),
+		),
 		listEvaluationScorerConfigs: connect.NewClient[v1.ListEvaluationScorerConfigsRequest, v1.ListEvaluationScorerConfigsResponse](
 			httpClient,
 			baseURL+AgenticEvaluationServiceListEvaluationScorerConfigsProcedure,
@@ -1560,6 +1674,18 @@ func NewAgenticEvaluationServiceClient(httpClient connect.HTTPClient, baseURL st
 			connect.WithSchema(agenticEvaluationServiceMethods.ByName("ListDatasetChangesets")),
 			connect.WithClientOptions(opts...),
 		),
+		listProductionAttentionItems: connect.NewClient[v1.ListProductionAttentionItemsRequest, v1.ListProductionAttentionItemsResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceListProductionAttentionItemsProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("ListProductionAttentionItems")),
+			connect.WithClientOptions(opts...),
+		),
+		getAgenticEvaluationCapabilities: connect.NewClient[v1.GetAgenticEvaluationCapabilitiesRequest, v1.GetAgenticEvaluationCapabilitiesResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceGetAgenticEvaluationCapabilitiesProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("GetAgenticEvaluationCapabilities")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -1582,6 +1708,7 @@ type agenticEvaluationServiceClient struct {
 	listEvaluationMatrixRows                   *connect.Client[v1.ListEvaluationMatrixRowsRequest, v1.ListEvaluationMatrixRowsResponse]
 	batchGetEvaluationCellDetails              *connect.Client[v1.BatchGetEvaluationCellDetailsRequest, v1.BatchGetEvaluationCellDetailsResponse]
 	listEvaluationRunChanges                   *connect.Client[v1.ListEvaluationRunChangesRequest, v1.ListEvaluationRunChangesResponse]
+	watchEvaluationRunChanges                  *connect.Client[v1.ListEvaluationRunChangesRequest, v1.ListEvaluationRunChangesResponse]
 	getExecutionArtifactContent                *connect.Client[v1.GetEvaluationArtifactContentRequest, v1.GetEvaluationArtifactContentResponse]
 	batchGetExecutionArtifactContents          *connect.Client[v1.BatchGetEvaluationArtifactContentsRequest, v1.BatchGetEvaluationArtifactContentsResponse]
 	listEvaluationReviewTasks                  *connect.Client[v1.ListEvaluationReviewTasksRequest, v1.ListEvaluationReviewTasksResponse]
@@ -1671,6 +1798,12 @@ type agenticEvaluationServiceClient struct {
 	releaseEvaluationCaseLease                 *connect.Client[v1.ReleaseEvaluationCaseLeaseRequest, v1.ReleaseEvaluationCaseLeaseResponse]
 	recordPlatformAnnotation                   *connect.Client[v1.RecordPlatformAnnotationRequest, v1.RecordPlatformAnnotationResponse]
 	listPlatformAnnotations                    *connect.Client[v1.ListPlatformAnnotationsRequest, v1.ListPlatformAnnotationsResponse]
+	captureScore                               *connect.Client[v1.CaptureScoreRequest, v1.CaptureScoreResponse]
+	captureFeedback                            *connect.Client[v1.CaptureFeedbackRequest, v1.CaptureFeedbackResponse]
+	captureOutcome                             *connect.Client[v1.CaptureOutcomeRequest, v1.CaptureOutcomeResponse]
+	captureContentManifest                     *connect.Client[v1.CaptureContentManifestRequest, v1.CaptureContentManifestResponse]
+	upsertEvaluationPromptTemplate             *connect.Client[v1.UpsertEvaluationPromptTemplateRequest, v1.UpsertEvaluationPromptTemplateResponse]
+	listEvaluationPromptTemplates              *connect.Client[v1.ListEvaluationPromptTemplatesRequest, v1.ListEvaluationPromptTemplatesResponse]
 	listEvaluationScorerConfigs                *connect.Client[v1.ListEvaluationScorerConfigsRequest, v1.ListEvaluationScorerConfigsResponse]
 	getEvaluationScorerConfig                  *connect.Client[v1.GetEvaluationScorerConfigRequest, v1.GetEvaluationScorerConfigResponse]
 	listEvaluationScorerConfigVersions         *connect.Client[v1.ListEvaluationScorerConfigVersionsRequest, v1.ListEvaluationScorerConfigVersionsResponse]
@@ -1681,6 +1814,8 @@ type agenticEvaluationServiceClient struct {
 	listDatasetCollections                     *connect.Client[v1.ListEvaluationDatasetCollectionsRequest, v1.ListEvaluationDatasetCollectionsResponse]
 	getDatasetChangeset                        *connect.Client[v1.GetDatasetChangesetRequest, v1.GetDatasetChangesetResponse]
 	listDatasetChangesets                      *connect.Client[v1.ListDatasetChangesetsRequest, v1.ListDatasetChangesetsResponse]
+	listProductionAttentionItems               *connect.Client[v1.ListProductionAttentionItemsRequest, v1.ListProductionAttentionItemsResponse]
+	getAgenticEvaluationCapabilities           *connect.Client[v1.GetAgenticEvaluationCapabilitiesRequest, v1.GetAgenticEvaluationCapabilitiesResponse]
 }
 
 // CreateEvaluationDefinition calls
@@ -1778,6 +1913,12 @@ func (c *agenticEvaluationServiceClient) BatchGetEvaluationCellDetails(ctx conte
 // o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationRunChanges.
 func (c *agenticEvaluationServiceClient) ListEvaluationRunChanges(ctx context.Context, req *connect.Request[v1.ListEvaluationRunChangesRequest]) (*connect.Response[v1.ListEvaluationRunChangesResponse], error) {
 	return c.listEvaluationRunChanges.CallUnary(ctx, req)
+}
+
+// WatchEvaluationRunChanges calls
+// o11y_one.agentic.v1.AgenticEvaluationService.WatchEvaluationRunChanges.
+func (c *agenticEvaluationServiceClient) WatchEvaluationRunChanges(ctx context.Context, req *connect.Request[v1.ListEvaluationRunChangesRequest]) (*connect.ServerStreamForClient[v1.ListEvaluationRunChangesResponse], error) {
+	return c.watchEvaluationRunChanges.CallServerStream(ctx, req)
 }
 
 // GetExecutionArtifactContent calls
@@ -2278,6 +2419,38 @@ func (c *agenticEvaluationServiceClient) ListPlatformAnnotations(ctx context.Con
 	return c.listPlatformAnnotations.CallUnary(ctx, req)
 }
 
+// CaptureScore calls o11y_one.agentic.v1.AgenticEvaluationService.CaptureScore.
+func (c *agenticEvaluationServiceClient) CaptureScore(ctx context.Context, req *connect.Request[v1.CaptureScoreRequest]) (*connect.Response[v1.CaptureScoreResponse], error) {
+	return c.captureScore.CallUnary(ctx, req)
+}
+
+// CaptureFeedback calls o11y_one.agentic.v1.AgenticEvaluationService.CaptureFeedback.
+func (c *agenticEvaluationServiceClient) CaptureFeedback(ctx context.Context, req *connect.Request[v1.CaptureFeedbackRequest]) (*connect.Response[v1.CaptureFeedbackResponse], error) {
+	return c.captureFeedback.CallUnary(ctx, req)
+}
+
+// CaptureOutcome calls o11y_one.agentic.v1.AgenticEvaluationService.CaptureOutcome.
+func (c *agenticEvaluationServiceClient) CaptureOutcome(ctx context.Context, req *connect.Request[v1.CaptureOutcomeRequest]) (*connect.Response[v1.CaptureOutcomeResponse], error) {
+	return c.captureOutcome.CallUnary(ctx, req)
+}
+
+// CaptureContentManifest calls o11y_one.agentic.v1.AgenticEvaluationService.CaptureContentManifest.
+func (c *agenticEvaluationServiceClient) CaptureContentManifest(ctx context.Context, req *connect.Request[v1.CaptureContentManifestRequest]) (*connect.Response[v1.CaptureContentManifestResponse], error) {
+	return c.captureContentManifest.CallUnary(ctx, req)
+}
+
+// UpsertEvaluationPromptTemplate calls
+// o11y_one.agentic.v1.AgenticEvaluationService.UpsertEvaluationPromptTemplate.
+func (c *agenticEvaluationServiceClient) UpsertEvaluationPromptTemplate(ctx context.Context, req *connect.Request[v1.UpsertEvaluationPromptTemplateRequest]) (*connect.Response[v1.UpsertEvaluationPromptTemplateResponse], error) {
+	return c.upsertEvaluationPromptTemplate.CallUnary(ctx, req)
+}
+
+// ListEvaluationPromptTemplates calls
+// o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationPromptTemplates.
+func (c *agenticEvaluationServiceClient) ListEvaluationPromptTemplates(ctx context.Context, req *connect.Request[v1.ListEvaluationPromptTemplatesRequest]) (*connect.Response[v1.ListEvaluationPromptTemplatesResponse], error) {
+	return c.listEvaluationPromptTemplates.CallUnary(ctx, req)
+}
+
 // ListEvaluationScorerConfigs calls
 // o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationScorerConfigs.
 func (c *agenticEvaluationServiceClient) ListEvaluationScorerConfigs(ctx context.Context, req *connect.Request[v1.ListEvaluationScorerConfigsRequest]) (*connect.Response[v1.ListEvaluationScorerConfigsResponse], error) {
@@ -2335,6 +2508,18 @@ func (c *agenticEvaluationServiceClient) ListDatasetChangesets(ctx context.Conte
 	return c.listDatasetChangesets.CallUnary(ctx, req)
 }
 
+// ListProductionAttentionItems calls
+// o11y_one.agentic.v1.AgenticEvaluationService.ListProductionAttentionItems.
+func (c *agenticEvaluationServiceClient) ListProductionAttentionItems(ctx context.Context, req *connect.Request[v1.ListProductionAttentionItemsRequest]) (*connect.Response[v1.ListProductionAttentionItemsResponse], error) {
+	return c.listProductionAttentionItems.CallUnary(ctx, req)
+}
+
+// GetAgenticEvaluationCapabilities calls
+// o11y_one.agentic.v1.AgenticEvaluationService.GetAgenticEvaluationCapabilities.
+func (c *agenticEvaluationServiceClient) GetAgenticEvaluationCapabilities(ctx context.Context, req *connect.Request[v1.GetAgenticEvaluationCapabilitiesRequest]) (*connect.Response[v1.GetAgenticEvaluationCapabilitiesResponse], error) {
+	return c.getAgenticEvaluationCapabilities.CallUnary(ctx, req)
+}
+
 // AgenticEvaluationServiceHandler is an implementation of the
 // o11y_one.agentic.v1.AgenticEvaluationService service.
 type AgenticEvaluationServiceHandler interface {
@@ -2355,6 +2540,14 @@ type AgenticEvaluationServiceHandler interface {
 	ListEvaluationMatrixRows(context.Context, *connect.Request[v1.ListEvaluationMatrixRowsRequest]) (*connect.Response[v1.ListEvaluationMatrixRowsResponse], error)
 	BatchGetEvaluationCellDetails(context.Context, *connect.Request[v1.BatchGetEvaluationCellDetailsRequest]) (*connect.Response[v1.BatchGetEvaluationCellDetailsResponse], error)
 	ListEvaluationRunChanges(context.Context, *connect.Request[v1.ListEvaluationRunChangesRequest]) (*connect.Response[v1.ListEvaluationRunChangesResponse], error)
+	// The same feed as `ListEvaluationRunChanges`, pushed instead of polled: same
+	// request, same response message, same cursor semantics — it IS that verb, on
+	// one RPC. The server re-reads the journal every poll interval and sends a
+	// page whenever that read found changes. The first page is always sent, so
+	// `run_terminal`, `allowed_actions` and `capabilities` arrive immediately
+	// rather than after the first change. The stream ends, `OK`, once a page
+	// reports `run_terminal` with no further page to drain.
+	WatchEvaluationRunChanges(context.Context, *connect.Request[v1.ListEvaluationRunChangesRequest], *connect.ServerStream[v1.ListEvaluationRunChangesResponse]) error
 	GetExecutionArtifactContent(context.Context, *connect.Request[v1.GetEvaluationArtifactContentRequest]) (*connect.Response[v1.GetEvaluationArtifactContentResponse], error)
 	BatchGetExecutionArtifactContents(context.Context, *connect.Request[v1.BatchGetEvaluationArtifactContentsRequest]) (*connect.Response[v1.BatchGetEvaluationArtifactContentsResponse], error)
 	ListEvaluationReviewTasks(context.Context, *connect.Request[v1.ListEvaluationReviewTasksRequest]) (*connect.Response[v1.ListEvaluationReviewTasksResponse], error)
@@ -2651,6 +2844,23 @@ type AgenticEvaluationServiceHandler interface {
 	// `INITIAL_PAGE`. A time window, an optional kind filter, keyset-paged,
 	// newest-first. Constant in the page size and in the filter's cardinality.
 	ListPlatformAnnotations(context.Context, *connect.Request[v1.ListPlatformAnnotationsRequest]) (*connect.Response[v1.ListPlatformAnnotationsResponse], error)
+	// ---- O11Y-366: the capture plane ----
+	//
+	// The same rows the legacy `Submit*` verbs write, through this service's
+	// scope and rollout path. Machine callers are refused: these attribute
+	// through an unkinded `actor_user_id` column, the same reason
+	// `CaptureEvaluationCase` holds no `REQUIRED_SCOPES` row.
+	CaptureScore(context.Context, *connect.Request[v1.CaptureScoreRequest]) (*connect.Response[v1.CaptureScoreResponse], error)
+	CaptureFeedback(context.Context, *connect.Request[v1.CaptureFeedbackRequest]) (*connect.Response[v1.CaptureFeedbackResponse], error)
+	CaptureOutcome(context.Context, *connect.Request[v1.CaptureOutcomeRequest]) (*connect.Response[v1.CaptureOutcomeResponse], error)
+	CaptureContentManifest(context.Context, *connect.Request[v1.CaptureContentManifestRequest]) (*connect.Response[v1.CaptureContentManifestResponse], error)
+	// ---- O11Y-367: prompt templates ----
+	//
+	// `MUTATION_ACK` and `INITIAL_PAGE`. The store is the v1 `prompt_templates` /
+	// `prompt_versions` pair, which moves to the shared, v2-owned list; the v1
+	// verbs are untouched until W-V1-2.
+	UpsertEvaluationPromptTemplate(context.Context, *connect.Request[v1.UpsertEvaluationPromptTemplateRequest]) (*connect.Response[v1.UpsertEvaluationPromptTemplateResponse], error)
+	ListEvaluationPromptTemplates(context.Context, *connect.Request[v1.ListEvaluationPromptTemplatesRequest]) (*connect.Response[v1.ListEvaluationPromptTemplatesResponse], error)
 	// `INITIAL_PAGE`. The library page, keyset-paged on `config_key`.
 	//
 	// EVERY score configuration in the organisation, not only the v2-authored
@@ -2781,6 +2991,26 @@ type AgenticEvaluationServiceHandler interface {
 	// whose default included committed and abandoned changesets would bury the
 	// work under its own history.
 	ListDatasetChangesets(context.Context, *connect.Request[v1.ListDatasetChangesetsRequest]) (*connect.Response[v1.ListDatasetChangesetsResponse], error)
+	// A2 `G22`, the Production Attention inbox (`BP:723-742`). One read over the
+	// projections that ALREADY exist, never an inbox-specific computation: 0b
+	// §3.6's coverage note is that every item kind has a typed source, and the
+	// two kinds that have none are reported as typed absences rather than
+	// omitted. See the block at the end of this file.
+	ListProductionAttentionItems(context.Context, *connect.Request[v1.ListProductionAttentionItemsRequest]) (*connect.Response[v1.ListProductionAttentionItemsResponse], error)
+	// The capability set, served once instead of ridden 88 times.
+	//
+	// Every response on this surface and on `AgenticTraceViewService` embeds an
+	// `AgenticEvaluationCapabilitiesV1`; from version 51 that embedded copy is a
+	// STAMP — version and instant, no postures — and this is where the postures
+	// live. One RPC serves both services: the set is a property of the build, and
+	// a second verb on the trace-view service would be a second answer to a
+	// question that has one.
+	//
+	// `SUMMARY`, no statement of its own beyond the scope resolution every verb
+	// here pays. Scope-free for a machine principal, on `GetCallerPrincipal`'s
+	// reasoning: a machine that must discover what it may do before it plans
+	// cannot be asked for a scope in order to ask.
+	GetAgenticEvaluationCapabilities(context.Context, *connect.Request[v1.GetAgenticEvaluationCapabilitiesRequest]) (*connect.Response[v1.GetAgenticEvaluationCapabilitiesResponse], error)
 }
 
 // NewAgenticEvaluationServiceHandler builds an HTTP handler from the service implementation. It
@@ -2890,6 +3120,12 @@ func NewAgenticEvaluationServiceHandler(svc AgenticEvaluationServiceHandler, opt
 		AgenticEvaluationServiceListEvaluationRunChangesProcedure,
 		svc.ListEvaluationRunChanges,
 		connect.WithSchema(agenticEvaluationServiceMethods.ByName("ListEvaluationRunChanges")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceWatchEvaluationRunChangesHandler := connect.NewServerStreamHandler(
+		AgenticEvaluationServiceWatchEvaluationRunChangesProcedure,
+		svc.WatchEvaluationRunChanges,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("WatchEvaluationRunChanges")),
 		connect.WithHandlerOptions(opts...),
 	)
 	agenticEvaluationServiceGetExecutionArtifactContentHandler := connect.NewUnaryHandler(
@@ -3426,6 +3662,42 @@ func NewAgenticEvaluationServiceHandler(svc AgenticEvaluationServiceHandler, opt
 		connect.WithSchema(agenticEvaluationServiceMethods.ByName("ListPlatformAnnotations")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agenticEvaluationServiceCaptureScoreHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceCaptureScoreProcedure,
+		svc.CaptureScore,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("CaptureScore")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceCaptureFeedbackHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceCaptureFeedbackProcedure,
+		svc.CaptureFeedback,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("CaptureFeedback")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceCaptureOutcomeHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceCaptureOutcomeProcedure,
+		svc.CaptureOutcome,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("CaptureOutcome")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceCaptureContentManifestHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceCaptureContentManifestProcedure,
+		svc.CaptureContentManifest,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("CaptureContentManifest")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceUpsertEvaluationPromptTemplateHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceUpsertEvaluationPromptTemplateProcedure,
+		svc.UpsertEvaluationPromptTemplate,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("UpsertEvaluationPromptTemplate")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceListEvaluationPromptTemplatesHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceListEvaluationPromptTemplatesProcedure,
+		svc.ListEvaluationPromptTemplates,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("ListEvaluationPromptTemplates")),
+		connect.WithHandlerOptions(opts...),
+	)
 	agenticEvaluationServiceListEvaluationScorerConfigsHandler := connect.NewUnaryHandler(
 		AgenticEvaluationServiceListEvaluationScorerConfigsProcedure,
 		svc.ListEvaluationScorerConfigs,
@@ -3486,6 +3758,18 @@ func NewAgenticEvaluationServiceHandler(svc AgenticEvaluationServiceHandler, opt
 		connect.WithSchema(agenticEvaluationServiceMethods.ByName("ListDatasetChangesets")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agenticEvaluationServiceListProductionAttentionItemsHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceListProductionAttentionItemsProcedure,
+		svc.ListProductionAttentionItems,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("ListProductionAttentionItems")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceGetAgenticEvaluationCapabilitiesHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceGetAgenticEvaluationCapabilitiesProcedure,
+		svc.GetAgenticEvaluationCapabilities,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("GetAgenticEvaluationCapabilities")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/o11y_one.agentic.v1.AgenticEvaluationService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgenticEvaluationServiceCreateEvaluationDefinitionProcedure:
@@ -3522,6 +3806,8 @@ func NewAgenticEvaluationServiceHandler(svc AgenticEvaluationServiceHandler, opt
 			agenticEvaluationServiceBatchGetEvaluationCellDetailsHandler.ServeHTTP(w, r)
 		case AgenticEvaluationServiceListEvaluationRunChangesProcedure:
 			agenticEvaluationServiceListEvaluationRunChangesHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceWatchEvaluationRunChangesProcedure:
+			agenticEvaluationServiceWatchEvaluationRunChangesHandler.ServeHTTP(w, r)
 		case AgenticEvaluationServiceGetExecutionArtifactContentProcedure:
 			agenticEvaluationServiceGetExecutionArtifactContentHandler.ServeHTTP(w, r)
 		case AgenticEvaluationServiceBatchGetExecutionArtifactContentsProcedure:
@@ -3700,6 +3986,18 @@ func NewAgenticEvaluationServiceHandler(svc AgenticEvaluationServiceHandler, opt
 			agenticEvaluationServiceRecordPlatformAnnotationHandler.ServeHTTP(w, r)
 		case AgenticEvaluationServiceListPlatformAnnotationsProcedure:
 			agenticEvaluationServiceListPlatformAnnotationsHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceCaptureScoreProcedure:
+			agenticEvaluationServiceCaptureScoreHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceCaptureFeedbackProcedure:
+			agenticEvaluationServiceCaptureFeedbackHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceCaptureOutcomeProcedure:
+			agenticEvaluationServiceCaptureOutcomeHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceCaptureContentManifestProcedure:
+			agenticEvaluationServiceCaptureContentManifestHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceUpsertEvaluationPromptTemplateProcedure:
+			agenticEvaluationServiceUpsertEvaluationPromptTemplateHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceListEvaluationPromptTemplatesProcedure:
+			agenticEvaluationServiceListEvaluationPromptTemplatesHandler.ServeHTTP(w, r)
 		case AgenticEvaluationServiceListEvaluationScorerConfigsProcedure:
 			agenticEvaluationServiceListEvaluationScorerConfigsHandler.ServeHTTP(w, r)
 		case AgenticEvaluationServiceGetEvaluationScorerConfigProcedure:
@@ -3720,6 +4018,10 @@ func NewAgenticEvaluationServiceHandler(svc AgenticEvaluationServiceHandler, opt
 			agenticEvaluationServiceGetDatasetChangesetHandler.ServeHTTP(w, r)
 		case AgenticEvaluationServiceListDatasetChangesetsProcedure:
 			agenticEvaluationServiceListDatasetChangesetsHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceListProductionAttentionItemsProcedure:
+			agenticEvaluationServiceListProductionAttentionItemsHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceGetAgenticEvaluationCapabilitiesProcedure:
+			agenticEvaluationServiceGetAgenticEvaluationCapabilitiesHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -3795,6 +4097,10 @@ func (UnimplementedAgenticEvaluationServiceHandler) BatchGetEvaluationCellDetail
 
 func (UnimplementedAgenticEvaluationServiceHandler) ListEvaluationRunChanges(context.Context, *connect.Request[v1.ListEvaluationRunChangesRequest]) (*connect.Response[v1.ListEvaluationRunChangesResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationRunChanges is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) WatchEvaluationRunChanges(context.Context, *connect.Request[v1.ListEvaluationRunChangesRequest], *connect.ServerStream[v1.ListEvaluationRunChangesResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.WatchEvaluationRunChanges is not implemented"))
 }
 
 func (UnimplementedAgenticEvaluationServiceHandler) GetExecutionArtifactContent(context.Context, *connect.Request[v1.GetEvaluationArtifactContentRequest]) (*connect.Response[v1.GetEvaluationArtifactContentResponse], error) {
@@ -4153,6 +4459,30 @@ func (UnimplementedAgenticEvaluationServiceHandler) ListPlatformAnnotations(cont
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.ListPlatformAnnotations is not implemented"))
 }
 
+func (UnimplementedAgenticEvaluationServiceHandler) CaptureScore(context.Context, *connect.Request[v1.CaptureScoreRequest]) (*connect.Response[v1.CaptureScoreResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.CaptureScore is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) CaptureFeedback(context.Context, *connect.Request[v1.CaptureFeedbackRequest]) (*connect.Response[v1.CaptureFeedbackResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.CaptureFeedback is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) CaptureOutcome(context.Context, *connect.Request[v1.CaptureOutcomeRequest]) (*connect.Response[v1.CaptureOutcomeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.CaptureOutcome is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) CaptureContentManifest(context.Context, *connect.Request[v1.CaptureContentManifestRequest]) (*connect.Response[v1.CaptureContentManifestResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.CaptureContentManifest is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) UpsertEvaluationPromptTemplate(context.Context, *connect.Request[v1.UpsertEvaluationPromptTemplateRequest]) (*connect.Response[v1.UpsertEvaluationPromptTemplateResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.UpsertEvaluationPromptTemplate is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) ListEvaluationPromptTemplates(context.Context, *connect.Request[v1.ListEvaluationPromptTemplatesRequest]) (*connect.Response[v1.ListEvaluationPromptTemplatesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationPromptTemplates is not implemented"))
+}
+
 func (UnimplementedAgenticEvaluationServiceHandler) ListEvaluationScorerConfigs(context.Context, *connect.Request[v1.ListEvaluationScorerConfigsRequest]) (*connect.Response[v1.ListEvaluationScorerConfigsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationScorerConfigs is not implemented"))
 }
@@ -4191,4 +4521,12 @@ func (UnimplementedAgenticEvaluationServiceHandler) GetDatasetChangeset(context.
 
 func (UnimplementedAgenticEvaluationServiceHandler) ListDatasetChangesets(context.Context, *connect.Request[v1.ListDatasetChangesetsRequest]) (*connect.Response[v1.ListDatasetChangesetsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.ListDatasetChangesets is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) ListProductionAttentionItems(context.Context, *connect.Request[v1.ListProductionAttentionItemsRequest]) (*connect.Response[v1.ListProductionAttentionItemsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.ListProductionAttentionItems is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) GetAgenticEvaluationCapabilities(context.Context, *connect.Request[v1.GetAgenticEvaluationCapabilitiesRequest]) (*connect.Response[v1.GetAgenticEvaluationCapabilitiesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.GetAgenticEvaluationCapabilities is not implemented"))
 }

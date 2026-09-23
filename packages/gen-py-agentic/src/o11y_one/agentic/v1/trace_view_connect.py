@@ -31,6 +31,12 @@ class AgenticTraceViewService(Protocol):
     async def list_agent_runs(self, request: o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.ListAgentRunsRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.ListAgentRunsResponse:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
+    async def list_agent_traces(self, request: o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.ListAgentTracesRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.ListAgentTracesResponse:
+        raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
+
+    async def get_agent_evidence_graph(self, request: o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.GetAgentEvidenceGraphRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.GetAgentEvidenceGraphResponse:
+        raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
+
     async def get_agent_run(self, request: o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.GetAgentRunRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.GetAgentRunResponse:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
@@ -91,6 +97,26 @@ class AgenticTraceViewServiceASGIApplication(ConnectASGIApplication[AgenticTrace
                         idempotency_level=IdempotencyLevel.UNKNOWN,
                     ),
                     function=svc.list_agent_runs,
+                ),
+                "/o11y_one.agentic.v1.AgenticTraceViewService/ListAgentTraces": Endpoint.unary(
+                    method=MethodInfo(
+                        name="ListAgentTraces",
+                        service_name="o11y_one.agentic.v1.AgenticTraceViewService",
+                        input=o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.ListAgentTracesRequest,
+                        output=o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.ListAgentTracesResponse,
+                        idempotency_level=IdempotencyLevel.UNKNOWN,
+                    ),
+                    function=svc.list_agent_traces,
+                ),
+                "/o11y_one.agentic.v1.AgenticTraceViewService/GetAgentEvidenceGraph": Endpoint.unary(
+                    method=MethodInfo(
+                        name="GetAgentEvidenceGraph",
+                        service_name="o11y_one.agentic.v1.AgenticTraceViewService",
+                        input=o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.GetAgentEvidenceGraphRequest,
+                        output=o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.GetAgentEvidenceGraphResponse,
+                        idempotency_level=IdempotencyLevel.UNKNOWN,
+                    ),
+                    function=svc.get_agent_evidence_graph,
                 ),
                 "/o11y_one.agentic.v1.AgenticTraceViewService/GetAgentRun": Endpoint.unary(
                     method=MethodInfo(
@@ -235,6 +261,46 @@ class AgenticTraceViewServiceClient(ConnectClient):
             timeout_ms=timeout_ms,
         )
 
+    async def list_agent_traces(
+        self,
+        request: o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.ListAgentTracesRequest,
+        *,
+        headers: Headers | Mapping[str, str] | None = None,
+        timeout_ms: int | None = None,
+    ) -> o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.ListAgentTracesResponse:
+        return await self.execute_unary(
+            request=request,
+            method=MethodInfo(
+                name="ListAgentTraces",
+                service_name="o11y_one.agentic.v1.AgenticTraceViewService",
+                input=o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.ListAgentTracesRequest,
+                output=o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.ListAgentTracesResponse,
+                idempotency_level=IdempotencyLevel.UNKNOWN,
+            ),
+            headers=headers,
+            timeout_ms=timeout_ms,
+        )
+
+    async def get_agent_evidence_graph(
+        self,
+        request: o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.GetAgentEvidenceGraphRequest,
+        *,
+        headers: Headers | Mapping[str, str] | None = None,
+        timeout_ms: int | None = None,
+    ) -> o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.GetAgentEvidenceGraphResponse:
+        return await self.execute_unary(
+            request=request,
+            method=MethodInfo(
+                name="GetAgentEvidenceGraph",
+                service_name="o11y_one.agentic.v1.AgenticTraceViewService",
+                input=o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.GetAgentEvidenceGraphRequest,
+                output=o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.GetAgentEvidenceGraphResponse,
+                idempotency_level=IdempotencyLevel.UNKNOWN,
+            ),
+            headers=headers,
+            timeout_ms=timeout_ms,
+        )
+
     async def get_agent_run(
         self,
         request: o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.GetAgentRunRequest,
@@ -345,6 +411,10 @@ class AgenticTraceViewServiceSync(Protocol):
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
     def list_agent_runs(self, request: o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.ListAgentRunsRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.ListAgentRunsResponse:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
+    def list_agent_traces(self, request: o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.ListAgentTracesRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.ListAgentTracesResponse:
+        raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
+    def get_agent_evidence_graph(self, request: o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.GetAgentEvidenceGraphRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.GetAgentEvidenceGraphResponse:
+        raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
     def get_agent_run(self, request: o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.GetAgentRunRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.GetAgentRunResponse:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
     def list_agent_run_events(self, request: o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.ListAgentRunEventsRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.ListAgentRunEventsResponse:
@@ -400,6 +470,26 @@ class AgenticTraceViewServiceWSGIApplication(ConnectWSGIApplication):
                         idempotency_level=IdempotencyLevel.UNKNOWN,
                     ),
                     function=service.list_agent_runs,
+                ),
+                "/o11y_one.agentic.v1.AgenticTraceViewService/ListAgentTraces": EndpointSync.unary(
+                    method=MethodInfo(
+                        name="ListAgentTraces",
+                        service_name="o11y_one.agentic.v1.AgenticTraceViewService",
+                        input=o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.ListAgentTracesRequest,
+                        output=o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.ListAgentTracesResponse,
+                        idempotency_level=IdempotencyLevel.UNKNOWN,
+                    ),
+                    function=service.list_agent_traces,
+                ),
+                "/o11y_one.agentic.v1.AgenticTraceViewService/GetAgentEvidenceGraph": EndpointSync.unary(
+                    method=MethodInfo(
+                        name="GetAgentEvidenceGraph",
+                        service_name="o11y_one.agentic.v1.AgenticTraceViewService",
+                        input=o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.GetAgentEvidenceGraphRequest,
+                        output=o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.GetAgentEvidenceGraphResponse,
+                        idempotency_level=IdempotencyLevel.UNKNOWN,
+                    ),
+                    function=service.get_agent_evidence_graph,
                 ),
                 "/o11y_one.agentic.v1.AgenticTraceViewService/GetAgentRun": EndpointSync.unary(
                     method=MethodInfo(
@@ -538,6 +628,46 @@ class AgenticTraceViewServiceClientSync(ConnectClientSync):
                 service_name="o11y_one.agentic.v1.AgenticTraceViewService",
                 input=o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.ListAgentRunsRequest,
                 output=o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.ListAgentRunsResponse,
+                idempotency_level=IdempotencyLevel.UNKNOWN,
+            ),
+            headers=headers,
+            timeout_ms=timeout_ms,
+        )
+
+    def list_agent_traces(
+        self,
+        request: o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.ListAgentTracesRequest,
+        *,
+        headers: Headers | Mapping[str, str] | None = None,
+        timeout_ms: int | None = None,
+    ) -> o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.ListAgentTracesResponse:
+        return self.execute_unary(
+            request=request,
+            method=MethodInfo(
+                name="ListAgentTraces",
+                service_name="o11y_one.agentic.v1.AgenticTraceViewService",
+                input=o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.ListAgentTracesRequest,
+                output=o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.ListAgentTracesResponse,
+                idempotency_level=IdempotencyLevel.UNKNOWN,
+            ),
+            headers=headers,
+            timeout_ms=timeout_ms,
+        )
+
+    def get_agent_evidence_graph(
+        self,
+        request: o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.GetAgentEvidenceGraphRequest,
+        *,
+        headers: Headers | Mapping[str, str] | None = None,
+        timeout_ms: int | None = None,
+    ) -> o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.GetAgentEvidenceGraphResponse:
+        return self.execute_unary(
+            request=request,
+            method=MethodInfo(
+                name="GetAgentEvidenceGraph",
+                service_name="o11y_one.agentic.v1.AgenticTraceViewService",
+                input=o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.GetAgentEvidenceGraphRequest,
+                output=o11y__one_dot_agentic_dot_v1_dot_trace__view__pb2.GetAgentEvidenceGraphResponse,
                 idempotency_level=IdempotencyLevel.UNKNOWN,
             ),
             headers=headers,

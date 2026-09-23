@@ -23,11 +23,294 @@ package o11y_one.agentic.v1;
 
 import "google/protobuf/timestamp.proto";
 import "o11y_one/common/v1/common.proto";
-// Reused as-is, never twinned: ProviderModelRefV1, ProviderNameV1, and
-// ProviderRequestSettingsV1 already carry the vendor-neutral model and request
-// vocabulary. Importing the legacy file does NOT pull its Struct-typed fields
-// onto this surface — nothing here references one.
-import "o11y_one/agentic/v1/agentic.proto";
+
+// ===========================================================================
+// The capture vocabulary (O11Y-365, O11Y-366) and the provider vocabulary
+// ===========================================================================
+//
+// Declared here rather than imported from agentic.proto. Same package, same
+// names, same field numbers, so the wire is unchanged and `buf breaking` in
+// PACKAGE mode is clean; FILE mode flags the move, which is what moving a type
+// between two files of one package looks like to it. The legacy file is being
+// deleted and these types outlive it, so agentic.proto imports THIS file for
+// them. Nothing here references agentic.proto: there is no cycle.
+
+message CorrelationContextV1 {
+  optional string trace_id = 1;
+  optional string span_id = 2;
+  optional string observation_id = 3;
+  optional string conversation_id = 4;
+  optional string user_id = 5;
+  optional string account_id = 6;
+  optional string customer_id = 7;
+  optional string feature_id = 8;
+  optional string deployment_id = 9;
+  optional string prompt_version = 10;
+  optional string model_version = 11;
+  optional string tool_version = 12;
+  optional string release_id = 13;
+  optional string source_turn_id = 14;
+}
+
+enum ScoreSourceV1 {
+  SCORE_SOURCE_V1_UNSPECIFIED = 0;
+  SCORE_SOURCE_V1_SDK = 1;
+  SCORE_SOURCE_V1_ONLINE = 2;
+  SCORE_SOURCE_V1_OFFLINE = 3;
+  SCORE_SOURCE_V1_ANNOTATION = 4;
+  SCORE_SOURCE_V1_API = 5;
+  // NN38 (PLAN:190): telemetry-ingested `gen_ai.evaluation.result` scores. 0a-reserved
+  // additive value (0a-canonical-type-contract.md:102, OQ-1). Append-only.
+  SCORE_SOURCE_V1_TELEMETRY_EVENT = 6;
+}
+
+enum FeedbackSourceTypeV1 {
+  FEEDBACK_SOURCE_TYPE_V1_UNSPECIFIED = 0;
+  FEEDBACK_SOURCE_TYPE_V1_USER = 1;
+  FEEDBACK_SOURCE_TYPE_V1_REVIEWER = 2;
+  FEEDBACK_SOURCE_TYPE_V1_API = 3;
+  FEEDBACK_SOURCE_TYPE_V1_EVALUATOR = 4;
+  FEEDBACK_SOURCE_TYPE_V1_SYSTEM = 5;
+}
+
+enum FeedbackApprovalStatusV1 {
+  FEEDBACK_APPROVAL_STATUS_V1_UNSPECIFIED = 0;
+  FEEDBACK_APPROVAL_STATUS_V1_NOT_APPLICABLE = 1;
+  FEEDBACK_APPROVAL_STATUS_V1_PENDING = 2;
+  FEEDBACK_APPROVAL_STATUS_V1_APPROVED = 3;
+  FEEDBACK_APPROVAL_STATUS_V1_REJECTED = 4;
+}
+
+enum AnnotationPairwiseWinnerV1 {
+  ANNOTATION_PAIRWISE_WINNER_V1_UNSPECIFIED = 0;
+  ANNOTATION_PAIRWISE_WINNER_V1_BASELINE = 1;
+  ANNOTATION_PAIRWISE_WINNER_V1_CANDIDATE = 2;
+  ANNOTATION_PAIRWISE_WINNER_V1_TIE = 3;
+}
+
+// Moved here from `agentic.proto` by `O11Y-372`, which deleted that file.
+// Same package, so this is not a wire change.
+// What KIND of thing a provider is, published beside every provider cell's
+// availability (increment E1-1b sec 0.1).
+//
+// Three of this build's facts are properties of a LAB and are NOT properties of
+// a ROUTER: the token-accounting sign (NN48 -- a router's cache inclusivity is
+// whatever the upstream it chose reports), the price (a router's price is its
+// own, plus its fee, not the lab's), and the observability attribution (apps
+// point the OpenAI SDK at the router, so the emitted provider name is the
+// lab's). A client that cannot tell the two kinds apart cannot know which of
+// its numbers carry those caveats.
+//
+// UNSPECIFIED is a real answer: it means this build did not declare a kind,
+// which is what an older build's response decodes to. It never means LAB.
+enum ProviderKindV1 {
+  PROVIDER_KIND_V1_UNSPECIFIED = 0;
+  // Serves its own models from its own inference.
+  PROVIDER_KIND_V1_LAB = 1;
+  // Chooses an upstream per call. The upstream is part of the unit of
+  // measurement (NN47) and is not pinned by the model id alone.
+  PROVIDER_KIND_V1_ROUTER = 2;
+}
+
+// The six providers under study (E1-1). Extended additively: no existing value
+// moves. Every exhaustive match over this enum is a compile-time obligation on
+// purpose -- a provider that arrives without its accounting convention, its
+// credential mapping or its adapter must not compile, because each of those
+// silently defaulted is a wrong number rather than a missing one.
+//
+// The four added by E1-1 are DEGRADED, not AVAILABLE: their adapters are E1-4.
+enum ProviderNameV1 {
+  PROVIDER_NAME_V1_UNSPECIFIED = 0;
+  PROVIDER_NAME_V1_OPENAI = 1;
+  PROVIDER_NAME_V1_ANTHROPIC = 2;
+  PROVIDER_NAME_V1_GOOGLE = 3;
+  PROVIDER_NAME_V1_XAI = 4;
+  // Moonshot AI hosts the Kimi model family. This enum names providers, so the
+  // host is the value and the family appears in MoonshotTextModelV1.
+  PROVIDER_NAME_V1_MOONSHOT = 5;
+  PROVIDER_NAME_V1_DEEPSEEK = 6;
+  // E1-1b: a ROUTER, not a lab. It is in this enum rather than a second one
+  // because it is addressed the same way -- a credential and a model id -- and
+  // a second namespace would fork the credential plane, the adapter table, the
+  // accounting table and every match this track made exhaustive on purpose.
+  // What makes it different travels as a fact instead: ProviderKindV1.
+  PROVIDER_NAME_V1_OPENROUTER = 7;
+}
+
+enum ProviderToolChoiceV1 {
+  PROVIDER_TOOL_CHOICE_V1_UNSPECIFIED = 0;
+  PROVIDER_TOOL_CHOICE_V1_AUTO = 1;
+  PROVIDER_TOOL_CHOICE_V1_NONE = 2;
+  PROVIDER_TOOL_CHOICE_V1_REQUIRED = 3;
+}
+
+enum ProviderReasoningEffortV1 {
+  PROVIDER_REASONING_EFFORT_V1_UNSPECIFIED = 0;
+  PROVIDER_REASONING_EFFORT_V1_NONE = 1;
+  PROVIDER_REASONING_EFFORT_V1_MINIMAL = 2;
+  PROVIDER_REASONING_EFFORT_V1_LOW = 3;
+  PROVIDER_REASONING_EFFORT_V1_MEDIUM = 4;
+  PROVIDER_REASONING_EFFORT_V1_HIGH = 5;
+  PROVIDER_REASONING_EFFORT_V1_XHIGH = 6;
+}
+
+enum ProviderVerbosityV1 {
+  PROVIDER_VERBOSITY_V1_UNSPECIFIED = 0;
+  PROVIDER_VERBOSITY_V1_DEFAULT = 1;
+  PROVIDER_VERBOSITY_V1_LOW = 2;
+  PROVIDER_VERBOSITY_V1_MEDIUM = 3;
+  PROVIDER_VERBOSITY_V1_HIGH = 4;
+}
+
+enum ProviderTruncationV1 {
+  PROVIDER_TRUNCATION_V1_UNSPECIFIED = 0;
+  PROVIDER_TRUNCATION_V1_AUTO = 1;
+  PROVIDER_TRUNCATION_V1_DISABLED = 2;
+}
+
+enum ProviderPromptCacheRetentionV1 {
+  PROVIDER_PROMPT_CACHE_RETENTION_V1_UNSPECIFIED = 0;
+  PROVIDER_PROMPT_CACHE_RETENTION_V1_IN_MEMORY = 1;
+  PROVIDER_PROMPT_CACHE_RETENTION_V1_TWENTY_FOUR_HOURS = 2;
+}
+
+enum ProviderServiceTierV1 {
+  PROVIDER_SERVICE_TIER_V1_UNSPECIFIED = 0;
+  PROVIDER_SERVICE_TIER_V1_AUTO = 1;
+  PROVIDER_SERVICE_TIER_V1_DEFAULT = 2;
+  PROVIDER_SERVICE_TIER_V1_FLEX = 3;
+  PROVIDER_SERVICE_TIER_V1_PRIORITY = 4;
+  PROVIDER_SERVICE_TIER_V1_STANDARD_ONLY = 5;
+}
+
+enum OpenAiTextModelV1 {
+  OPEN_AI_TEXT_MODEL_V1_UNSPECIFIED = 0;
+  OPEN_AI_TEXT_MODEL_V1_GPT_5_5 = 1;
+  OPEN_AI_TEXT_MODEL_V1_GPT_5_5_PRO = 2;
+  OPEN_AI_TEXT_MODEL_V1_GPT_5_4 = 3;
+  OPEN_AI_TEXT_MODEL_V1_GPT_5_4_PRO = 4;
+  OPEN_AI_TEXT_MODEL_V1_GPT_5_4_MINI = 5;
+  OPEN_AI_TEXT_MODEL_V1_GPT_5_4_NANO = 6;
+  OPEN_AI_TEXT_MODEL_V1_GPT_5 = 7;
+  OPEN_AI_TEXT_MODEL_V1_GPT_5_PRO = 8;
+  OPEN_AI_TEXT_MODEL_V1_GPT_5_MINI = 9;
+  OPEN_AI_TEXT_MODEL_V1_GPT_5_NANO = 10;
+  OPEN_AI_TEXT_MODEL_V1_GPT_4_1 = 11;
+  OPEN_AI_TEXT_MODEL_V1_GPT_4_1_MINI = 12;
+  OPEN_AI_TEXT_MODEL_V1_GPT_4O = 13;
+  OPEN_AI_TEXT_MODEL_V1_GPT_4O_MINI = 14;
+  OPEN_AI_TEXT_MODEL_V1_O3_PRO = 15;
+  OPEN_AI_TEXT_MODEL_V1_O3 = 16;
+  OPEN_AI_TEXT_MODEL_V1_GPT_4 = 17;
+}
+
+enum AnthropicTextModelV1 {
+  ANTHROPIC_TEXT_MODEL_V1_UNSPECIFIED = 0;
+  ANTHROPIC_TEXT_MODEL_V1_OPUS_4_7 = 1;
+  ANTHROPIC_TEXT_MODEL_V1_OPUS_4_6 = 2;
+  ANTHROPIC_TEXT_MODEL_V1_OPUS_4_5_20251101 = 3;
+  ANTHROPIC_TEXT_MODEL_V1_OPUS_4_1_20250805 = 4;
+  ANTHROPIC_TEXT_MODEL_V1_SONNET_4_6 = 5;
+  ANTHROPIC_TEXT_MODEL_V1_SONNET_4_5_20250929 = 6;
+  ANTHROPIC_TEXT_MODEL_V1_HAIKU_4_5_20251001 = 7;
+}
+
+enum GoogleTextModelV1 {
+  GOOGLE_TEXT_MODEL_V1_UNSPECIFIED = 0;
+  GOOGLE_TEXT_MODEL_V1_GEMINI_3_PRO = 1;
+  GOOGLE_TEXT_MODEL_V1_GEMINI_2_5_PRO = 2;
+  GOOGLE_TEXT_MODEL_V1_GEMINI_2_5_FLASH = 3;
+}
+
+enum XaiTextModelV1 {
+  XAI_TEXT_MODEL_V1_UNSPECIFIED = 0;
+  XAI_TEXT_MODEL_V1_GROK_4 = 1;
+  XAI_TEXT_MODEL_V1_GROK_4_FAST = 2;
+  XAI_TEXT_MODEL_V1_GROK_3 = 3;
+}
+
+enum MoonshotTextModelV1 {
+  MOONSHOT_TEXT_MODEL_V1_UNSPECIFIED = 0;
+  MOONSHOT_TEXT_MODEL_V1_KIMI_K2_THINKING = 1;
+  MOONSHOT_TEXT_MODEL_V1_KIMI_K2_0905_PREVIEW = 2;
+}
+
+enum DeepSeekTextModelV1 {
+  DEEP_SEEK_TEXT_MODEL_V1_UNSPECIFIED = 0;
+  DEEP_SEEK_TEXT_MODEL_V1_DEEPSEEK_REASONER = 1;
+  DEEP_SEEK_TEXT_MODEL_V1_DEEPSEEK_CHAT = 2;
+}
+
+// E1-1b: the three OpenRouter slugs this build can address, fetched from
+// GET https://openrouter.ai/api/v1/models on 2026-08-19 (415 models) rather
+// than remembered.
+//
+// Each value names a slug in the router's OWN namespace, prefix included, and
+// each has a lab-side twin already in the enums above -- which is what makes
+// the differentiator "the same model via the lab vs via the router" authorable
+// as two candidates over one frozen configuration. `anthropic/claude-sonnet-4.6`
+// and `claude-sonnet-4-6` are two different ADDRESSES for one model and this
+// build must not be able to confuse them.
+//
+// All three are aliases rather than dated snapshots -- OpenRouter's slug space
+// for these families carries no date suffix -- so a router candidate is doubly
+// unpinned: the alias may move and the upstream may change (H-OR-1, E1-4's to
+// close). Visible in the identifier, which is what NN51 asks for.
+enum OpenRouterTextModelV1 {
+  OPEN_ROUTER_TEXT_MODEL_V1_UNSPECIFIED = 0;
+  OPEN_ROUTER_TEXT_MODEL_V1_ANTHROPIC_CLAUDE_SONNET_4_6 = 1;
+  OPEN_ROUTER_TEXT_MODEL_V1_OPENAI_GPT_5_5 = 2;
+  OPEN_ROUTER_TEXT_MODEL_V1_MOONSHOTAI_KIMI_K2_THINKING = 3;
+}
+
+// Six sibling enums rather than one governed model-ref string list, decided in
+// increments/2026-08-18-e1-1-provider-matrix-kinds.md sec 0.1: the enum is what
+// makes "the builder offers a model the rate registry cannot price" a failing
+// test instead of a runtime lookup miss, and what keeps the wire model id a
+// &'static str through the candidate executor.
+message ProviderModelRefV1 {
+  oneof model {
+    OpenAiTextModelV1 openai = 1;
+    AnthropicTextModelV1 anthropic = 2;
+    GoogleTextModelV1 google = 3;
+    XaiTextModelV1 xai = 4;
+    MoonshotTextModelV1 moonshot = 5;
+    DeepSeekTextModelV1 deepseek = 6;
+    OpenRouterTextModelV1 openrouter = 7;
+  }
+}
+
+message ProviderRequestSettingsV1 {
+  optional uint32 max_output_tokens = 1;
+  optional double fixed_cost_usd = 2;
+  optional double input_token_rate_usd = 3;
+  optional double output_token_rate_usd = 4;
+  optional double budget_limit_usd = 5;
+  optional string anthropic_version = 6;
+  // Legacy string form. Prefer reasoning_effort_mode for new clients.
+  optional string reasoning_effort = 7;
+  optional uint32 reasoning_budget_tokens = 8;
+  optional double temperature = 9;
+  optional double top_p = 10;
+  optional double frequency_penalty = 11;
+  optional double presence_penalty = 12;
+  repeated string stop_sequences = 13;
+  optional ProviderToolChoiceV1 tool_choice = 14;
+  optional ProviderReasoningEffortV1 reasoning_effort_mode = 15;
+  optional ProviderVerbosityV1 verbosity = 16;
+  optional uint32 max_tool_calls = 17;
+  optional bool parallel_tool_calls = 18;
+  optional ProviderTruncationV1 truncation = 19;
+  optional string prompt_cache_key = 20;
+  optional ProviderPromptCacheRetentionV1 prompt_cache_retention = 21;
+  optional string safety_identifier = 22;
+  optional ProviderServiceTierV1 service_tier = 23;
+  optional uint32 top_logprobs = 24;
+  optional uint32 top_k = 25;
+  optional string anthropic_metadata_user_id = 26;
+  map<string, string> provider_metadata = 27;
+  optional string tool_choice_name = 28;
+}
 
 // ===========================================================================
 // Shared value objects and enums (canonical-type contract §4.7, §4.11, §5)
@@ -200,10 +483,30 @@ message CapabilityPostureV1 {
   optional string unavailable_reason_code = 4;
 }
 
+// From capability set version 51, a copy of this message EMBEDDED in a response
+// carries `capability_set_version` and `checked_at` only, with `postures`
+// EMPTY. The full set — every posture, every limit — is served by
+// `GetAgenticEvaluationCapabilities`, fetched once and cached against the
+// version. The embedded copy is the refetch trigger: when its stamped version
+// stops matching the cached set, fetch again.
+//
+// The field stays on every response that carries it, keeps its number and keeps
+// this type, so a client cached at 50 still parses everything it already
+// understood. What it stops paying is ~15 KB of postures on every list page,
+// repeated on a set it could only ever have cached.
 message AgenticEvaluationCapabilitiesV1 {
   uint64 capability_set_version = 1;
   repeated CapabilityPostureV1 postures = 2;
   google.protobuf.Timestamp checked_at = 3;
+}
+
+// No subject and no filter: the set is a property of the BUILD, not of a row,
+// a tenant or a caller. An empty request is what says so.
+message GetAgenticEvaluationCapabilitiesRequest {}
+
+// The only place the postures are served from. Always the FULL set.
+message GetAgenticEvaluationCapabilitiesResponse {
+  AgenticEvaluationCapabilitiesV1 capabilities = 1;
 }
 
 // Money, everywhere on this surface. Integer micros because f64 cents
@@ -333,7 +636,19 @@ message RecordedOutputCandidateV1 {
 
 message ProviderPromptCandidateV1 {
   ProviderModelRefV1 model = 1;
+  // A template in this scope (`O11Y-367`). Absent means the prompt is built
+  // from the case through `request_mapping`, which is what every candidate did
+  // before this verb existed.
+  //
+  // When BOTH a template and a `prompt` request mapping are present the
+  // TEMPLATE wins and the mapping feeds variables: the mapped target names
+  // become `{{names}}` the template may interpolate. A template that
+  // interpolates none of them still renders, and the mapping is then simply
+  // unused rather than an error.
   optional string prompt_template_id = 2;
+  // A specific version of that template. Absent means the newest non-archived
+  // one AT THE MOMENT THE CANDIDATE IS RESOLVED. A launched run freezes the
+  // resolved text into its manifest either way.
   optional string prompt_version_id = 3;
   optional ProviderRequestSettingsV1 request_settings = 4;
   // Base URL of the provider gateway this candidate is proxied through. Absent
@@ -1525,8 +1840,12 @@ message EvaluationRunManifestV1 {
   uint32 trials = 14;
   EvaluationHumanReviewPolicyV1 human_review_policy = 15;
   EvaluationDecisionPolicyV1 decision_policy = 16;
-  // The capability posture at launch, so a later reader knows which slices the
-  // build could serve when the evidence was produced.
+  // The capability STAMP at launch: the set version and the instant, postures
+  // empty, exactly as a response envelope carries it. A later reader names the
+  // set the evidence was produced under and fetches it by version from
+  // `GetAgenticEvaluationCapabilities`. Manifests frozen before capability set
+  // version 51 carry the full postures here; the number and the type are
+  // unchanged, so both still parse.
   AgenticEvaluationCapabilitiesV1 capability_set = 17;
   EvaluationLaunchModeV1 launch_mode = 18;
   // The estimate this launch reserved against its own ceiling. Absent on a
@@ -1555,6 +1874,10 @@ message EvaluationRunManifestV1 {
   // Absent on every manifest frozen before this field, which is what the
   // executor's fallback to the live template row exists for.
   repeated EvaluationFrozenEvaluatorRefV1 frozen_evaluators = 21;
+  // The live traces this launch selected, when its case source was the span
+  // plane rather than a dataset. Absent on every dataset-sourced run, which is
+  // every run that existed before this field.
+  optional LiveTraceCaseSourceSnapshotV1 live_trace_source = 22;
 }
 
 // Everything a launch freezes about ONE scorer's evaluator, so a template or
@@ -1780,10 +2103,108 @@ message EvaluationPreviewBlockerV1 {
   optional string posture_code = 6;
 }
 
+// Which traces a live-trace case source selects.
+//
+// Defined here rather than in `trace_view.proto`, where it was written and where
+// `ListAgentTracesRequest` still reads it from: that file imports THIS one (:45),
+// so the reverse import is a cycle. One filter, one meaning, one definition — a
+// scratch launch and the trace list must never disagree about what `errors_only`
+// selects, and two spellings is how they would.
+message AgentTraceListFilterV1 {
+  optional string customer_id = 1;
+  optional string deployment_id = 2;
+  // Traces with at least one failed span. Applied AFTER the aggregate: applying
+  // it to the rows would make `span_count` a count of failures and `started_at`
+  // the first failure's instant.
+  bool errors_only = 3;
+  // The members of one agent run. Resolved on the control plane FIRST, so the
+  // span scan is pruned to those trace ids rather than filtered after it.
+  optional string agent_run_id = 4;
+}
+
+// A launch whose cases come from live traces rather than from a dataset version.
+//
+// Only a `SCRATCH` launch may ask for it. The whole point of the mode is ad-hoc
+// iteration against production traffic, and a comparison run whose workload was
+// resolved from a moving span plane could not be compared with anything.
+message LiveTraceCaseSourceV1 {
+  // The same predicate `ListAgentTraces` applies, resolved on the same path, so
+  // the traces a scratch run materialises are the traces the list showed.
+  AgentTraceListFilterV1 filter = 1;
+  // How many traces to take. Zero means the cap. A larger number is CLAMPED to
+  // the cap rather than refused, and the clamp is reported in band on
+  // `PreviewEvaluationRunResponse.resolved_manifest.live_trace_source`.
+  uint32 limit = 2;
+  // How the root span maps onto the case, in the vocabulary a capture already
+  // uses. Empty selects the default projection: the paths
+  // `scoring::case_document` composes, so an unmapped case still resolves at
+  // execution with no adapter between.
+  repeated EvaluationCaptureFieldSelectionV1 field_selection = 3;
+}
+
+// What a live-trace launch RESOLVED, frozen into the manifest.
+//
+// The trace ids are here rather than re-resolved at launch because they are the
+// one input the world cannot be re-read for: the span plane moves, and a launch
+// that re-selected would run against a different population from the one whose
+// estimate the operator accepted.
+message LiveTraceCaseSourceSnapshotV1 {
+  // Exactly what was asked for, so a reader can see the request beside its
+  // resolution rather than having to infer one from the other.
+  LiveTraceCaseSourceV1 source = 1;
+  // The selected traces, in page order. At most `effective_limit` of them.
+  repeated string trace_ids = 2;
+  // What the server actually paged at, after the cap.
+  uint32 effective_limit = 3;
+  // Clamp and report, never truncate silently.
+  bool clamped = 4;
+  optional string clamp_reason_code = 5;
+  // The dataset version this launch materialises its cases into, derived at
+  // preview so the manifest names a real cohort and the launch writes into the
+  // id the operator already accepted.
+  string dataset_collection_id = 6;
+  string dataset_version_id = 7;
+  // The window the page was selected over, frozen so the launch's root-span scan
+  // reads the same interval. Re-defaulting "the last N hours" at launch would
+  // shift the window by the age of the preview and could drop a trace that was
+  // selected at its edge.
+  google.protobuf.Timestamp window_start = 8;
+  google.protobuf.Timestamp window_end = 9;
+}
+
 message PreviewEvaluationRunRequest {
   string definition_id = 1;
   // Absent means the current revision.
   optional string revision_id = 2;
+  // The mode this LAUNCH runs in, when it is not the definition's own.
+  //
+  // Absent is the definition's mode, which is today's behaviour exactly. Only
+  // `SCRATCH` may be asked for here; every other value is INVALID_ARGUMENT.
+  //
+  // DO NOT GENERALISE THIS to the other modes without moving what depends on
+  // them. The server derives a definition's MINIMUM CANDIDATE COUNT from the
+  // definition's own mode — a `COMPARISON` needs at least two candidates and a
+  // `VALIDATION` legitimately has one — and it checks that when the definition
+  // is authored, not when it is launched. A launch that could declare itself
+  // `VALIDATION` would therefore run a one-candidate comparison the authoring
+  // path refuses, and nothing downstream would notice. `SCRATCH` is exempt
+  // because it changes no rule a draft was validated against: it changes
+  // whether the RESULT is evidence.
+  //
+  // It rides the preview rather than the create because the preview response
+  // echoes it, the manifest freezes it, and the launch accepts that manifest by
+  // digest — so the mode a run is launched in is the mode whose estimate the
+  // operator agreed to, and there is nothing new to authenticate. On
+  // `CreateEvaluationRunRequest` it would sit outside the accepted preview.
+  optional EvaluationLaunchModeV1 launch_mode = 3;
+  // Take this run's cases from live traces instead of the definition's cohorts.
+  //
+  // Valid only alongside `launch_mode = SCRATCH`, and refused by name otherwise.
+  // It rides the preview for the reason `launch_mode` does: the selection is
+  // frozen into the manifest the launch accepts by digest, so the run
+  // materialises the population whose estimate the operator agreed to rather
+  // than whatever the span plane holds a minute later.
+  optional LiveTraceCaseSourceV1 live_traces = 4;
 }
 
 message PreviewEvaluationRunResponse {
@@ -3334,6 +3755,16 @@ message GetEvaluationRunOverviewResponse {
   // economics; this row references them by `member_score_config_id` and is
   // computed from the same numbers the reader can see beside it.
   repeated EvaluationScorerSuiteRollupV1 scorer_suite_rollups = 29;
+
+  // Whether what this response carries may be used as evidence.
+  //
+  // MANDATORY on the `SCRATCH_READ` class (screen contract §12.1): a scratch run
+  // renders on its own surface — that is the whole point of the mode — so the
+  // surface has to say that what it is showing is not evidence. Filing the read
+  // under `SUMMARY` and leaving this out would invite the one assumption the
+  // mode exists to prevent. `NOT_SUPPORTED / scratch_run_non_evidence` for a
+  // scratch run, AVAILABLE for every other run.
+  MetricAvailabilityV1 evidence_posture = 30;
 }
 
 // ===========================================================================
@@ -3639,6 +4070,11 @@ message ListEvaluationMatrixRowsResponse {
   repeated AllowedActionV1 allowed_actions = 12;
   AgenticEvaluationCapabilitiesV1 capabilities = 13;
   EvaluationFreshnessV1 freshness = 14;
+  // The run's evidence posture, on the same contract as the overview's field of
+  // this name (screen contract §12.1). The matrix is the scratch run's other own
+  // surface, and a client painting cells from it must be able to tell that they
+  // are not evidence without fetching the overview to find out.
+  MetricAvailabilityV1 evidence_posture = 15;
 }
 
 // The case behind a cell: what was asked and what was expected.
@@ -7138,6 +7574,12 @@ message EvaluationRunListFilterV1 {
   // ListEvaluationScoreSeries already holds itself to.
   optional google.protobuf.Timestamp created_after = 2;
   optional google.protobuf.Timestamp created_before = 3;
+  // Scratch runs are excluded from this list unless this is set, and are the
+  // ONLY runs it returns when it is. There is no "both": a scratch run is not
+  // evidence, so a history page that mixed the two would invite exactly the
+  // comparison the mode exists to prevent. "Only scratch" is the builder's own
+  // list of its in-flight iterations, which is why it needs no second RPC.
+  bool only_scratch = 4;
 }
 
 message ListEvaluationRunsRequest {
@@ -7270,6 +7712,16 @@ service AgenticEvaluationService {
   rpc ListEvaluationMatrixRows(ListEvaluationMatrixRowsRequest) returns (ListEvaluationMatrixRowsResponse);
   rpc BatchGetEvaluationCellDetails(BatchGetEvaluationCellDetailsRequest) returns (BatchGetEvaluationCellDetailsResponse);
   rpc ListEvaluationRunChanges(ListEvaluationRunChangesRequest) returns (ListEvaluationRunChangesResponse);
+
+  // The same feed as `ListEvaluationRunChanges`, pushed instead of polled: same
+  // request, same response message, same cursor semantics — it IS that verb, on
+  // one RPC. The server re-reads the journal every poll interval and sends a
+  // page whenever that read found changes. The first page is always sent, so
+  // `run_terminal`, `allowed_actions` and `capabilities` arrive immediately
+  // rather than after the first change. The stream ends, `OK`, once a page
+  // reports `run_terminal` with no further page to drain.
+  rpc WatchEvaluationRunChanges(ListEvaluationRunChangesRequest) returns (stream ListEvaluationRunChangesResponse);
+
   rpc GetExecutionArtifactContent(GetEvaluationArtifactContentRequest) returns (GetEvaluationArtifactContentResponse);
   rpc BatchGetExecutionArtifactContents(BatchGetEvaluationArtifactContentsRequest) returns (BatchGetEvaluationArtifactContentsResponse);
   rpc ListEvaluationReviewTasks(ListEvaluationReviewTasksRequest) returns (ListEvaluationReviewTasksResponse);
@@ -7678,6 +8130,27 @@ service AgenticEvaluationService {
   rpc ListPlatformAnnotations(ListPlatformAnnotationsRequest) returns (ListPlatformAnnotationsResponse);
   // ---- end wave 50 lane C ----
 
+  // ---- O11Y-366: the capture plane ----
+  //
+  // The same rows the legacy `Submit*` verbs write, through this service's
+  // scope and rollout path. Machine callers are refused: these attribute
+  // through an unkinded `actor_user_id` column, the same reason
+  // `CaptureEvaluationCase` holds no `REQUIRED_SCOPES` row.
+  rpc CaptureScore(CaptureScoreRequest) returns (CaptureScoreResponse);
+  rpc CaptureFeedback(CaptureFeedbackRequest) returns (CaptureFeedbackResponse);
+  rpc CaptureOutcome(CaptureOutcomeRequest) returns (CaptureOutcomeResponse);
+  rpc CaptureContentManifest(CaptureContentManifestRequest) returns (CaptureContentManifestResponse);
+  // ---- end O11Y-366 ----
+
+  // ---- O11Y-367: prompt templates ----
+  //
+  // `MUTATION_ACK` and `INITIAL_PAGE`. The store is the v1 `prompt_templates` /
+  // `prompt_versions` pair, which moves to the shared, v2-owned list; the v1
+  // verbs are untouched until W-V1-2.
+  rpc UpsertEvaluationPromptTemplate(UpsertEvaluationPromptTemplateRequest) returns (UpsertEvaluationPromptTemplateResponse);
+  rpc ListEvaluationPromptTemplates(ListEvaluationPromptTemplatesRequest) returns (ListEvaluationPromptTemplatesResponse);
+  // ---- end O11Y-367 ----
+
   // =========================================================================
   // Wave 52 lane B — the scorer LIBRARY: the reads `05` §2 and `17` §2.4 both
   // record as ABSENT, and the two archive verbs beside them.
@@ -7832,6 +8305,28 @@ service AgenticEvaluationService {
   // work under its own history.
   rpc ListDatasetChangesets(ListDatasetChangesetsRequest) returns (ListDatasetChangesetsResponse);
   // ---- end wave 52 lane A ----
+
+  // A2 `G22`, the Production Attention inbox (`BP:723-742`). One read over the
+  // projections that ALREADY exist, never an inbox-specific computation: 0b
+  // §3.6's coverage note is that every item kind has a typed source, and the
+  // two kinds that have none are reported as typed absences rather than
+  // omitted. See the block at the end of this file.
+  rpc ListProductionAttentionItems(ListProductionAttentionItemsRequest) returns (ListProductionAttentionItemsResponse);
+
+  // The capability set, served once instead of ridden 88 times.
+  //
+  // Every response on this surface and on `AgenticTraceViewService` embeds an
+  // `AgenticEvaluationCapabilitiesV1`; from version 51 that embedded copy is a
+  // STAMP — version and instant, no postures — and this is where the postures
+  // live. One RPC serves both services: the set is a property of the build, and
+  // a second verb on the trace-view service would be a second answer to a
+  // question that has one.
+  //
+  // `SUMMARY`, no statement of its own beyond the scope resolution every verb
+  // here pays. Scope-free for a machine principal, on `GetCallerPrincipal`'s
+  // reasoning: a machine that must discover what it may do before it plans
+  // cannot be asked for a scope in order to ask.
+  rpc GetAgenticEvaluationCapabilities(GetAgenticEvaluationCapabilitiesRequest) returns (GetAgenticEvaluationCapabilitiesResponse);
 }
 
 // ===========================================================================
@@ -11918,6 +12413,21 @@ enum MachinePrincipalScopeV1 {
   // and folding an annotation read into `EVAL_READ` would be exactly the scope
   // conflation the "never implied" rule above forbids.
   MACHINE_PRINCIPAL_SCOPE_V1_PLATFORM_ANNOTATION_WRITE = 5;
+  // RECORDED AMENDMENT, 2026-09-23 (increment §0.4, O11Y-448 section A). NOT
+  // one of the four NN44 names.
+  //
+  // `StartReleaseCanary` moved off the machine-forbidden table so a CI runner
+  // can start the canary for the build it just cut. Enforcement is
+  // deny-by-default, so without a discriminant the opened verb would have
+  // stayed reachable only from a browser, which no CI pipeline has.
+  //
+  // It is spelled RELEASE_CANARY and not RELEASE_WRITE on purpose. A canary is
+  // the one reversible step on the release plane, and the plane itself can end
+  // one; PROMOTE, HOLD, ABORT and ROLLBACK are the accountable decisions a
+  // person makes and stay off the machine surface entirely. A "write" spelling
+  // would read as a grant over all of them, which is the scope conflation the
+  // "never implied" rule above forbids.
+  MACHINE_PRINCIPAL_SCOPE_V1_RELEASE_CANARY = 6;
 }
 
 // 0a §6.3.
@@ -13171,3 +13681,301 @@ message ListDatasetChangesetsResponse {
   AgenticEvaluationCapabilitiesV1 capabilities = 5;
 }
 // ---- end wave 52 lane A ----
+
+// ===========================================================================
+// O11Y-366 — the capture plane
+// ===========================================================================
+//
+// Four writes into the four tables the OTLP fan-out and the legacy service
+// already share: `eval_scores`, `feedback_events`, `outcome_events`,
+// `content_manifests`. Field for field and number for number the v1
+// `SubmitScore` / `SubmitFeedback` / `SubmitOutcome` / `CreateContentManifest`
+// requests, with ONE difference: where a v1 request carries a
+// `google.protobuf.Struct`, these carry the same document as a JSON `string`
+// on the same field number. This surface accepts no `Struct` at all (R6/R7,
+// `PLAN:1895`, and `compat_security.rs` enforces it), and the established
+// shape for a document the service stores and never branches on is a
+// `..._json` string beside the `_json` fields the dataset plane already has.
+// The jsonb column the row lands in is byte-identical either way.
+
+message CaptureScoreRequest {
+  string metric_name = 1;
+  double score_value = 2;
+  optional string score_label = 3;
+  optional string explanation = 4;
+  ScoreSourceV1 source = 5;
+  optional string evaluator_name = 6;
+  optional string evaluator_version = 7;
+  optional string evaluator_kind = 8;
+  optional string execution_trace_id = 9;
+  CorrelationContextV1 correlation = 10;
+  string metadata_json = 11;
+  google.protobuf.Timestamp occurred_at = 12;
+}
+
+message CaptureScoreResponse {
+  string score_id = 1;
+  google.protobuf.Timestamp recorded_at = 2;
+  AgenticEvaluationCapabilitiesV1 capabilities = 3;
+}
+
+message CaptureFeedbackRequest {
+  string feedback_key = 1;
+  optional double rating_value = 2;
+  optional string rating_label = 3;
+  optional string comment = 4;
+  string correction_payload_json = 5;
+  FeedbackSourceTypeV1 source_type = 6;
+  optional string reviewer_identity = 7;
+  FeedbackApprovalStatusV1 approval_status = 8;
+  // A score in the caller's own scope. One in another organisation's is
+  // `NOT_FOUND`, indistinguishable from one that does not exist: confirming it
+  // exists to somebody who may not read it is itself a disclosure.
+  optional string linked_score_id = 9;
+  CorrelationContextV1 correlation = 10;
+  string metadata_json = 11;
+  google.protobuf.Timestamp occurred_at = 12;
+}
+
+message CaptureFeedbackResponse {
+  string feedback_event_id = 1;
+  google.protobuf.Timestamp recorded_at = 2;
+  AgenticEvaluationCapabilitiesV1 capabilities = 3;
+}
+
+message CaptureOutcomeRequest {
+  string outcome_type = 1;
+  optional string status = 2;
+  optional double numeric_value = 3;
+  string payload_json = 4;
+  CorrelationContextV1 correlation = 5;
+  google.protobuf.Timestamp occurred_at = 6;
+}
+
+message CaptureOutcomeResponse {
+  string outcome_event_id = 1;
+  google.protobuf.Timestamp recorded_at = 2;
+  AgenticEvaluationCapabilitiesV1 capabilities = 3;
+}
+
+message CaptureContentManifestRequest {
+  string content_class = 1;
+  string storage_uri = 2;
+  optional string storage_backend = 3;
+  optional string checksum_sha256 = 4;
+  optional int64 size_bytes = 5;
+  optional string encryption_key_ref = 6;
+  optional string sensitivity = 7;
+  optional string retention_class = 8;
+  optional string redaction_status = 9;
+  string metadata_json = 10;
+  CorrelationContextV1 correlation = 11;
+  google.protobuf.Timestamp occurred_at = 12;
+}
+
+message CaptureContentManifestResponse {
+  string content_manifest_id = 1;
+  google.protobuf.Timestamp recorded_at = 2;
+  AgenticEvaluationCapabilitiesV1 capabilities = 3;
+}
+
+// ===========================================================================
+// O11Y-367 — prompt templates
+// ===========================================================================
+//
+// The v1 `prompt_templates` / `prompt_versions` tables, on this surface. A
+// template is a named, versioned prompt; a provider candidate pins one by id
+// and renders it with the case's own fields.
+//
+// No `environments` field, unlike `PromptTemplateV1`. The legacy promotion
+// vocabulary (draft / prod / candidate / experiment) belongs to a plane this
+// one does not have: a v2 candidate pins a VERSION ID, frozen into the run
+// manifest at launch, so "which version is live in staging" is a question
+// nothing here asks. Adding the enum would be publishing a knob no verb reads.
+
+message EvaluationPromptVersionV1 {
+  string prompt_version_id = 1;
+  string prompt_template_id = 2;
+  uint32 version_number = 3;
+  optional string version_label = 4;
+  // `<template_key>@v<n>`, minted by the store.
+  string version_ref = 5;
+  string prompt_text = 6;
+  optional string system_prompt = 7;
+  bool is_archived = 8;
+  google.protobuf.Timestamp created_at = 9;
+}
+
+message EvaluationPromptTemplateV1 {
+  string prompt_template_id = 1;
+  string template_key = 2;
+  string name = 3;
+  optional string description = 4;
+  string labels_json = 5;
+  bool is_archived = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+  // The newest non-archived version. Absent on a template whose every version
+  // is archived — which is a real state, and not the same as a new template.
+  optional EvaluationPromptVersionV1 latest_version = 9;
+  // Every version, archived ones included.
+  uint32 version_count = 10;
+}
+
+// Creates the template when `template_key` is new in this scope, and ALWAYS
+// appends a version. A prompt is never edited in place: a run pins a version
+// id, and a version whose text could move would make a pinned run
+// unreproducible.
+message UpsertEvaluationPromptTemplateRequest {
+  string template_key = 1;
+  string name = 2;
+  optional string description = 3;
+  string prompt_text = 4;
+  optional string system_prompt = 5;
+  string labels_json = 6;
+  optional string version_label = 7;
+}
+
+message UpsertEvaluationPromptTemplateResponse {
+  EvaluationPromptTemplateV1 template = 1;
+  EvaluationPromptVersionV1 version = 2;
+  // True when the template row was minted by this call.
+  bool created = 3;
+  AgenticEvaluationCapabilitiesV1 capabilities = 4;
+}
+
+message ListEvaluationPromptTemplatesRequest {
+  bool include_archived = 1;
+  uint32 page_size = 2;
+  uint32 offset = 3;
+}
+
+message ListEvaluationPromptTemplatesResponse {
+  repeated EvaluationPromptTemplateV1 templates = 1;
+  optional uint32 next_offset = 2;
+  AgenticEvaluationCapabilitiesV1 capabilities = 3;
+}
+
+// ===========================================================================
+// Phase 7A: the Production Attention inbox — A2 `G22`
+// ===========================================================================
+//
+// `BP:723-742` lists six item kinds. 0b §3.6's coverage note supplies a typed
+// source for four of them — the SM-8 block ledger, the `P6-17` per-rule-version
+// health projection, §7's review backlog and §4's instrumentation signal — and
+// says the other two read from a ranking projection that does not exist. This
+// surface therefore reports those two as `NOT_SUPPORTED` with their own reason
+// codes rather than computing a substitute: an inbox that quietly ranked
+// "repeated customer-impacting failure" by something else would be the exact
+// instrumentation lie NN4 forbids.
+//
+// Nothing here is a new projection. Every field is read from a row that another
+// verb already serves, which is why the whole inbox fits inside `INITIAL_PAGE`
+// (A4 `S8`): three statements, fifty rows.
+
+enum ProductionAttentionItemKindV1 {
+  PRODUCTION_ATTENTION_ITEM_KIND_V1_UNSPECIFIED = 0;
+  // SM-8: a release carrying at least one block in `_ACTIVE` or
+  // `_INDETERMINATE`. `_INDETERMINATE` counts because `PLAN:1612` fails closed.
+  PRODUCTION_ATTENTION_ITEM_KIND_V1_RELEASE_BLOCKING_REGRESSION = 1;
+  // No ranking projection. Declared so the enum matches `BP:723-742`'s list and
+  // a client can render the absence, never emitted in `items`.
+  PRODUCTION_ATTENTION_ITEM_KIND_V1_REPEATED_CUSTOMER_IMPACTING_FAILURE = 2;
+  // `P6-17`: an active rule version whose window saw eligible work and matched
+  // none of it.
+  PRODUCTION_ATTENTION_ITEM_KIND_V1_RULE_ZERO_COVERAGE = 3;
+  PRODUCTION_ATTENTION_ITEM_KIND_V1_RULE_LAG = 4;
+  PRODUCTION_ATTENTION_ITEM_KIND_V1_RULE_DEAD_LETTER = 5;
+  PRODUCTION_ATTENTION_ITEM_KIND_V1_REVIEW_BACKLOG = 6;
+  // Completeness only: cells that RAN against cells that reported economics,
+  // both counted on the run projection. There is no blocking-gap flag on that
+  // row and this surface does not invent one — see the posture limit
+  // `instrumentation_gap_blocking_flag`.
+  PRODUCTION_ATTENTION_ITEM_KIND_V1_INSTRUMENTATION_GAP = 7;
+  // No baseline projection. Declared, never emitted — see the enum comment on
+  // `_REPEATED_CUSTOMER_IMPACTING_FAILURE`.
+  PRODUCTION_ATTENTION_ITEM_KIND_V1_COST_LATENCY_SHIFT = 8;
+}
+
+// Three bands, ordered by the number: the server ranks on this field ascending,
+// so a client that sorts by the enum reproduces the server's order rather than
+// inventing a second one.
+enum ProductionAttentionSeverityV1 {
+  PRODUCTION_ATTENTION_SEVERITY_V1_UNSPECIFIED = 0;
+  // Something cannot ship until a human acts.
+  PRODUCTION_ATTENTION_SEVERITY_V1_BLOCKING = 1;
+  // Running, but not producing the evidence it was configured to produce.
+  PRODUCTION_ATTENTION_SEVERITY_V1_DEGRADED = 2;
+  // Work is queued for a human, or evidence is incomplete. Nothing is broken
+  // and nothing is known to have changed a decision.
+  PRODUCTION_ATTENTION_SEVERITY_V1_WATCH = 3;
+}
+
+// The ONE action a caller may take that cannot make the situation worse
+// (`BP:742`). Typed rather than a URL: a deep link is a rendering decision and
+// this is a policy one.
+enum ProductionAttentionNextActionV1 {
+  PRODUCTION_ATTENTION_NEXT_ACTION_V1_UNSPECIFIED = 0;
+  PRODUCTION_ATTENTION_NEXT_ACTION_V1_INVESTIGATE_RELEASE_BLOCK = 1;
+  PRODUCTION_ATTENTION_NEXT_ACTION_V1_RESUME_OR_FIX_RULE = 2;
+  PRODUCTION_ATTENTION_NEXT_ACTION_V1_INSPECT_DEAD_LETTERS = 3;
+  PRODUCTION_ATTENTION_NEXT_ACTION_V1_CLAIM_REVIEW_TASKS = 4;
+  PRODUCTION_ATTENTION_NEXT_ACTION_V1_FIX_INSTRUMENTATION = 5;
+}
+
+message ProductionAttentionItemV1 {
+  // `<kind>:<subject id>`, server-composed and stable across pages, so a client
+  // paging the inbox can dedupe without joining internal ids (§8.1's assertion
+  // set forbids that join).
+  string item_id = 1;
+  ProductionAttentionItemKindV1 kind = 2;
+  ProductionAttentionSeverityV1 severity = 3;
+  // One sentence, composed by the server FROM THE COUNTS ON THE SOURCE ROW.
+  // There is no stored free-text field behind it, and there deliberately is
+  // not: an inbox whose explanation came from storage would render whatever
+  // some earlier write put there.
+  string why_it_matters = 4;
+  oneof subject {
+    string release_id = 5;
+    string production_rule_version_id = 6;
+    string evaluation_run_id = 7;
+  }
+  // The SOURCE PROJECTION's own freshness instant, not the time this response
+  // was composed. Evidence age is the thing the operator is triaging on.
+  google.protobuf.Timestamp evidence_observed_at = 8;
+  // Present exactly when the source row carries a principal — the rule's
+  // `created_by`, the release's creating actor, the run's launching actor.
+  // Never inferred and never defaulted to the caller.
+  optional PrincipalRefV1 owner = 9;
+  ProductionAttentionNextActionV1 next_safe_action = 10;
+}
+
+// Per-kind availability, so "this kind produced no items" and "this build
+// cannot answer this kind" are different answers. Keyed by kind rather than
+// reusing a bare `MetricAvailabilityV1` because the absence is per ROW CLASS
+// here, not per metric.
+message ProductionAttentionKindAvailabilityV1 {
+  ProductionAttentionItemKindV1 kind = 1;
+  MetricAvailabilityV1 availability = 2;
+}
+
+message ListProductionAttentionItemsRequest {
+  // 0 means the published default. The ceiling equals the default (A4 `S8`):
+  // a client that asks for more is clamped and `effective_page_size` says so.
+  uint32 page_size = 1;
+  string page_token = 2;
+  // Empty means every kind. Naming a kind with no source is not an error — the
+  // response carries its availability row and an empty page.
+  repeated ProductionAttentionItemKindV1 kinds = 3;
+}
+
+message ListProductionAttentionItemsResponse {
+  repeated ProductionAttentionItemV1 items = 1;
+  optional string next_page_token = 2;
+  // One row per named kind, on EVERY response including an empty one. A client
+  // learns which kinds this build can answer without a second call.
+  repeated ProductionAttentionKindAvailabilityV1 kind_availability = 3;
+  bool has_more = 4;
+  uint32 effective_page_size = 5;
+  EvaluationFreshnessV1 freshness = 6;
+}

@@ -204,14 +204,20 @@ lint-go:
     set -euo pipefail
     (cd gen/go && go vet ./...)
     (cd internal/gen/go && go vet ./...)
-    cd tools/ci-runner
-    unformatted="$(gofmt -l .)"
-    if [[ -n "$unformatted" ]]; then
-        echo "gofmt would change these files:" >&2
-        echo "$unformatted" >&2
-        exit 1
-    fi
-    go vet ./...
+    # Every tool module, not just the first one written: test-go already runs
+    # both suites, so a tool the linter skips is one nobody formats.
+    for tool in tools/ci-runner tools/pr-diff; do
+        (
+            cd "$tool"
+            unformatted="$(gofmt -l .)"
+            if [[ -n "$unformatted" ]]; then
+                echo "gofmt would change these files in $tool:" >&2
+                echo "$unformatted" >&2
+                exit 1
+            fi
+            go vet ./...
+        )
+    done
 
 # --- clean ------------------------------------------------------------------
 

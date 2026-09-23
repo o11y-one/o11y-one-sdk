@@ -68,6 +68,7 @@ class TraceReadRefusalKindV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     TRACE_READ_REFUSAL_KIND_V1_SPAN_POPULATION_EXCEEDS_CAP: _ClassVar[TraceReadRefusalKindV1]
     TRACE_READ_REFUSAL_KIND_V1_TRACE_ROOT_NOT_IN_POPULATION: _ClassVar[TraceReadRefusalKindV1]
     TRACE_READ_REFUSAL_KIND_V1_WINDOW_OUTSIDE_RETAINED_LOOKBACK: _ClassVar[TraceReadRefusalKindV1]
+    TRACE_READ_REFUSAL_KIND_V1_READ_BUDGET_EXHAUSTED: _ClassVar[TraceReadRefusalKindV1]
 
 class AgentRunOutcomeV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -163,6 +164,7 @@ TRACE_READ_REFUSAL_KIND_V1_TRACE_NOT_FOUND: TraceReadRefusalKindV1
 TRACE_READ_REFUSAL_KIND_V1_SPAN_POPULATION_EXCEEDS_CAP: TraceReadRefusalKindV1
 TRACE_READ_REFUSAL_KIND_V1_TRACE_ROOT_NOT_IN_POPULATION: TraceReadRefusalKindV1
 TRACE_READ_REFUSAL_KIND_V1_WINDOW_OUTSIDE_RETAINED_LOOKBACK: TraceReadRefusalKindV1
+TRACE_READ_REFUSAL_KIND_V1_READ_BUDGET_EXHAUSTED: TraceReadRefusalKindV1
 AGENT_RUN_OUTCOME_V1_UNSPECIFIED: AgentRunOutcomeV1
 AGENT_RUN_OUTCOME_V1_UNKNOWN: AgentRunOutcomeV1
 AGENT_RUN_OUTCOME_V1_SUCCEEDED: AgentRunOutcomeV1
@@ -383,7 +385,7 @@ class TraceOperationGroupV1(_message.Message):
     def __init__(self, kind: _Optional[_Union[TraceOperationKindV1, str]] = ..., target: _Optional[str] = ..., collapsed_count: _Optional[int] = ..., failure_count: _Optional[int] = ..., total_duration_micros: _Optional[int] = ..., p95_duration_micros: _Optional[int] = ..., p95_availability: _Optional[_Union[_evaluation_pb2.MetricAvailabilityV1, _Mapping]] = ..., outliers: _Optional[_Iterable[_Union[TraceSpanOutlierV1, _Mapping]]] = ..., omitted_outlier_count: _Optional[int] = ..., faults: _Optional[_Union[TraceFaultBreakdownV1, _Mapping]] = ..., cost: _Optional[_Union[TraceSpanCostRollupV1, _Mapping]] = ...) -> None: ...
 
 class TraceStepSummaryV1(_message.Message):
-    __slots__ = ("step_id", "step_name", "agent_name", "agent_id", "started_at", "ended_at", "wall_time_micros", "wall_time_share_basis_points", "wall_time_share_availability", "operation_count", "failure_count", "operation_groups", "omitted_operation_group_count", "faults", "first_failure")
+    __slots__ = ("step_id", "step_name", "agent_name", "agent_id", "started_at", "ended_at", "wall_time_micros", "wall_time_share_basis_points", "wall_time_share_availability", "operation_count", "failure_count", "operation_groups", "omitted_operation_group_count", "faults", "first_failure", "cost")
     STEP_ID_FIELD_NUMBER: _ClassVar[int]
     STEP_NAME_FIELD_NUMBER: _ClassVar[int]
     AGENT_NAME_FIELD_NUMBER: _ClassVar[int]
@@ -399,6 +401,7 @@ class TraceStepSummaryV1(_message.Message):
     OMITTED_OPERATION_GROUP_COUNT_FIELD_NUMBER: _ClassVar[int]
     FAULTS_FIELD_NUMBER: _ClassVar[int]
     FIRST_FAILURE_FIELD_NUMBER: _ClassVar[int]
+    COST_FIELD_NUMBER: _ClassVar[int]
     step_id: str
     step_name: str
     agent_name: str
@@ -414,7 +417,8 @@ class TraceStepSummaryV1(_message.Message):
     omitted_operation_group_count: int
     faults: TraceFaultBreakdownV1
     first_failure: TraceFirstFailureV1
-    def __init__(self, step_id: _Optional[str] = ..., step_name: _Optional[str] = ..., agent_name: _Optional[str] = ..., agent_id: _Optional[str] = ..., started_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., ended_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., wall_time_micros: _Optional[int] = ..., wall_time_share_basis_points: _Optional[int] = ..., wall_time_share_availability: _Optional[_Union[_evaluation_pb2.MetricAvailabilityV1, _Mapping]] = ..., operation_count: _Optional[int] = ..., failure_count: _Optional[int] = ..., operation_groups: _Optional[_Iterable[_Union[TraceOperationGroupV1, _Mapping]]] = ..., omitted_operation_group_count: _Optional[int] = ..., faults: _Optional[_Union[TraceFaultBreakdownV1, _Mapping]] = ..., first_failure: _Optional[_Union[TraceFirstFailureV1, _Mapping]] = ...) -> None: ...
+    cost: TraceSpanCostRollupV1
+    def __init__(self, step_id: _Optional[str] = ..., step_name: _Optional[str] = ..., agent_name: _Optional[str] = ..., agent_id: _Optional[str] = ..., started_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., ended_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., wall_time_micros: _Optional[int] = ..., wall_time_share_basis_points: _Optional[int] = ..., wall_time_share_availability: _Optional[_Union[_evaluation_pb2.MetricAvailabilityV1, _Mapping]] = ..., operation_count: _Optional[int] = ..., failure_count: _Optional[int] = ..., operation_groups: _Optional[_Iterable[_Union[TraceOperationGroupV1, _Mapping]]] = ..., omitted_operation_group_count: _Optional[int] = ..., faults: _Optional[_Union[TraceFaultBreakdownV1, _Mapping]] = ..., first_failure: _Optional[_Union[TraceFirstFailureV1, _Mapping]] = ..., cost: _Optional[_Union[TraceSpanCostRollupV1, _Mapping]] = ...) -> None: ...
 
 class TraceCriticalPathStepV1(_message.Message):
     __slots__ = ("span_id", "span_name", "kind", "duration_micros", "self_duration_micros", "depth", "step_id")
@@ -479,7 +483,7 @@ class TraceNeedsAttentionSetV1(_message.Message):
     def __init__(self, items: _Optional[_Iterable[_Union[TraceAttentionItemV1, _Mapping]]] = ..., error_count: _Optional[int] = ..., warn_count: _Optional[int] = ..., slow_outlier_count: _Optional[int] = ..., omitted_item_count: _Optional[int] = ...) -> None: ...
 
 class AgentTraceHeaderV1(_message.Message):
-    __slots__ = ("trace_id", "started_at", "ended_at", "wall_time_micros", "span_count", "step_count", "unattributed_span_count", "step_availability")
+    __slots__ = ("trace_id", "started_at", "ended_at", "wall_time_micros", "span_count", "step_count", "unattributed_span_count", "step_availability", "cost", "retried_span_count")
     TRACE_ID_FIELD_NUMBER: _ClassVar[int]
     STARTED_AT_FIELD_NUMBER: _ClassVar[int]
     ENDED_AT_FIELD_NUMBER: _ClassVar[int]
@@ -488,6 +492,8 @@ class AgentTraceHeaderV1(_message.Message):
     STEP_COUNT_FIELD_NUMBER: _ClassVar[int]
     UNATTRIBUTED_SPAN_COUNT_FIELD_NUMBER: _ClassVar[int]
     STEP_AVAILABILITY_FIELD_NUMBER: _ClassVar[int]
+    COST_FIELD_NUMBER: _ClassVar[int]
+    RETRIED_SPAN_COUNT_FIELD_NUMBER: _ClassVar[int]
     trace_id: str
     started_at: _timestamp_pb2.Timestamp
     ended_at: _timestamp_pb2.Timestamp
@@ -496,7 +502,9 @@ class AgentTraceHeaderV1(_message.Message):
     step_count: int
     unattributed_span_count: int
     step_availability: _evaluation_pb2.MetricAvailabilityV1
-    def __init__(self, trace_id: _Optional[str] = ..., started_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., ended_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., wall_time_micros: _Optional[int] = ..., span_count: _Optional[int] = ..., step_count: _Optional[int] = ..., unattributed_span_count: _Optional[int] = ..., step_availability: _Optional[_Union[_evaluation_pb2.MetricAvailabilityV1, _Mapping]] = ...) -> None: ...
+    cost: TraceSpanCostRollupV1
+    retried_span_count: int
+    def __init__(self, trace_id: _Optional[str] = ..., started_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., ended_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., wall_time_micros: _Optional[int] = ..., span_count: _Optional[int] = ..., step_count: _Optional[int] = ..., unattributed_span_count: _Optional[int] = ..., step_availability: _Optional[_Union[_evaluation_pb2.MetricAvailabilityV1, _Mapping]] = ..., cost: _Optional[_Union[TraceSpanCostRollupV1, _Mapping]] = ..., retried_span_count: _Optional[int] = ...) -> None: ...
 
 class TraceSpanContentRefV1(_message.Message):
     __slots__ = ("content_class", "storage_uri")
@@ -506,8 +514,18 @@ class TraceSpanContentRefV1(_message.Message):
     storage_uri: str
     def __init__(self, content_class: _Optional[str] = ..., storage_uri: _Optional[str] = ...) -> None: ...
 
+class TraceSpanRetryV1(_message.Message):
+    __slots__ = ("chain_id", "attempt_index", "attempt_count")
+    CHAIN_ID_FIELD_NUMBER: _ClassVar[int]
+    ATTEMPT_INDEX_FIELD_NUMBER: _ClassVar[int]
+    ATTEMPT_COUNT_FIELD_NUMBER: _ClassVar[int]
+    chain_id: str
+    attempt_index: int
+    attempt_count: int
+    def __init__(self, chain_id: _Optional[str] = ..., attempt_index: _Optional[int] = ..., attempt_count: _Optional[int] = ...) -> None: ...
+
 class TraceSpanV1(_message.Message):
-    __slots__ = ("span_id", "parent_span_id", "step_id", "name", "kind", "target", "service_name", "started_at", "ended_at", "duration_micros", "status", "is_error", "error_type", "error_message", "has_exception_event", "verbatim_usage", "time_to_first_token_availability", "content_refs", "cost")
+    __slots__ = ("span_id", "parent_span_id", "step_id", "name", "kind", "target", "service_name", "started_at", "ended_at", "duration_micros", "status", "is_error", "error_type", "error_message", "has_exception_event", "verbatim_usage", "time_to_first_token_availability", "content_refs", "cost", "retry")
     SPAN_ID_FIELD_NUMBER: _ClassVar[int]
     PARENT_SPAN_ID_FIELD_NUMBER: _ClassVar[int]
     STEP_ID_FIELD_NUMBER: _ClassVar[int]
@@ -527,6 +545,7 @@ class TraceSpanV1(_message.Message):
     TIME_TO_FIRST_TOKEN_AVAILABILITY_FIELD_NUMBER: _ClassVar[int]
     CONTENT_REFS_FIELD_NUMBER: _ClassVar[int]
     COST_FIELD_NUMBER: _ClassVar[int]
+    RETRY_FIELD_NUMBER: _ClassVar[int]
     span_id: str
     parent_span_id: str
     step_id: str
@@ -546,7 +565,8 @@ class TraceSpanV1(_message.Message):
     time_to_first_token_availability: _evaluation_pb2.MetricAvailabilityV1
     content_refs: _containers.RepeatedCompositeFieldContainer[TraceSpanContentRefV1]
     cost: TraceSpanCostV1
-    def __init__(self, span_id: _Optional[str] = ..., parent_span_id: _Optional[str] = ..., step_id: _Optional[str] = ..., name: _Optional[str] = ..., kind: _Optional[_Union[TraceOperationKindV1, str]] = ..., target: _Optional[str] = ..., service_name: _Optional[str] = ..., started_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., ended_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., duration_micros: _Optional[int] = ..., status: _Optional[_Union[TraceSpanStatusV1, str]] = ..., is_error: _Optional[bool] = ..., error_type: _Optional[str] = ..., error_message: _Optional[str] = ..., has_exception_event: _Optional[bool] = ..., verbatim_usage: _Optional[_Union[_evaluation_pb2.ProviderUsageRecordV1, _Mapping]] = ..., time_to_first_token_availability: _Optional[_Union[_evaluation_pb2.MetricAvailabilityV1, _Mapping]] = ..., content_refs: _Optional[_Iterable[_Union[TraceSpanContentRefV1, _Mapping]]] = ..., cost: _Optional[_Union[TraceSpanCostV1, _Mapping]] = ...) -> None: ...
+    retry: TraceSpanRetryV1
+    def __init__(self, span_id: _Optional[str] = ..., parent_span_id: _Optional[str] = ..., step_id: _Optional[str] = ..., name: _Optional[str] = ..., kind: _Optional[_Union[TraceOperationKindV1, str]] = ..., target: _Optional[str] = ..., service_name: _Optional[str] = ..., started_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., ended_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., duration_micros: _Optional[int] = ..., status: _Optional[_Union[TraceSpanStatusV1, str]] = ..., is_error: _Optional[bool] = ..., error_type: _Optional[str] = ..., error_message: _Optional[str] = ..., has_exception_event: _Optional[bool] = ..., verbatim_usage: _Optional[_Union[_evaluation_pb2.ProviderUsageRecordV1, _Mapping]] = ..., time_to_first_token_availability: _Optional[_Union[_evaluation_pb2.MetricAvailabilityV1, _Mapping]] = ..., content_refs: _Optional[_Iterable[_Union[TraceSpanContentRefV1, _Mapping]]] = ..., cost: _Optional[_Union[TraceSpanCostV1, _Mapping]] = ..., retry: _Optional[_Union[TraceSpanRetryV1, _Mapping]] = ...) -> None: ...
 
 class GetAgentTraceDetailRequest(_message.Message):
     __slots__ = ("trace_id", "start", "end")
@@ -1287,3 +1307,149 @@ class ResolveExternalArtifactLinkResponse(_message.Message):
     reason_code: str
     attempted_at: _timestamp_pb2.Timestamp
     def __init__(self, posture: _Optional[_Union[_artifact_pb2.ArtifactResolverPostureV1, str]] = ..., reason_code: _Optional[str] = ..., attempted_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+
+class AgentTraceRowV1(_message.Message):
+    __slots__ = ("trace_id", "started_at", "ended_at", "wall_time_micros", "span_count", "error_count", "agent_count", "model_count", "tool_count", "customer", "deployment", "versions", "agent_run_id")
+    TRACE_ID_FIELD_NUMBER: _ClassVar[int]
+    STARTED_AT_FIELD_NUMBER: _ClassVar[int]
+    ENDED_AT_FIELD_NUMBER: _ClassVar[int]
+    WALL_TIME_MICROS_FIELD_NUMBER: _ClassVar[int]
+    SPAN_COUNT_FIELD_NUMBER: _ClassVar[int]
+    ERROR_COUNT_FIELD_NUMBER: _ClassVar[int]
+    AGENT_COUNT_FIELD_NUMBER: _ClassVar[int]
+    MODEL_COUNT_FIELD_NUMBER: _ClassVar[int]
+    TOOL_COUNT_FIELD_NUMBER: _ClassVar[int]
+    CUSTOMER_FIELD_NUMBER: _ClassVar[int]
+    DEPLOYMENT_FIELD_NUMBER: _ClassVar[int]
+    VERSIONS_FIELD_NUMBER: _ClassVar[int]
+    AGENT_RUN_ID_FIELD_NUMBER: _ClassVar[int]
+    trace_id: str
+    started_at: _timestamp_pb2.Timestamp
+    ended_at: _timestamp_pb2.Timestamp
+    wall_time_micros: int
+    span_count: int
+    error_count: int
+    agent_count: int
+    model_count: int
+    tool_count: int
+    customer: AgentRunDimensionV1
+    deployment: AgentRunDimensionV1
+    versions: AgentRunVersionContextV1
+    agent_run_id: str
+    def __init__(self, trace_id: _Optional[str] = ..., started_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., ended_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., wall_time_micros: _Optional[int] = ..., span_count: _Optional[int] = ..., error_count: _Optional[int] = ..., agent_count: _Optional[int] = ..., model_count: _Optional[int] = ..., tool_count: _Optional[int] = ..., customer: _Optional[_Union[AgentRunDimensionV1, _Mapping]] = ..., deployment: _Optional[_Union[AgentRunDimensionV1, _Mapping]] = ..., versions: _Optional[_Union[AgentRunVersionContextV1, _Mapping]] = ..., agent_run_id: _Optional[str] = ...) -> None: ...
+
+class ListAgentTracesRequest(_message.Message):
+    __slots__ = ("start", "end", "filter", "limit", "page_token")
+    START_FIELD_NUMBER: _ClassVar[int]
+    END_FIELD_NUMBER: _ClassVar[int]
+    FILTER_FIELD_NUMBER: _ClassVar[int]
+    LIMIT_FIELD_NUMBER: _ClassVar[int]
+    PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    start: _timestamp_pb2.Timestamp
+    end: _timestamp_pb2.Timestamp
+    filter: _evaluation_pb2.AgentTraceListFilterV1
+    limit: int
+    page_token: str
+    def __init__(self, start: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., end: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., filter: _Optional[_Union[_evaluation_pb2.AgentTraceListFilterV1, _Mapping]] = ..., limit: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
+
+class ListAgentTracesResponse(_message.Message):
+    __slots__ = ("traces", "next_page_token", "has_more", "window", "boundary", "cursor_semantics_code", "freshness", "capabilities", "refusal")
+    TRACES_FIELD_NUMBER: _ClassVar[int]
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    HAS_MORE_FIELD_NUMBER: _ClassVar[int]
+    WINDOW_FIELD_NUMBER: _ClassVar[int]
+    BOUNDARY_FIELD_NUMBER: _ClassVar[int]
+    CURSOR_SEMANTICS_CODE_FIELD_NUMBER: _ClassVar[int]
+    FRESHNESS_FIELD_NUMBER: _ClassVar[int]
+    CAPABILITIES_FIELD_NUMBER: _ClassVar[int]
+    REFUSAL_FIELD_NUMBER: _ClassVar[int]
+    traces: _containers.RepeatedCompositeFieldContainer[AgentTraceRowV1]
+    next_page_token: str
+    has_more: bool
+    window: TraceWindowV1
+    boundary: TraceSpanPopulationBoundaryV1
+    cursor_semantics_code: str
+    freshness: _evaluation_pb2.EvaluationFreshnessV1
+    capabilities: _evaluation_pb2.AgenticEvaluationCapabilitiesV1
+    refusal: TraceReadRefusalV1
+    def __init__(self, traces: _Optional[_Iterable[_Union[AgentTraceRowV1, _Mapping]]] = ..., next_page_token: _Optional[str] = ..., has_more: _Optional[bool] = ..., window: _Optional[_Union[TraceWindowV1, _Mapping]] = ..., boundary: _Optional[_Union[TraceSpanPopulationBoundaryV1, _Mapping]] = ..., cursor_semantics_code: _Optional[str] = ..., freshness: _Optional[_Union[_evaluation_pb2.EvaluationFreshnessV1, _Mapping]] = ..., capabilities: _Optional[_Union[_evaluation_pb2.AgenticEvaluationCapabilitiesV1, _Mapping]] = ..., refusal: _Optional[_Union[TraceReadRefusalV1, _Mapping]] = ...) -> None: ...
+
+class TraceInvestigationUnavailableReasonV1(_message.Message):
+    __slots__ = ("section", "reason_code", "message", "retryable")
+    SECTION_FIELD_NUMBER: _ClassVar[int]
+    REASON_CODE_FIELD_NUMBER: _ClassVar[int]
+    MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    RETRYABLE_FIELD_NUMBER: _ClassVar[int]
+    section: str
+    reason_code: str
+    message: str
+    retryable: bool
+    def __init__(self, section: _Optional[str] = ..., reason_code: _Optional[str] = ..., message: _Optional[str] = ..., retryable: _Optional[bool] = ...) -> None: ...
+
+class TraceInvestigationEvidenceLinkV1(_message.Message):
+    __slots__ = ("evidence_type", "evidence_id", "trace_id", "span_id", "label")
+    EVIDENCE_TYPE_FIELD_NUMBER: _ClassVar[int]
+    EVIDENCE_ID_FIELD_NUMBER: _ClassVar[int]
+    TRACE_ID_FIELD_NUMBER: _ClassVar[int]
+    SPAN_ID_FIELD_NUMBER: _ClassVar[int]
+    LABEL_FIELD_NUMBER: _ClassVar[int]
+    evidence_type: str
+    evidence_id: str
+    trace_id: str
+    span_id: str
+    label: str
+    def __init__(self, evidence_type: _Optional[str] = ..., evidence_id: _Optional[str] = ..., trace_id: _Optional[str] = ..., span_id: _Optional[str] = ..., label: _Optional[str] = ...) -> None: ...
+
+class AgenticEvidenceGraphNodeV1(_message.Message):
+    __slots__ = ("node_id", "node_type", "label", "status", "metadata_json", "evidence_links")
+    NODE_ID_FIELD_NUMBER: _ClassVar[int]
+    NODE_TYPE_FIELD_NUMBER: _ClassVar[int]
+    LABEL_FIELD_NUMBER: _ClassVar[int]
+    STATUS_FIELD_NUMBER: _ClassVar[int]
+    METADATA_JSON_FIELD_NUMBER: _ClassVar[int]
+    EVIDENCE_LINKS_FIELD_NUMBER: _ClassVar[int]
+    node_id: str
+    node_type: str
+    label: str
+    status: str
+    metadata_json: str
+    evidence_links: _containers.RepeatedCompositeFieldContainer[TraceInvestigationEvidenceLinkV1]
+    def __init__(self, node_id: _Optional[str] = ..., node_type: _Optional[str] = ..., label: _Optional[str] = ..., status: _Optional[str] = ..., metadata_json: _Optional[str] = ..., evidence_links: _Optional[_Iterable[_Union[TraceInvestigationEvidenceLinkV1, _Mapping]]] = ...) -> None: ...
+
+class AgenticEvidenceGraphEdgeV1(_message.Message):
+    __slots__ = ("source_node_id", "target_node_id", "relationship")
+    SOURCE_NODE_ID_FIELD_NUMBER: _ClassVar[int]
+    TARGET_NODE_ID_FIELD_NUMBER: _ClassVar[int]
+    RELATIONSHIP_FIELD_NUMBER: _ClassVar[int]
+    source_node_id: str
+    target_node_id: str
+    relationship: str
+    def __init__(self, source_node_id: _Optional[str] = ..., target_node_id: _Optional[str] = ..., relationship: _Optional[str] = ...) -> None: ...
+
+class AgenticEvidenceGraphV1(_message.Message):
+    __slots__ = ("nodes", "edges", "truncated", "unavailable_reasons")
+    NODES_FIELD_NUMBER: _ClassVar[int]
+    EDGES_FIELD_NUMBER: _ClassVar[int]
+    TRUNCATED_FIELD_NUMBER: _ClassVar[int]
+    UNAVAILABLE_REASONS_FIELD_NUMBER: _ClassVar[int]
+    nodes: _containers.RepeatedCompositeFieldContainer[AgenticEvidenceGraphNodeV1]
+    edges: _containers.RepeatedCompositeFieldContainer[AgenticEvidenceGraphEdgeV1]
+    truncated: bool
+    unavailable_reasons: _containers.RepeatedCompositeFieldContainer[TraceInvestigationUnavailableReasonV1]
+    def __init__(self, nodes: _Optional[_Iterable[_Union[AgenticEvidenceGraphNodeV1, _Mapping]]] = ..., edges: _Optional[_Iterable[_Union[AgenticEvidenceGraphEdgeV1, _Mapping]]] = ..., truncated: _Optional[bool] = ..., unavailable_reasons: _Optional[_Iterable[_Union[TraceInvestigationUnavailableReasonV1, _Mapping]]] = ...) -> None: ...
+
+class GetAgentEvidenceGraphRequest(_message.Message):
+    __slots__ = ("trace_id", "agent_run_id", "node_limit")
+    TRACE_ID_FIELD_NUMBER: _ClassVar[int]
+    AGENT_RUN_ID_FIELD_NUMBER: _ClassVar[int]
+    NODE_LIMIT_FIELD_NUMBER: _ClassVar[int]
+    trace_id: str
+    agent_run_id: str
+    node_limit: int
+    def __init__(self, trace_id: _Optional[str] = ..., agent_run_id: _Optional[str] = ..., node_limit: _Optional[int] = ...) -> None: ...
+
+class GetAgentEvidenceGraphResponse(_message.Message):
+    __slots__ = ("graph",)
+    GRAPH_FIELD_NUMBER: _ClassVar[int]
+    graph: AgenticEvidenceGraphV1
+    def __init__(self, graph: _Optional[_Union[AgenticEvidenceGraphV1, _Mapping]] = ...) -> None: ...

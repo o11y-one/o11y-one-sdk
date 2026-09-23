@@ -7,9 +7,9 @@
 // package manager.
 //
 // The runner DRIVES the code-first loop; it does not judge it. The verdict on a
-// change comes from the server's authoritative candidate comparison
-// (CompareReleaseGateEvaluations); `diff` maps that decision onto the exit
-// taxonomy and never recomputes it. See outcome.go for the taxonomy and
+// change comes from the decision the server adopted for the run
+// (GetEvaluationRunOverview.adopted_decision); `diff` maps that decision onto
+// the exit taxonomy and never recomputes it. See outcome.go for the taxonomy and
 // diffdoc.go for the mapping.
 package main
 
@@ -38,13 +38,13 @@ Usage:
 Commands:
   run        launch an evaluation run against a definition or inline draft
   wait       block until a run's operation reaches a terminal state
-  diff       compare a candidate against a baseline and return the server's verdict
+  diff       return the server's adopted decision for a run as a verdict on one candidate
   annotate   record a platform annotation (deployment marker, event, highlight)
 
 Exit codes (the verdict is the exit code):
-  0  improvement     gate passes
-  1  regression      comparison completed, result is worse than baseline
-  2  indeterminate   no verdict reachable (insufficient data, unspecified)
+  0  improvement     the server recommends the candidate under test
+  1  regression      the server blocked the candidate under test
+  2  indeterminate   no verdict reachable (not adopted, no clear winner, insufficient evidence)
   3  infra-failure   runner or platform failed, or a wait timed out
   64 usage-error     bad invocation
 
@@ -331,15 +331,15 @@ func cmdDiff(args []string) error {
 	var common commonFlags
 	common.register(fs)
 
-	baseline := fs.String("baseline", "", "baseline release-gate evaluation id (required)")
-	candidate := fs.String("candidate", "", "candidate release-gate evaluation id under test (required)")
+	runID := fs.String("run", "", "evaluation run id whose adopted decision is the verdict; the run subcommand prints it (required)")
+	candidate := fs.String("candidate", "", "candidate key under test (required)")
 	out := fs.String("out", "", "also write the diff document JSON to this file")
 
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	if *baseline == "" {
-		return &usageError{msg: "--baseline is required"}
+	if *runID == "" {
+		return &usageError{msg: "--run is required"}
 	}
 	if *candidate == "" {
 		return &usageError{msg: "--candidate is required"}
@@ -353,15 +353,18 @@ func cmdDiff(args []string) error {
 	defer cancel()
 
 	clients := newClients(&common, cred)
-	resp, err := clients.obs.CompareReleaseGateEvaluations(ctx, connect.NewRequest(&agenticv1.CompareReleaseGateEvaluationsRequest{
-		BaselineEvaluationId:   *baseline,
-		ComparisonEvaluationId: *candidate,
+	resp, err := clients.eval.GetEvaluationRunOverview(ctx, connect.NewRequest(&agenticv1.GetEvaluationRunOverviewRequest{
+		EvaluationRunId: *runID,
+		// INITIAL, not FULL: the adopted decision rides on both profiles and is
+		// read inside the INITIAL statement, so the verdict costs no extra
+		// round trip and no extra query. Nothing here reads a FULL-only section.
+		Profile: agenticv1.EvaluationRunOverviewProfileV1_EVALUATION_RUN_OVERVIEW_PROFILE_V1_INITIAL,
 	}))
 	if err != nil {
-		return fmt.Errorf("diff: CompareReleaseGateEvaluations failed: %w", err)
+		return fmt.Errorf("diff: GetEvaluationRunOverview failed: %w", err)
 	}
 
-	doc := buildDiffDocument(resp.Msg.GetComparison(), generatorStamp())
+	doc := buildDiffDocument(resp.Msg, *candidate, generatorStamp())
 
 	// The document always goes to stdout (it is L4's input); the exit code
 	// carries the verdict. --out additionally persists it for archival.
@@ -376,18 +379,11 @@ func cmdDiff(args []string) error {
 		}
 	}
 
-	outcome := outcomeForDecision(candidateDecision(resp.Msg.GetComparison()))
+	outcome := outcomeForAdoptedDecision(resp.Msg.GetAdoptedDecision(), *candidate)
 	if outcome == OutcomeImprovement {
 		return nil
 	}
 	return &verdictError{outcome: outcome, decision: doc.Verdict.Decision}
-}
-
-func candidateDecision(cmp *agenticv1.ReleaseGateEvaluationComparisonV1) agenticv1.ReleaseGateDecisionV1 {
-	if cmp == nil || cmp.GetComparisonEvaluation() == nil {
-		return agenticv1.ReleaseGateDecisionV1_RELEASE_GATE_DECISION_V1_UNSPECIFIED
-	}
-	return cmp.GetComparisonEvaluation().GetDecision()
 }
 
 // verdictError carries a non-improvement verdict out to the exit taxonomy. It is

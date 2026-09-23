@@ -16,29 +16,16 @@ import of an `internal/` path from any module outside
 `github.com/o11y-one/o11y-one-sdk/...`, so that code can never become public
 surface, even with the repository public. Code in this repository may import it.
 
-## Module path is a placeholder
+## Module path
 
 ```
 module github.com/o11y-one/o11y-one-sdk/gen/go
 ```
 
-Nothing has claimed `github.com/o11y-one` yet. Go module paths are baked into
-every generated file's import statements, so this had to be *some* concrete
-string before the org name is settled — and picking a fake-looking placeholder
-(`example.com/...`) would only mean a second rename later.
-
-**When the operator names the real org / repo, one change fixes everything:**
-
-```sh
-# 1. new path in the module declaration
-sed -i '' 's|github.com/o11y-one/o11y-one-sdk|<REAL>|' gen/go/go.mod tools/ci-runner/go.mod
-# 2. new path in managed mode, then regenerate — imports follow automatically
-sed -i '' 's|github.com/o11y-one/o11y-one-sdk|<REAL>|' buf.gen.yaml
-just gen
-```
-
-The same placeholder appears in `packages/*/package.json` and `pyproject.toml`
-`repository` / `Source` URLs, where it is only metadata.
+This is the repository's own path, so the module resolves with `go get` once
+the repository is public. Managed mode bakes it into every generated import
+(`go_package_prefix` in `buf.gen.agentic.yaml`); `tools/ci-runner` reaches it
+through a `replace` directive.
 
 ## Separate modules, on purpose
 

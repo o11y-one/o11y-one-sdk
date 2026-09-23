@@ -57,17 +57,19 @@ func TestRenderImprovement(t *testing.T) {
 		t.Fatalf("Render: %v", err)
 	}
 	for _, want := range []string{
-		"Improvement", "exit 0", "server decision: `PASS`",
-		"Average score", "0.81 score", "0.86 score", "+0.05 score",
-		"Sample count", "200 count",
-		"Resolved failure reasons:", "`empty_answer`",
+		"Improvement", "exit 0", "server decision: `RECOMMENDED`",
+		"(via `server:GetEvaluationRunOverview.adopted_decision`)",
+		"Quality delta (net improved-case rate)", "+0.05 rate",
+		"Cost delta (USD)", "-0.003 USD",
+		"Improved cases", "12 count",
 	} {
 		if !strings.Contains(md, want) {
 			t.Errorf("rendered improvement comment missing %q:\n%s", want, md)
 		}
 	}
-	// A pass must not carry the indeterminate/regression callout language.
-	for _, mustNot := range []string{"Indeterminate", "the gate failed on evidence", "not a pass"} {
+	// A pass must not carry the indeterminate/regression callout language, and
+	// must not print a sample count this document declares absent.
+	for _, mustNot := range []string{"Indeterminate", "the server blocked this candidate", "not a pass", "samples"} {
 		if strings.Contains(md, mustNot) {
 			t.Errorf("improvement comment wrongly contains %q:\n%s", mustNot, md)
 		}
@@ -81,16 +83,34 @@ func TestRenderRegressionCarriesCallout(t *testing.T) {
 		t.Fatalf("Render: %v", err)
 	}
 	for _, want := range []string{
-		"Regression", "exit 1", "server decision: `FAIL`",
-		"the gate failed on evidence",
-		"-0.06 score",
-		"decision flipped from PASS to FAIL",
-		"New failure reasons:", "`latency_p95_regressed`",
-		"the release-gate decision changed between the baseline and candidate evaluations",
+		"Regression", "exit 1", "server decision: `BLOCKED`",
+		"the server blocked this candidate",
+		"-0.06 rate",
+		"New failure reasons:", "`MIN_SCORE_NOT_MET`", "`MAX_COST_EXCEEDED`",
 	} {
 		if !strings.Contains(md, want) {
 			t.Errorf("rendered regression comment missing %q:\n%s", want, md)
 		}
+	}
+}
+
+// verdict.decision_changed is structurally absent under the current runner, so
+// no fixture carries it — but older documents still can, and the code path has
+// to stay, saying what the field means rather than naming a gate that no longer
+// exists.
+func TestDecisionChangedNoteNamesNoGate(t *testing.T) {
+	md, err := Render(DiffDocument{
+		SchemaVersion: "o11y.eval.diff/v1",
+		Verdict:       Verdict{Decision: "BLOCKED", Outcome: OutcomeRegression, DecisionChanged: true},
+	})
+	if err != nil {
+		t.Fatalf("Render: %v", err)
+	}
+	if !strings.Contains(md, "the server's decision changed between the two evaluations") {
+		t.Errorf("a document with decision_changed set must say so:\n%s", md)
+	}
+	if strings.Contains(md, "release-gate decision changed") {
+		t.Errorf("the note must not name a release gate:\n%s", md)
 	}
 }
 
@@ -105,9 +125,10 @@ func TestRenderIndeterminateIsNeverSoftenedToAPass(t *testing.T) {
 		t.Fatalf("Render: %v", err)
 	}
 	for _, want := range []string{
-		"Indeterminate", "exit 2", "server decision: `INSUFFICIENT_DATA`",
+		"Indeterminate", "exit 2", "server decision: `UNSPECIFIED`",
 		"no verdict reachable", "not a pass", "not coercible into a pass or fail",
-		"Only 3 comparable cases",
+		"The run has no adopted decision available",
+		"`verdict.decision` (decision_not_yet_adopted)",
 	} {
 		if !strings.Contains(md, want) {
 			t.Errorf("rendered indeterminate comment missing %q:\n%s", want, md)
@@ -116,7 +137,7 @@ func TestRenderIndeterminateIsNeverSoftenedToAPass(t *testing.T) {
 	if strings.Contains(md, "✅") {
 		t.Errorf("indeterminate comment must not carry the pass emoji:\n%s", md)
 	}
-	if strings.Contains(md, "the gate failed on evidence") {
+	if strings.Contains(md, "the server blocked this candidate") {
 		t.Errorf("indeterminate comment must not carry the regression callout either — it is its own state:\n%s", md)
 	}
 }
@@ -139,8 +160,8 @@ func TestRenderInfraFailure(t *testing.T) {
 }
 
 func TestRenderUsageError(t *testing.T) {
-	md := RenderInfraFailure(true, "--baseline is required", 64)
-	for _, want := range []string{"Usage error", "exit 64", "--baseline is required"} {
+	md := RenderInfraFailure(true, "--run is required", 64)
+	for _, want := range []string{"Usage error", "exit 64", "--run is required"} {
 		if !strings.Contains(md, want) {
 			t.Errorf("rendered usage-error comment missing %q:\n%s", want, md)
 		}
@@ -170,24 +191,36 @@ func TestTypedAbsenceNeverRendersAsZero(t *testing.T) {
 		t.Errorf("rendered comment missing the absences footnote:\n%s", md)
 	}
 
-	// bad_outcomes_count's row has baseline and candidate both absent, but a
-	// present delta of -3. Absence in the neighboring cells must not leak a
-	// "0" into that row.
-	for _, line := range strings.Split(md, "\n") {
-		if !strings.HasPrefix(line, "|") || !strings.Contains(line, "Bad outcomes") {
-			continue
-		}
+	// Both directions, in adjacent cells of the same rows: the quality delta is
+	// a genuine measured 0.0 and must render as a number, while the baseline
+	// and candidate levels the server never reported must render as absent —
+	// and the improved-case count is a real 0 next to an absent baseline.
+	for _, tc := range []struct{ row, baseline, candidate, delta string }{
+		{"Quality delta", "_not available_", "_not available_", "0 rate"},
+		{"Improved cases", "_not available_", "0 count", "_not available_"},
+	} {
+		line := metricRow(t, md, tc.row)
 		cells := strings.Split(line, "|")
-		for _, cell := range cells {
-			trimmed := strings.TrimSpace(cell)
-			if trimmed == "0" || trimmed == "0.0" || trimmed == "0count" {
-				t.Errorf("absent cell rendered as zero in row %q: cell %q", line, trimmed)
+		if len(cells) < 5 {
+			t.Fatalf("row %q is not a 4-column metric row: %q", tc.row, line)
+		}
+		for i, want := range []string{tc.baseline, tc.candidate, tc.delta} {
+			if got := strings.TrimSpace(cells[i+2]); got != want {
+				t.Errorf("row %q cell %d = %q, want %q (line %q)", tc.row, i+2, got, want, line)
 			}
 		}
-		if !strings.Contains(line, "-3 count") {
-			t.Errorf("Bad outcomes row should still show its present delta -3count: %q", line)
+	}
+}
+
+func metricRow(t *testing.T, md, label string) string {
+	t.Helper()
+	for _, line := range strings.Split(md, "\n") {
+		if strings.HasPrefix(line, "|") && strings.Contains(line, label) {
+			return line
 		}
 	}
+	t.Fatalf("no metric row for %q in:\n%s", label, md)
+	return ""
 }
 
 func TestUnsupportedSchemaMajorIsRejected(t *testing.T) {
@@ -225,5 +258,42 @@ func TestLoadDocRejectsUnsupportedMajor(t *testing.T) {
 	}
 	if withCode.ExitCode() != 1 {
 		t.Fatalf("unsupportedSchemaError.ExitCode() = %d, want 1", withCode.ExitCode())
+	}
+}
+
+// A document that declares identity.sample_count absent must not print a
+// sample count for either side. The runner's current verb reports no per-side
+// sample counts and says so in absences[]; rendering the zero-valued struct
+// field anyway is the absent-as-zero bug moved out of the metrics table and
+// into prose. The second half of this test pins the other direction: a
+// document that does not declare the absence still gets its counts.
+func TestAbsentSampleCountIsNotRenderedAsZero(t *testing.T) {
+	doc := DiffDocument{
+		SchemaVersion: "o11y.eval.diff/v1",
+		Identity: Identity{
+			Baseline:  EvalSide{EvaluationID: "cand_a"},
+			Candidate: EvalSide{EvaluationID: "cand_b"},
+		},
+		Verdict:  Verdict{Decision: "RECOMMENDED", Outcome: OutcomeImprovement},
+		Absences: []Absence{{Field: "identity.sample_count", Reason: "not_reported_by_server"}},
+	}
+	md, err := Render(doc)
+	if err != nil {
+		t.Fatalf("Render: %v", err)
+	}
+	if strings.Contains(md, "samples") {
+		t.Errorf("document declares identity.sample_count absent; rendered a sample count anyway:\n%s", md)
+	}
+
+	reported := doc
+	reported.Absences = nil
+	reported.Identity.Baseline.SampleCount = 200
+	reported.Identity.Candidate.SampleCount = 200
+	md, err = Render(reported)
+	if err != nil {
+		t.Fatalf("Render: %v", err)
+	}
+	if !strings.Contains(md, "200 samples") {
+		t.Errorf("document does not declare the absence; the sample count must still render:\n%s", md)
 	}
 }

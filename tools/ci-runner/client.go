@@ -19,12 +19,11 @@ const (
 	headerTenant = "x-o11y-tenant-id"
 )
 
-// apiClients is the pair of connect clients this runner drives. The evaluation
-// service owns run launch, run status, and platform annotations; the
-// observability service owns the authoritative candidate comparison.
+// apiClients is the connect client this runner drives. The evaluation service
+// owns run launch, run status, platform annotations, and the run overview the
+// verdict is read off.
 type apiClients struct {
 	eval agenticv1connect.AgenticEvaluationServiceClient
-	obs  agenticv1connect.AgenticObservabilityServiceClient
 }
 
 // newClients builds the connect clients for a command.
@@ -63,7 +62,6 @@ func newClients(common *commonFlags, cred string) *apiClients {
 
 	return &apiClients{
 		eval: agenticv1connect.NewAgenticEvaluationServiceClient(httpClient, common.baseURL, opts...),
-		obs:  agenticv1connect.NewAgenticObservabilityServiceClient(httpClient, common.baseURL, opts...),
 	}
 }
 

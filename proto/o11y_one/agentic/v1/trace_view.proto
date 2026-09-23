@@ -40,6 +40,8 @@ syntax = "proto3";
 package o11y_one.agentic.v1;
 
 import "google/protobuf/timestamp.proto";
+// W-V1-1 (D3): `AgenticEvidenceGraphNodeV1.metadata` is a `Struct`, and it came
+// with the message rather than being flattened on the way over.
 import "o11y_one/agentic/v1/evaluation.proto";
 // Wave 41 lane A. The agent-run identity plane lives in its own file for the
 // same reason this one does: a CONVERSATION contract and a TRACE contract move
@@ -154,7 +156,8 @@ enum TraceSpanCostProvenanceV1 {
 
 // What a trace read can refuse with, and why each one is its own kind. A caller
 // told only "invalid argument" cannot act; each of these names a different next
-// step, and none of them is "we returned a partial answer".
+// step, and none of them is "we returned a partial answer". A cut trace is not
+// among them: it is served, and its critical path carries the availability.
 enum TraceReadRefusalKindV1 {
   TRACE_READ_REFUSAL_KIND_V1_UNSPECIFIED = 0;
   // The window held no spans for this trace id. Distinct from the cap breach
@@ -165,15 +168,24 @@ enum TraceReadRefusalKindV1 {
   // trace is not a partial critical path, it is a WRONG one, and a client
   // cannot tell.
   TRACE_READ_REFUSAL_KIND_V1_SPAN_POPULATION_EXCEEDS_CAP = 2;
-  // Spans were found, but every one of them has a parent inside the population
-  // — the trace's root started before the requested window.
-  TRACE_READ_REFUSAL_KIND_V1_TRACE_ROOT_NOT_IN_POPULATION = 3;
+  // Deprecated: never constructed. The fold serves a cut trace and marks its
+  // critical path NOT_OBSERVED with reason_code
+  // trace_root_span_not_in_population; render that.
+  TRACE_READ_REFUSAL_KIND_V1_TRACE_ROOT_NOT_IN_POPULATION = 3 [deprecated = true];
   // The requested window ends before the oldest instant the span plane will
   // answer for. Distinct from `TRACE_NOT_FOUND` on purpose, and the distinction
   // is the whole typed-absence invariant: "we looked and found none" and "we do
   // not look that far back" are different facts, and only one of them is about
   // the caller's trace.
   TRACE_READ_REFUSAL_KIND_V1_WINDOW_OUTSIDE_RETAINED_LOOKBACK = 4;
+  // The span plane declined to spend the memory the scan asked for, so the read
+  // was refused BEFORE it ran: nothing about the trace is known — not that it is
+  // large, not that it is absent, not that it is anything. Retry later, or ask
+  // for a narrower window. Its own kind rather than an `INTERNAL`, because a
+  // refusal a caller can retry and a failure a caller can only report are
+  // different facts, and the first one spent eight of eight reads looking like
+  // the second.
+  TRACE_READ_REFUSAL_KIND_V1_READ_BUDGET_EXHAUSTED = 5;
 }
 
 // ---------------------------------------------------------------------------
@@ -508,6 +520,17 @@ message TraceStepSummaryV1 {
   // Wave 35. The earliest failure in this turn. Absent when the turn had none —
   // absent, not a zero-valued pointer at a span that did not fail.
   optional TraceFirstFailureV1 first_failure = 15;
+
+  // S2. What this turn cost, over the SAME member set `failure_count` and
+  // `faults` use — the turn's spans INCLUDING the turn's own span, because a
+  // turn's money is the money of that turn. It is therefore NOT the sum of
+  // `operation_groups`' rollups whenever the turn's own span carries a cost:
+  // the groups exclude that span, for the same reason `operation_count` does.
+  //
+  // Same type as a group's rollup, so `mixes_stated_and_estimated` and the
+  // unstated-currency reason ride the turn total too: a total that adds a
+  // client's own figure to a list-rate estimate is labelled, not hidden.
+  TraceSpanCostRollupV1 cost = 16;
 }
 
 message TraceCriticalPathStepV1 {
@@ -581,6 +604,24 @@ message AgentTraceHeaderV1 {
   // `gen_ai.agent.name` at all, which is a different fact from a trace whose
   // turns did nothing.
   MetricAvailabilityV1 step_availability = 8;
+
+  // S2. What the whole trace cost, over EVERY span in the population — the
+  // turns, their operations, and the spans that attribute to no turn. Over the
+  // whole population rather than over the steps because a trace whose LLM calls
+  // carry no `gen_ai.agent.name` has no steps at all, and a money total that
+  // read zero there would be reporting the absence of turns as the absence of
+  // spend.
+  //
+  // Same type as a step's and a group's rollup, so the composition counts, the
+  // `mixes_stated_and_estimated` flag and the unstated-currency reason ride the
+  // trace total too. A partial-provenance total is labelled, not hidden.
+  TraceSpanCostRollupV1 cost = 9;
+
+  // S3. Spans that exist only because an earlier attempt failed: members of an
+  // inferred retry chain whose `attempt_index` is greater than one. An honest
+  // zero — the population was read and no chain was found — which is why it is
+  // a count here and an absence on the span.
+  uint32 retried_span_count = 10;
 }
 
 // A span's input and output as this build actually holds them: storage
@@ -595,6 +636,36 @@ message TraceSpanContentRefV1 {
   // `reasoning`.
   string content_class = 1;
   string storage_uri = 2;
+}
+
+// S3. One span's place in a retry chain.
+//
+// INFERRED, and the capability says so. Nothing in this build marks a span as a
+// retry of another: no `retry`, `resend` or `attempt` key reaches a typed
+// column, and span links arrive at the lake with their ATTRIBUTES DROPPED, so
+// OTel's own relational mechanism cannot say WHY it links. What is left is the
+// shape — one parent, one name, one kind, one target, non-overlapping in time,
+// every attempt but the last in error — and `trace_view_retry_chain` publishes
+// `retry_chain_inference = 1` so a client renders this as a reading of the
+// trace rather than as something the caller reported.
+//
+// Absent on a span that is in no chain. Never a one-attempt chain, and never a
+// zero standing in for "this call was made once".
+message TraceSpanRetryV1 {
+  // The parent span id, the operation kind, the span name and the target,
+  // joined. It is the grouping key itself, so two spans carry one id exactly
+  // when they are in one chain. Deterministic, so two reads of one trace name
+  // the chain identically and a fixture is byte-stable. The kind and the target
+  // are in it because two sibling groups can share a name and differ only in
+  // the kind, or only in the model or tool they called. Key by it; it is not
+  // meant to be parsed.
+  string chain_id = 1;
+  // 1-based. The first attempt is attempt 1, not a retry of anything.
+  uint32 attempt_index = 2;
+  // Attempts in this chain, including the one that finally succeeded. A chain
+  // whose last attempt also failed is a chain that never succeeded, and this
+  // count does not say which — `status` on each member does.
+  uint32 attempt_count = 3;
 }
 
 // Level 3. One raw span row.
@@ -644,6 +715,10 @@ message TraceSpanV1 {
   // published list price, or a typed absence. Display plane only — see
   // `TraceSpanCostV1`.
   TraceSpanCostV1 cost = 19;
+
+  // S3. Where this span sits in an inferred retry chain, or absent when it sits
+  // in none. See `TraceSpanRetryV1` for what "inferred" buys and costs.
+  optional TraceSpanRetryV1 retry = 20;
 }
 
 // ---------------------------------------------------------------------------
@@ -1558,6 +1633,179 @@ message ResolveExternalArtifactLinkResponse {
 }
 // ---- end wave 41 lane C ----
 
+// ---------------------------------------------------------------------------
+// ---- W-V1-1 (D2): the trace list ----
+//
+// `o11y-web`'s `/traces` page is the only trace LIST this product has, and it
+// runs on v1 `ListTraceInvestigations`: a six-branch UNION-ALL candidate query
+// merged with a trace-lake scan, seven signal CTEs, a failed-gate join, the
+// fix-queue decoration, and filter/sort/facet/cohort in memory over ten
+// thousand rows. This is the same page's data in TWO reads — one DataFrame
+// aggregate over the span plane and one membership statement — because the
+// decoration was the cost and none of it was the list.
+// ---------------------------------------------------------------------------
+
+// One trace, as the list renders it.
+//
+// The aggregate's own columns and nothing derived from a second plane.
+// `AgentRunScorePostureV1` is DELIBERATELY ABSENT: it is a read of `eval_scores`
+// and of the production-rule verdicts per trace, which is a third statement for
+// a column a list sorts by but cannot act on. `GetAgentRun` carries the posture
+// for the run a reader pivots to, which is where it is worth a read.
+message AgentTraceRowV1 {
+  // Lowercase hex, as `AgentTraceHeaderV1.trace_id` spells it.
+  string trace_id = 1;
+  // MIN(start) and MAX(end) over this trace's spans in the window. Absent when
+  // the plane carried no instant — zero is an absence, not the Unix epoch.
+  google.protobuf.Timestamp started_at = 2;
+  google.protobuf.Timestamp ended_at = 3;
+  // `ended_at - started_at`, not a sum of span durations: a trace's wall time is
+  // its interval, and adding concurrent spans would over-count it.
+  int64 wall_time_micros = 4;
+  uint32 span_count = 5;
+  // Spans the ingest classifier marked failed. A trace with one is a trace the
+  // `errors_only` filter keeps.
+  uint32 error_count = 6;
+  // Distinct agent, model and tool names — the same column rules
+  // `agent_run/fold.rs` folds a RUN's counts from, so the two surfaces cannot
+  // drift into disagreeing about what a tool is.
+  uint32 agent_count = 7;
+  uint32 model_count = 8;
+  uint32 tool_count = 9;
+  // The dimensions, with their distinct counts: a trace whose spans state two
+  // deployments says so rather than letting one of them silently win.
+  AgentRunDimensionV1 customer = 10;
+  AgentRunDimensionV1 deployment = 11;
+  AgentRunVersionContextV1 versions = 12;
+  // The run this trace is a member of, from `evaluation_agent_run_members`.
+  // Absent means the grouping pass has not reached this trace, NEVER that the
+  // trace belongs to no run.
+  optional string agent_run_id = 13;
+}
+
+// `AgentTraceListFilterV1` is DEFINED IN `evaluation.proto` and used here by its
+// package-local name.
+//
+// It lived in this file until a scratch launch's live-trace source needed it on
+// `PreviewEvaluationRunRequest`. The import direction forbids reuse the other way
+// round — this file imports `evaluation.proto` (:45), so `evaluation.proto`
+// importing this one is a cycle — and both alternatives were worse: a second
+// spelling of one filter, which is how two surfaces come to disagree about what
+// `errors_only` means, or the locally-spelled shape this file's
+// `DatasetCaseLineageAnchorKindV1` neighbour had to settle for.
+//
+// Moving it costs nothing a reader can observe. The package is one prost module
+// (lock ruling `L1-4`), so every Rust path is unchanged, and `buf.yaml` breaks on
+// `PACKAGE` rather than `FILE` for exactly this reason: "the guarantee is the
+// wire within o11y_one.agentic.v1, not which file a type lives in".
+
+message ListAgentTracesRequest {
+  optional google.protobuf.Timestamp start = 1;
+  optional google.protobuf.Timestamp end = 2;
+  AgentTraceListFilterV1 filter = 3;
+  optional uint32 limit = 4;
+  // Opaque keyset cursor over `(started_at DESC, trace_id DESC)`. Never an
+  // offset: an offset over a list whose rows move is a promise the span plane
+  // cannot keep.
+  optional string page_token = 5;
+}
+
+message ListAgentTracesResponse {
+  repeated AgentTraceRowV1 traces = 1;
+  optional string next_page_token = 2;
+  bool has_more = 3;
+  // Clamped IN BAND, with the reason, exactly as `ListAgentRuns` reports it.
+  TraceWindowV1 window = 4;
+  TraceSpanPopulationBoundaryV1 boundary = 5;
+  // `keyset_started_desc_late_data_resurfaces_at_head_v1`. A trace whose first
+  // span arrives late sorts by that span's instant, so it surfaces at the head
+  // of a fresh first page rather than inside an older cursor's continuation.
+  string cursor_semantics_code = 6;
+  EvaluationFreshnessV1 freshness = 7;
+  AgenticEvaluationCapabilitiesV1 capabilities = 8;
+  optional TraceReadRefusalV1 refusal = 9;
+}
+// ---- end W-V1-1 (D2) ----
+
+// ---------------------------------------------------------------------------
+// ---- W-V1-1 (D3): the evidence graph ----
+//
+// MOVED here from `agentic.proto`, unchanged. Six of the v1 verb's eight scope
+// arms die with v1 — session, dataset item, eval job, experiment run item,
+// release gate evaluation, annotation task — and the two that survive, a trace
+// and an agent run, are this service's concepts. Same package, so the move is a
+// file move and not a wire change: `buf breaking` runs in PACKAGE mode.
+//
+// `TraceInvestigationUnavailableReasonV1` and `TraceInvestigationEvidenceLinkV1`
+// come with them because a node carries evidence links and a graph carries
+// unavailable reasons. Leaving those two behind would have meant importing
+// `agentic.proto` here, and `agentic.proto` must import THIS file to keep naming
+// the graph — which is the import cycle protoc refuses.
+// ---------------------------------------------------------------------------
+
+message TraceInvestigationUnavailableReasonV1 {
+  string section = 1;
+  string reason_code = 2;
+  string message = 3;
+  bool retryable = 4;
+}
+
+message TraceInvestigationEvidenceLinkV1 {
+  string evidence_type = 1;
+  string evidence_id = 2;
+  optional string trace_id = 3;
+  optional string span_id = 4;
+  optional string label = 5;
+}
+
+message AgenticEvidenceGraphNodeV1 {
+  string node_id = 1;
+  string node_type = 2;
+  string label = 3;
+  optional string status = 4;
+  // Display-only facts about the node (a score's value, a run's grouping
+  // state), serialised JSON. A string rather than `google.protobuf.Struct`
+  // because the v2 contract carries no untyped document a service could branch
+  // on (`PLAN:1895`); this one is rendered, never read back.
+  string metadata_json = 7;
+  repeated TraceInvestigationEvidenceLinkV1 evidence_links = 6;
+  reserved 5;
+  reserved "metadata";
+}
+
+message AgenticEvidenceGraphEdgeV1 {
+  string source_node_id = 1;
+  string target_node_id = 2;
+  string relationship = 3;
+}
+
+message AgenticEvidenceGraphV1 {
+  repeated AgenticEvidenceGraphNodeV1 nodes = 1;
+  repeated AgenticEvidenceGraphEdgeV1 edges = 2;
+  bool truncated = 3;
+  repeated TraceInvestigationUnavailableReasonV1 unavailable_reasons = 4;
+}
+
+// The two arms that survive v1. Six die with it — session, dataset item, eval
+// job, experiment run item, release gate evaluation, annotation task — and
+// every one of them names a v1-only concept.
+message GetAgentEvidenceGraphRequest {
+  oneof scope {
+    // Lowercase hex, as `AgentTraceHeaderV1.trace_id` spells it.
+    string trace_id = 1;
+    // A stale (`_MERGED_AWAY` / `_SPLIT_AWAY`) id resolves through the grouping
+    // redirect and answers with the CANONICAL run, never `NOT_FOUND` (`P7-6`).
+    string agent_run_id = 2;
+  }
+  // Default 64, clamped to 8..=512. The clamp is silent, exactly as the v1 verb
+  // clamps it: a client that asked for 4,000 nodes gets 512 and no field says
+  // so, and changing that is a contract change rather than a move.
+  optional uint32 node_limit = 3;
+}
+
+message GetAgentEvidenceGraphResponse {
+  AgenticEvidenceGraphV1 graph = 1;
+}
 
 // The trace viewer's read plane.
 //
@@ -1592,6 +1840,16 @@ service AgenticTraceViewService {
   // does the scanning, and `agent_trace_span_scans_issued()` not moving across
   // these two calls is how that is proved rather than asserted.
   rpc ListAgentRuns(ListAgentRunsRequest) returns (ListAgentRunsResponse);
+  // W-V1-1 (D2). The `/traces` list, in two reads. It sits beside
+  // `ListAgentRuns` because the two are the same screen at two altitudes —
+  // every trace, and the runs those traces group into.
+  rpc ListAgentTraces(ListAgentTracesRequest) returns (ListAgentTracesResponse);
+
+  // W-V1-1 (D3). The trace sheet's and the agent-run screen's evidence graph,
+  // built by the SAME builders the v1 verb now calls: the two arms moved here
+  // rather than being copied, so the two services cannot answer differently
+  // for the same scope while both exist.
+  rpc GetAgentEvidenceGraph(GetAgentEvidenceGraphRequest) returns (GetAgentEvidenceGraphResponse);
   rpc GetAgentRun(GetAgentRunRequest) returns (GetAgentRunResponse);
   // ---- end wave 41 lane B ----
 
