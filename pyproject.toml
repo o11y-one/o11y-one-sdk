@@ -24,7 +24,7 @@ members = ["packages/gen-py", "packages/gen-py-agentic", "packages/sdk-py"]
 # Workspace-level tooling. Not a dependency of either published package — it is
 # installed into the workspace environment by `uv sync` and invoked by `just`.
 [dependency-groups]
-dev = ["ruff>=0.16.6,<0.17"]
+dev = ["ruff>=0.16.8,<0.17"]
 
 [tool.ruff]
 line-length = 100
