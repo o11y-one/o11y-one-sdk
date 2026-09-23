@@ -8,14 +8,6 @@ This is the public Go module, and it carries exactly what the npm and PyPI
 packages carry: the closure named by `AGENTIC_CLOSURE_PATHS` in
 `tools/generate.sh`. `just surface-check` fails if another domain appears here.
 
-## The whole tree is `internal/`
-
-Every other domain is generated into `internal/gen/go`
-(`github.com/o11y-one/o11y-one-sdk/internal/gen/go`). Go refuses to compile an
-import of an `internal/` path from any module outside
-`github.com/o11y-one/o11y-one-sdk/...`, so that code can never become public
-surface, even with the repository public. Code in this repository may import it.
-
 ## Module path
 
 ```
@@ -29,7 +21,7 @@ through a `replace` directive.
 
 ## Separate modules, on purpose
 
-`gen/go`, `internal/gen/go` and `tools/ci-runner` are separate Go modules. A
+`gen/go` and `tools/ci-runner` are separate Go modules. A
 single root module would be simpler to build, but it would put the CI runner's
 dependency graph into the `go.mod` that every SDK consumer inherits. The
 generated bindings depend on exactly two things — `google.golang.org/protobuf`

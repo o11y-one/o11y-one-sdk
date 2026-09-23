@@ -38,7 +38,6 @@ updates:
       - /tools/ci-runner
       - /tools/pr-diff
       - /gen/go
-      - /internal/gen/go
     schedule:
       interval: weekly
       day: monday

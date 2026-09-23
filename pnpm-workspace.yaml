@@ -1,5 +1,4 @@
 packages:
-  - packages/gen-ts
   - packages/gen-ts-agentic
   - packages/sdk-ts
 

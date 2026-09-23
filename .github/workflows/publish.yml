@@ -8,8 +8,8 @@ name: publish
 # and @o11y-one/sdk to npm, o11y-one-api-agentic and o11y-one to PyPI, plus the
 # signed ci-runner binaries. The four move together because they are generated
 # from one proto snapshot; letting them drift apart would mean a matrix of
-# compatible versions nobody wants to maintain. The whole-tree @o11y-one/api and
-# o11y-one-api are never published (see docs/proto-subsetting.md).
+# compatible versions nobody wants to maintain. Only the agentic closure is
+# vendored and generated here (see docs/proto-subsetting.md).
 on:
   push:
     tags:

@@ -26,7 +26,7 @@ uv = "0.12.9"
 go = "1.27.1"
 
 # --- Protobuf -----------------------------------------------------------
-# Codegen plugins are NOT installed locally: buf.gen.yaml uses BSR remote
+# Codegen plugins are NOT installed locally: buf.gen.agentic.yaml uses BSR remote
 # plugins, pinned to exact versions there. buf itself is the only local binary
 # in the generation path.
 buf = "1.72.0"

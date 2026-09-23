@@ -41,24 +41,31 @@ gen-check:
     set -euo pipefail
     ./tools/generate.sh
     # status, not diff: a newly generated file nobody committed is drift too.
-    drift="$(git status --porcelain -- gen internal/gen packages/gen-ts/src packages/gen-ts-agentic/src packages/gen-py/src packages/gen-py-agentic/src)"
+    drift="$(git status --porcelain -- gen packages/gen-ts-agentic/src packages/gen-py-agentic/src)"
     if [[ -n "$drift" ]]; then
-        echo "generated code is out of date with buf.gen.yaml / the proto snapshot." >&2
+        echo "generated code is out of date with buf.gen.agentic.yaml / the proto snapshot." >&2
         echo "run 'just gen' and commit the result." >&2
         echo "$drift" >&2
         exit 1
     fi
     echo "generated code is up to date"
 
-# The published surface is the agentic closure and nothing else. Fails if a
-# publishable artifact's generated tree carries a proto domain outside
-# AGENTIC_CLOSURE_PATHS (tools/generate.sh), or if a whole-tree package loses
-# the marker that keeps it off its registry. See docs/proto-subsetting.md.
+# The vendored and published surface is the agentic closure and nothing else.
+# Fails if the proto snapshot or a publishable artifact's generated tree
+# carries a domain outside AGENTIC_CLOSURE_PATHS (tools/generate.sh). See
+# docs/proto-subsetting.md.
 surface-check:
     #!/usr/bin/env bash
     set -euo pipefail
     closure="{{agentic_closure}}"
     fail=0
+    for dir in proto/o11y_one/*/; do
+        domain="$(basename "$dir")"
+        if [[ " $closure " != *" $domain "* ]]; then
+            echo "proto/o11y_one carries $domain, outside AGENTIC_CLOSURE_PATHS; this repository vendors the closure only" >&2
+            fail=1
+        fi
+    done
     for root in gen/go packages/gen-ts-agentic/src packages/gen-py-agentic/src; do
         for dir in "$root"/o11y_one/*/; do
             domain="$(basename "$dir")"
@@ -69,16 +76,8 @@ surface-check:
         done
         echo "$root/o11y_one: $(cd "$root/o11y_one" && echo */)"
     done
-    if [[ "$(node -p 'require("./packages/gen-ts/package.json").private')" != true ]]; then
-        echo 'packages/gen-ts/package.json must stay "private": true (the whole tree is not published)' >&2
-        fail=1
-    fi
-    if ! grep -q '"Private :: Do Not Upload"' packages/gen-py/pyproject.toml; then
-        echo "packages/gen-py/pyproject.toml must keep its 'Private :: Do Not Upload' classifier" >&2
-        fail=1
-    fi
     [[ "$fail" -eq 0 ]] || exit 1
-    echo "published surface = agentic closure ($closure); gen-ts and gen-py are unpublishable"
+    echo "vendored and published surface = agentic closure ($closure)"
 
 # Build every artifact a release publishes, exactly as the publish jobs do (npm
 # tarballs via `pnpm pack`, wheels and sdists via `just build-py`), print their
@@ -143,15 +142,13 @@ build-ts:
     pnpm -r --filter "./packages/**" run build
 
 # The published Python distributions, sdist + wheel, into dist/, which is
-# exactly what `uv publish dist/*` uploads. o11y-one-api (the whole tree) is
-# deliberately absent: it is workspace-only. See docs/proto-subsetting.md.
+# exactly what `uv publish dist/*` uploads.
 build-py out="dist":
     uv build --package o11y-one-api-agentic --out-dir {{out}}
     uv build --package o11y-one --out-dir {{out}}
 
 build-go:
     cd gen/go && go build ./...
-    cd internal/gen/go && go build ./...
 
 # Static binary: CGO_ENABLED=0 so a pipeline can curl it and run it on any
 # glibc/musl image without a toolchain.
@@ -179,7 +176,6 @@ test-py:
 
 test-go:
     cd gen/go && go build ./...
-    cd internal/gen/go && go build ./...
     cd tools/ci-runner && go test ./...
     cd tools/pr-diff && go test ./...
 
@@ -203,7 +199,6 @@ lint-go:
     #!/usr/bin/env bash
     set -euo pipefail
     (cd gen/go && go vet ./...)
-    (cd internal/gen/go && go vet ./...)
     # Every tool module, not just the first one written: test-go already runs
     # both suites, so a tool the linter skips is one nobody formats.
     for tool in tools/ci-runner tools/pr-diff; do

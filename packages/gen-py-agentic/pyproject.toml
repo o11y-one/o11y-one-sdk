@@ -14,10 +14,10 @@ classifiers = [
 ]
 
 dependencies = [
-  # protoc-gen-python at the version pinned in buf.gen.yaml (v36.1) emits
+  # protoc-gen-python at the version pinned in buf.gen.agentic.yaml (v36.1) emits
   # gencode that requires a runtime of at least the matching series.
   "protobuf>=7.36.1,<8",
-  # The runtime half of protoc-gen-connect-python (buf.gen.yaml pins the plugin
+  # The runtime half of protoc-gen-connect-python (buf.gen.agentic.yaml pins the plugin
   # to v0.9.0; this is the library the generated *_connect.py import).
   "connect-python>=0.9.0,<1",
 ]

@@ -11,16 +11,12 @@ result, and publishes it.
 ```
 o11y-one-sdk/
 ├── PROTO_PIN              the o11y-api commit this snapshot came from
-├── proto/o11y_one/        vendored .proto snapshot          (read-only here)
+├── proto/o11y_one/        vendored .proto snapshot, agentic closure only (read-only here)
 ├── buf.yaml               module layout
-├── buf.gen.yaml           whole tree, three languages, plugins pinned by exact version
-├── buf.gen.agentic.yaml   the agentic closure: the only generated code published
+├── buf.gen.agentic.yaml   three languages, plugins pinned by exact version
 ├── gen/go/                Go module, agentic closure        (committed)
-├── internal/gen/go/       Go module, whole tree             (committed, unimportable)
 ├── packages/
-│   ├── gen-ts/            @o11y-one/api          TS, whole tree          (private)
 │   ├── gen-ts-agentic/    @o11y-one/api-agentic  TS, agentic closure
-│   ├── gen-py/            o11y-one-api           Python, whole tree      (private)
 │   ├── gen-py-agentic/    o11y-one-api-agentic   Python, agentic closure
 │   ├── sdk-ts/            @o11y-one/sdk          hand-written
 │   └── sdk-py/            o11y-one               hand-written
@@ -100,8 +96,7 @@ statement, which is untouched. Only descriptor file names move.
 
 ### Generated code is committed
 
-All of it. `gen/go/o11y_one/**`, `internal/gen/go/o11y_one/**`,
-`packages/*/src/o11y_one/**`. Three reasons:
+All of it. `gen/go/o11y_one/**`, `packages/*/src/o11y_one/**`. Three reasons:
 
 1. **The diff is the review.** A proto change that alters the generated surface
    shows up as a reviewable diff instead of appearing at publish time.
@@ -110,14 +105,14 @@ All of it. `gen/go/o11y_one/**`, `internal/gen/go/o11y_one/**`,
 3. **CI can prove it.** `just gen-check` regenerates and fails if the result
    differs from what is committed, so "generated" and "committed" cannot drift.
 
-Codegen uses BSR remote plugins pinned to exact versions in `buf.gen.yaml`
+Codegen uses BSR remote plugins pinned to exact versions in `buf.gen.agentic.yaml`
 (`bufbuild/es`, `protocolbuffers/go`, `connectrpc/go`, `protocolbuffers/python`,
 `protocolbuffers/pyi`, `connectrpc/python`). Remote rather than local plugin
 binaries: local ones would add five more publishers to this repo's dependency
 graph and five more lockfile entries for consumers to reason about. Generation
 happens rarely and its output is committed, so a network dependency there costs
 nothing downstream. Anonymous BSR use is rate-limited; a full `just gen` is
-twelve requests (six plugins, two passes), comfortably inside it, which is why
+six requests (six plugins, one pass), comfortably inside it, which is why
 there is no `BUF_TOKEN` here.
 
 ### If `just gen` fails with a Buf auth error
@@ -136,7 +131,7 @@ grep -n buf.build ~/.netrc # and remove the stale machine entry, if any
 ```
 
 `resource_exhausted: too many requests` means the anonymous BSR rate limit; wait
-a minute and re-run. A single `just gen` is twelve requests, so this only shows
+a minute and re-run. A single `just gen` is six requests, so this only shows
 up if something is looping.
 
 ## The packages
@@ -149,10 +144,9 @@ up if something is looping.
 | `packages/sdk-py` | `o11y-one` (PyPI) | transport, credentials, error taxonomy |
 | `gen/go` | `github.com/o11y-one/o11y-one-sdk/gen/go` | generated messages + connect-go clients, agentic closure |
 | `tools/ci-runner` | GitHub release binaries | `o11y-eval`, static, signed |
-| `packages/gen-ts`, `packages/gen-py`, `internal/gen/go` | **not published** | the whole tree, every domain, for local use |
 
-The agentic closure is `o11y_one/agentic` + `o11y_one/common`. Why, and how the
-whole tree is kept unpublishable, is in
+The agentic closure is `o11y_one/agentic` + `o11y_one/common`, and it is the
+only part of the o11y-api contract this repository vendors. Why is in
 [`docs/proto-subsetting.md`](docs/proto-subsetting.md); `just surface-check`
 enforces it.
 
@@ -204,7 +198,7 @@ install-time code execution.**
 | No npm package younger than 7 days | `pnpm-workspace.yaml` (`minimumReleaseAge: 10080`) |
 | No silent dependency downgrades | `pnpm-workspace.yaml` (`trustPolicy: no-downgrade`) |
 | Lockfiles committed; CI never re-resolves | `pnpm install --frozen-lockfile`, `uv sync --locked` |
-| Codegen plugins pinned to exact versions | `buf.gen.yaml` |
+| Codegen plugins pinned to exact versions | `buf.gen.agentic.yaml` |
 | Toolchain pinned to exact versions | `mise.toml` |
 | `o11y-eval` binaries checksummed and keyless-signed | `publish.yml` (cosign + Sigstore) |
 | Reproducible Go builds (`-trimpath`, `CGO_ENABLED=0`) | `justfile`, `publish.yml` |

@@ -102,7 +102,9 @@ if [[ -n "$(git -C "$src" status --porcelain -- proto/o11y_one)" ]]; then
 fi
 rm -rf proto/o11y_one
 mkdir -p proto
-git -C "$src" archive --format=tar "$pin" proto/o11y_one | tar -xf - -C proto --strip-components=1
+# Only the agentic closure is vendored. The rest of the o11y-api contract never
+# enters this repository, so going public cannot expose it.
+git -C "$src" archive --format=tar "$pin" proto/o11y_one/agentic proto/o11y_one/common | tar -xf - -C proto --strip-components=1
 find proto/o11y_one -type f ! -name '*.proto' -delete
 find proto/o11y_one -type d -empty -delete
 
