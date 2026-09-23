@@ -75,8 +75,10 @@ jobs:
       - run: uv sync --all-packages --locked
       - name: Generated code is current
         run: just gen-check
+      - name: Published artifacts carry only the agentic closure
+        run: just surface-check
+      - run: just build # before lint: sdk-ts typechecks against a built dist
       - run: just lint
-      - run: just build
       - run: just test
 
   # ---------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 # `@o11y-one/sdk`
 
 The TypeScript client for the O11y One API. A thin, hand-written layer over the
-generated [`@o11y-one/api`](../gen-ts) package.
+generated [`@o11y-one/api-agentic`](../gen-ts-agentic) package.
 
 ## Install
 
@@ -13,7 +13,7 @@ pnpm add @o11y-one/sdk
 
 ```ts
 import { O11yClient, classify } from "@o11y-one/sdk";
-import { BillingUsageService } from "@o11y-one/api/o11y_one/billing/v1/billing_pb";
+import { AgenticEvaluationService } from "@o11y-one/api-agentic/o11y_one/agentic/v1/evaluation_pb";
 
 const o11y = new O11yClient({
   baseUrl: "https://api.o11y.one",
@@ -21,10 +21,10 @@ const o11y = new O11yClient({
   orgId: process.env.O11Y_ORG_ID,
 });
 
-const billing = o11y.service(BillingUsageService);
+const evals = o11y.service(AgenticEvaluationService);
 
 try {
-  const quota = await billing.getQuotaStatus({});
+  const defs = await evals.listEvaluationDefinitions({});
 } catch (err) {
   const failure = classify(err);
   if (failure.disposition === "insufficient-scope") {
@@ -45,7 +45,7 @@ Three modules and nothing else:
 | `errors.ts` | the failure taxonomy: reauthenticate / insufficient-scope / version-skew / retry / unclassified |
 
 Service methods are **not** wrapped. connect-es turns any generated descriptor
-into a fully typed client; a hand-written facade over 29 services would be a
+into a fully typed client; a hand-written facade over every service would be a
 second API surface to keep in sync with the proto, and it would rot the first
 time a field is added upstream.
 

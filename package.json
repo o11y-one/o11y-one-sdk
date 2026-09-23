@@ -2,7 +2,7 @@
   "name": "@o11y-one/sdk-monorepo",
   "private": true,
   "version": "0.0.0",
-  "description": "Workspace root. Not published — see packages/gen-ts and packages/sdk-ts.",
+  "description": "Workspace root. Not published — see packages/gen-ts-agentic and packages/sdk-ts.",
   "license": "Apache-2.0",
   "type": "module",
   "packageManager": "pnpm@11.24.0",

@@ -117,10 +117,9 @@ class O11yClient:
         evals = o11y.service_sync(AgenticEvaluationServiceClientSync)
         defs = evals.list_evaluation_definitions(ListEvaluationDefinitionsRequest())
 
-    The example uses an agentic service because ``o11y-one`` depends on
-    ``o11y-one-api-agentic`` -- the agentic + common subset. To reach another
-    domain, add a dependency on the whole ``o11y-one-api`` and pass its client
-    class here; the transport itself is domain-agnostic.
+    ``o11y-one`` depends on ``o11y-one-api-agentic`` -- the agentic + common
+    subset, which is the whole published surface. The transport itself is
+    domain-agnostic: any generated client class works here.
 
     Protocol note: Connect over HTTP, not gRPC. It is the protocol o11y-web
     already speaks and the one that survives proxies and CI egress rules without

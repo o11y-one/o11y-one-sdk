@@ -2,6 +2,7 @@
 # it out of language statistics and collapses it by default in GitHub diffs, so
 # a proto change reads as the proto change plus a summary rather than 30k lines.
 gen/go/o11y_one/**              linguist-generated=true
+internal/gen/go/o11y_one/**     linguist-generated=true
 packages/gen-ts/src/o11y_one/** linguist-generated=true
 packages/gen-py/src/o11y_one/** linguist-generated=true
 

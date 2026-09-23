@@ -1,7 +1,7 @@
 # `o11y-one`
 
 The Python client for the O11y One API. A thin, hand-written layer over the
-generated [`o11y-one-api`](../gen-py) package.
+generated [`o11y-one-api-agentic`](../gen-py-agentic) package.
 
 ## Install
 
@@ -15,8 +15,8 @@ uv add o11y-one        # or: pip install o11y-one
 import os
 
 from o11y_one.sdk import O11yClient, Disposition, classify
-from o11y_one.billing.v1.billing_pb2 import GetQuotaStatusRequest
-from o11y_one.billing.v1.billing_connect import BillingUsageServiceClientSync
+from o11y_one.agentic.v1.evaluation_pb2 import ListEvaluationDefinitionsRequest
+from o11y_one.agentic.v1.evaluation_connect import AgenticEvaluationServiceClientSync
 
 o11y = O11yClient(
     base_url="https://api.o11y.one",
@@ -24,9 +24,9 @@ o11y = O11yClient(
     org_id=os.environ["O11Y_ORG_ID"],
 )
 
-billing = o11y.service_sync(BillingUsageServiceClientSync)
+evals = o11y.service_sync(AgenticEvaluationServiceClientSync)
 try:
-    quota = billing.get_quota_status(GetQuotaStatusRequest())
+    defs = evals.list_evaluation_definitions(ListEvaluationDefinitionsRequest())
 except Exception as err:  # noqa: BLE001 - classify sorts it out
     failure = classify(err)
     if failure.disposition is Disposition.INSUFFICIENT_SCOPE:
@@ -44,7 +44,7 @@ Three modules and nothing else:
 | `o11y_one.sdk.auth`   | the credential wire format and local structural validation |
 | `o11y_one.sdk.errors` | the failure taxonomy: reauthenticate / insufficient-scope / version-skew / retry / unclassified |
 
-Service methods are **not** wrapped. `o11y-one-api` already ships a client class
+Service methods are **not** wrapped. `o11y-one-api-agentic` already ships a client class
 per service; a hand-written facade over all of them would be a second API surface
 to keep in sync with the proto, and it would rot the first time a field is added
 upstream. Import the generated client class and hand it to

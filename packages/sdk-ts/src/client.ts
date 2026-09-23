@@ -2,9 +2,9 @@
  * Transport construction and credential injection.
  *
  * Scope discipline: this file builds a transport and attaches headers. It does
- * NOT wrap RPCs in convenience methods. `@o11y-one/api` already exposes every
- * service descriptor, and connect-es v2 turns a descriptor into a typed client
- * with `createClient(Desc, transport)`. A hand-written facade over 29 services
+ * NOT wrap RPCs in convenience methods. `@o11y-one/api-agentic` already exposes
+ * every service descriptor, and connect-es v2 turns a descriptor into a typed
+ * client with `createClient(Desc, transport)`. A hand-written facade over them
  * would be a second API surface to keep in sync with the proto, and it would
  * rot the first time a field is added upstream.
  */
@@ -145,10 +145,9 @@ export function createTransport(options: ClientOptions): Transport {
  * const defs = await evals.listEvaluationDefinitions({});
  * ```
  *
- * The example uses an agentic service because `@o11y-one/sdk` depends on
- * `@o11y-one/api-agentic` — the agentic + common subset. To reach another
- * domain, add a dependency on the whole `@o11y-one/api` and pass its descriptor
- * here; the transport itself is domain-agnostic.
+ * `@o11y-one/sdk` depends on `@o11y-one/api-agentic` — the agentic + common
+ * subset, which is the whole published surface. The transport itself is
+ * domain-agnostic: any generated `DescService` works here.
  */
 export class O11yClient {
   readonly transport: Transport;

@@ -1,5 +1,5 @@
 /**
- * `@o11y-one/sdk` — hand-written client layer over the generated `@o11y-one/api`.
+ * `@o11y-one/sdk` — hand-written client layer over the generated `@o11y-one/api-agentic`.
  *
  * The foundation:
  *   - transport construction (client.ts)

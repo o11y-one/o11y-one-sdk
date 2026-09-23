@@ -17,7 +17,7 @@ concurrency:
 env:
   # Codegen uses BSR remote plugins anonymously. There is deliberately no
   # BUF_TOKEN secret in this repo: an anonymous generate is rate-limited but
-  # sufficient (one request per plugin per run, five per `just gen`), and a token
+  # sufficient (one request per plugin per pass, twelve per `just gen`), and a token
   # would be a credential in CI that buys nothing.
   BUF_TOKEN: ""
 
@@ -81,6 +81,9 @@ jobs:
       - name: Committed generated code matches `just gen`
         run: just gen-check
 
+      - name: Published artifacts carry only the agentic closure
+        run: just surface-check
+
       # ---- build + test all packages on the host toolchain.
       # --frozen-lockfile / --locked: CI never resolves. A manifest/lockfile
       # disagreement is a PR fix, not something to paper over on a runner.
@@ -90,11 +93,13 @@ jobs:
       - name: Install (Python)
         run: uv sync --all-packages --locked
 
-      - name: Lint
-        run: just lint
-
+      # Build before lint: sdk-ts typechecks against @o11y-one/api-agentic's
+      # built dist/*.d.ts, which does not exist on a fresh checkout.
       - name: Build
         run: just build
+
+      - name: Lint
+        run: just lint
 
       - name: Test
         run: just test

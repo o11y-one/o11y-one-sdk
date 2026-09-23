@@ -1,5 +1,6 @@
 # uv workspace root. Not itself a distribution — the two publishable packages are
-# packages/gen-py (o11y-one-api) and packages/sdk-py (o11y-one).
+# packages/gen-py-agentic (o11y-one-api-agentic) and packages/sdk-py (o11y-one).
+# packages/gen-py (o11y-one-api, the whole tree) is a workspace-only member.
 #
 # Same shape as the pnpm workspace next door: one lockfile at the root
 # (uv.lock, committed), members resolved together so the SDK always builds

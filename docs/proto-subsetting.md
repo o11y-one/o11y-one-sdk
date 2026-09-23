@@ -1,11 +1,11 @@
-# Proto subsetting: the agentic SDK carries only its import closure
+# Proto subsetting: only the agentic import closure is published
 
 ## Problem
 
 This repo vendors the whole o11y-api proto tree — 11 domains (`agentic`,
 `alerts`, `auth`, `billing`, `common`, `dashboards`, `mcp`, `objectives`,
 `organizations`, `query_engine`, `service_discovery`) — and generates all of it
-into `gen/go`, `packages/gen-ts`, and `packages/gen-py`.
+into `internal/gen/go`, `packages/gen-ts`, and `packages/gen-py`.
 
 The published agentic SDKs (`@o11y-one/sdk`, `o11y_one`) are thin wrappers over
 the generated code. Before this change they depended on the **whole** generated
@@ -13,9 +13,8 @@ package (`@o11y-one/api`, `o11y-one-api`), so anyone installing the agentic SDK
 transitively pulled all 11 domains — `billing`, `auth`, `dashboards`, and the
 rest — even though the agentic surface never touches them.
 
-We want the agentic SDK's published footprint to be **only the agentic import
-closure**, while keeping the whole generated code available for o11y-web, which
-reuses these same stubs and may need any domain.
+We want everything this repo publishes to be **only the agentic import
+closure**, while keeping the whole generated code available locally.
 
 ## The agentic import closure (computed, not guessed)
 
@@ -48,19 +47,26 @@ domain in the closure must be added to `AGENTIC_CLOSURE_PATHS` in
 **Keep the vendored proto mirror whole; make GENERATION + PACKAGING per-domain.**
 
 We do NOT delete the non-agentic protos from the source-of-truth mirror — it
-faithfully mirrors o11y-api and o11y-web consumes other domains from the whole
-generated packages. Instead:
+is `proto/o11y_one` at `PROTO_PIN`, byte for byte bar the import re-rooting,
+which is what makes the snapshot reproducible. Instead:
 
-- The whole tree is still generated into `gen/go`, `packages/gen-ts`
-  (`@o11y-one/api`), and `packages/gen-py` (`o11y-one-api`) — unchanged, for
-  o11y-web.
+- The whole tree is still generated, into `internal/gen/go`,
+  `packages/gen-ts` (`@o11y-one/api`) and `packages/gen-py` (`o11y-one-api`),
+  for local use. **None of it is publishable**: `packages/gen-ts` is
+  `"private": true`, `packages/gen-py` carries the `Private :: Do Not Upload`
+  classifier PyPI rejects and is not built by `just build-py`, and Go refuses
+  to let any module outside this repository import an `internal/` path.
 - A **second, `--path`-scoped generation pass** emits the agentic closure alone
-  into two new dedicated distributions:
+  into the three artifacts that are published:
   - **TS**: `@o11y-one/api-agentic` (`packages/gen-ts-agentic`)
   - **Python**: `o11y-one-api-agentic` (`packages/gen-py-agentic`)
+  - **Go**: `github.com/o11y-one/o11y-one-sdk/gen/go` (`gen/go`)
 - The agentic SDKs depend on the scoped distributions instead of the whole ones:
   - `@o11y-one/sdk` → `@o11y-one/api-agentic`
   - `o11y_one` → `o11y-one-api-agentic`
+- `just surface-check` (CI and the release `verify` job) fails if any of the
+  three carries an `o11y_one/<domain>` outside `AGENTIC_CLOSURE_PATHS`, or if
+  either whole-tree package loses its unpublishable marker.
 
 ### Why a separate distribution rather than a subpath export
 
@@ -73,11 +79,13 @@ language whose published artifact contains only agentic + common.
 
 ### Why this is not code duplication we have to maintain
 
-The scoped package's `src/` is generated, never hand-written, and the subset is
-**byte-identical** to the corresponding `agentic/` + `common/` subtrees of the
-whole package (verified: `diff -rq` is clean for both TS and Python). Both come
-from the same protos via the same pinned buf plugins; only the `--path`
-allowlist and the `out` root differ. `just gen-check` regenerates both and
+The scoped package's `src/` is generated, never hand-written, and the subset
+matches the corresponding `agentic/` + `common/` subtrees of the whole package
+in everything but one descriptor option: each embedded file descriptor carries
+`go_package`, which names the Go module that file's Go code lives in (`gen/go`
+for the closure, `internal/gen/go` for the whole tree). Both come from the same
+protos via the same pinned buf plugins; only the `--path` allowlist, the `out`
+root and that Go prefix differ. `just gen-check` regenerates both and
 asserts the working tree is unchanged, so drift is a CI failure, not a latent
 bug.
 
@@ -105,9 +113,14 @@ distribution — `tools/generate.sh` asserts none appears in the new package too
 
 ### Go
 
-**No change needed.** The Go module `gen/go` is a single module with a package
-per proto-package, and Go links only what is imported. `go list -deps` on
-`tools/ci-runner` resolves exactly:
+Go links only what is imported, so the binaries never needed subsetting. The
+**module** did: a Go module is published by the repository being public, and
+`gen/go` held all 11 domains. So `buf.gen.agentic.yaml` also runs the Go
+plugins, into `gen/go` (the public module, managed `go_package_prefix`
+`github.com/o11y-one/o11y-one-sdk/gen/go`), and `buf.gen.yaml` points the whole
+tree at `internal/gen/go` (prefix `.../internal/gen/go`), a separate module Go
+will not let any outside module import. `go list -deps` on `tools/ci-runner`
+resolves exactly:
 
 ```
 gen/go/o11y_one/agentic/v1
@@ -115,10 +128,9 @@ gen/go/o11y_one/agentic/v1/agenticv1connect
 gen/go/o11y_one/common/v1
 ```
 
-`tools/pr-diff` links no generated code at all. The Go binaries already carry
-the agentic closure and nothing else, so there is nothing to subset — the
-per-package layout gives Go the property the TS/Python packages had to be
-restructured to get.
+`tools/pr-diff` links no generated code at all. Neither tool imports
+`internal/gen/go`; code in this repository may, if it ever needs another
+domain.
 
 ## Footprint: before → after
 
@@ -126,15 +138,10 @@ restructured to get.
 |---|---|---|
 | `@o11y-one/sdk` (npm) | dep `@o11y-one/api` → 11 domains | dep `@o11y-one/api-agentic` → agentic + common |
 | `o11y_one` (PyPI)     | dep `o11y-one-api` → 11 domains | dep `o11y-one-api-agentic` → agentic + common |
+| `gen/go` (Go module)  | 11 domains, public with the repo | agentic + common; the rest under `internal/gen/go` |
 | `o11y-eval` (Go)      | links agentic + common (already) | unchanged |
 
-The whole `@o11y-one/api` / `o11y-one-api` / `gen/go` remain published (versions
-stay `0.0.0`) so o11y-web keeps consuming any domain it needs.
-
-## Left for o11y-web to adopt
-
-Nothing is forced. o11y-web keeps depending on the whole `@o11y-one/api` /
-`o11y-one-api`. If any o11y-web surface turns out to be agentic-only, it can
-optionally switch that surface to `@o11y-one/api-agentic` /
-`o11y-one-api-agentic` to shrink its own install closure — but that is its call,
-not a requirement of this change.
+The whole `@o11y-one/api` / `o11y-one-api` / `internal/gen/go` are not
+published and have no external consumer: o11y-web talks to the API through
+`@o11y-one/typed-fetch`, not these packages. A consumer that needs a domain
+outside the closure gets a new scoped package, not the whole tree.

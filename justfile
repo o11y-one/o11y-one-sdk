@@ -9,10 +9,15 @@
 #   just build      build every package
 #   just test       test every package
 #   just lint       fmt/vet/typecheck every package
+#   just surface-check  fail if a published artifact carries a non-agentic domain
 #   just clean      remove build artifacts
 #   just publish-dry rehearse the publish without publishing
 
 set shell := ["bash", "-euo", "pipefail", "-c"]
+
+# The agentic import closure as domain names ("agentic common"), read from
+# AGENTIC_CLOSURE_PATHS in tools/generate.sh so there is exactly one list.
+agentic_closure := `sed -n '/^AGENTIC_CLOSURE_PATHS=(/,/^)/s|.*proto/o11y_one/\([a-z_]*\).*|\1|p' tools/generate.sh | xargs`
 
 default:
     @just --list
@@ -34,13 +39,45 @@ gen-check:
     #!/usr/bin/env bash
     set -euo pipefail
     ./tools/generate.sh
-    if ! git diff --quiet --exit-code -- gen packages/gen-ts/src packages/gen-ts-agentic/src packages/gen-py/src packages/gen-py-agentic/src; then
+    # status, not diff: a newly generated file nobody committed is drift too.
+    drift="$(git status --porcelain -- gen internal/gen packages/gen-ts/src packages/gen-ts-agentic/src packages/gen-py/src packages/gen-py-agentic/src)"
+    if [[ -n "$drift" ]]; then
         echo "generated code is out of date with buf.gen.yaml / the proto snapshot." >&2
         echo "run 'just gen' and commit the result." >&2
-        git --no-pager diff --stat -- gen packages/gen-ts/src packages/gen-ts-agentic/src packages/gen-py/src packages/gen-py-agentic/src >&2
+        echo "$drift" >&2
         exit 1
     fi
     echo "generated code is up to date"
+
+# The published surface is the agentic closure and nothing else. Fails if a
+# publishable artifact's generated tree carries a proto domain outside
+# AGENTIC_CLOSURE_PATHS (tools/generate.sh), or if a whole-tree package loses
+# the marker that keeps it off its registry. See docs/proto-subsetting.md.
+surface-check:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    closure="{{agentic_closure}}"
+    fail=0
+    for root in gen/go packages/gen-ts-agentic/src packages/gen-py-agentic/src; do
+        for dir in "$root"/o11y_one/*/; do
+            domain="$(basename "$dir")"
+            if [[ " $closure " != *" $domain "* ]]; then
+                echo "$root carries o11y_one/$domain, outside AGENTIC_CLOSURE_PATHS" >&2
+                fail=1
+            fi
+        done
+        echo "$root/o11y_one: $(cd "$root/o11y_one" && echo */)"
+    done
+    if [[ "$(node -p 'require("./packages/gen-ts/package.json").private')" != true ]]; then
+        echo 'packages/gen-ts/package.json must stay "private": true (the whole tree is not published)' >&2
+        fail=1
+    fi
+    if ! grep -q '"Private :: Do Not Upload"' packages/gen-py/pyproject.toml; then
+        echo "packages/gen-py/pyproject.toml must keep its 'Private :: Do Not Upload' classifier" >&2
+        fail=1
+    fi
+    [[ "$fail" -eq 0 ]] || exit 1
+    echo "published surface = agentic closure ($closure); gen-ts and gen-py are unpublishable"
 
 # --- install ----------------------------------------------------------------
 
@@ -59,16 +96,16 @@ build: build-ts build-py build-go build-ci-runner build-pr-diff
 build-ts:
     pnpm -r --filter "./packages/**" run build
 
-# All Python distributions, sdist + wheel, into dist/. o11y-one-api is the whole
-# tree (for o11y-web); o11y-one-api-agentic is the agentic + common subset that
-# o11y-one depends on. See docs/proto-subsetting.md.
+# The published Python distributions, sdist + wheel, into dist/, which is
+# exactly what `uv publish dist/*` uploads. o11y-one-api (the whole tree) is
+# deliberately absent: it is workspace-only. See docs/proto-subsetting.md.
 build-py:
-    uv build --package o11y-one-api --out-dir dist
     uv build --package o11y-one-api-agentic --out-dir dist
     uv build --package o11y-one --out-dir dist
 
 build-go:
     cd gen/go && go build ./...
+    cd internal/gen/go && go build ./...
 
 # Static binary: CGO_ENABLED=0 so a pipeline can curl it and run it on any
 # glibc/musl image without a toolchain.
@@ -96,6 +133,7 @@ test-py:
 
 test-go:
     cd gen/go && go build ./...
+    cd internal/gen/go && go build ./...
     cd tools/ci-runner && go test ./...
     cd tools/pr-diff && go test ./...
 
@@ -119,6 +157,7 @@ lint-go:
     #!/usr/bin/env bash
     set -euo pipefail
     (cd gen/go && go vet ./...)
+    (cd internal/gen/go && go vet ./...)
     cd tools/ci-runner
     unformatted="$(gofmt -l .)"
     if [[ -n "$unformatted" ]]; then

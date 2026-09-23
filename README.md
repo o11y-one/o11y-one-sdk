@@ -13,13 +13,17 @@ o11y-one-sdk/
 ├── PROTO_PIN              the o11y-api commit this snapshot came from
 ├── proto/o11y_one/        vendored .proto snapshot          (read-only here)
 ├── buf.yaml               module layout
-├── buf.gen.yaml           the three languages, plugins pinned by exact version
-├── gen/go/                generated Go module               (committed)
+├── buf.gen.yaml           whole tree, three languages, plugins pinned by exact version
+├── buf.gen.agentic.yaml   the agentic closure: the only generated code published
+├── gen/go/                Go module, agentic closure        (committed)
+├── internal/gen/go/       Go module, whole tree             (committed, unimportable)
 ├── packages/
-│   ├── gen-ts/            @o11y-one/api    generated TS     (committed)
-│   ├── gen-py/            o11y-one-api     generated Python (committed)
-│   ├── sdk-ts/            @o11y-one/sdk    hand-written
-│   └── sdk-py/            o11y-one         hand-written
+│   ├── gen-ts/            @o11y-one/api          TS, whole tree          (private)
+│   ├── gen-ts-agentic/    @o11y-one/api-agentic  TS, agentic closure
+│   ├── gen-py/            o11y-one-api           Python, whole tree      (private)
+│   ├── gen-py-agentic/    o11y-one-api-agentic   Python, agentic closure
+│   ├── sdk-ts/            @o11y-one/sdk          hand-written
+│   └── sdk-py/            o11y-one               hand-written
 ├── tools/
 │   ├── sync-proto.sh      re-vendor from o11y-api, then regenerate
 │   ├── generate.sh        regenerate without re-vendoring
@@ -96,8 +100,8 @@ statement, which is untouched. Only descriptor file names move.
 
 ### Generated code is committed
 
-All of it. `gen/go/o11y_one/**`, `packages/gen-ts/src/o11y_one/**`,
-`packages/gen-py/src/o11y_one/**`. Three reasons:
+All of it. `gen/go/o11y_one/**`, `internal/gen/go/o11y_one/**`,
+`packages/*/src/o11y_one/**`. Three reasons:
 
 1. **The diff is the review.** A proto change that alters the generated surface
    shows up as a reviewable diff instead of appearing at publish time.
@@ -112,8 +116,9 @@ Codegen uses BSR remote plugins pinned to exact versions in `buf.gen.yaml`
 binaries: local ones would add five more publishers to this repo's dependency
 graph and five more lockfile entries for consumers to reason about. Generation
 happens rarely and its output is committed, so a network dependency there costs
-nothing downstream. Anonymous BSR use is rate-limited; a full `just gen` is five
-requests, comfortably inside it, which is why there is no `BUF_TOKEN` here.
+nothing downstream. Anonymous BSR use is rate-limited; a full `just gen` is
+twelve requests (six plugins, two passes), comfortably inside it, which is why
+there is no `BUF_TOKEN` here.
 
 ### If `just gen` fails with a Buf auth error
 
@@ -131,19 +136,25 @@ grep -n buf.build ~/.netrc # and remove the stale machine entry, if any
 ```
 
 `resource_exhausted: too many requests` means the anonymous BSR rate limit; wait
-a minute and re-run. A single `just gen` is five requests, so this only shows up
-if something is looping.
+a minute and re-run. A single `just gen` is twelve requests, so this only shows
+up if something is looping.
 
 ## The packages
 
 | package | published as | contents |
 |---|---|---|
-| `packages/gen-ts` | `@o11y-one/api` (npm) | generated types + service descriptors |
+| `packages/gen-ts-agentic` | `@o11y-one/api-agentic` (npm) | generated types + service descriptors, agentic closure |
 | `packages/sdk-ts` | `@o11y-one/sdk` (npm) | transport, credentials, error taxonomy |
-| `packages/gen-py` | `o11y-one-api` (PyPI) | generated messages + Connect clients |
+| `packages/gen-py-agentic` | `o11y-one-api-agentic` (PyPI) | generated messages + Connect clients, agentic closure |
 | `packages/sdk-py` | `o11y-one` (PyPI) | transport, credentials, error taxonomy |
-| `gen/go` | `github.com/o11y-one/o11y-one-sdk/gen/go` | generated messages + connect-go clients |
+| `gen/go` | `github.com/o11y-one/o11y-one-sdk/gen/go` | generated messages + connect-go clients, agentic closure |
 | `tools/ci-runner` | GitHub release binaries | `o11y-eval`, static, signed |
+| `packages/gen-ts`, `packages/gen-py`, `internal/gen/go` | **not published** | the whole tree, every domain, for local use |
+
+The agentic closure is `o11y_one/agentic` + `o11y_one/common`. Why, and how the
+whole tree is kept unpublishable, is in
+[`docs/proto-subsetting.md`](docs/proto-subsetting.md); `just surface-check`
+enforces it.
 
 The hand-written SDKs are deliberately thin: transport construction, credential
 injection, and the failure taxonomy. They do **not** wrap RPCs. The generated
@@ -159,10 +170,10 @@ settled. `gen/go/README.md` has the one-command rename for when it is.
 
 ### `o11y_one` is a shared Python namespace
 
-`o11y-one-api` and `o11y-one` both contribute to the `o11y_one` package, which is
-a [PEP 420](https://peps.python.org/pep-0420/) implicit namespace: the generated
-distribution owns `o11y_one.billing`, `o11y_one.agentic`, …, and the SDK owns
-`o11y_one.sdk`. Neither may ship an `o11y_one/__init__.py`; `tools/generate.sh`
+`o11y-one-api-agentic` and `o11y-one` both contribute to the `o11y_one` package,
+which is a [PEP 420](https://peps.python.org/pep-0420/) implicit namespace: the
+generated distribution owns `o11y_one.agentic` and `o11y_one.common`, and the SDK
+owns `o11y_one.sdk`. Neither may ship an `o11y_one/__init__.py`; `tools/generate.sh`
 asserts this, and `packages/sdk-py/tests` proves the two import side by side.
 
 ## Publishing
