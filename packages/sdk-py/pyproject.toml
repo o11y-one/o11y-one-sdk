@@ -35,7 +35,7 @@ build-backend = "hatchling.build"
 packages = ["src/o11y_one"]
 
 [tool.hatch.build.targets.sdist]
-include = ["src", "tests", "README.md", "pyproject.toml"]
+include = ["src", "README.md", "pyproject.toml"]
 
 [tool.uv.sources]
 # Inside the workspace, resolve the generated package from the sibling member

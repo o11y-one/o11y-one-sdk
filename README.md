@@ -211,6 +211,7 @@ install-time code execution.**
 | Toolchain pinned to exact versions | `mise.toml` |
 | `o11y-eval` binaries checksummed and keyless-signed | `publish.yml` (cosign + Sigstore) |
 | Reproducible Go builds (`-trimpath`, `CGO_ENABLED=0`) | `justfile`, `publish.yml` |
+| Every tarball, wheel and sdist is built and inspected before release: no source maps, tests, test data, `.env`, or domain outside the agentic closure | `just pack-check` in `ci.yml` and `publish.yml` |
 
 Known gap, stated rather than hidden: uv has no age-based equivalent of pnpm's
 `minimumReleaseAge`, so a new Python dependency is not held back for a week. The

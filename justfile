@@ -10,7 +10,7 @@
 #   just test       test every package
 #   just lint       fmt/vet/typecheck every package
 #   just surface-check  fail if a published artifact carries a non-agentic domain
-#   just pack-check     inspect the npm tarballs a release would publish
+#   just pack-check     inspect every tarball, wheel and sdist a release would publish
 #   just clean      remove build artifacts
 #   just publish-dry rehearse the publish without publishing
 
@@ -80,9 +80,11 @@ surface-check:
     [[ "$fail" -eq 0 ]] || exit 1
     echo "published surface = agentic closure ($closure); gen-ts and gen-py are unpublishable"
 
-# Pack the npm tarballs exactly as the publish job does and fail on anything
-# that must not ship: source maps, .ts that is not .d.ts, tests, test data,
-# .env files. The packed @o11y-one/sdk must name a real version of
+# Build every artifact a release publishes, exactly as the publish jobs do (npm
+# tarballs via `pnpm pack`, wheels and sdists via `just build-py`), print their
+# listings, and fail on anything that must not ship: source maps, .ts that is
+# not .d.ts, tests, test data, .env files, or a proto domain outside the
+# agentic closure. The packed @o11y-one/sdk must name a real version of
 # @o11y-one/api-agentic, never the workspace protocol.
 pack-check:
     #!/usr/bin/env bash
@@ -96,12 +98,18 @@ pack-check:
     for pkg in gen-ts-agentic sdk-ts; do
         (cd "packages/$pkg" && pnpm pack --pack-destination "$out" >/dev/null)
     done
+    just build-py "$out"
+    # Every proto domain vendored here that is NOT in the closure.
+    outside="$(cd proto/o11y_one && for d in */; do d="${d%/}"; [[ " {{agentic_closure}} " == *" $d "* ]] || printf '%s|' "$d"; done)"
     fail=0
     for artifact in "$out"/*; do
-        listing="$(tar -tzf "$artifact")"
+        case "$artifact" in
+            *.whl) listing="$(unzip -Z1 "$artifact")" ;;
+            *) listing="$(tar -tzf "$artifact")" ;;
+        esac
         echo "==> ${artifact##*/}"
         sed 's/^/    /' <<<"$listing"
-        bad="$(grep -E '\.map$|\.ts$|(^|/)(tests?|testdata)/|(^|/)\.env' <<<"$listing" | grep -v '\.d\.ts$' || true)"
+        bad="$(grep -E "\.map$|\.ts$|(^|/)(tests?|testdata)/|(^|/)\.env|(^|/)o11y_one/(${outside%|})/" <<<"$listing" | grep -v '\.d\.ts$' || true)"
         if [[ -n "$bad" ]]; then
             echo "${artifact##*/} must not ship:" >&2
             sed 's/^/    /' <<<"$bad" >&2
@@ -137,9 +145,9 @@ build-ts:
 # The published Python distributions, sdist + wheel, into dist/, which is
 # exactly what `uv publish dist/*` uploads. o11y-one-api (the whole tree) is
 # deliberately absent: it is workspace-only. See docs/proto-subsetting.md.
-build-py:
-    uv build --package o11y-one-api-agentic --out-dir dist
-    uv build --package o11y-one --out-dir dist
+build-py out="dist":
+    uv build --package o11y-one-api-agentic --out-dir {{out}}
+    uv build --package o11y-one --out-dir {{out}}
 
 build-go:
     cd gen/go && go build ./...

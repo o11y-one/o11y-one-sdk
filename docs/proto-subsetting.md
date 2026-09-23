@@ -66,7 +66,8 @@ which is what makes the snapshot reproducible. Instead:
   - `o11y_one` → `o11y-one-api-agentic`
 - `just surface-check` (CI and the release `verify` job) fails if any of the
   three carries an `o11y_one/<domain>` outside `AGENTIC_CLOSURE_PATHS`, or if
-  either whole-tree package loses its unpublishable marker.
+  either whole-tree package loses its unpublishable marker. `just pack-check`
+  then inspects the built tarballs, wheels and sdists themselves.
 
 ### Why a separate distribution rather than a subpath export
 
