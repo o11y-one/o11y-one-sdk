@@ -182,8 +182,9 @@ Nothing publishes from a laptop. `just publish-dry` rehearses everything without
 uploading; the real thing happens only in `.github/workflows/publish.yml`, on a
 `v*` tag, in a protected `release` environment.
 
-One tag publishes all four packages at the same version, plus signed `o11y-eval`
-binaries. They move together because they come from one proto snapshot; letting
+One tag publishes four packages at the same version — `@o11y-one/api-agentic`
+and `@o11y-one/sdk` to npm, `o11y-one-api-agentic` and `o11y-one` to PyPI — plus
+signed `o11y-eval` binaries. They move together because they come from one proto snapshot; letting
 them drift would create a compatibility matrix nobody wants to maintain. The
 `verify` job fails the release if a manifest version and the tag disagree.
 
@@ -195,7 +196,7 @@ install-time code execution.**
 | measure | where |
 |---|---|
 | No `NPM_TOKEN`, no `PYPI_TOKEN` — publishing is OIDC only | `publish.yml` (npm trusted publishing, PyPI Trusted Publishers) |
-| npm provenance attestations (`npm publish --provenance`) | `publish.yml`; verify with `npm audit signatures` |
+| npm provenance attestations (`pnpm publish --provenance`) | `publish.yml`; verify with `npm audit signatures` |
 | `permissions: {}` at workflow level, minimum granted per job | `ci.yml`, `publish.yml` |
 | `id-token: write` on publish jobs **only**, never in CI | `publish.yml` |
 | Publish gated on a protected environment | `publish.yml` (`environment: release`) |

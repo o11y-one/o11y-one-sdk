@@ -103,3 +103,6 @@ jobs:
 
       - name: Test
         run: just test
+
+      - name: Every artifact ships only what it should
+        run: just pack-check

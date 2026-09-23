@@ -4,11 +4,12 @@ name: publish
 #
 #   git tag v0.1.0 && git push origin v0.1.0
 #
-# One tag publishes all four artifacts at the same version: @o11y-one/api,
-# @o11y-one/sdk, o11y-one-api, o11y-one, plus the signed ci-runner binaries. The
-# four move together because they are generated from one proto snapshot; letting
-# them drift apart would mean a matrix of compatible versions nobody wants to
-# maintain.
+# One tag publishes four packages at the same version: @o11y-one/api-agentic
+# and @o11y-one/sdk to npm, o11y-one-api-agentic and o11y-one to PyPI, plus the
+# signed ci-runner binaries. The four move together because they are generated
+# from one proto snapshot; letting them drift apart would mean a matrix of
+# compatible versions nobody wants to maintain. The whole-tree @o11y-one/api and
+# o11y-one-api are never published (see docs/proto-subsetting.md).
 on:
   push:
     tags:
@@ -65,10 +66,10 @@ jobs:
               fail=1
             fi
           }
-          check packages/gen-ts/package.json  "$(node -p 'require("./packages/gen-ts/package.json").version')"
-          check packages/sdk-ts/package.json  "$(node -p 'require("./packages/sdk-ts/package.json").version')"
-          check packages/gen-py/pyproject.toml "$(uv version --package o11y-one-api --short)"
-          check packages/sdk-py/pyproject.toml "$(uv version --package o11y-one --short)"
+          check packages/gen-ts-agentic/package.json  "$(node -p 'require("./packages/gen-ts-agentic/package.json").version')"
+          check packages/sdk-ts/package.json          "$(node -p 'require("./packages/sdk-ts/package.json").version')"
+          check packages/gen-py-agentic/pyproject.toml "$(uv version --package o11y-one-api-agentic --short)"
+          check packages/sdk-py/pyproject.toml         "$(uv version --package o11y-one --short)"
           exit "$fail"
 
       - run: pnpm install --frozen-lockfile
@@ -80,19 +81,21 @@ jobs:
       - run: just build # before lint: sdk-ts typechecks against a built dist
       - run: just lint
       - run: just test
+      - name: Every artifact ships only what it should
+        run: just pack-check
 
   # ---------------------------------------------------------------------------
   # npm, via OIDC trusted publishing.
   #
-  # There is no NPM_TOKEN in this repository. npm exchanges the job's OIDC token
-  # for a short-lived publish credential, which means: no long-lived secret to
+  # There is no NPM_TOKEN in this repository. The registry exchanges the job's
+  # OIDC token for a short-lived publish credential, which means: no long-lived secret to
   # leak, no secret to rotate, and a provenance attestation (--provenance) that
   # ties the tarball to this workflow file at this commit. Consumers can verify
   # it with `npm audit signatures`.
   #
-  # Prerequisite, done once in the npm UI per package: configure trusted
-  # publishing for o11y-one/o11y-one-sdk with workflow `publish.yml` and
-  # environment `release`.
+  # Prerequisite, done once in the npm UI for @o11y-one/api-agentic and
+  # @o11y-one/sdk: configure trusted publishing for o11y-one/o11y-one-sdk with
+  # workflow `publish.yml` and environment `release`.
   # ---------------------------------------------------------------------------
   publish-npm:
     needs: verify
@@ -116,16 +119,19 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: just build-ts
 
-      # npm, not pnpm, for the publish itself: trusted publishing and
-      # --provenance are npm-CLI features, and npm ships with the pinned Node.
-      # pnpm still owns the workspace and the lockfile.
-      - name: Publish @o11y-one/api
-        working-directory: packages/gen-ts
-        run: npm publish --provenance --access public
+      # pnpm, not npm: sdk-ts depends on `@o11y-one/api-agentic@workspace:*`,
+      # which pnpm rewrites to the real version when it packs and npm ships
+      # verbatim, uninstallable. The pinned pnpm does the npm OIDC token
+      # exchange and the Sigstore provenance attestation itself.
+      # --no-git-checks: a tag checkout is a detached HEAD, which pnpm's
+      # branch check would refuse. The dependency publishes first.
+      - name: Publish @o11y-one/api-agentic
+        working-directory: packages/gen-ts-agentic
+        run: pnpm publish --provenance --access public --no-git-checks
 
       - name: Publish @o11y-one/sdk
         working-directory: packages/sdk-ts
-        run: npm publish --provenance --access public
+        run: pnpm publish --provenance --access public --no-git-checks
 
   # ---------------------------------------------------------------------------
   # PyPI, via Trusted Publishers. Same story: no PYPI_TOKEN in this repository.

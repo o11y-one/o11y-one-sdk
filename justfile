@@ -10,6 +10,7 @@
 #   just test       test every package
 #   just lint       fmt/vet/typecheck every package
 #   just surface-check  fail if a published artifact carries a non-agentic domain
+#   just pack-check     inspect the npm tarballs a release would publish
 #   just clean      remove build artifacts
 #   just publish-dry rehearse the publish without publishing
 
@@ -78,6 +79,43 @@ surface-check:
     fi
     [[ "$fail" -eq 0 ]] || exit 1
     echo "published surface = agentic closure ($closure); gen-ts and gen-py are unpublishable"
+
+# Pack the npm tarballs exactly as the publish job does and fail on anything
+# that must not ship: source maps, .ts that is not .d.ts, tests, test data,
+# .env files. The packed @o11y-one/sdk must name a real version of
+# @o11y-one/api-agentic, never the workspace protocol.
+pack-check:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    out="$(mktemp -d "${TMPDIR:-/tmp}/o11y-pack.XXXXXX")"
+    trap 'rm -rf "$out"' EXIT
+    # Clean first: tsc never deletes a stale output, and the publish job packs
+    # a fresh build.
+    pnpm --filter @o11y-one/api-agentic --filter @o11y-one/sdk run clean >/dev/null
+    pnpm --filter @o11y-one/api-agentic --filter @o11y-one/sdk run build >/dev/null
+    for pkg in gen-ts-agentic sdk-ts; do
+        (cd "packages/$pkg" && pnpm pack --pack-destination "$out" >/dev/null)
+    done
+    fail=0
+    for artifact in "$out"/*; do
+        listing="$(tar -tzf "$artifact")"
+        echo "==> ${artifact##*/}"
+        sed 's/^/    /' <<<"$listing"
+        bad="$(grep -E '\.map$|\.ts$|(^|/)(tests?|testdata)/|(^|/)\.env' <<<"$listing" | grep -v '\.d\.ts$' || true)"
+        if [[ -n "$bad" ]]; then
+            echo "${artifact##*/} must not ship:" >&2
+            sed 's/^/    /' <<<"$bad" >&2
+            fail=1
+        fi
+    done
+    dep="$(tar -xzOf "$out"/o11y-one-sdk-*.tgz package/package.json \
+        | node -p 'JSON.parse(require("fs").readFileSync(0, "utf8")).dependencies["@o11y-one/api-agentic"]')"
+    echo "packed @o11y-one/sdk depends on @o11y-one/api-agentic@$dep"
+    if [[ ! "$dep" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+        echo "that is not a published version; the tarball would not install" >&2
+        fail=1
+    fi
+    exit "$fail"
 
 # --- install ----------------------------------------------------------------
 

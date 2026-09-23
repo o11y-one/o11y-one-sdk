@@ -14,8 +14,10 @@
     "isolatedModules": true,
     "skipLibCheck": true,
     "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
+    // No maps: packages ship dist/ only, so a map would point at a src/ that is
+    // not in the tarball. `just pack-check` fails on any .map it finds.
+    "declarationMap": false,
+    "sourceMap": false,
     "forceConsistentCasingInFileNames": true
   }
 }
