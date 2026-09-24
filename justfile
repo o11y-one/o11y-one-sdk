@@ -230,10 +230,11 @@ clean-all: clean
 
 # Rehearse a publish without publishing anything.
 #
-# Nothing here can reach a registry: `pnpm publish --dry-run` and
+# Nothing here can reach a registry: `npm stage publish --dry-run` and
 # `uv publish --dry-run` stop before the upload, and there is no token in the
 # environment to upload with anyway. Real publishing happens ONLY in
-# .github/workflows/publish.yml, over OIDC, from a tag.
+# .github/workflows/publish.yml, over OIDC, from a tag, and even there npm
+# versions are only STAGED until a maintainer approves them with 2FA.
 #
 # Off CI, uv prints "No OIDC token discovered: are you in a supported trusted
 # publishing environment?" before it checks the files. That is the expected
@@ -241,14 +242,20 @@ clean-all: clean
 # is precisely the property that makes trusted publishing worth having. The
 # artifact checks still run and the recipe still exits 0.
 publish-dry: build
-    @echo "==> npm (dry run)"
-    pnpm -r --filter "./packages/**" publish --dry-run --no-git-checks
-    @echo "==> PyPI (dry run)"
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "==> npm (staged, dry run)"
+    out="$(mktemp -d "${TMPDIR:-/tmp}/o11y-stage.XXXXXX")"
+    trap 'rm -rf "$out"' EXIT
+    for pkg in gen-ts-agentic sdk-ts; do (cd "packages/$pkg" && pnpm pack --pack-destination "$out" >/dev/null); done
+    npm stage publish "$out"/o11y-one-api-agentic-*.tgz --dry-run --access public
+    npm stage publish "$out"/o11y-one-sdk-*.tgz --dry-run --access public
+    echo "==> PyPI (dry run)"
     uv publish --dry-run dist/*
-    @echo "==> ci-runner binaries"
-    @just release-matrix
-    @echo
-    @echo "Nothing was published. Tag a release to publish; see README."
+    echo "==> ci-runner binaries"
+    just release-matrix
+    echo
+    echo "Nothing was published. Tag a release to publish; see README."
 
 # Print the platform matrix the release workflow cross-compiles.
 release-matrix:

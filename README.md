@@ -179,6 +179,12 @@ signed `o11y-eval` binaries. They move together because they come from one proto
 them drift would create a compatibility matrix nobody wants to maintain. The
 `verify` job fails the release if a manifest version and the tag disagree.
 
+On npm the two versions are **staged**, not published: a maintainer runs
+`npm stage approve` for `@o11y-one/api-agentic` and then for `@o11y-one/sdk`,
+with 2FA, before either is installable. That is npm's proof-of-presence moved
+out of CI to the one place a human is anyway. PyPI and the binaries go live
+from the workflow directly.
+
 ## Supply-chain posture
 
 The rule this repo follows: **no long-lived publishing credentials, and no
@@ -187,7 +193,8 @@ install-time code execution.**
 | measure | where |
 |---|---|
 | No `NPM_TOKEN`, no `PYPI_TOKEN` — publishing is OIDC only | `publish.yml` (npm trusted publishing, PyPI Trusted Publishers) |
-| npm provenance attestations (`pnpm publish --provenance`) | `publish.yml`; verify with `npm audit signatures` |
+| npm provenance attestations (`npm stage publish --provenance`) | `publish.yml`; verify with `npm audit signatures` |
+| npm versions staged, approved by a maintainer with 2FA | `publish.yml`; `npm stage approve` |
 | `permissions: {}` at workflow level, minimum granted per job | `ci.yml`, `publish.yml` |
 | `id-token: write` on publish jobs **only**, never in CI | `publish.yml` |
 | Publish gated on a protected environment | `publish.yml` (`environment: release`) |
