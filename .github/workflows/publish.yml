@@ -85,13 +85,20 @@ jobs:
         run: just pack-check
 
   # ---------------------------------------------------------------------------
-  # npm, via OIDC trusted publishing.
+  # npm, via OIDC trusted publishing, STAGED.
   #
   # There is no NPM_TOKEN in this repository. The registry exchanges the job's
-  # OIDC token for a short-lived publish credential, which means: no long-lived secret to
+  # OIDC token for a short-lived credential, which means: no long-lived secret to
   # leak, no secret to rotate, and a provenance attestation (--provenance) that
   # ties the tarball to this workflow file at this commit. Consumers can verify
   # it with `npm audit signatures`.
+  #
+  # The job STAGES each version rather than publishing it: nothing becomes
+  # installable until a maintainer runs `npm stage approve` with their 2FA.
+  # That is the proof-of-presence npm wants on every publish, moved out of CI
+  # to the one place a human is anyway, and it is the only action a trusted
+  # publisher connection allows by default. Approve the dependency first:
+  # `@o11y-one/api-agentic`, then `@o11y-one/sdk` (docs/publishing-setup.md).
   #
   # Prerequisite, done once in the npm UI for @o11y-one/api-agentic and
   # @o11y-one/sdk: configure trusted publishing for o11y-one/o11y-one-sdk with
@@ -119,19 +126,32 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: just build-ts
 
-      # pnpm, not npm: sdk-ts depends on `@o11y-one/api-agentic@workspace:*`,
-      # which pnpm rewrites to the real version when it packs and npm ships
-      # verbatim, uninstallable. The pinned pnpm does the npm OIDC token
-      # exchange and the Sigstore provenance attestation itself.
-      # --no-git-checks: a tag checkout is a detached HEAD, which pnpm's
-      # branch check would refuse. The dependency publishes first.
-      - name: Publish @o11y-one/api-agentic
-        working-directory: packages/gen-ts-agentic
-        run: pnpm publish --provenance --access public --no-git-checks
+      # pnpm packs, npm stages. sdk-ts depends on
+      # `@o11y-one/api-agentic@workspace:*`, which pnpm rewrites to the real
+      # version when it packs and npm would ship verbatim, uninstallable. pnpm
+      # has no staging command, so the npm that ships with the pinned Node
+      # (11.19, well past the 11.5.1 trusted-publishing floor) stages the
+      # packed tarballs and does the OIDC exchange and the provenance
+      # attestation itself.
+      - name: Pack both packages
+        run: |
+          mkdir -p "$RUNNER_TEMP/npm"
+          for pkg in gen-ts-agentic sdk-ts; do
+            (cd "packages/$pkg" && pnpm pack --pack-destination "$RUNNER_TEMP/npm")
+          done
+          ls -l "$RUNNER_TEMP/npm"
 
-      - name: Publish @o11y-one/sdk
-        working-directory: packages/sdk-ts
-        run: pnpm publish --provenance --access public --no-git-checks
+      - name: Stage @o11y-one/api-agentic
+        run: npm stage publish "$RUNNER_TEMP"/npm/o11y-one-api-agentic-*.tgz --provenance --access public
+
+      - name: Stage @o11y-one/sdk
+        run: npm stage publish "$RUNNER_TEMP"/npm/o11y-one-sdk-*.tgz --provenance --access public
+
+      - name: What happens next
+        run: |
+          echo "Both versions are STAGED, not published. A maintainer approves them in order:"
+          echo "  npm stage list @o11y-one/api-agentic && npm stage approve <stage-id>"
+          echo "  npm stage list @o11y-one/sdk         && npm stage approve <stage-id>"
 
   # ---------------------------------------------------------------------------
   # PyPI, via Trusted Publishers. Same story: no PYPI_TOKEN in this repository.

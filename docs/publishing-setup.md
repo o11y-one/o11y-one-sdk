@@ -65,10 +65,12 @@ all.
    | Workflow filename | `publish.yml` |
    | Environment name | `release` |
 
-   Repeat for `@o11y-one/sdk`. A configuration cannot be edited afterwards,
-   only deleted and recreated. The `repository.url` in each `package.json`
-   already matches `https://github.com/o11y-one/o11y-one-sdk`, which npm
-   requires for provenance.
+   Leave **Allowed actions** at its default, `npm stage publish`; the
+   workflow stages, it never publishes directly. Repeat for `@o11y-one/sdk`.
+   A configuration cannot be edited afterwards, only deleted and recreated.
+   The `repository.url` in each `package.json` already matches
+   `https://github.com/o11y-one/o11y-one-sdk`, which npm requires for
+   provenance.
 
 4. **Close the token door.** On each package's Settings page, under Publishing
    access, choose **Require two-factor authentication and disallow tokens**.
@@ -81,9 +83,23 @@ all.
    npm deprecate @o11y-one/sdk@0.0.0         "bootstrap release; use 0.1.0 or later"
    ```
 
-The workflow already passes `pnpm publish --provenance`. pnpm 11.24 (pinned in
-`mise.toml`) performs the OIDC exchange itself and prefers it over any static
-token; keep pnpm on 11.0.7 or later.
+### Approving a release
+
+The workflow packs both packages with pnpm (which rewrites the workspace
+dependency to the real version) and runs `npm stage publish --provenance` on
+the tarballs. Nothing is installable until you approve, from any machine,
+signed in to npm with 2FA. The dependency goes first:
+
+```sh
+npm stage list @o11y-one/api-agentic     # shows the staged version and its stage id
+npm stage approve <stage-id>             # prompts for the OTP
+npm stage list @o11y-one/sdk
+npm stage approve <stage-id>
+```
+
+`npm stage reject <stage-id>` discards a staged version instead; the version
+number stays taken, so the next attempt needs a new patch version. Staging
+needs npm 11.19 or later, which the Node pinned in `mise.toml` ships.
 
 ## PyPI
 
@@ -198,14 +214,15 @@ generated code and on the fake `o11y_mach.AAAA.SECRET` fixture token in
    ```
 
    Approve the `release` environment deployment in the Actions run when asked;
-   `verify` must be green before any publish job starts.
+   `verify` must be green before any publish job starts. When the run is
+   green, approve the two staged npm versions ("Approving a release" above).
 
 ## After the first release
 
 Each check is run from an empty directory, not from this checkout.
 
 ```sh
-# npm: provenance attested, no maps, sources or tests in the tarball
+# npm (after both stage approvals): provenance attested, no maps, sources or tests in the tarball
 npm install @o11y-one/sdk@0.1.0 && npm audit signatures
 find node_modules/@o11y-one \( -name '*.map' -o -name '*.test.*' -o -path '*/test/*' \)   # expect nothing
 
