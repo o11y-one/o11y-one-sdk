@@ -44,7 +44,8 @@ Commands:
 Exit codes (the verdict is the exit code):
   0  improvement     the server recommends the candidate under test
   1  regression      the server blocked the candidate under test
-  2  indeterminate   no verdict reachable (not adopted, no clear winner, insufficient evidence)
+  2  indeterminate   no verdict reachable (not adopted, no clear winner, insufficient evidence,
+                     or a run the preview blocked from launching)
   3  infra-failure   runner or platform failed, or a wait timed out
   64 usage-error     bad invocation
 
@@ -189,7 +190,7 @@ func cmdRun(args []string) error {
 	var common commonFlags
 	common.register(fs)
 
-	definition := fs.String("definition", "", "evaluation definition id (definition revision); required unless --preview-token is given")
+	definition := fs.String("definition", "", "evaluation definition id; without --preview-token the runner previews it (current revision, the definition's own mode) and launches with the preview's token, and a preview that blocks the launch exits 2 naming its blockers")
 	previewToken := fs.String("preview-token", "", "preview token for an inline draft run (from PreviewEvaluationRun)")
 	idempotencyKey := fs.String("idempotency-key", os.Getenv("GITHUB_SHA"), "idempotency key; a retry with the same key is deduped (env default: GITHUB_SHA)")
 	waitFor := fs.Bool("wait", false, "block until the run's operation reaches a terminal state")
@@ -219,9 +220,15 @@ func cmdRun(args []string) error {
 	defer cancel()
 
 	clients := newClients(&common, cred)
+	token := *previewToken
+	if token == "" {
+		if token, err = previewLaunch(ctx, clients, *definition); err != nil {
+			return err
+		}
+	}
 	resp, err := clients.eval.CreateEvaluationRun(ctx, connect.NewRequest(&agenticv1.CreateEvaluationRunRequest{
 		DefinitionId:   *definition,
-		PreviewToken:   *previewToken,
+		PreviewToken:   token,
 		IdempotencyKey: key,
 	}))
 	if err != nil {
@@ -252,6 +259,32 @@ func cmdRun(args []string) error {
 		return err
 	}
 	return emitRun(&common, runID, operationID, resp.Msg.GetIdempotentReplay(), terminal)
+}
+
+// previewLaunch mints the token CreateEvaluationRun requires; the server has no
+// definition-only launch. A preview that does not allow the launch is the
+// platform answering "no run": not a regression, not an infra failure, and no
+// verdict, so it is indeterminate.
+//
+// A retry with the same idempotency key still replays: the run records the
+// digest of the definition as re-resolved at launch, which carries no nonce or
+// expiry, so a fresh preview of an unchanged definition matches it.
+func previewLaunch(ctx context.Context, clients *apiClients, definitionID string) (string, error) {
+	resp, err := clients.eval.PreviewEvaluationRun(ctx, connect.NewRequest(&agenticv1.PreviewEvaluationRunRequest{
+		DefinitionId: definitionID,
+	}))
+	if err != nil {
+		return "", fmt.Errorf("run: PreviewEvaluationRun failed: %w", err)
+	}
+	if !resp.Msg.GetLaunchAllowed() {
+		var blockers []string
+		for _, b := range resp.Msg.GetBlockers() {
+			kind := strings.TrimPrefix(b.GetKind().String(), "EVALUATION_PREVIEW_BLOCKER_KIND_V1_")
+			blockers = append(blockers, kind+": "+b.GetDetail())
+		}
+		return "", &verdictError{outcome: OutcomeIndeterminate, decision: "preview blocked the launch: " + strings.Join(blockers, "; ")}
+	}
+	return resp.Msg.GetPreviewToken(), nil
 }
 
 func emitRun(common *commonFlags, runID, operationID string, replay bool, op *agenticv1.EvaluationOperationV1) error {
