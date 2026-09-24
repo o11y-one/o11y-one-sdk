@@ -58,7 +58,9 @@ func newClients(common *commonFlags, cred string) *apiClients {
 		}
 	})
 
-	opts := []connect.ClientOption{connect.WithInterceptors(auth)}
+	// The API serves gRPC and gRPC-web, not the Connect protocol; gRPC-web
+	// needs no HTTP/2 prior knowledge.
+	opts := []connect.ClientOption{connect.WithGRPCWeb(), connect.WithInterceptors(auth)}
 
 	return &apiClients{
 		eval: agenticv1connect.NewAgenticEvaluationServiceClient(httpClient, common.baseURL, opts...),

@@ -12,6 +12,9 @@ is the single most fragile thing about the packaging here, so it is tested.
 
 from __future__ import annotations
 
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
 import pytest
 from connectrpc.code import Code
 from connectrpc.errors import ConnectError
@@ -23,6 +26,7 @@ from o11y_one.sdk import (
     TENANT_ID_HEADER,
     CredentialInterceptor,
     Disposition,
+    O11yClient,
     assert_looks_like_machine_credential,
     classify,
 )
@@ -99,6 +103,46 @@ def test_interceptor_without_credential_sends_no_auth_header() -> None:
     ctx = _ctx()
     interceptor.intercept_unary_sync(lambda _req, _ctx: None, object(), ctx)
     assert CREDENTIAL_HEADER not in ctx.request_headers()
+
+
+def test_client_speaks_uncompressed_grpc_web() -> None:
+    """The API serves gRPC and gRPC-web, not the Connect protocol, and the
+    agentic service accepts no request compression."""
+    from o11y_one.agentic.v1.evaluation_connect import AgenticEvaluationServiceClientSync
+    from o11y_one.agentic.v1.evaluation_pb2 import ListEvaluationDefinitionsRequest
+
+    seen: dict[str, object] = {}
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_POST(self) -> None:
+            seen["path"] = self.path
+            seen["headers"] = self.headers
+            # A gRPC-web trailers-only error: no body to hand-encode.
+            self.send_response(200)
+            self.send_header("content-type", "application/grpc-web+proto")
+            self.send_header("grpc-status", "7")
+            self.send_header("grpc-message", "missing%20scope%20eval%3Aread")
+            self.send_header("content-length", "0")
+            self.end_headers()
+
+    with HTTPServer(("127.0.0.1", 0), Handler) as server:
+        threading.Thread(target=server.handle_request, daemon=True).start()
+        o11y = O11yClient(
+            base_url=f"http://127.0.0.1:{server.server_port}",
+            credential=CREDENTIAL,
+            timeout_ms=5_000,
+        )
+        evals = o11y.service_sync(AgenticEvaluationServiceClientSync)
+        with pytest.raises(ConnectError) as exc:
+            evals.list_evaluation_definitions(ListEvaluationDefinitionsRequest())
+
+    headers = seen["headers"]
+    assert seen["path"] == "/o11y_one.agentic.v1.AgenticEvaluationService/ListEvaluationDefinitions"
+    assert headers["content-type"] == "application/grpc-web+proto"
+    # tonic answers UNIMPLEMENTED to any grpc-encoding a service did not enable.
+    assert headers.get("grpc-encoding", "identity") == "identity"
+    assert headers[CREDENTIAL_HEADER] == CREDENTIAL
+    assert classify(exc.value).missing_scope == "eval:read"
 
 
 def test_error_taxonomy_does_not_collapse_auth_failures() -> None:

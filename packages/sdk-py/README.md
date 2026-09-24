@@ -19,7 +19,7 @@ from o11y_one.agentic.v1.evaluation_pb2 import ListEvaluationDefinitionsRequest
 from o11y_one.agentic.v1.evaluation_connect import AgenticEvaluationServiceClientSync
 
 o11y = O11yClient(
-    base_url="https://api.o11y.one",
+    base_url="https://grpc.o11y.one",
     credential=os.environ["O11Y_API_KEY"],  # o11y_mach.<selector>.<secret>
     org_id=os.environ["O11Y_ORG_ID"],
 )
