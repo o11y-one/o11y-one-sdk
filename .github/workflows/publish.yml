@@ -119,29 +119,47 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      # A rerun, or a tag moved onto a fixed workflow, must not touch a version
+      # that already went out. `npm view` sees published versions only; a
+      # version that is merely staged still conflicts, and the fix there is
+      # `npm stage reject` before the rerun.
+      - name: Already on npm?
+        id: done
+        env:
+          VERSION: ${{ needs.verify.outputs.version }}
+        run: |
+          if npm view "@o11y-one/api-agentic@$VERSION" version >/dev/null 2>&1; then
+            echo "@o11y-one/api-agentic@$VERSION is already published; nothing to stage"
+            echo "done=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        if: steps.done.outputs.done != 'true'
         with:
           version: 2026.9.1
           install: true
           cache: true
 
       - run: pnpm install --frozen-lockfile
+        if: steps.done.outputs.done != 'true'
       - run: just build-ts
+        if: steps.done.outputs.done != 'true'
 
       # pnpm packs (it rewrites the workspace dependency to the real version;
       # npm would ship `workspace:*` verbatim), npm stages: pnpm has no staging
       # command, and the npm bundled with the pinned Node does the OIDC
       # exchange and the provenance attestation itself.
       - name: Pack
+        if: steps.done.outputs.done != 'true'
         working-directory: packages/gen-ts-agentic
         run: pnpm pack --pack-destination "$RUNNER_TEMP/npm"
 
       - name: Stage @o11y-one/api-agentic
+        if: steps.done.outputs.done != 'true'
         run: npm stage publish "$RUNNER_TEMP"/npm/o11y-one-api-agentic-*.tgz --provenance --access public
 
   stage-npm-sdk:
-    needs: stage-npm-api-agentic
+    needs: [verify, stage-npm-api-agentic]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: release # protected: requires a reviewer, restricted to tags
@@ -152,28 +170,43 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Already on npm?
+        id: done
+        env:
+          VERSION: ${{ needs.verify.outputs.version }}
+        run: |
+          if npm view "@o11y-one/sdk@$VERSION" version >/dev/null 2>&1; then
+            echo "@o11y-one/sdk@$VERSION is already published; nothing to stage"
+            echo "done=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        if: steps.done.outputs.done != 'true'
         with:
           version: 2026.9.1
           install: true
           cache: true
 
       - run: pnpm install --frozen-lockfile
+        if: steps.done.outputs.done != 'true'
       - run: just build-ts
+        if: steps.done.outputs.done != 'true'
 
       # pnpm packs (it rewrites the workspace dependency to the real version;
       # npm would ship `workspace:*` verbatim), npm stages: pnpm has no staging
       # command, and the npm bundled with the pinned Node does the OIDC
       # exchange and the provenance attestation itself.
       - name: Pack
+        if: steps.done.outputs.done != 'true'
         working-directory: packages/sdk-ts
         run: pnpm pack --pack-destination "$RUNNER_TEMP/npm"
 
       - name: Stage @o11y-one/sdk
+        if: steps.done.outputs.done != 'true'
         run: npm stage publish "$RUNNER_TEMP"/npm/o11y-one-sdk-*.tgz --provenance --access public
 
       - name: What happens next
+        if: steps.done.outputs.done != 'true'
         run: |
           echo "Both versions are STAGED, not published. A maintainer approves them in order:"
           echo "  npm stage list @o11y-one/api-agentic && npm stage approve <stage-id>"
@@ -198,17 +231,36 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      # Same idea for PyPI: skip only when BOTH projects already carry the
+      # version; a half-published state is left to fail loudly.
+      - name: Already on PyPI?
+        id: done
+        env:
+          VERSION: ${{ needs.verify.outputs.version }}
+        run: |
+          ok=0
+          for project in o11y-one o11y-one-api-agentic; do
+            curl -fsS -o /dev/null "https://pypi.org/pypi/$project/$VERSION/json" && ok=$((ok + 1)) || true
+          done
+          if [[ "$ok" -eq 2 ]]; then
+            echo "o11y-one and o11y-one-api-agentic $VERSION are already on PyPI; nothing to upload"
+            echo "done=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        if: steps.done.outputs.done != 'true'
         with:
           version: 2026.9.1
           install: true
           cache: true
 
       - run: uv sync --all-packages --locked
+        if: steps.done.outputs.done != 'true'
       - run: just build-py
+        if: steps.done.outputs.done != 'true'
 
       - name: Publish to PyPI
+        if: steps.done.outputs.done != 'true'
         run: uv publish --trusted-publishing always dist/*
 
   # ---------------------------------------------------------------------------
@@ -239,16 +291,30 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      # A release that exists is never rebuilt: its checksums and signatures
+      # are what consumers already verified against.
+      - name: Already released?
+        id: done
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" --json tagName >/dev/null 2>&1; then
+            echo "release $GITHUB_REF_NAME already exists; leaving it untouched"
+            echo "done=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        if: steps.done.outputs.done != 'true'
         with:
           version: 2026.9.1
           install: true
           cache: true
 
       - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        if: steps.done.outputs.done != 'true'
 
       - name: Cross-compile
+        if: steps.done.outputs.done != 'true'
         working-directory: tools/ci-runner
         env:
           CGO_ENABLED: "0"
@@ -268,10 +334,12 @@ jobs:
           done
 
       - name: Checksums
+        if: steps.done.outputs.done != 'true'
         working-directory: dist-bin
         run: sha256sum o11y-eval-* > SHA256SUMS
 
       - name: Sign each binary and the checksum file
+        if: steps.done.outputs.done != 'true'
         working-directory: dist-bin
         run: |
           set -euo pipefail
@@ -283,6 +351,7 @@ jobs:
       # third-party release action removes one more supply-chain dependency
       # from the job that has `contents: write`.
       - name: Create the release
+        if: steps.done.outputs.done != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
