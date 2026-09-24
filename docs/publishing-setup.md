@@ -249,7 +249,11 @@ cosign verify-blob o11y-eval-linux-amd64 --bundle o11y-eval-linux-amd64.cosign.b
 # Go: the module resolves through the proxy and the checksum database
 GOFLAGS=-mod=mod go list -m github.com/o11y-one/o11y-one-sdk/gen/go@v0.1.0
 
-# Action: from a scratch repository, a workflow with
-#   uses: o11y-one/o11y-one-sdk/tools/pr-diff@v0.1.0
-#   permissions: { pull-requests: write }
+# Action: from a scratch repository, a pull_request workflow with
+#   permissions: { contents: read, pull-requests: write }
+#   uses: o11y-one/o11y-one-sdk/tools/pr-diff@<tag>
+#   with: { diff-document-path: ${{ github.workspace }}/fixtures/improvement.json }
+# (fixtures live in tools/pr-diff/testdata); expect one comment, updated in
+# place on a second push, and a failing step with the regression fixture and
+# exit-with-verdict: "true".
 ```
