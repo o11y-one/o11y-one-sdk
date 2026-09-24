@@ -16,7 +16,7 @@ import { O11yClient, classify } from "@o11y-one/sdk";
 import { AgenticEvaluationService } from "@o11y-one/api-agentic/o11y_one/agentic/v1/evaluation_pb";
 
 const o11y = new O11yClient({
-  baseUrl: "https://api.o11y.one",
+  baseUrl: "https://grpc.o11y.one",
   credential: process.env.O11Y_API_KEY, // o11y_mach.<selector>.<secret>
   orgId: process.env.O11Y_ORG_ID,
 });
@@ -76,9 +76,11 @@ JWT and a machine credential presented there is rejected.
 
 ## Runtime support
 
-The default transport is Connect over HTTP via `@connectrpc/connect-web`, which
-needs only a spec-compatible `fetch`. That covers browsers, Node 26, Deno, Bun
-and Cloudflare Workers. `@connectrpc/connect-node` is a dependency for callers
-who want the Node-specific HTTP/2 transport and construct it themselves; pass
-the resulting transport's options through `ClientOptions` or build your own
-transport and install `credentialInterceptor()` on it.
+The default transport is gRPC-web via `@connectrpc/connect-web`, which needs
+only a spec-compatible `fetch`. That covers browsers, Node 26, Deno, Bun and
+Cloudflare Workers. `@connectrpc/connect-node` is a dependency for callers who
+want the Node-specific HTTP/2 transport and construct it themselves; pass the
+resulting transport's options through `ClientOptions` or build your own
+transport and install `credentialInterceptor()` on it. The API serves gRPC and
+gRPC-web only, so a transport you build must speak one of those, not the
+Connect protocol.

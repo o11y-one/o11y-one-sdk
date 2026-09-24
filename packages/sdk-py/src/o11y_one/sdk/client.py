@@ -14,6 +14,7 @@ from typing import Any, TypeVar
 
 from connectrpc.client import ConnectClient, ConnectClientSync
 from connectrpc.interceptor import Interceptor, InterceptorSync
+from connectrpc.protocol import ProtocolType
 from connectrpc.request import RequestContext
 
 from .auth import (
@@ -113,7 +114,7 @@ class O11yClient:
         from o11y_one.agentic.v1.evaluation_connect import AgenticEvaluationServiceClientSync
         from o11y_one.agentic.v1.evaluation_pb2 import ListEvaluationDefinitionsRequest
 
-        o11y = O11yClient(base_url="https://api.o11y.one", credential=os.environ["O11Y_API_KEY"])
+        o11y = O11yClient(base_url="https://grpc.o11y.one", credential=os.environ["O11Y_API_KEY"])
         evals = o11y.service_sync(AgenticEvaluationServiceClientSync)
         defs = evals.list_evaluation_definitions(ListEvaluationDefinitionsRequest())
 
@@ -121,9 +122,13 @@ class O11yClient:
     subset, which is the whole published surface. The transport itself is
     domain-agnostic: any generated client class works here.
 
-    Protocol note: Connect over HTTP, not gRPC. It is the protocol o11y-web
-    already speaks and the one that survives proxies and CI egress rules without
-    HTTP/2 prior knowledge.
+    Protocol note: gRPC-web, not Connect. The API serves gRPC and gRPC-web and
+    does not speak the Connect protocol; gRPC-web is the one of the two that
+    needs no HTTP/2 prior knowledge, so it survives proxies and CI egress rules,
+    and it is what o11y-web speaks. Requests go uncompressed: the API's
+    services do not all accept gzip, and tonic answers UNIMPLEMENTED to an
+    encoding a service did not enable. A generated client built by hand needs
+    the same ``protocol`` and ``send_compression``.
     """
 
     __slots__ = ("_base_url", "_interceptor", "_extra_interceptors", "_timeout_ms")
@@ -155,6 +160,8 @@ class O11yClient:
         return {
             "interceptors": (self._interceptor, *self._extra_interceptors),
             "timeout_ms": self._timeout_ms,
+            "protocol": ProtocolType.GRPC_WEB,
+            "send_compression": None,
         }
 
     def service_sync(self, client_cls: type[_SyncClientT]) -> _SyncClientT:

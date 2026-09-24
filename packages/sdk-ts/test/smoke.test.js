@@ -21,15 +21,21 @@ test("credential validation rejects the common mistakes locally", () => {
   assert.equal(assertLooksLikeMachineCredential(`"${CREDENTIAL}"`), CREDENTIAL);
 });
 
-test("the transport stamps credential and scoping headers on every request", async () => {
+test("the transport speaks gRPC-web and stamps credential and scoping headers on every request", async () => {
   let seen = null;
+  let seenUrl = null;
   const stubFetch = async (input, init) => {
+    seenUrl = String(input);
     seen = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined));
-    // Answer with a Connect error so the call terminates deterministically
-    // without us having to hand-encode a valid binary response body.
-    return new Response(JSON.stringify({ code: "permission_denied", message: "missing scope eval:read" }), {
-      status: 403,
-      headers: { "content-type": "application/json" },
+    // Answer with a gRPC-web trailers-only error so the call terminates
+    // deterministically without us having to hand-encode a response body.
+    return new Response(null, {
+      status: 200,
+      headers: {
+        "content-type": "application/grpc-web+proto",
+        "grpc-status": "7",
+        "grpc-message": encodeURIComponent("missing scope eval:read"),
+      },
     });
   };
 
@@ -50,6 +56,9 @@ test("the transport stamps credential and scoping headers on every request", asy
   }
 
   assert.ok(seen, "fetch was never called");
+  // The API serves gRPC and gRPC-web, not the Connect protocol.
+  assert.equal(seenUrl, "https://api.invalid/o11y_one.agentic.v1.AgenticEvaluationService/ListEvaluationDefinitions");
+  assert.equal(seen.get("content-type"), "application/grpc-web+proto");
   assert.equal(seen.get("x-o11y-key"), CREDENTIAL);
   assert.equal(seen.get("x-o11y-org-id"), "org_123");
   assert.equal(seen.get("x-o11y-tenant-id"), "tenant_456");

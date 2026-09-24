@@ -65,7 +65,7 @@ type commonFlags struct {
 }
 
 func (c *commonFlags) register(fs *flag.FlagSet) {
-	fs.StringVar(&c.baseURL, "base-url", envOr("O11Y_BASE_URL", "https://api.o11y.one"),
+	fs.StringVar(&c.baseURL, "base-url", envOr("O11Y_BASE_URL", "https://grpc.o11y.one"),
 		"O11y One API base URL (env: O11Y_BASE_URL)")
 	fs.StringVar(&c.orgID, "org-id", os.Getenv("O11Y_ORG_ID"),
 		"organization id, sent as x-o11y-org-id (env: O11Y_ORG_ID)")

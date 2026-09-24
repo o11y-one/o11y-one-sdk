@@ -10,8 +10,8 @@
  */
 import { createClient, type Client, type Interceptor, type Transport } from "@connectrpc/connect";
 import {
-  createConnectTransport,
-  type ConnectTransportOptions,
+  createGrpcWebTransport,
+  type GrpcWebTransportOptions,
 } from "@connectrpc/connect-web";
 import type { DescService } from "@bufbuild/protobuf";
 
@@ -24,7 +24,7 @@ import {
 
 export interface ClientOptions {
   /**
-   * Base URL of the O11y One Connect endpoint, e.g. `https://api.o11y.one`.
+   * Base URL of the O11y One gRPC endpoint, e.g. `https://grpc.o11y.one`.
    * No trailing path — connect-es appends `/<package>.<Service>/<Method>`.
    */
   baseUrl: string;
@@ -55,7 +55,7 @@ export interface ClientOptions {
    * `typeof globalThis.fetch`, which would force the DOM lib into this package's
    * compilation for the sake of one type and drag every DOM global in with it.
    */
-  fetch?: ConnectTransportOptions["fetch"];
+  fetch?: GrpcWebTransportOptions["fetch"];
 }
 
 /**
@@ -105,17 +105,19 @@ export function credentialInterceptor(options: {
 }
 
 /**
- * Build a Connect transport with the credential interceptor installed.
+ * Build a gRPC-web transport with the credential interceptor installed.
  *
- * Protocol note: Connect over HTTP, not gRPC. It is the protocol o11y-web
- * already speaks and the one that survives proxies and CI egress rules without
- * HTTP/2 prior knowledge. `createConnectTransport` from `@connectrpc/connect-web`
- * works in browsers, in Node 26 (whose global fetch is sufficient), and in
- * Workers; `@connectrpc/connect-node` is a dependency only for callers who need
- * the Node-specific HTTP/2 transport and reach for it themselves.
+ * Protocol note: gRPC-web, not Connect. The API serves gRPC and gRPC-web and
+ * does not speak the Connect protocol; gRPC-web is the one of the two that
+ * needs no HTTP/2 prior knowledge, so it survives proxies and CI egress rules,
+ * and it is what o11y-web speaks. `createGrpcWebTransport` from
+ * `@connectrpc/connect-web` works in browsers, in Node 26 (whose global fetch
+ * is sufficient), and in Workers; `@connectrpc/connect-node` is a dependency
+ * only for callers who need the Node-specific HTTP/2 transport and reach for it
+ * themselves.
  */
 export function createTransport(options: ClientOptions): Transport {
-  return createConnectTransport({
+  return createGrpcWebTransport({
     baseUrl: options.baseUrl,
     // Binary wire format: smaller, and it round-trips proto3 field presence
     // without the JSON mapping's ambiguities.

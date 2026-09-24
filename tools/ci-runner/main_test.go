@@ -3,9 +3,13 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
+
+	"connectrpc.com/connect"
 
 	agenticv1 "github.com/o11y-one/o11y-one-sdk/gen/go/o11y_one/agentic/v1"
 )
@@ -369,6 +373,32 @@ func TestValidInvocationInfraFailureOffline(t *testing.T) {
 				t.Errorf("run(%v) = %d, want 3 (infra-failure)", tc.args, got)
 			}
 		})
+	}
+}
+
+// The API serves gRPC and gRPC-web, not the Connect protocol.
+func TestClientSpeaksGRPCWeb(t *testing.T) {
+	var contentType, path string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		contentType, path = r.Header.Get("Content-Type"), r.URL.Path
+		// A gRPC-web trailers-only error: no body to hand-encode.
+		w.Header().Set("Content-Type", "application/grpc-web+proto")
+		w.Header().Set("Grpc-Status", "7")
+	}))
+	defer srv.Close()
+
+	clients := newClients(&commonFlags{baseURL: srv.URL}, "o11y_mach.sel.sec")
+	_, err := clients.eval.GetEvaluationRunOverview(context.Background(),
+		connect.NewRequest(&agenticv1.GetEvaluationRunOverviewRequest{}))
+
+	if contentType != "application/grpc-web+proto" {
+		t.Errorf("content-type = %q, want application/grpc-web+proto", contentType)
+	}
+	if want := "/o11y_one.agentic.v1.AgenticEvaluationService/GetEvaluationRunOverview"; path != want {
+		t.Errorf("path = %q, want %q", path, want)
+	}
+	if connect.CodeOf(err) != connect.CodePermissionDenied {
+		t.Errorf("err = %v, want permission_denied read off the gRPC-web status", err)
 	}
 }
 
