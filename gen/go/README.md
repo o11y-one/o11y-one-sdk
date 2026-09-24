@@ -15,7 +15,9 @@ module github.com/o11y-one/o11y-one-sdk/gen/go
 ```
 
 This is the repository's own path, so the module resolves with `go get` once
-the repository is public. Managed mode bakes it into every generated import
+the repository is public and the release carries a `gen/go/vX.Y.Z` tag (Go
+reads a nested module's versions from directory-prefixed tags; the plain
+`vX.Y.Z` tag is not enough). Managed mode bakes it into every generated import
 (`go_package_prefix` in `buf.gen.agentic.yaml`); `tools/ci-runner` reaches it
 through a `replace` directive.
 

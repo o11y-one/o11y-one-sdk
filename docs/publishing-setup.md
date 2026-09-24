@@ -136,10 +136,14 @@ not a blocker for the first release.
 
 ## Go
 
-Nothing to register. `gen/go` is fetched by the module proxy from the `v0.1.0`
-tag once the repository is public, and `sum.golang.org` records it permanently.
-That is why the surface reduction in `docs/proto-subsetting.md` had to land
-before the repository went public: a module version cannot be unpublished.
+Nothing to register, but one extra tag. `gen/go` is a module in a
+subdirectory, and Go resolves a nested module's versions from tags prefixed
+with its directory: `gen/go/v0.1.0`, not `v0.1.0`. The release tagging below
+pushes both tags at the same commit; the `release tags` ruleset protects
+both patterns. Once the module proxy has served a version, `sum.golang.org`
+records it permanently, which is why the surface reduction in
+`docs/proto-subsetting.md` had to land before the repository went public: a
+module version cannot be unpublished.
 
 ## Repository protections
 
@@ -213,7 +217,12 @@ generated code and on the fake `o11y_mach.AAAA.SECRET` fixture token in
    ```sh
    git switch main && git pull --ff-only
    git tag -a v0.1.0 -m "v0.1.0" && git push origin v0.1.0
+   git tag -a gen/go/v0.1.0 -m "gen/go v0.1.0" v0.1.0^{commit} && git push origin gen/go/v0.1.0
    ```
+
+   The second tag is what `go get github.com/o11y-one/o11y-one-sdk/gen/go@v0.1.0`
+   resolves; without it the proxy answers "unknown revision gen/go/v0.1.0".
+   It does not start a workflow run (the publish trigger is `v*`).
 
    Approve the `release` environment deployment in the Actions run when asked;
    `verify` must be green before any publish job starts. When the run is
