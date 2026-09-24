@@ -37,7 +37,7 @@ Usage:
 
 Commands:
   run        launch an evaluation run against a definition or inline draft
-  wait       block until a run's operation reaches a terminal state
+  wait       block until a launched run reaches a terminal state
   diff       return the server's adopted decision for a run as a verdict on one candidate
   annotate   record a platform annotation (deployment marker, event, highlight)
 
@@ -48,6 +48,11 @@ Exit codes (the verdict is the exit code):
                      or a run the preview blocked from launching)
   3  infra-failure   runner or platform failed, or a wait timed out
   64 usage-error     bad invocation
+
+run --wait and wait exit 0 once the run is COMPLETED or PARTIALLY_COMPLETED
+(finishing is not a verdict; diff renders one) and 3 if it is FAILED or
+CANCELLED. A run AWAITING_REVIEW keeps the wait going until review ends or the
+wait times out.
 
 Global flags are per-command; run "o11y-eval <command> --help".
 `
@@ -193,7 +198,7 @@ func cmdRun(args []string) error {
 	definition := fs.String("definition", "", "evaluation definition id; without --preview-token the runner previews it (current revision, the definition's own mode) and launches with the preview's token, and a preview that blocks the launch exits 2 naming its blockers")
 	previewToken := fs.String("preview-token", "", "preview token for an inline draft run (from PreviewEvaluationRun)")
 	idempotencyKey := fs.String("idempotency-key", os.Getenv("GITHUB_SHA"), "idempotency key; a retry with the same key is deduped (env default: GITHUB_SHA)")
-	waitFor := fs.Bool("wait", false, "block until the run's operation reaches a terminal state")
+	waitFor := fs.Bool("wait", false, "block until the run reaches a terminal state")
 	budget := fs.Duration("budget", 0, "max time to spend waiting when --wait is set; 0 means bounded only by --timeout")
 	poll := fs.Duration("poll-interval", 10*time.Second, "how often to poll for terminal state when --wait is set")
 
@@ -239,17 +244,17 @@ func cmdRun(args []string) error {
 	operationID := op.GetOperationId()
 
 	if !*waitFor {
-		return emitRun(&common, runID, operationID, resp.Msg.GetIdempotentReplay(), op)
+		return emitRun(&common, runID, operationID, resp.Msg.GetIdempotentReplay(), op, nil)
 	}
 
-	fetch := func(fctx context.Context) (*agenticv1.EvaluationOperationV1, error) {
+	fetch := func(fctx context.Context) (*agenticv1.GetEvaluationOperationResponse, error) {
 		r, ferr := clients.eval.GetEvaluationOperation(fctx, connect.NewRequest(&agenticv1.GetEvaluationOperationRequest{
 			Selector: &agenticv1.GetEvaluationOperationRequest_OperationId{OperationId: operationID},
 		}))
 		if ferr != nil {
 			return nil, ferr
 		}
-		return r.Msg.GetOperation(), nil
+		return r.Msg, nil
 	}
 	terminal, err := waitForOperation(ctx, "run", *poll, *budget, fetch)
 	if err != nil {
@@ -258,7 +263,7 @@ func cmdRun(args []string) error {
 	if err := outcomeForOperation("run", terminal); err != nil {
 		return err
 	}
-	return emitRun(&common, runID, operationID, resp.Msg.GetIdempotentReplay(), terminal)
+	return emitRun(&common, runID, operationID, resp.Msg.GetIdempotentReplay(), terminal.GetOperation(), terminal.GetRun())
 }
 
 // previewLaunch mints the token CreateEvaluationRun requires; the server has no
@@ -287,17 +292,25 @@ func previewLaunch(ctx context.Context, clients *apiClients, definitionID string
 	return resp.Msg.GetPreviewToken(), nil
 }
 
-func emitRun(common *commonFlags, runID, operationID string, replay bool, op *agenticv1.EvaluationOperationV1) error {
+// emitRun reports run_state only when run is non-nil, which is after a wait.
+func emitRun(common *commonFlags, runID, operationID string, replay bool, op *agenticv1.EvaluationOperationV1, run *agenticv1.EvaluationRunV1) error {
 	state := operationStateString(op.GetState())
-	if common.jsonOut {
-		return emitJSON(map[string]any{
-			"run_id":            runID,
-			"operation_id":      operationID,
-			"idempotent_replay": replay,
-			"state":             state,
-		})
+	out := map[string]any{
+		"run_id":            runID,
+		"operation_id":      operationID,
+		"idempotent_replay": replay,
+		"state":             state,
 	}
-	fmt.Printf("run_id=%s operation_id=%s state=%s idempotent_replay=%t\n", runID, operationID, state, replay)
+	text := fmt.Sprintf("run_id=%s operation_id=%s state=%s idempotent_replay=%t", runID, operationID, state, replay)
+	if run != nil {
+		runState := runStateString(run.GetState())
+		out["run_state"] = runState
+		text += " run_state=" + runState
+	}
+	if common.jsonOut {
+		return emitJSON(out)
+	}
+	fmt.Println(text)
 	return nil
 }
 
@@ -340,12 +353,12 @@ func cmdWait(args []string) error {
 	} else {
 		reqMsg.Selector = &agenticv1.GetEvaluationOperationRequest_IdempotencyKey{IdempotencyKey: *idempotencyKey}
 	}
-	fetch := func(fctx context.Context) (*agenticv1.EvaluationOperationV1, error) {
+	fetch := func(fctx context.Context) (*agenticv1.GetEvaluationOperationResponse, error) {
 		r, ferr := clients.eval.GetEvaluationOperation(fctx, connect.NewRequest(reqMsg))
 		if ferr != nil {
 			return nil, ferr
 		}
-		return r.Msg.GetOperation(), nil
+		return r.Msg, nil
 	}
 	terminal, err := waitForOperation(ctx, "wait", *poll, *budget, fetch)
 	if err != nil {
@@ -354,7 +367,8 @@ func cmdWait(args []string) error {
 	if err := outcomeForOperation("wait", terminal); err != nil {
 		return err
 	}
-	return emitRun(&common, terminal.GetEvaluationRunId(), terminal.GetOperationId(), false, terminal)
+	op := terminal.GetOperation()
+	return emitRun(&common, op.GetEvaluationRunId(), op.GetOperationId(), false, op, terminal.GetRun())
 }
 
 // --- diff -------------------------------------------------------------------
