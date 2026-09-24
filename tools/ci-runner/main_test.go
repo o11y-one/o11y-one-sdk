@@ -272,8 +272,8 @@ func TestDiffDocumentRoundTrip(t *testing.T) {
 // A wait that runs out of time is an infra-failure, never a verdict: a slow
 // platform must not read as a bad change.
 func TestWaitTimeoutIsInfraFailure(t *testing.T) {
-	running := &agenticv1.EvaluationOperationV1{State: agenticv1.EvaluationOperationStateV1_EVALUATION_OPERATION_STATE_V1_RUNNING}
-	fetch := func(ctx context.Context) (*agenticv1.EvaluationOperationV1, error) { return running, nil }
+	running := poll(agenticv1.EvaluationOperationStateV1_EVALUATION_OPERATION_STATE_V1_RUNNING, agenticv1.EvaluationRunStateV1_EVALUATION_RUN_STATE_V1_PREPARING)
+	fetch := func(ctx context.Context) (*agenticv1.GetEvaluationOperationResponse, error) { return running, nil }
 
 	_, err := waitForOperation(context.Background(), "wait", 2*time.Millisecond, 20*time.Millisecond, fetch)
 	if err == nil {
@@ -296,12 +296,12 @@ func TestWaitTimeoutIsInfraFailure(t *testing.T) {
 func TestWaitTerminalStates(t *testing.T) {
 	seq := func(states ...agenticv1.EvaluationOperationStateV1) fetchOperation {
 		i := 0
-		return func(ctx context.Context) (*agenticv1.EvaluationOperationV1, error) {
+		return func(ctx context.Context) (*agenticv1.GetEvaluationOperationResponse, error) {
 			s := states[i]
 			if i < len(states)-1 {
 				i++
 			}
-			return &agenticv1.EvaluationOperationV1{State: s}, nil
+			return poll(s, agenticv1.EvaluationRunStateV1_EVALUATION_RUN_STATE_V1_COMPLETED), nil
 		}
 	}
 
@@ -317,7 +317,7 @@ func TestWaitTerminalStates(t *testing.T) {
 		t.Errorf("SUCCEEDED should map to nil (exit 0), got %v", outErr)
 	}
 
-	failed := &agenticv1.EvaluationOperationV1{State: agenticv1.EvaluationOperationStateV1_EVALUATION_OPERATION_STATE_V1_FAILED}
+	failed := poll(agenticv1.EvaluationOperationStateV1_EVALUATION_OPERATION_STATE_V1_FAILED, agenticv1.EvaluationRunStateV1_EVALUATION_RUN_STATE_V1_FAILED)
 	outErr := outcomeForOperation("wait", failed)
 	if outErr == nil {
 		t.Fatal("FAILED should map to an infra-failure error")
@@ -492,6 +492,84 @@ func TestRunDefinitionRetryWithTheSameKeyReplays(t *testing.T) {
 	}
 }
 
+// The launch operation succeeds once the run's cells are queued, long before
+// they execute. A wait has to follow the run itself to a terminal state, or a
+// pipeline reads a run at 10 of 30 cells as finished.
+func TestWaitFollowsTheRunToItsTerminalState(t *testing.T) {
+	const (
+		opRunning   = agenticv1.EvaluationOperationStateV1_EVALUATION_OPERATION_STATE_V1_RUNNING
+		opSucceeded = agenticv1.EvaluationOperationStateV1_EVALUATION_OPERATION_STATE_V1_SUCCEEDED
+		runPrep     = agenticv1.EvaluationRunStateV1_EVALUATION_RUN_STATE_V1_PREPARING
+		runRunning  = agenticv1.EvaluationRunStateV1_EVALUATION_RUN_STATE_V1_RUNNING
+	)
+	failed := poll(opSucceeded, agenticv1.EvaluationRunStateV1_EVALUATION_RUN_STATE_V1_FAILED)
+	failed.Run.Failure = &agenticv1.EvaluationFailureV1{Code: "execution_all_cells_failed", SanitizedMessage: "30 of 30 cells failed"}
+	launch := []string{"--definition", "d1", "--idempotency-key", "k1", "--wait", "--json"}
+
+	for _, tc := range []struct {
+		name       string
+		command    string
+		args       []string
+		polls      []*agenticv1.GetEvaluationOperationResponse
+		wantCode   int
+		wantStdout []string
+		wantStderr []string
+	}{
+		{
+			name: "run keeps polling after the operation succeeds", command: "run", args: launch,
+			polls: []*agenticv1.GetEvaluationOperationResponse{
+				poll(opRunning, runPrep), poll(opSucceeded, runRunning), poll(opSucceeded, runRunning),
+				poll(opSucceeded, agenticv1.EvaluationRunStateV1_EVALUATION_RUN_STATE_V1_COMPLETED),
+			},
+			wantStdout: []string{`"state": "SUCCEEDED"`, `"run_state": "COMPLETED"`},
+		},
+		{
+			name: "a failed run is an infra failure", command: "run", args: launch,
+			polls:      []*agenticv1.GetEvaluationOperationResponse{poll(opSucceeded, runRunning), failed},
+			wantCode:   3,
+			wantStderr: []string{"FAILED", "30 of 30 cells failed (execution_all_cells_failed)"},
+		},
+		{
+			name: "a partially completed run is not a verdict", command: "run", args: launch,
+			polls: []*agenticv1.GetEvaluationOperationResponse{
+				poll(opSucceeded, runRunning),
+				poll(opSucceeded, agenticv1.EvaluationRunStateV1_EVALUATION_RUN_STATE_V1_PARTIALLY_COMPLETED),
+			},
+			wantStdout: []string{`"run_state": "PARTIALLY_COMPLETED"`},
+		},
+		{
+			name: "wait follows the run too", command: "wait", args: []string{"--operation-id", "op_k1"},
+			polls: []*agenticv1.GetEvaluationOperationResponse{
+				poll(opSucceeded, runRunning),
+				poll(opSucceeded, agenticv1.EvaluationRunStateV1_EVALUATION_RUN_STATE_V1_COMPLETED),
+			},
+			wantStdout: []string{"state=SUCCEEDED", "run_state=COMPLETED"},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := &fakeEval{keys: map[string]bool{}, polls: tc.polls}
+			code, stdout, stderr := runCaptured(t, tc.command, append(serveFake(t, f), append(tc.args, "--poll-interval", "1ms")...)...)
+
+			if code != tc.wantCode {
+				t.Fatalf("exit = %d, want %d; stdout: %s stderr: %s", code, tc.wantCode, stdout, stderr)
+			}
+			if f.served != len(tc.polls) {
+				t.Errorf("polled %d times, want %d: the wait stopped before the run was terminal", f.served, len(tc.polls))
+			}
+			for _, want := range tc.wantStdout {
+				if !strings.Contains(stdout, want) {
+					t.Errorf("stdout %q does not contain %q", stdout, want)
+				}
+			}
+			for _, want := range tc.wantStderr {
+				if !strings.Contains(stderr, want) {
+					t.Errorf("stderr %q does not contain %q", stderr, want)
+				}
+			}
+		})
+	}
+}
+
 func TestCredentialIsReadFromEnvAndStructurallyChecked(t *testing.T) {
 	var c commonFlags
 
@@ -579,8 +657,23 @@ type fakeEval struct {
 	agenticv1connect.UnimplementedAgenticEvaluationServiceHandler
 	blockers []*agenticv1.EvaluationPreviewBlockerV1
 	previews []*agenticv1.PreviewEvaluationRunRequest
-	creates  []string        // the preview token each launch carried
-	keys     map[string]bool // idempotency keys that launched
+	creates  []string                                    // the preview token each launch carried
+	keys     map[string]bool                             // idempotency keys that launched
+	polls    []*agenticv1.GetEvaluationOperationResponse // served in order, the last repeated
+	served   int
+}
+
+func (f *fakeEval) GetEvaluationOperation(context.Context, *connect.Request[agenticv1.GetEvaluationOperationRequest]) (*connect.Response[agenticv1.GetEvaluationOperationResponse], error) {
+	i := min(f.served, len(f.polls)-1)
+	f.served++
+	return connect.NewResponse(f.polls[i]), nil
+}
+
+func poll(op agenticv1.EvaluationOperationStateV1, run agenticv1.EvaluationRunStateV1) *agenticv1.GetEvaluationOperationResponse {
+	return &agenticv1.GetEvaluationOperationResponse{
+		Operation: &agenticv1.EvaluationOperationV1{OperationId: "op_k1", EvaluationRunId: "run_k1", State: op},
+		Run:       &agenticv1.EvaluationRunV1{EvaluationRunId: "run_k1", State: run},
+	}
 }
 
 func (f *fakeEval) PreviewEvaluationRun(_ context.Context, req *connect.Request[agenticv1.PreviewEvaluationRunRequest]) (*connect.Response[agenticv1.PreviewEvaluationRunResponse], error) {

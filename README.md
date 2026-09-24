@@ -266,6 +266,14 @@ yourself. A retry with the same `--idempotency-key` replays the original run
 while the definition is unchanged; once the definition has changed, the server
 refuses that key with `ALREADY_EXISTS` (exit `3`), so mint a new key.
 
+`o11y-eval run --wait` and `o11y-eval wait` block until the run itself reaches a
+terminal state, not just its launch operation, and print it as `run_state` next
+to the operation's `state`. `COMPLETED` and `PARTIALLY_COMPLETED` exit `0`: a
+finished run is not a verdict, and `diff` renders one. `FAILED` and `CANCELLED`
+exit `3` with the run's failure message and code on stderr. A run in
+`AWAITING_REVIEW` keeps the wait going until review ends or the wait times out,
+which also exits `3`.
+
 ## License
 
 Apache-2.0.
