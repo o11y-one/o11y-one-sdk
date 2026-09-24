@@ -35,7 +35,8 @@ const (
 	// OutcomeIndeterminate: everything else — a decision that is PENDING,
 	// NOT_OBSERVED or absent, a RECOMMENDED naming some other candidate,
 	// NO_CLEAR_WINNER, INSUFFICIENT_EVIDENCE, or an enum this build does not
-	// recognise. NOT a regression, and never a pass. Whether it blocks a merge
+	// recognise; and a `run` whose preview blocked the launch, so no run exists
+	// to judge. NOT a regression, and never a pass. Whether it blocks a merge
 	// is a policy decision for the calling workflow, which is exactly why it
 	// gets its own code instead of being folded into 1.
 	OutcomeIndeterminate Outcome = 2

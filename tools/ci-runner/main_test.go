@@ -3,15 +3,21 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"slices"
 	"strings"
 	"testing"
 	"time"
 
 	"connectrpc.com/connect"
+	"google.golang.org/protobuf/proto"
 
 	agenticv1 "github.com/o11y-one/o11y-one-sdk/gen/go/o11y_one/agentic/v1"
+	"github.com/o11y-one/o11y-one-sdk/gen/go/o11y_one/agentic/v1/agenticv1connect"
 )
 
 // The exit-code taxonomy is the runner's entire contract with CI. These numbers
@@ -402,6 +408,90 @@ func TestClientSpeaksGRPCWeb(t *testing.T) {
 	}
 }
 
+// CreateEvaluationRun has no definition-only launch: it refuses any token its
+// preview did not mint for that definition. `run --definition` must preview the
+// definition as it stands and launch with the token that preview returned.
+func TestRunDefinitionPreviewsThenLaunchesWithTheMintedToken(t *testing.T) {
+	f := &fakeEval{keys: map[string]bool{}}
+	code, _, stderr := runCaptured(t, "run", append(serveFake(t, f), "--definition", "d1", "--idempotency-key", "k1")...)
+
+	if code != 0 {
+		t.Fatalf("exit = %d, want 0; stderr: %s", code, stderr)
+	}
+	// Current revision, the definition's own mode, no live-trace override.
+	want := &agenticv1.PreviewEvaluationRunRequest{DefinitionId: "d1"}
+	if len(f.previews) != 1 || !proto.Equal(f.previews[0], want) {
+		t.Errorf("PreviewEvaluationRun requests = %v, want exactly %v", f.previews, want)
+	}
+	if want := []string{"pv:d1:1"}; !slices.Equal(f.creates, want) {
+		t.Errorf("CreateEvaluationRun tokens = %q, want %q", f.creates, want)
+	}
+}
+
+// A preview that does not allow the launch is the platform saying no: no run is
+// created, so there is no verdict to reach (exit 2), and the blockers are the
+// only thing that tells the pipeline owner what to fix.
+func TestRunDefinitionBlockedPreviewDoesNotLaunch(t *testing.T) {
+	f := &fakeEval{keys: map[string]bool{}, blockers: []*agenticv1.EvaluationPreviewBlockerV1{{
+		Kind:     agenticv1.EvaluationPreviewBlockerKindV1_EVALUATION_PREVIEW_BLOCKER_KIND_V1_MISSING_DEPENDENCY,
+		Severity: agenticv1.EvaluationBuilderReadinessSeverityV1_EVALUATION_BUILDER_READINESS_SEVERITY_V1_BLOCKING,
+		Detail:   "dataset version 7 was archived",
+	}}}
+	code, _, stderr := runCaptured(t, "run", append(serveFake(t, f), "--definition", "d1", "--idempotency-key", "k1")...)
+
+	if code != 2 {
+		t.Fatalf("exit = %d, want 2 (indeterminate); stderr: %s", code, stderr)
+	}
+	if len(f.creates) != 0 {
+		t.Errorf("CreateEvaluationRun was called %d times after a blocked preview", len(f.creates))
+	}
+	for _, want := range []string{"MISSING_DEPENDENCY", "dataset version 7 was archived"} {
+		if !strings.Contains(stderr, want) {
+			t.Errorf("stderr %q does not name the blocker (%q)", stderr, want)
+		}
+	}
+}
+
+// A caller that passes --preview-token has already previewed; a second preview
+// would launch against a token they never saw.
+func TestRunPreviewTokenSkipsThePreview(t *testing.T) {
+	f := &fakeEval{keys: map[string]bool{}}
+	code, _, stderr := runCaptured(t, "run", append(serveFake(t, f), "--definition", "d1", "--preview-token", "pv:d1:caller", "--idempotency-key", "k1")...)
+
+	if code != 0 {
+		t.Fatalf("exit = %d, want 0; stderr: %s", code, stderr)
+	}
+	if len(f.previews) != 0 {
+		t.Errorf("PreviewEvaluationRun was called %d times despite --preview-token", len(f.previews))
+	}
+	if want := []string{"pv:d1:caller"}; !slices.Equal(f.creates, want) {
+		t.Errorf("CreateEvaluationRun tokens = %q, want %q", f.creates, want)
+	}
+}
+
+// A retried pipeline re-runs `run` with the same key. Each attempt mints a fresh
+// token, but an unchanged definition resolves to the same accepted preview
+// digest, so the second launch replays the first instead of failing.
+func TestRunDefinitionRetryWithTheSameKeyReplays(t *testing.T) {
+	f := &fakeEval{keys: map[string]bool{}}
+	base := serveFake(t, f)
+	var outs []string
+	for range 2 {
+		code, stdout, stderr := runCaptured(t, "run", append(base, "--definition", "d1", "--idempotency-key", "sha1")...)
+		if code != 0 {
+			t.Fatalf("exit = %d, want 0; stderr: %s", code, stderr)
+		}
+		outs = append(outs, stdout)
+	}
+
+	if want := []string{"pv:d1:1", "pv:d1:2"}; !slices.Equal(f.creates, want) {
+		t.Errorf("CreateEvaluationRun tokens = %q, want a fresh token per attempt %q", f.creates, want)
+	}
+	if !strings.Contains(outs[0], "idempotent_replay=false") || !strings.Contains(outs[1], "idempotent_replay=true") {
+		t.Errorf("replay not reported: first %q, second %q", outs[0], outs[1])
+	}
+}
+
 func TestCredentialIsReadFromEnvAndStructurallyChecked(t *testing.T) {
 	var c commonFlags
 
@@ -477,4 +567,88 @@ func adoptedDecision(state agenticv1.MetricAvailabilityStateV1, outcome agenticv
 		Availability: &agenticv1.MetricAvailabilityV1{State: state},
 		Revision:     &agenticv1.EvaluationDecisionRevisionV1{Decision: d},
 	}
+}
+
+// --- launch-path fake -------------------------------------------------------
+
+// fakeEval is the evaluation service's launch path, served by the real
+// generated handler so the client's gRPC-web framing is exercised. Like the
+// server (o11y-api run_handlers.rs:170-174), CreateEvaluationRun refuses a
+// token its preview did not mint for that definition.
+type fakeEval struct {
+	agenticv1connect.UnimplementedAgenticEvaluationServiceHandler
+	blockers []*agenticv1.EvaluationPreviewBlockerV1
+	previews []*agenticv1.PreviewEvaluationRunRequest
+	creates  []string        // the preview token each launch carried
+	keys     map[string]bool // idempotency keys that launched
+}
+
+func (f *fakeEval) PreviewEvaluationRun(_ context.Context, req *connect.Request[agenticv1.PreviewEvaluationRunRequest]) (*connect.Response[agenticv1.PreviewEvaluationRunResponse], error) {
+	f.previews = append(f.previews, req.Msg)
+	return connect.NewResponse(&agenticv1.PreviewEvaluationRunResponse{
+		// Fresh per preview, as the server's carries a fresh expiry.
+		PreviewToken:  fmt.Sprintf("pv:%s:%d", req.Msg.GetDefinitionId(), len(f.previews)),
+		LaunchAllowed: len(f.blockers) == 0,
+		Blockers:      f.blockers,
+	}), nil
+}
+
+func (f *fakeEval) CreateEvaluationRun(_ context.Context, req *connect.Request[agenticv1.CreateEvaluationRunRequest]) (*connect.Response[agenticv1.CreateEvaluationRunResponse], error) {
+	m := req.Msg
+	f.creates = append(f.creates, m.GetPreviewToken())
+	if !strings.HasPrefix(m.GetPreviewToken(), "pv:"+m.GetDefinitionId()+":") {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("preview token is malformed"))
+	}
+	// A reused key replays: the server compares the re-resolved binding's
+	// digest, which carries no nonce and no expiry (run_domain.rs:81-100), so a
+	// fresh preview of an unchanged definition matches the accepted one.
+	replay := f.keys[m.GetIdempotencyKey()]
+	f.keys[m.GetIdempotencyKey()] = true
+	return connect.NewResponse(&agenticv1.CreateEvaluationRunResponse{
+		Run: &agenticv1.EvaluationRunV1{EvaluationRunId: "run_" + m.GetIdempotencyKey()},
+		Operation: &agenticv1.EvaluationOperationV1{
+			OperationId: "op_" + m.GetIdempotencyKey(),
+			State:       agenticv1.EvaluationOperationStateV1_EVALUATION_OPERATION_STATE_V1_PENDING,
+		},
+		IdempotentReplay: replay,
+	}), nil
+}
+
+// serveFake starts f and returns the flags that point the runner at it.
+func serveFake(t *testing.T, f *fakeEval) []string {
+	t.Helper()
+	t.Setenv("O11Y_API_KEY", "o11y_mach.selector.secret")
+	mux := http.NewServeMux()
+	mux.Handle(agenticv1connect.NewAgenticEvaluationServiceHandler(f))
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+	return []string{"--base-url", srv.URL, "--timeout", "10s"}
+}
+
+// runCaptured runs the CLI and returns its exit code, stdout and stderr.
+func runCaptured(t *testing.T, command string, args ...string) (int, string, string) {
+	t.Helper()
+	var files [2]*os.File
+	for i := range files {
+		f, err := os.CreateTemp(t.TempDir(), "out")
+		if err != nil {
+			t.Fatal(err)
+		}
+		files[i] = f
+	}
+	stdout, stderr := os.Stdout, os.Stderr
+	os.Stdout, os.Stderr = files[0], files[1]
+	code := run(append([]string{command}, args...))
+	os.Stdout, os.Stderr = stdout, stderr
+
+	var got [2]string
+	for i, f := range files {
+		b, err := os.ReadFile(f.Name())
+		if err != nil {
+			t.Fatal(err)
+		}
+		got[i] = string(b)
+		f.Close()
+	}
+	return code, got[0], got[1]
 }

@@ -256,6 +256,16 @@ this build does not recognise. The diff document the run emits carries
 `coercible: false` to say that out loud — `2` is its own state, and whether it
 blocks a merge is the calling workflow's policy, not the runner's.
 
+`o11y-eval run --definition <definition-id>` launches in two steps, because the
+API has no definition-only launch: it previews the definition (current
+revision, the definition's own mode) and launches with the token that preview
+returns. A preview that does not allow the launch creates no run. The runner
+names each blocker on stderr and exits `2`: the platform refused the launch and
+nothing was judged. Pass `--preview-token` to launch from a preview you made
+yourself. A retry with the same `--idempotency-key` replays the original run
+while the definition is unchanged; once the definition has changed, the server
+refuses that key with `ALREADY_EXISTS` (exit `3`), so mint a new key.
+
 ## License
 
 Apache-2.0.
