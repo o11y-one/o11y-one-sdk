@@ -97,9 +97,11 @@ npm stage list @o11y-one/sdk
 npm stage approve <stage-id>
 ```
 
-`npm stage reject <stage-id>` discards a staged version instead; the version
-number stays taken, so the next attempt needs a new patch version. Staging
-needs npm 11.19 or later, which the Node pinned in `mise.toml` ships.
+`npm stage reject <stage-id>` discards a staged version; the same version
+can then be staged again, which is how a failed run is retried without a new
+tag. Approval can also be done on npmjs.com; an OIDC token from the workflow
+can never approve, which is the point. Staging needs npm 11.15 or later; the
+Node pinned in `mise.toml` ships 11.19.
 
 ## PyPI
 
