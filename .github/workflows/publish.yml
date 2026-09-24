@@ -104,14 +104,17 @@ jobs:
   # @o11y-one/sdk: configure trusted publishing for o11y-one/o11y-one-sdk with
   # workflow `publish.yml` and environment `release`.
   # ---------------------------------------------------------------------------
-  publish-npm:
+  # One job per package, in dependency order, so a rerun of the failed jobs
+  # never re-stages a version that already went through (npm refuses a
+  # version that is already staged).
+  stage-npm-api-agentic:
     needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: release # protected: requires a reviewer, restricted to tags
     permissions:
       contents: read
-      id-token: write # ONLY here and in the two jobs below. Never in ci.yml.
+      id-token: write # ONLY here and in the other publish jobs. Never in ci.yml.
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -126,23 +129,46 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: just build-ts
 
-      # pnpm packs, npm stages. sdk-ts depends on
-      # `@o11y-one/api-agentic@workspace:*`, which pnpm rewrites to the real
-      # version when it packs and npm would ship verbatim, uninstallable. pnpm
-      # has no staging command, so the npm that ships with the pinned Node
-      # (11.19, well past the 11.5.1 trusted-publishing floor) stages the
-      # packed tarballs and does the OIDC exchange and the provenance
-      # attestation itself.
-      - name: Pack both packages
-        run: |
-          mkdir -p "$RUNNER_TEMP/npm"
-          for pkg in gen-ts-agentic sdk-ts; do
-            (cd "packages/$pkg" && pnpm pack --pack-destination "$RUNNER_TEMP/npm")
-          done
-          ls -l "$RUNNER_TEMP/npm"
+      # pnpm packs (it rewrites the workspace dependency to the real version;
+      # npm would ship `workspace:*` verbatim), npm stages: pnpm has no staging
+      # command, and the npm bundled with the pinned Node does the OIDC
+      # exchange and the provenance attestation itself.
+      - name: Pack
+        working-directory: packages/gen-ts-agentic
+        run: pnpm pack --pack-destination "$RUNNER_TEMP/npm"
 
       - name: Stage @o11y-one/api-agentic
         run: npm stage publish "$RUNNER_TEMP"/npm/o11y-one-api-agentic-*.tgz --provenance --access public
+
+  stage-npm-sdk:
+    needs: stage-npm-api-agentic
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: release # protected: requires a reviewer, restricted to tags
+    permissions:
+      contents: read
+      id-token: write # ONLY here and in the other publish jobs. Never in ci.yml.
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        with:
+          version: 2026.9.1
+          install: true
+          cache: true
+
+      - run: pnpm install --frozen-lockfile
+      - run: just build-ts
+
+      # pnpm packs (it rewrites the workspace dependency to the real version;
+      # npm would ship `workspace:*` verbatim), npm stages: pnpm has no staging
+      # command, and the npm bundled with the pinned Node does the OIDC
+      # exchange and the provenance attestation itself.
+      - name: Pack
+        working-directory: packages/sdk-ts
+        run: pnpm pack --pack-destination "$RUNNER_TEMP/npm"
 
       - name: Stage @o11y-one/sdk
         run: npm stage publish "$RUNNER_TEMP"/npm/o11y-one-sdk-*.tgz --provenance --access public
