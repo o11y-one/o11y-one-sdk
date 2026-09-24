@@ -1,6 +1,6 @@
 {
   "name": "@o11y-one/sdk",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Hand-written client wrapper over @o11y-one/api-agentic: transport construction, credential injection, and the O11y One error taxonomy.",
   "license": "Apache-2.0",
   "type": "module",
