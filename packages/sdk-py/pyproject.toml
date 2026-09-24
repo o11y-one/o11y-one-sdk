@@ -1,6 +1,6 @@
 [project]
 name = "o11y-one"
-version = "0.1.2"
+version = "0.1.3"
 description = "Hand-written Python client for the O11y One API: transport construction, credential injection, and the O11y One error taxonomy."
 readme = "README.md"
 license = "Apache-2.0"

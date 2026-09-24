@@ -1,6 +1,6 @@
 [project]
 name = "o11y-one-api-agentic"
-version = "0.1.2"
+version = "0.1.3"
 description = "Generated Python protobuf messages and Connect clients for the O11y One AGENTIC domain (agentic + common only). A per-domain subset of o11y-one-api so agentic-only consumers do not carry the other domains. Generated from proto at PROTO_PIN — do not edit by hand."
 readme = "README.md"
 license = "Apache-2.0"
