@@ -70,6 +70,14 @@ runs:
 
         repo_name="${REPO_NAME#*/}"
 
+        # This step runs inside the action's own directory so `go run .` finds
+        # the module; a relative document path therefore has to be anchored to
+        # the caller's checkout, which is where the runner wrote it.
+        case "${DIFF_DOCUMENT_PATH}" in
+          /*) ;;
+          *) DIFF_DOCUMENT_PATH="${GITHUB_WORKSPACE}/${DIFF_DOCUMENT_PATH}" ;;
+        esac
+
         # Render first (pure, no network) so we always have the markdown for
         # the step output even if the network call below fails.
         rendered="$(mktemp)"
