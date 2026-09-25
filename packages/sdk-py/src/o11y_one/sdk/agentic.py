@@ -773,12 +773,13 @@ class AgenticClient:
         A run always references a definition by id (there is no "inline
         draft" launch path on this generated surface — see ``l2-notes.md``
         for why this diverges from the abstract "definition rev XOR inline
-        draft" framing). ``preview_token`` is optional: omit it to launch the
-        definition's current published revision directly, or pass the token a
-        prior :meth:`preview_run` returned to launch exactly what was
-        previewed (the server pins the previewed revision and estimates to
-        that token; passing it is how a caller gets a launch that matches what
-        it showed a human before submitting).
+        draft" framing). ``preview_token`` is required by the server: pass the
+        token a prior :meth:`preview_run` returned, and the launch is exactly
+        what was previewed (the server pins the previewed revision and
+        estimates to that token). Omitting it is refused with a
+        ``PREVIEW_MALFORMED`` launch rejection, returned here as a
+        :class:`Refusal`; the parameter stays optional only so that refusal
+        is reachable rather than a ``TypeError``.
 
         A launch rejection (stale preview, moved dependency versions, a reused
         idempotency key against a different preview, ...) arrives as a typed
