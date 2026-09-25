@@ -1,7 +1,7 @@
 # `pr-diff`: the eval diff as a pull-request comment
 
 A composite GitHub Action that renders an O11y One eval diff document (the
-JSON `o11y-eval diff --json` writes) as a GitHub-flavored-markdown comment and
+JSON `o11y-eval diff --out` writes) as a GitHub-flavored-markdown comment and
 upserts it onto the pull request. It recomputes nothing: every number and the
 verdict come from the document. It runs `go run .` from this directory, so the
 source a workflow executes is the source you can read here; there is no
@@ -16,8 +16,8 @@ permissions:
 
 steps:
   - uses: actions/checkout@v4
-  - run: o11y-eval diff --json --output eval-diff.json   # your evaluation step
-  - uses: o11y-one/o11y-one-sdk/tools/pr-diff@v0.1.0
+  - run: o11y-eval diff --run "$RUN_ID" --candidate challenger --out eval-diff.json
+  - uses: o11y-one/o11y-one-sdk/tools/pr-diff@v0.1.3
     with:
       diff-document-path: eval-diff.json
 ```

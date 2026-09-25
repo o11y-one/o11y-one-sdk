@@ -9,8 +9,8 @@ author: "o11y.one"
 inputs:
   diff-document-path:
     description: >
-      Path to the diff document JSON (e.g. produced by
-      `o11y-eval diff --json`). Required.
+      Path to the diff document JSON (e.g. what
+      `o11y-eval diff --out` writes). Required.
     required: true
   github-token:
     description: >
