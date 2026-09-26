@@ -140,7 +140,7 @@ export function createTransport(options: ClientOptions): Transport {
  *
  * ```ts
  * import { O11yClient } from "@o11y-one/sdk";
- * import { AgenticEvaluationService } from "@o11y-one/api-agentic/o11y_one/agentic/v1/evaluation_pb";
+ * import { AgenticEvaluationService } from "@o11y-one/sdk/api";
  *
  * const o11y = new O11yClient({ baseUrl, credential: process.env.O11Y_API_KEY });
  * const evals = o11y.service(AgenticEvaluationService);

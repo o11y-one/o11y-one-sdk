@@ -9,11 +9,15 @@ generated [`@o11y-one/api-agentic`](../gen-ts-agentic) package.
 pnpm add @o11y-one/sdk
 ```
 
+That is the only package to install. The generated service descriptors,
+message schemas and enums are re-exported from `@o11y-one/sdk/api`, so you
+never import `@o11y-one/api-agentic` directly.
+
 ## Use
 
 ```ts
 import { O11yClient, classify } from "@o11y-one/sdk";
-import { AgenticEvaluationService } from "@o11y-one/api-agentic/o11y_one/agentic/v1/evaluation_pb";
+import { AgenticEvaluationService } from "@o11y-one/sdk/api";
 
 const o11y = new O11yClient({
   baseUrl: "https://grpc.o11y.one",
