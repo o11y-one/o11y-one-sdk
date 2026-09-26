@@ -17,7 +17,7 @@ permissions:
 steps:
   - uses: actions/checkout@v4
   - run: o11y-eval diff --run "$RUN_ID" --candidate challenger --out eval-diff.json
-  - uses: o11y-one/o11y-one-sdk/tools/pr-diff@v0.1.3
+  - uses: o11y-one/o11y-one-sdk/tools/pr-diff@v0.1.4
     with:
       diff-document-path: eval-diff.json
 ```
