@@ -347,6 +347,12 @@ func TestSubcommandFlagValidation(t *testing.T) {
 		{"annotate with unknown kind", []string{"annotate", "--title", "t", "--kind", "nope"}, 64},
 		{"annotate range without until", []string{"annotate", "--title", "t", "--kind", "range"}, 64},
 		{"annotate with bad timestamp", []string{"annotate", "--title", "t", "--at", "yesterday"}, 64},
+		{"run with unknown flag", []string{"run", "--definition", "d1", "--bogus"}, 64},
+		{"wait with unknown flag", []string{"wait", "--bogus"}, 64},
+		{"diff with unknown flag", []string{"diff", "--run", "run_1", "--candidate", "cand_b", "--bogus"}, 64},
+		{"annotate with unknown flag", []string{"annotate", "--bogus"}, 64},
+		{"run with malformed duration", []string{"run", "--definition", "d1", "--poll-interval", "soon"}, 64},
+		{"help flag", []string{"diff", "-h"}, 0},
 		{"unknown command", []string{"frobnicate"}, 64},
 		{"no command", nil, 64},
 	} {

@@ -155,8 +155,8 @@ var version = "dev"
 
 // reportError prints an error and maps it onto the exit taxonomy.
 //
-// Anything that carries its own Outcome decides its own exit code; a bare flag
-// parse error is a usage error; everything else is an infra failure, because a
+// Anything that carries its own Outcome decides its own exit code (flag parse
+// errors arrive as usageError, via parseFlags); everything else is an infra failure, because a
 // runner that does not recognise its own error has no business calling a change
 // a regression.
 func reportError(err error) int {
@@ -202,7 +202,7 @@ func cmdRun(args []string) error {
 	budget := fs.Duration("budget", 0, "max time to spend waiting when --wait is set; 0 means bounded only by --timeout")
 	poll := fs.Duration("poll-interval", 10*time.Second, "how often to poll for terminal state when --wait is set")
 
-	if err := fs.Parse(args); err != nil {
+	if err := parseFlags(fs, args); err != nil {
 		return err
 	}
 	if *definition == "" && *previewToken == "" {
@@ -326,7 +326,7 @@ func cmdWait(args []string) error {
 	budget := fs.Duration("budget", 0, "max time to spend waiting; 0 means bounded only by --timeout")
 	poll := fs.Duration("poll-interval", 10*time.Second, "how often to poll for terminal state")
 
-	if err := fs.Parse(args); err != nil {
+	if err := parseFlags(fs, args); err != nil {
 		return err
 	}
 	if *operationID == "" && *idempotencyKey == "" {
@@ -382,7 +382,7 @@ func cmdDiff(args []string) error {
 	candidate := fs.String("candidate", "", "candidate key under test (required)")
 	out := fs.String("out", "", "also write the diff document JSON to this file")
 
-	if err := fs.Parse(args); err != nil {
+	if err := parseFlags(fs, args); err != nil {
 		return err
 	}
 	if *runID == "" {
@@ -462,7 +462,7 @@ func cmdAnnotate(args []string) error {
 	until := fs.String("until", "", "RFC3339 end instant, for --kind=range")
 	idempotencyKey := fs.String("idempotency-key", "", "idempotency key; a retry with the same key is deduped")
 
-	if err := fs.Parse(args); err != nil {
+	if err := parseFlags(fs, args); err != nil {
 		return err
 	}
 	if *title == "" {
@@ -562,3 +562,13 @@ type usageError struct{ msg string }
 
 func (e *usageError) Error() string    { return e.msg }
 func (e *usageError) Outcome() Outcome { return OutcomeUsageError }
+
+// parseFlags is fs.Parse with an unknown flag or a malformed value reported as
+// a usageError. flag.ErrHelp passes through, so -h still exits 0.
+func parseFlags(fs *flag.FlagSet, args []string) error {
+	err := fs.Parse(args)
+	if err == nil || errors.Is(err, flag.ErrHelp) {
+		return err
+	}
+	return &usageError{msg: err.Error()}
+}
