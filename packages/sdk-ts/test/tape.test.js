@@ -161,7 +161,7 @@ test("a recording_conflict keeps the chunk for the next flush; another rejection
   assert.equal(server.requests[1].chunks[0].calls.length, 1, "the conflicted call was resent");
   assert.ok(e instanceof CaseRecordingRejectedError);
   assert.equal(e.code, "case_already_submitted");
-  assert.equal(e.caseRevisionId, "r1");
+  assert.equal(e.case.caseRevisionId, "r1");
   await tape.flush();
   assert.equal(server.requests.length, 2, "a rejected case is never resent");
 });

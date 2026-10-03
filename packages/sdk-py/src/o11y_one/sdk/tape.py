@@ -95,10 +95,7 @@ class CaseRecordingRejectedError(Exception):
 
     def __init__(self, code: str, case: LeasedEvaluationCaseV1) -> None:
         self.code = code
-        self.cohort_key = case.cohort_key
-        self.candidate_key = case.candidate_key
-        self.case_revision_id = case.case_revision_id
-        self.trial = case.trial
+        self.case = case
         super().__init__(f"the server rejected case {case.case_revision_id}'s recording ({code})")
 
 
@@ -130,7 +127,7 @@ class ReplayDivergedError(Exception):
         )
 
 
-def lease_refused_error(refusal: Refusal) -> LeaseRefusedError:
+def _lease_refused_error(refusal: Refusal) -> LeaseRefusedError:
     if refusal.reason_code == "RECORDING_UNAVAILABLE":
         return RecordingUnavailableError(refusal)
     return LeaseRefusedError(refusal)
@@ -225,7 +222,7 @@ class _Buffer:
 
     def apply(self, batch: list[_Pending], sent: list[int], resp) -> None:
         if not isinstance(resp, list):
-            raise lease_refused_error(resp)
+            raise _lease_refused_error(resp)
         rejected: CaseRecordingRejectedError | None = None
         for p, count, ack in zip(batch, sent, resp, strict=False):
             if ack.kind == _REJECTED:
@@ -247,7 +244,7 @@ class _Buffer:
 
 def _answer(resp: LookupReplayStepResponse | Refusal) -> str:
     if isinstance(resp, Refusal):
-        raise lease_refused_error(resp)
+        raise _lease_refused_error(resp)
     if resp.WhichOneof("outcome") == "divergence":
         raise ReplayDivergedError(resp.divergence)
     if resp.WhichOneof("outcome") == "response_json":

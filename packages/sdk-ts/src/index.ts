@@ -59,7 +59,6 @@ export {
   ReplayDivergedError,
   CaseRecordingRejectedError,
   toReplayDivergence,
-  type RecordedCall,
   type ReplayDivergence,
   type ReplayDivergenceReason,
 } from "./tape.js";

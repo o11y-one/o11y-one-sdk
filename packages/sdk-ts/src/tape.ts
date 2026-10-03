@@ -35,7 +35,7 @@ import type { AgenticEvaluationClient, RecordReplayLimits } from "./evaluation.j
 import { toLeaseRefusal, type LeaseRefusal } from "./refusals.js";
 import { byteLength, ValidationError } from "./validate.js";
 
-export type RecordedCall = MessageInitShape<typeof RecordedCallV1Schema>;
+type RecordedCall = MessageInitShape<typeof RecordedCallV1Schema>;
 type Coordinates = Pick<
   LeasedEvaluationCaseV1,
   "cohortKey" | "candidateKey" | "caseRevisionId" | "trial" | "attemptGeneration"
@@ -74,19 +74,13 @@ export class RecordingUnavailableError extends LeaseRefusedError {
 /** The server stored none of one case's chunk, for a reason a resend will not fix. */
 export class CaseRecordingRejectedError extends Error {
   readonly code: string;
-  readonly cohortKey: string;
-  readonly candidateKey: string;
-  readonly caseRevisionId: string;
-  readonly trial: number;
+  readonly case: Coordinates;
 
   constructor(code: string, at: Coordinates) {
     super(`the server rejected case ${at.caseRevisionId}'s recording (${code})`);
     this.name = "CaseRecordingRejectedError";
     this.code = code;
-    this.cohortKey = at.cohortKey;
-    this.candidateKey = at.candidateKey;
-    this.caseRevisionId = at.caseRevisionId;
-    this.trial = at.trial;
+    this.case = at;
   }
 }
 
@@ -128,7 +122,7 @@ export class ReplayDivergedError extends Error {
   }
 }
 
-export function leaseRefusedError(refusal: LeaseRefusal): LeaseRefusedError {
+function leaseRefusedError(refusal: LeaseRefusal): LeaseRefusedError {
   return refusal.reason === "RECORDING_UNAVAILABLE"
     ? new RecordingUnavailableError(refusal)
     : new LeaseRefusedError(refusal);
