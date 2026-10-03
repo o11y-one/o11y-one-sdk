@@ -192,6 +192,56 @@ def test_a_conflict_keeps_the_chunk_and_another_rejection_raises() -> None:
     assert len(sent(fake)) == 2, "a rejected case is never resent"
 
 
+def _reject_r1(req: RecordEvaluationCaseStepsRequest) -> RecordEvaluationCaseStepsResponse:
+    acks = storing(req).acks
+    for ack, chunk in zip(acks, req.chunks, strict=True):
+        if chunk.case_revision_id == "r1":
+            ack.CopyFrom(
+                RecordedChunkAckV1(
+                    kind=REJECTED, rejection=EvaluationFailureV1(code="case_already_submitted")
+                )
+            )
+    return RecordEvaluationCaseStepsResponse(acks=acks)
+
+
+def test_a_closed_case_buffers_nothing_more() -> None:
+    fake, tape = sync_tape(record_evaluation_case_steps=_reject_r1)
+    rejected, completed = tape.case(CASE_A), tape.case(CASE_B)
+    rejected.model("{}", lambda: "{}")
+    completed.model("{}", lambda: "{}")
+    completed.finish()
+    with pytest.raises(CaseRecordingRejectedError):
+        tape.flush()
+
+    assert rejected.model('{"late":1}', lambda: '{"r":1}') == '{"r":1}', (
+        "the harness gets its response"
+    )
+    assert completed.model('{"late":2}', lambda: '{"r":2}') == '{"r":2}'
+    tape.flush()
+    assert len(sent(fake)) == 1, "neither closed case is sent again"
+
+
+def test_async_closed_case_buffers_nothing_more() -> None:
+    fake = FakeAsyncClient(
+        get_agentic_evaluation_capabilities=capabilities(), record_evaluation_case_steps=_reject_r1
+    )
+
+    async def ok() -> str:
+        return "{}"
+
+    async def run() -> None:
+        tape = await AgenticClient(fake).record_lease(evaluation_run_id="run_1", lease=LEASE)
+        rejected = tape.case(CASE_A)
+        await rejected.model("{}", ok)
+        with pytest.raises(CaseRecordingRejectedError):
+            await tape.flush()
+        await rejected.model("{}", ok)
+        await tape.flush()
+
+    asyncio.run(run())
+    assert len(sent(fake)) == 1
+
+
 def test_recording_unavailable_on_failed_precondition_is_typed_and_non_retryable() -> None:
     detail = ExternalLeaseRefusalV1(
         kind=UNAVAILABLE_KIND, message="recording and replay are unavailable"

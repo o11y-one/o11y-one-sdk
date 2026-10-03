@@ -166,6 +166,33 @@ test("a recording_conflict keeps the chunk for the next flush; another rejection
   assert.equal(server.requests.length, 2, "a rejected case is never resent");
 });
 
+test("a closed case buffers nothing more: after a rejection or a complete ack, its calls are never sent", async () => {
+  const { server, evalc } = stubServer({
+    recordEvaluationCaseSteps: async (req) => {
+      server.requests.push(structuredClone(req));
+      return {
+        acks: req.chunks.map((c) =>
+          c.caseRevisionId === "r1"
+            ? { kind: 3, rejection: { code: "case_already_submitted" } }
+            : { kind: 1, nextStep: c.firstStep + c.calls.length, complete: c.last },
+        ),
+      };
+    },
+  });
+  const tape = await evalc.recordLease({ evaluationRunId: "run_1", lease: LEASE });
+  const rejected = tape.case(CASE_A);
+  const completed = tape.case(CASE_B);
+  await rejected.model("{}", live("{}"));
+  await completed.model("{}", live("{}"));
+  completed.finish();
+  await assert.rejects(() => tape.flush(), CaseRecordingRejectedError);
+
+  assert.equal(await rejected.model('{"late":1}', live('{"r":1}')), '{"r":1}', "the harness still gets its response");
+  assert.equal(await completed.model('{"late":2}', live('{"r":2}')), '{"r":2}');
+  await tape.flush();
+  assert.equal(server.requests.length, 1, "neither closed case is sent again");
+});
+
 test("RECORDING_UNAVAILABLE on FAILED_PRECONDITION is a non-retryable typed error naming no configuration", async () => {
   const { evalc } = stubServer({
     recordEvaluationCaseSteps: async () => {

@@ -201,6 +201,10 @@ export class LeaseTape {
     ) {
       await this.flush();
     }
+    // A completed or rejected case can record nothing more; the harness already has its response.
+    if (pending.closed) {
+      return;
+    }
     pending.calls.push({ call, bytes });
     this.#pendingBytes += bytes;
     this.#pendingCalls++;

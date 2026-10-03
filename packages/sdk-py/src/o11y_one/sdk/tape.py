@@ -189,6 +189,9 @@ class _Buffer:
         )
 
     def push(self, pending: _Pending, call: RecordedCallV1, size: int) -> None:
+        # A completed or rejected case records nothing more; the harness already has its response.
+        if pending.closed:
+            return
         pending.calls.append((call, size))
         self.pending_bytes += size
         self.pending_calls += 1
