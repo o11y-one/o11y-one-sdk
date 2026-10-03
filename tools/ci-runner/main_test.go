@@ -662,6 +662,7 @@ func adoptedDecision(state agenticv1.MetricAvailabilityStateV1, outcome agenticv
 type fakeEval struct {
 	agenticv1connect.UnimplementedAgenticEvaluationServiceHandler
 	blockers []*agenticv1.EvaluationPreviewBlockerV1
+	manifest *agenticv1.EvaluationRunManifestV1
 	previews []*agenticv1.PreviewEvaluationRunRequest
 	creates  []string                                    // the preview token each launch carried
 	keys     map[string]bool                             // idempotency keys that launched
@@ -686,9 +687,10 @@ func (f *fakeEval) PreviewEvaluationRun(_ context.Context, req *connect.Request[
 	f.previews = append(f.previews, req.Msg)
 	return connect.NewResponse(&agenticv1.PreviewEvaluationRunResponse{
 		// Fresh per preview, as the server's carries a fresh expiry.
-		PreviewToken:  fmt.Sprintf("pv:%s:%d", req.Msg.GetDefinitionId(), len(f.previews)),
-		LaunchAllowed: len(f.blockers) == 0,
-		Blockers:      f.blockers,
+		PreviewToken:     fmt.Sprintf("pv:%s:%d", req.Msg.GetDefinitionId(), len(f.previews)),
+		LaunchAllowed:    len(f.blockers) == 0,
+		Blockers:         f.blockers,
+		ResolvedManifest: f.manifest,
 	}), nil
 }
 

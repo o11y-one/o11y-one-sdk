@@ -22,6 +22,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -48,6 +49,11 @@ Exit codes (the verdict is the exit code):
                      or a run the preview blocked from launching)
   3  infra-failure   runner or platform failed, or a wait timed out
   64 usage-error     bad invocation
+
+run --record or --replay with --candidate asserts, from the previewed manifest,
+that the candidate is externally executed or a replay; a candidate missing or
+of another kind exits 64 and launches nothing. The SDK tape records and
+replays; the runner never executes a harness.
 
 run --wait and wait exit 0 once the run is COMPLETED or PARTIALLY_COMPLETED
 (finishing is not a verdict; diff renders one) and 3 if it is FAILED or
@@ -201,6 +207,9 @@ func cmdRun(args []string) error {
 	waitFor := fs.Bool("wait", false, "block until the run reaches a terminal state")
 	budget := fs.Duration("budget", 0, "max time to spend waiting when --wait is set; 0 means bounded only by --timeout")
 	poll := fs.Duration("poll-interval", 10*time.Second, "how often to poll for terminal state when --wait is set")
+	candidate := fs.String("candidate", "", "with --record or --replay: the candidate key the harness step will lease")
+	record := fs.Bool("record", false, "assert that --candidate is an externally executed candidate, whose runtime records its calls with the SDK tape")
+	replay := fs.Bool("replay", false, "assert that --candidate is a replay candidate, whose runtime answers its calls from the source recording with the SDK tape")
 
 	if err := parseFlags(fs, args); err != nil {
 		return err
@@ -210,6 +219,10 @@ func cmdRun(args []string) error {
 	}
 	if *poll <= 0 {
 		return &usageError{msg: "--poll-interval must be positive"}
+	}
+	mode, err := tapeMode(*candidate, *record, *replay, *previewToken)
+	if err != nil {
+		return err
 	}
 	cred, err := common.credential()
 	if err != nil {
@@ -226,8 +239,13 @@ func cmdRun(args []string) error {
 
 	clients := newClients(&common, cred)
 	token := *previewToken
+	var tape []field
 	if token == "" {
-		if token, err = previewLaunch(ctx, clients, *definition); err != nil {
+		var manifest *agenticv1.EvaluationRunManifestV1
+		if token, manifest, err = previewLaunch(ctx, clients, *definition); err != nil {
+			return err
+		}
+		if tape, err = assertTapeCandidate(manifest, *definition, *candidate, mode); err != nil {
 			return err
 		}
 	}
@@ -244,7 +262,7 @@ func cmdRun(args []string) error {
 	operationID := op.GetOperationId()
 
 	if !*waitFor {
-		return emitRun(&common, runID, operationID, resp.Msg.GetIdempotentReplay(), op, nil)
+		return emitRun(&common, runID, operationID, resp.Msg.GetIdempotentReplay(), op, nil, tape)
 	}
 
 	fetch := func(fctx context.Context) (*agenticv1.GetEvaluationOperationResponse, error) {
@@ -263,7 +281,7 @@ func cmdRun(args []string) error {
 	if err := outcomeForOperation("run", terminal); err != nil {
 		return err
 	}
-	return emitRun(&common, runID, operationID, resp.Msg.GetIdempotentReplay(), terminal.GetOperation(), terminal.GetRun())
+	return emitRun(&common, runID, operationID, resp.Msg.GetIdempotentReplay(), terminal.GetOperation(), terminal.GetRun(), tape)
 }
 
 // previewLaunch mints the token CreateEvaluationRun requires; the server has no
@@ -274,12 +292,12 @@ func cmdRun(args []string) error {
 // A retry with the same idempotency key still replays: the run records the
 // digest of the definition as re-resolved at launch, which carries no nonce or
 // expiry, so a fresh preview of an unchanged definition matches it.
-func previewLaunch(ctx context.Context, clients *apiClients, definitionID string) (string, error) {
+func previewLaunch(ctx context.Context, clients *apiClients, definitionID string) (string, *agenticv1.EvaluationRunManifestV1, error) {
 	resp, err := clients.eval.PreviewEvaluationRun(ctx, connect.NewRequest(&agenticv1.PreviewEvaluationRunRequest{
 		DefinitionId: definitionID,
 	}))
 	if err != nil {
-		return "", fmt.Errorf("run: PreviewEvaluationRun failed: %w", err)
+		return "", nil, fmt.Errorf("run: PreviewEvaluationRun failed: %w", err)
 	}
 	if !resp.Msg.GetLaunchAllowed() {
 		var blockers []string
@@ -287,13 +305,72 @@ func previewLaunch(ctx context.Context, clients *apiClients, definitionID string
 			kind := strings.TrimPrefix(b.GetKind().String(), "EVALUATION_PREVIEW_BLOCKER_KIND_V1_")
 			blockers = append(blockers, kind+": "+b.GetDetail())
 		}
-		return "", &verdictError{outcome: OutcomeIndeterminate, decision: "preview blocked the launch: " + strings.Join(blockers, "; ")}
+		return "", nil, &verdictError{outcome: OutcomeIndeterminate, decision: "preview blocked the launch: " + strings.Join(blockers, "; ")}
 	}
-	return resp.Msg.GetPreviewToken(), nil
+	return resp.Msg.GetPreviewToken(), resp.Msg.GetResolvedManifest(), nil
 }
 
-// emitRun reports run_state only when run is non-nil, which is after a wait.
-func emitRun(common *commonFlags, runID, operationID string, replay bool, op *agenticv1.EvaluationOperationV1, run *agenticv1.EvaluationRunV1) error {
+// field is one key=value of a command's output, in the order it prints.
+type field struct{ key, value string }
+
+// tapeMode validates --candidate, --record and --replay together. The runner
+// never executes a harness: the SDK tape records and replays, and these flags
+// only assert the candidate's kind from the manifest the runner previews, so
+// they cannot ride a caller's own --preview-token.
+func tapeMode(candidate string, record, replay bool, previewToken string) (string, error) {
+	switch {
+	case record && replay:
+		return "", &usageError{msg: "--record and --replay are mutually exclusive"}
+	case !record && !replay:
+		if candidate != "" {
+			return "", &usageError{msg: "--candidate needs --record or --replay"}
+		}
+		return "", nil
+	case candidate == "":
+		return "", &usageError{msg: "--record and --replay need --candidate"}
+	case previewToken != "":
+		return "", &usageError{msg: "--record and --replay check the preview the runner makes; drop --preview-token"}
+	case record:
+		return "record", nil
+	default:
+		return "replay", nil
+	}
+}
+
+// assertTapeCandidate checks that the previewed manifest holds candidate as the
+// kind mode needs, and returns what the harness step needs to know of it. A
+// mismatch launches nothing: the fix is the invocation or the definition.
+func assertTapeCandidate(manifest *agenticv1.EvaluationRunManifestV1, definition, candidate, mode string) ([]field, error) {
+	if mode == "" {
+		return nil, nil
+	}
+	i := slices.IndexFunc(manifest.GetCandidates(), func(c *agenticv1.EvaluationCandidateV1) bool {
+		return c.GetCandidateKey() == candidate
+	})
+	if i < 0 {
+		return nil, &usageError{msg: fmt.Sprintf("definition %s has no candidate %q", definition, candidate)}
+	}
+	c := manifest.GetCandidates()[i]
+	out := []field{{"candidate_key", candidate}, {"mode", mode}}
+	if mode == "record" {
+		if c.GetExternallyExecuted() == nil {
+			return nil, &usageError{msg: fmt.Sprintf("candidate %q is not an externally executed candidate", candidate)}
+		}
+		return out, nil
+	}
+	source := c.GetReplay()
+	if source == nil {
+		return nil, &usageError{msg: fmt.Sprintf("candidate %q is not a replay candidate", candidate)}
+	}
+	return append(out,
+		field{"source_evaluation_run_id", source.GetSourceEvaluationRunId()},
+		field{"source_candidate_key", source.GetSourceCandidateKey()},
+	), nil
+}
+
+// emitRun reports run_state only when run is non-nil, which is after a wait,
+// and the asserted candidate's fields when --record or --replay was given.
+func emitRun(common *commonFlags, runID, operationID string, replay bool, op *agenticv1.EvaluationOperationV1, run *agenticv1.EvaluationRunV1, tape []field) error {
 	state := operationStateString(op.GetState())
 	out := map[string]any{
 		"run_id":            runID,
@@ -306,6 +383,10 @@ func emitRun(common *commonFlags, runID, operationID string, replay bool, op *ag
 		runState := runStateString(run.GetState())
 		out["run_state"] = runState
 		text += " run_state=" + runState
+	}
+	for _, f := range tape {
+		out[f.key] = f.value
+		text += " " + f.key + "=" + f.value
 	}
 	if common.jsonOut {
 		return emitJSON(out)
@@ -368,7 +449,7 @@ func cmdWait(args []string) error {
 		return err
 	}
 	op := terminal.GetOperation()
-	return emitRun(&common, op.GetEvaluationRunId(), op.GetOperationId(), false, op, terminal.GetRun())
+	return emitRun(&common, op.GetEvaluationRunId(), op.GetOperationId(), false, op, terminal.GetRun(), nil)
 }
 
 // --- diff -------------------------------------------------------------------
