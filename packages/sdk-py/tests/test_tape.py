@@ -336,7 +336,7 @@ def test_async_tape_records_and_replays_like_the_sync_one() -> None:
     fake = FakeAsyncClient(
         get_agentic_evaluation_capabilities=capabilities(),
         record_evaluation_case_steps=storing,
-        lookup_replay_step=lambda req: LookupReplayStepResponse(response_json='{"r":0}'),
+        lookup_replay_step=lambda req: LookupReplayStepResponse(response_json=f"{req.step}"),
     )
     client = AgenticClient(fake)
 
@@ -350,7 +350,9 @@ def test_async_tape_records_and_replays_like_the_sync_one() -> None:
         a.finish()
         await tape.flush()
         replay = await client.replay_lease(evaluation_run_id="run_1", lease=LEASE)
-        assert await replay.case(CASE_A).model("{}", never) == '{"r":0}'
+        replayed = replay.case(CASE_A)
+        assert await replayed.model("{}", never) == "0"
+        assert await replayed.tool("t", "{}", never) == "1"
 
     asyncio.run(run())
     [req] = sent(fake)
