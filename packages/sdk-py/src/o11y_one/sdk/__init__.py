@@ -53,6 +53,18 @@ from .client import CredentialInterceptor, O11yClient
 from .errors import MACHINE_SCOPES, ClassifiedFailure, Disposition, classify
 from .recovery import bare_enum_name, find_error_detail
 from .results import Refusal
+from .tape import (
+    CaseRecordingRejectedError,
+    CaseTape,
+    CaseTapeSync,
+    LeaseRefusedError,
+    LeaseTape,
+    LeaseTapeSync,
+    RecordingUnavailableError,
+    RecordReplayLimits,
+    ReplayDivergedError,
+    ReplayDivergence,
+)
 from .validation import ValidationError
 
 __all__ = [
@@ -66,12 +78,22 @@ __all__ = [
     "AgenticClient",
     "AgenticClientSync",
     "CaseOutput",
+    "CaseRecordingRejectedError",
+    "CaseTape",
+    "CaseTapeSync",
     "ClassifiedFailure",
     "CredentialInterceptor",
     "Disposition",
     "IssuedMachineCredential",
+    "LeaseRefusedError",
+    "LeaseTape",
+    "LeaseTapeSync",
     "O11yClient",
+    "RecordReplayLimits",
+    "RecordingUnavailableError",
     "Refusal",
+    "ReplayDivergedError",
+    "ReplayDivergence",
     "ValidationError",
     "assert_looks_like_machine_credential",
     "bare_enum_name",

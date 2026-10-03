@@ -50,6 +50,46 @@ to keep in sync with the proto, and it would rot the first time a field is added
 upstream. Import the generated client class and hand it to
 `O11yClient.service_sync()` / `O11yClient.service()`.
 
+## Record and replay
+
+An externally executed candidate's runtime routes each model and tool call
+through a lease tape. Under record, `live` runs and the call is buffered, then
+sent to `RecordEvaluationCaseSteps` within the bounds the server publishes on
+`sdk_record_replay`. Under replay, `live` never runs: each call is answered from
+the source recording through `LookupReplayStep`. The harness code is the same
+in both modes.
+
+```python
+evals = AgenticClientSync(client.service_sync(AgenticEvaluationServiceClientSync))
+tape = evals.record_lease(evaluation_run_id=run_id, lease=lease)  # or replay_lease
+case = tape.case(leased_case)
+reply = case.model(request_json, lambda: call_model(request_json))
+hits = case.tool("search", args_json, lambda: search(args_json))
+case.finish()
+tape.flush()  # record, then submit
+evals.submit_case_outputs(...)
+```
+
+`AgenticClient` returns the async twin, whose `live` is a coroutine function.
+The sync tape is safe to share across the threads a harness fans its cases out on.
+
+- `ReplayDivergedError` names the step, the divergence kind and both request
+  digests. The server has already made it the case's verdict: stop the case and
+  do not submit it.
+- `LeaseRefusedError` carries a lease refusal (`CASE_ALREADY_SUBMITTED`,
+  `LEASE_EXPIRED`, ...). `RecordingUnavailableError` means this deployment
+  cannot record or replay, and is not retryable.
+- A `ConnectError` with code `UNAVAILABLE` is transient; the buffered calls are
+  kept and the next `flush()` resends them.
+- Steps that never reached a flush are lost with the process, and the case
+  replays as `RECORDING_INCOMPLETE`.
+- Redaction is the server's, before anything is digested or stored. The SDK
+  redacts nothing and logs no call.
+
+The tape records and replays. `o11y-eval run --record|--replay --candidate <key>`
+only asserts, before launching, that the candidate is the kind that mode needs;
+the runner never executes a harness.
+
 ## The distinction this package exists to preserve
 
 `UNAUTHENTICATED` and `PERMISSION_DENIED` are different problems:

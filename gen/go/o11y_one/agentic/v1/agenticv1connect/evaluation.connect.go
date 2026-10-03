@@ -369,6 +369,12 @@ const (
 	// AgenticEvaluationServiceReleaseEvaluationCaseLeaseProcedure is the fully-qualified name of the
 	// AgenticEvaluationService's ReleaseEvaluationCaseLease RPC.
 	AgenticEvaluationServiceReleaseEvaluationCaseLeaseProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/ReleaseEvaluationCaseLease"
+	// AgenticEvaluationServiceRecordEvaluationCaseStepsProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's RecordEvaluationCaseSteps RPC.
+	AgenticEvaluationServiceRecordEvaluationCaseStepsProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/RecordEvaluationCaseSteps"
+	// AgenticEvaluationServiceLookupReplayStepProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's LookupReplayStep RPC.
+	AgenticEvaluationServiceLookupReplayStepProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/LookupReplayStep"
 	// AgenticEvaluationServiceRecordPlatformAnnotationProcedure is the fully-qualified name of the
 	// AgenticEvaluationService's RecordPlatformAnnotation RPC.
 	AgenticEvaluationServiceRecordPlatformAnnotationProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/RecordPlatformAnnotation"
@@ -743,6 +749,17 @@ type AgenticEvaluationServiceClient interface {
 	// out its whole TTL before anyone can retake its cases, and typed abandonment
 	// would be the only way to give work back.
 	ReleaseEvaluationCaseLease(context.Context, *connect.Request[v1.ReleaseEvaluationCaseLeaseRequest]) (*connect.Response[v1.ReleaseEvaluationCaseLeaseResponse], error)
+	// ---- O11Y-633: record and replay, on the same lease fence ----
+	// Stores a leased case's steps; acknowledged only once stored. Record, then
+	// submit: a replay answers from the recording of the execution whose
+	// submission is the case's verdict, so a case's steps are recorded, its last
+	// chunk included, before its output is submitted. A chunk for a case this
+	// lease already submitted is rejected `case_already_submitted`.
+	RecordEvaluationCaseSteps(context.Context, *connect.Request[v1.RecordEvaluationCaseStepsRequest]) (*connect.Response[v1.RecordEvaluationCaseStepsResponse], error)
+	// Answers one step of a REPLAY candidate's case with its recorded response,
+	// or records the divergence on the case. A lookup on a case that already has
+	// its verdict is refused `CASE_ALREADY_SUBMITTED`, for that case alone.
+	LookupReplayStep(context.Context, *connect.Request[v1.LookupReplayStepRequest]) (*connect.Response[v1.LookupReplayStepResponse], error)
 	// `MUTATION_ACK`. Idempotency-keyed, machine-principal attributable, and
 	// required-scope `PLATFORM_ANNOTATION_WRITE` (wave 50 lane A's fifth
 	// discriminant, minted on this lane's ask).
@@ -1566,6 +1583,18 @@ func NewAgenticEvaluationServiceClient(httpClient connect.HTTPClient, baseURL st
 			connect.WithSchema(agenticEvaluationServiceMethods.ByName("ReleaseEvaluationCaseLease")),
 			connect.WithClientOptions(opts...),
 		),
+		recordEvaluationCaseSteps: connect.NewClient[v1.RecordEvaluationCaseStepsRequest, v1.RecordEvaluationCaseStepsResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceRecordEvaluationCaseStepsProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("RecordEvaluationCaseSteps")),
+			connect.WithClientOptions(opts...),
+		),
+		lookupReplayStep: connect.NewClient[v1.LookupReplayStepRequest, v1.LookupReplayStepResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceLookupReplayStepProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("LookupReplayStep")),
+			connect.WithClientOptions(opts...),
+		),
 		recordPlatformAnnotation: connect.NewClient[v1.RecordPlatformAnnotationRequest, v1.RecordPlatformAnnotationResponse](
 			httpClient,
 			baseURL+AgenticEvaluationServiceRecordPlatformAnnotationProcedure,
@@ -1796,6 +1825,8 @@ type agenticEvaluationServiceClient struct {
 	renewEvaluationCaseLease                   *connect.Client[v1.RenewEvaluationCaseLeaseRequest, v1.RenewEvaluationCaseLeaseResponse]
 	submitEvaluationCaseOutputs                *connect.Client[v1.SubmitEvaluationCaseOutputsRequest, v1.SubmitEvaluationCaseOutputsResponse]
 	releaseEvaluationCaseLease                 *connect.Client[v1.ReleaseEvaluationCaseLeaseRequest, v1.ReleaseEvaluationCaseLeaseResponse]
+	recordEvaluationCaseSteps                  *connect.Client[v1.RecordEvaluationCaseStepsRequest, v1.RecordEvaluationCaseStepsResponse]
+	lookupReplayStep                           *connect.Client[v1.LookupReplayStepRequest, v1.LookupReplayStepResponse]
 	recordPlatformAnnotation                   *connect.Client[v1.RecordPlatformAnnotationRequest, v1.RecordPlatformAnnotationResponse]
 	listPlatformAnnotations                    *connect.Client[v1.ListPlatformAnnotationsRequest, v1.ListPlatformAnnotationsResponse]
 	captureScore                               *connect.Client[v1.CaptureScoreRequest, v1.CaptureScoreResponse]
@@ -2407,6 +2438,17 @@ func (c *agenticEvaluationServiceClient) ReleaseEvaluationCaseLease(ctx context.
 	return c.releaseEvaluationCaseLease.CallUnary(ctx, req)
 }
 
+// RecordEvaluationCaseSteps calls
+// o11y_one.agentic.v1.AgenticEvaluationService.RecordEvaluationCaseSteps.
+func (c *agenticEvaluationServiceClient) RecordEvaluationCaseSteps(ctx context.Context, req *connect.Request[v1.RecordEvaluationCaseStepsRequest]) (*connect.Response[v1.RecordEvaluationCaseStepsResponse], error) {
+	return c.recordEvaluationCaseSteps.CallUnary(ctx, req)
+}
+
+// LookupReplayStep calls o11y_one.agentic.v1.AgenticEvaluationService.LookupReplayStep.
+func (c *agenticEvaluationServiceClient) LookupReplayStep(ctx context.Context, req *connect.Request[v1.LookupReplayStepRequest]) (*connect.Response[v1.LookupReplayStepResponse], error) {
+	return c.lookupReplayStep.CallUnary(ctx, req)
+}
+
 // RecordPlatformAnnotation calls
 // o11y_one.agentic.v1.AgenticEvaluationService.RecordPlatformAnnotation.
 func (c *agenticEvaluationServiceClient) RecordPlatformAnnotation(ctx context.Context, req *connect.Request[v1.RecordPlatformAnnotationRequest]) (*connect.Response[v1.RecordPlatformAnnotationResponse], error) {
@@ -2832,6 +2874,17 @@ type AgenticEvaluationServiceHandler interface {
 	// out its whole TTL before anyone can retake its cases, and typed abandonment
 	// would be the only way to give work back.
 	ReleaseEvaluationCaseLease(context.Context, *connect.Request[v1.ReleaseEvaluationCaseLeaseRequest]) (*connect.Response[v1.ReleaseEvaluationCaseLeaseResponse], error)
+	// ---- O11Y-633: record and replay, on the same lease fence ----
+	// Stores a leased case's steps; acknowledged only once stored. Record, then
+	// submit: a replay answers from the recording of the execution whose
+	// submission is the case's verdict, so a case's steps are recorded, its last
+	// chunk included, before its output is submitted. A chunk for a case this
+	// lease already submitted is rejected `case_already_submitted`.
+	RecordEvaluationCaseSteps(context.Context, *connect.Request[v1.RecordEvaluationCaseStepsRequest]) (*connect.Response[v1.RecordEvaluationCaseStepsResponse], error)
+	// Answers one step of a REPLAY candidate's case with its recorded response,
+	// or records the divergence on the case. A lookup on a case that already has
+	// its verdict is refused `CASE_ALREADY_SUBMITTED`, for that case alone.
+	LookupReplayStep(context.Context, *connect.Request[v1.LookupReplayStepRequest]) (*connect.Response[v1.LookupReplayStepResponse], error)
 	// `MUTATION_ACK`. Idempotency-keyed, machine-principal attributable, and
 	// required-scope `PLATFORM_ANNOTATION_WRITE` (wave 50 lane A's fifth
 	// discriminant, minted on this lane's ask).
@@ -3650,6 +3703,18 @@ func NewAgenticEvaluationServiceHandler(svc AgenticEvaluationServiceHandler, opt
 		connect.WithSchema(agenticEvaluationServiceMethods.ByName("ReleaseEvaluationCaseLease")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agenticEvaluationServiceRecordEvaluationCaseStepsHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceRecordEvaluationCaseStepsProcedure,
+		svc.RecordEvaluationCaseSteps,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("RecordEvaluationCaseSteps")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceLookupReplayStepHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceLookupReplayStepProcedure,
+		svc.LookupReplayStep,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("LookupReplayStep")),
+		connect.WithHandlerOptions(opts...),
+	)
 	agenticEvaluationServiceRecordPlatformAnnotationHandler := connect.NewUnaryHandler(
 		AgenticEvaluationServiceRecordPlatformAnnotationProcedure,
 		svc.RecordPlatformAnnotation,
@@ -3982,6 +4047,10 @@ func NewAgenticEvaluationServiceHandler(svc AgenticEvaluationServiceHandler, opt
 			agenticEvaluationServiceSubmitEvaluationCaseOutputsHandler.ServeHTTP(w, r)
 		case AgenticEvaluationServiceReleaseEvaluationCaseLeaseProcedure:
 			agenticEvaluationServiceReleaseEvaluationCaseLeaseHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceRecordEvaluationCaseStepsProcedure:
+			agenticEvaluationServiceRecordEvaluationCaseStepsHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceLookupReplayStepProcedure:
+			agenticEvaluationServiceLookupReplayStepHandler.ServeHTTP(w, r)
 		case AgenticEvaluationServiceRecordPlatformAnnotationProcedure:
 			agenticEvaluationServiceRecordPlatformAnnotationHandler.ServeHTTP(w, r)
 		case AgenticEvaluationServiceListPlatformAnnotationsProcedure:
@@ -4449,6 +4518,14 @@ func (UnimplementedAgenticEvaluationServiceHandler) SubmitEvaluationCaseOutputs(
 
 func (UnimplementedAgenticEvaluationServiceHandler) ReleaseEvaluationCaseLease(context.Context, *connect.Request[v1.ReleaseEvaluationCaseLeaseRequest]) (*connect.Response[v1.ReleaseEvaluationCaseLeaseResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.ReleaseEvaluationCaseLease is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) RecordEvaluationCaseSteps(context.Context, *connect.Request[v1.RecordEvaluationCaseStepsRequest]) (*connect.Response[v1.RecordEvaluationCaseStepsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.RecordEvaluationCaseSteps is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) LookupReplayStep(context.Context, *connect.Request[v1.LookupReplayStepRequest]) (*connect.Response[v1.LookupReplayStepResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.LookupReplayStep is not implemented"))
 }
 
 func (UnimplementedAgenticEvaluationServiceHandler) RecordPlatformAnnotation(context.Context, *connect.Request[v1.RecordPlatformAnnotationRequest]) (*connect.Response[v1.RecordPlatformAnnotationResponse], error) {

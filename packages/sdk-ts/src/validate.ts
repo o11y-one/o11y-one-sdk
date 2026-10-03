@@ -93,24 +93,18 @@ export function rejectUnspecified(field: string, values: readonly number[]): voi
   }
 }
 
+// Present in a browser, a Worker and Node alike, but in neither the ES lib nor
+// one this module should pull in (the DOM lib, `@types/node`), so declared here.
+declare const TextEncoder: new () => { encode(input: string): Uint8Array };
+const utf8 = new TextEncoder();
+
 /**
- * UTF-8 byte length, for the size guards a caller can opt into. Computed
- * without `TextEncoder` so this module pulls in neither the DOM lib nor
- * `@types/node` — it runs identically in a browser, a Worker and Node.
+ * UTF-8 byte length, for the size guards a caller can opt into. Native: the
+ * record tape sizes every call with it, and a JS code-point loop cost about
+ * 1.8 ms per MiB, most of the 2 ms per-step budget.
  */
 export function byteLength(value: string): number {
-  let bytes = 0;
-  for (let i = 0; i < value.length; i++) {
-    const code = value.codePointAt(i);
-    if (code === undefined) {
-      continue;
-    }
-    if (code > 0xffff) {
-      i++; // a surrogate pair spans two UTF-16 code units
-    }
-    bytes += code <= 0x7f ? 1 : code <= 0x7ff ? 2 : code <= 0xffff ? 3 : 4;
-  }
-  return bytes;
+  return utf8.encode(value).length;
 }
 
 /**

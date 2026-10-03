@@ -5,12 +5,13 @@
 #
 # source_repo:   o11y-api  (private; local checkouts are commonly ../o11y-api)
 # source_path:   proto/o11y_one/
-# source_branch: rework/ingest-and-storage, the integration branch production
-#                runs. o11y-api main lags it; pinning main would generate
-#                clients for RPCs production has already deleted.
+# source_branch: feat/loop-p1-foundations, the Loop trunk, which carries the
+#                record and replay RPCs (RecordEvaluationCaseSteps,
+#                LookupReplayStep). Do not release from this pin until that
+#                trunk (o11y-api PR #527) reaches main.
 #
 # Regenerate with:
 #   ./tools/sync-proto.sh ../o11y-api
 # which verifies the checkout is at the commit below, re-vendors proto/o11y_one/,
 # and re-runs `buf generate`. Generated code is committed.
-b959e977ba2289ff392fc9c8b44331b65117650c
+4b2d699187d419ce20ef7bdce48c9bb182c6a8bf

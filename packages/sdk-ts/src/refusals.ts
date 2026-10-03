@@ -80,7 +80,9 @@ export type LeaseRefusalReason =
   | "LEASE_EXPIRED"
   | "RENEWAL_BUDGET_EXHAUSTED"
   | "BOUNDS_EXCEEDED"
-  | "SCOPE_MISSING";
+  | "SCOPE_MISSING"
+  | "RECORDING_UNAVAILABLE"
+  | "CASE_ALREADY_SUBMITTED";
 
 export interface LeaseRefusal {
   readonly type: "lease-refusal";
