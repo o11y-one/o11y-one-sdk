@@ -40,6 +40,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 
+from connectrpc.code import Code
 from connectrpc.errors import ConnectError
 from connectrpc.request import Headers
 from o11y_one.agentic.v1.evaluation_connect import (
@@ -49,6 +50,7 @@ from o11y_one.agentic.v1.evaluation_connect import (
 from o11y_one.agentic.v1.evaluation_pb2 import (
     ApproveDatasetCaseDraftRequest,
     ApproveDatasetCaseDraftResponse,
+    CapabilityStateV1,
     CaptureEvaluationCaseRequest,
     CaptureEvaluationCaseResponse,
     CreateEvaluationRunRequest,
@@ -67,16 +69,23 @@ from o11y_one.agentic.v1.evaluation_pb2 import (
     EvaluationLaunchRejectionKindV1,
     EvaluationLaunchRejectionV1,
     ExternalCaseFailureV1,
+    ExternalCaseLeaseV1,
     ExternalCaseOutputV1,
     ExternalCaseUsageV1,
     ExternalLeaseRefusalKindV1,
+    ExternalLeaseRefusalV1,
+    GetAgenticEvaluationCapabilitiesRequest,
+    GetAgenticEvaluationCapabilitiesResponse,
     GetCallerPrincipalRequest,
     GetCallerPrincipalResponse,
+    LeasedEvaluationCaseV1,
     LeaseEvaluationCasesRequest,
     LeaseEvaluationCasesResponse,
     ListMachinePrincipalsRequest,
     ListMachinePrincipalsResponse,
     ListPlatformAnnotationsRequest,
+    LookupReplayStepRequest,
+    LookupReplayStepResponse,
     MachinePrincipalScopeV1,
     MergeDatasetCaseDraftRequest,
     MergeDatasetCaseDraftResponse,
@@ -91,6 +100,11 @@ from o11y_one.agentic.v1.evaluation_pb2 import (
     PreviewPublishDatasetChangesetResponse,
     PublishDatasetCaseDraftsRequest,
     PublishDatasetCaseDraftsResponse,
+    RecordedCallKindV1,
+    RecordedCallV1,
+    RecordedTrajectoryChunkV1,
+    RecordEvaluationCaseStepsRequest,
+    RecordEvaluationCaseStepsResponse,
     RecordPlatformAnnotationRequest,
     RecordPlatformAnnotationResponse,
     RejectDatasetCaseDraftRequest,
@@ -113,6 +127,12 @@ from o11y_one.common.v1.common_pb2 import PageRequestV1
 from .errors import MACHINE_SCOPES as _MACHINE_SCOPE_STRINGS
 from .recovery import bare_enum_name, find_error_detail
 from .results import Refusal
+from .tape import (
+    LeaseTape,
+    LeaseTapeSync,
+    RecordingUnavailableError,
+    RecordReplayLimits,
+)
 from .validation import (
     ValidationError,
     require_exactly_one,
@@ -430,6 +450,100 @@ def _refusal_from_lease(refusal, *, state_field: str) -> Refusal:
     )
 
 
+def _refusal_from_record_error(err: ConnectError) -> Refusal | None:
+    """A lease refusal riding in the error details, or ``None`` to re-raise.
+
+    Not on UNAVAILABLE: that is the server's payload store failing, which is
+    transient, so it stays a ``ConnectError`` that ``classify()`` calls retryable.
+    """
+    if err.code == Code.UNAVAILABLE:
+        return None
+    detail = find_error_detail(err, ExternalLeaseRefusalV1)
+    return None if detail is None else _refusal_from_lease(detail, state_field="lease")
+
+
+def _record_replay_limits(resp: GetAgenticEvaluationCapabilitiesResponse) -> RecordReplayLimits:
+    posture = next(
+        (p for p in resp.capabilities.postures if p.capability_key == "sdk_record_replay"), None
+    )
+    if posture is None or posture.state != CapabilityStateV1.CAPABILITY_STATE_V1_AVAILABLE:
+        raise RecordingUnavailableError()
+    limits = {limit.limit_key: limit.limit_value for limit in posture.limits}
+    try:
+        return RecordReplayLimits(
+            max_record_request_bytes=limits["max_record_request_bytes"],
+            max_call_bytes=limits["max_call_bytes"],
+            max_chunks_per_request=limits["max_chunks_per_request"],
+            max_calls_per_request=limits["max_calls_per_request"],
+            max_tool_name_bytes=limits["max_tool_name_bytes"],
+        )
+    except KeyError as exc:
+        raise RuntimeError(f"sdk_record_replay publishes no {exc.args[0]}") from None
+
+
+def _build_record_steps_request(
+    *,
+    evaluation_run_id: str,
+    lease_id: str,
+    lease_token: str,
+    chunks: Sequence[RecordedTrajectoryChunkV1],
+) -> RecordEvaluationCaseStepsRequest:
+    require_non_empty(evaluation_run_id, field="evaluation_run_id")
+    require_non_empty(lease_id, field="lease_id")
+    require_non_empty(lease_token, field="lease_token")
+    return RecordEvaluationCaseStepsRequest(
+        evaluation_run_id=evaluation_run_id,
+        lease_id=lease_id,
+        lease_token=lease_token,
+        chunks=chunks,
+    )
+
+
+def _decode_record_steps_response(
+    resp: RecordEvaluationCaseStepsResponse,
+) -> RecordEvaluationCaseStepsResponse | Refusal:
+    if resp.HasField("refusal"):
+        return _refusal_from_lease(resp.refusal, state_field="lease")
+    return resp
+
+
+def _build_lookup_request(
+    *,
+    evaluation_run_id: str,
+    lease_id: str,
+    lease_token: str,
+    case: LeasedEvaluationCaseV1,
+    step: int,
+    kind: RecordedCallKindV1,
+    tool_name: str,
+    request_json: str,
+) -> LookupReplayStepRequest:
+    require_non_empty(evaluation_run_id, field="evaluation_run_id")
+    require_non_empty(lease_id, field="lease_id")
+    require_non_empty(lease_token, field="lease_token")
+    require_not_unspecified(kind, field="kind")
+    return LookupReplayStepRequest(
+        evaluation_run_id=evaluation_run_id,
+        lease_id=lease_id,
+        lease_token=lease_token,
+        cohort_key=case.cohort_key,
+        candidate_key=case.candidate_key,
+        case_revision_id=case.case_revision_id,
+        trial=case.trial,
+        attempt_generation=case.attempt_generation,
+        step=step,
+        observed=RecordedCallV1(kind=kind, tool_name=tool_name, request_json=request_json),
+    )
+
+
+def _decode_lookup_response(
+    resp: LookupReplayStepResponse,
+) -> LookupReplayStepResponse | Refusal:
+    if resp.HasField("refusal"):
+        return _refusal_from_lease(resp.refusal, state_field="lease")
+    return resp
+
+
 def _refusal_from_launch_rejection(detail: EvaluationLaunchRejectionV1) -> Refusal:
     return Refusal(
         reason_code=bare_enum_name(EvaluationLaunchRejectionKindV1, detail.kind),
@@ -651,10 +765,11 @@ class AgenticClient:
     Construct via ``O11yClient.service(AgenticEvaluationServiceClient)``.
     """
 
-    __slots__ = ("_client",)
+    __slots__ = ("_client", "_limits")
 
     def __init__(self, client: AgenticEvaluationServiceClient) -> None:
         self._client = client
+        self._limits: RecordReplayLimits | None = None
 
     async def whoami(
         self, *, headers: Headers | None = None, timeout_ms: int | None = None
@@ -896,6 +1011,99 @@ class AgenticClient:
             req, headers=headers, timeout_ms=timeout_ms
         )
         return _decode_release_response(resp)
+
+    async def record_replay_limits(self) -> RecordReplayLimits:
+        """The bounds recording is batched to, fetched once per client.
+
+        Raises :class:`~o11y_one.sdk.tape.RecordingUnavailableError` when the
+        server publishes no AVAILABLE ``sdk_record_replay`` posture.
+        """
+        if self._limits is None:
+            resp = await self._client.get_agentic_evaluation_capabilities(
+                GetAgenticEvaluationCapabilitiesRequest()
+            )
+            self._limits = _record_replay_limits(resp)
+        return self._limits
+
+    async def record_lease(
+        self, *, evaluation_run_id: str, lease: ExternalCaseLeaseV1
+    ) -> LeaseTape:
+        """A tape that runs each call live and records it under the lease (:mod:`.tape`)."""
+        require_non_empty(evaluation_run_id, field="evaluation_run_id")
+        limits = await self.record_replay_limits()
+        return LeaseTape(self, False, evaluation_run_id, lease.lease_id, lease.lease_token, limits)
+
+    async def replay_lease(
+        self, *, evaluation_run_id: str, lease: ExternalCaseLeaseV1
+    ) -> LeaseTape:
+        """A tape that answers each call from a REPLAY candidate's source recording."""
+        require_non_empty(evaluation_run_id, field="evaluation_run_id")
+        limits = await self.record_replay_limits()
+        return LeaseTape(self, True, evaluation_run_id, lease.lease_id, lease.lease_token, limits)
+
+    async def record_case_steps(
+        self,
+        *,
+        evaluation_run_id: str,
+        lease_id: str,
+        lease_token: str,
+        chunks: Sequence[RecordedTrajectoryChunkV1],
+        headers: Headers | None = None,
+        timeout_ms: int | None = None,
+    ) -> RecordEvaluationCaseStepsResponse | Refusal:
+        """Store leased cases' steps, one chunk per case; ``acks`` answer the chunks in order."""
+        req = _build_record_steps_request(
+            evaluation_run_id=evaluation_run_id,
+            lease_id=lease_id,
+            lease_token=lease_token,
+            chunks=chunks,
+        )
+        try:
+            resp = await self._client.record_evaluation_case_steps(
+                req, headers=headers, timeout_ms=timeout_ms
+            )
+        except ConnectError as err:
+            refusal = _refusal_from_record_error(err)
+            if refusal is None:
+                raise
+            return refusal
+        return _decode_record_steps_response(resp)
+
+    async def lookup_replay_step(
+        self,
+        *,
+        evaluation_run_id: str,
+        lease_id: str,
+        lease_token: str,
+        case: LeasedEvaluationCaseV1,
+        step: int,
+        kind: RecordedCallKindV1,
+        tool_name: str,
+        request_json: str,
+        headers: Headers | None = None,
+        timeout_ms: int | None = None,
+    ) -> LookupReplayStepResponse | Refusal:
+        """Answer one step of a REPLAY candidate's case from its source recording."""
+        req = _build_lookup_request(
+            evaluation_run_id=evaluation_run_id,
+            lease_id=lease_id,
+            lease_token=lease_token,
+            case=case,
+            step=step,
+            kind=kind,
+            tool_name=tool_name,
+            request_json=request_json,
+        )
+        try:
+            resp = await self._client.lookup_replay_step(
+                req, headers=headers, timeout_ms=timeout_ms
+            )
+        except ConnectError as err:
+            refusal = _refusal_from_record_error(err)
+            if refusal is None:
+                raise
+            return refusal
+        return _decode_lookup_response(resp)
 
     async def submit_recorded_outputs(
         self,
@@ -1198,10 +1406,11 @@ class AgenticClientSync:
     Construct via ``O11yClient.service_sync(AgenticEvaluationServiceClientSync)``.
     """
 
-    __slots__ = ("_client",)
+    __slots__ = ("_client", "_limits")
 
     def __init__(self, client: AgenticEvaluationServiceClientSync) -> None:
         self._client = client
+        self._limits: RecordReplayLimits | None = None
 
     def whoami(
         self, *, headers: Headers | None = None, timeout_ms: int | None = None
@@ -1388,6 +1597,88 @@ class AgenticClientSync:
             req, headers=headers, timeout_ms=timeout_ms
         )
         return _decode_release_response(resp)
+
+    def record_replay_limits(self) -> RecordReplayLimits:
+        if self._limits is None:
+            resp = self._client.get_agentic_evaluation_capabilities(
+                GetAgenticEvaluationCapabilitiesRequest()
+            )
+            self._limits = _record_replay_limits(resp)
+        return self._limits
+
+    def record_lease(self, *, evaluation_run_id: str, lease: ExternalCaseLeaseV1) -> LeaseTapeSync:
+        require_non_empty(evaluation_run_id, field="evaluation_run_id")
+        limits = self.record_replay_limits()
+        return LeaseTapeSync(
+            self, False, evaluation_run_id, lease.lease_id, lease.lease_token, limits
+        )
+
+    def replay_lease(self, *, evaluation_run_id: str, lease: ExternalCaseLeaseV1) -> LeaseTapeSync:
+        require_non_empty(evaluation_run_id, field="evaluation_run_id")
+        limits = self.record_replay_limits()
+        return LeaseTapeSync(
+            self, True, evaluation_run_id, lease.lease_id, lease.lease_token, limits
+        )
+
+    def record_case_steps(
+        self,
+        *,
+        evaluation_run_id: str,
+        lease_id: str,
+        lease_token: str,
+        chunks: Sequence[RecordedTrajectoryChunkV1],
+        headers: Headers | None = None,
+        timeout_ms: int | None = None,
+    ) -> RecordEvaluationCaseStepsResponse | Refusal:
+        req = _build_record_steps_request(
+            evaluation_run_id=evaluation_run_id,
+            lease_id=lease_id,
+            lease_token=lease_token,
+            chunks=chunks,
+        )
+        try:
+            resp = self._client.record_evaluation_case_steps(
+                req, headers=headers, timeout_ms=timeout_ms
+            )
+        except ConnectError as err:
+            refusal = _refusal_from_record_error(err)
+            if refusal is None:
+                raise
+            return refusal
+        return _decode_record_steps_response(resp)
+
+    def lookup_replay_step(
+        self,
+        *,
+        evaluation_run_id: str,
+        lease_id: str,
+        lease_token: str,
+        case: LeasedEvaluationCaseV1,
+        step: int,
+        kind: RecordedCallKindV1,
+        tool_name: str,
+        request_json: str,
+        headers: Headers | None = None,
+        timeout_ms: int | None = None,
+    ) -> LookupReplayStepResponse | Refusal:
+        req = _build_lookup_request(
+            evaluation_run_id=evaluation_run_id,
+            lease_id=lease_id,
+            lease_token=lease_token,
+            case=case,
+            step=step,
+            kind=kind,
+            tool_name=tool_name,
+            request_json=request_json,
+        )
+        try:
+            resp = self._client.lookup_replay_step(req, headers=headers, timeout_ms=timeout_ms)
+        except ConnectError as err:
+            refusal = _refusal_from_record_error(err)
+            if refusal is None:
+                raise
+            return refusal
+        return _decode_lookup_response(resp)
 
     def submit_recorded_outputs(
         self,
