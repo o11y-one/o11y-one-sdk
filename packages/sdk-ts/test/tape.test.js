@@ -162,6 +162,8 @@ test("a recording_conflict keeps the chunk for the next flush; another rejection
   assert.ok(e instanceof CaseRecordingRejectedError);
   assert.equal(e.code, "case_already_submitted");
   assert.equal(e.caseRevisionId, "r1");
+  await tape.flush();
+  assert.equal(server.requests.length, 2, "a rejected case is never resent");
 });
 
 test("RECORDING_UNAVAILABLE on FAILED_PRECONDITION is a non-retryable typed error naming no configuration", async () => {

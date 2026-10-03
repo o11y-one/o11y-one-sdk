@@ -33,11 +33,11 @@ func TestRunRecordReplayFlagMisuseIsAUsageError(t *testing.T) {
 		name string
 		args []string
 	}{
-		{"record and replay together", []string{"run", "--definition", "d1", "--candidate", "ext", "--record", "--replay"}},
-		{"record without candidate", []string{"run", "--definition", "d1", "--record"}},
-		{"replay without candidate", []string{"run", "--definition", "d1", "--replay"}},
-		{"candidate without a mode", []string{"run", "--definition", "d1", "--candidate", "ext"}},
-		{"replay with a caller's preview token", []string{"run", "--definition", "d1", "--preview-token", "pv:d1:x", "--candidate", "rep", "--replay"}},
+		{"record and replay together", []string{"run", "--base-url", "http://127.0.0.1:1", "--definition", "d1", "--candidate", "ext", "--record", "--replay"}},
+		{"record without candidate", []string{"run", "--base-url", "http://127.0.0.1:1", "--definition", "d1", "--record"}},
+		{"replay without candidate", []string{"run", "--base-url", "http://127.0.0.1:1", "--definition", "d1", "--replay"}},
+		{"candidate without a mode", []string{"run", "--base-url", "http://127.0.0.1:1", "--definition", "d1", "--candidate", "ext"}},
+		{"replay with a caller's preview token", []string{"run", "--base-url", "http://127.0.0.1:1", "--definition", "d1", "--preview-token", "pv:d1:x", "--candidate", "rep", "--replay"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			if got := run(tc.args); got != 64 {
