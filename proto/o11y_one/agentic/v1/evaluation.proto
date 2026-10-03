@@ -135,6 +135,8 @@ enum ProviderNameV1 {
   // accounting table and every match this track made exhaustive on purpose.
   // What makes it different travels as a fact instead: ProviderKindV1.
   PROVIDER_NAME_V1_OPENROUTER = 7;
+  // O11Y-538: a lab that speaks the OpenAI Responses wire at its own host.
+  PROVIDER_NAME_V1_META = 8;
 }
 
 enum ProviderToolChoiceV1 {
@@ -202,6 +204,12 @@ enum OpenAiTextModelV1 {
   OPEN_AI_TEXT_MODEL_V1_O3_PRO = 15;
   OPEN_AI_TEXT_MODEL_V1_O3 = 16;
   OPEN_AI_TEXT_MODEL_V1_GPT_4 = 17;
+  OPEN_AI_TEXT_MODEL_V1_GPT_6_ASTRA = 18;
+  OPEN_AI_TEXT_MODEL_V1_GPT_6_SOL = 19;
+  OPEN_AI_TEXT_MODEL_V1_GPT_6_LUNA = 20;
+  OPEN_AI_TEXT_MODEL_V1_GPT_5_6_SOL = 21;
+  OPEN_AI_TEXT_MODEL_V1_GPT_5_6_TERRA = 22;
+  OPEN_AI_TEXT_MODEL_V1_GPT_5_6_LUNA = 23;
 }
 
 enum AnthropicTextModelV1 {
@@ -213,6 +221,10 @@ enum AnthropicTextModelV1 {
   ANTHROPIC_TEXT_MODEL_V1_SONNET_4_6 = 5;
   ANTHROPIC_TEXT_MODEL_V1_SONNET_4_5_20250929 = 6;
   ANTHROPIC_TEXT_MODEL_V1_HAIKU_4_5_20251001 = 7;
+  ANTHROPIC_TEXT_MODEL_V1_OPUS_5_5 = 8;
+  ANTHROPIC_TEXT_MODEL_V1_OPUS_5 = 9;
+  ANTHROPIC_TEXT_MODEL_V1_SONNET_5 = 10;
+  ANTHROPIC_TEXT_MODEL_V1_FABLE_5_1 = 11;
 }
 
 enum GoogleTextModelV1 {
@@ -220,6 +232,9 @@ enum GoogleTextModelV1 {
   GOOGLE_TEXT_MODEL_V1_GEMINI_3_PRO = 1;
   GOOGLE_TEXT_MODEL_V1_GEMINI_2_5_PRO = 2;
   GOOGLE_TEXT_MODEL_V1_GEMINI_2_5_FLASH = 3;
+  // Google publishes no GA `gemini-3.1-pro`; the preview id is the one it prices.
+  GOOGLE_TEXT_MODEL_V1_GEMINI_3_1_PRO_PREVIEW = 4;
+  GOOGLE_TEXT_MODEL_V1_GEMINI_3_8_FLASH = 5;
 }
 
 enum XaiTextModelV1 {
@@ -227,18 +242,30 @@ enum XaiTextModelV1 {
   XAI_TEXT_MODEL_V1_GROK_4 = 1;
   XAI_TEXT_MODEL_V1_GROK_4_FAST = 2;
   XAI_TEXT_MODEL_V1_GROK_3 = 3;
+  XAI_TEXT_MODEL_V1_GROK_4_7 = 4;
+  XAI_TEXT_MODEL_V1_GROK_4_6 = 5;
+  XAI_TEXT_MODEL_V1_GROK_4_5 = 6;
+  XAI_TEXT_MODEL_V1_GROK_4_3 = 7;
 }
 
 enum MoonshotTextModelV1 {
   MOONSHOT_TEXT_MODEL_V1_UNSPECIFIED = 0;
   MOONSHOT_TEXT_MODEL_V1_KIMI_K2_THINKING = 1;
   MOONSHOT_TEXT_MODEL_V1_KIMI_K2_0905_PREVIEW = 2;
+  MOONSHOT_TEXT_MODEL_V1_KIMI_K3 = 3;
+  MOONSHOT_TEXT_MODEL_V1_KIMI_K2_6 = 4;
+  MOONSHOT_TEXT_MODEL_V1_KIMI_K2_7_CODE = 5;
+  MOONSHOT_TEXT_MODEL_V1_KIMI_K2_7_CODE_HIGHSPEED = 6;
 }
 
 enum DeepSeekTextModelV1 {
   DEEP_SEEK_TEXT_MODEL_V1_UNSPECIFIED = 0;
   DEEP_SEEK_TEXT_MODEL_V1_DEEPSEEK_REASONER = 1;
   DEEP_SEEK_TEXT_MODEL_V1_DEEPSEEK_CHAT = 2;
+  // DeepSeek-V4-Pro and DeepSeek-V4.1-Flash. The `deepseek-v4-flash` name is
+  // retired and served by V4.1-Flash, so it has no value here.
+  DEEP_SEEK_TEXT_MODEL_V1_DEEPSEEK_V4_PRO = 3;
+  DEEP_SEEK_TEXT_MODEL_V1_DEEPSEEK_FLASH = 4;
 }
 
 // E1-1b: the three OpenRouter slugs this build can address, fetched from
@@ -263,6 +290,13 @@ enum OpenRouterTextModelV1 {
   OPEN_ROUTER_TEXT_MODEL_V1_MOONSHOTAI_KIMI_K2_THINKING = 3;
 }
 
+// O11Y-538. The contributor tier trains on API inputs; the standard tier does not.
+enum MetaTextModelV1 {
+  META_TEXT_MODEL_V1_UNSPECIFIED = 0;
+  META_TEXT_MODEL_V1_MUSE_SPARK_1_3 = 1;
+  META_TEXT_MODEL_V1_MUSE_SPARK_1_3_CONTRIBUTOR = 2;
+}
+
 // Six sibling enums rather than one governed model-ref string list, decided in
 // increments/2026-08-18-e1-1-provider-matrix-kinds.md sec 0.1: the enum is what
 // makes "the builder offers a model the rate registry cannot price" a failing
@@ -277,6 +311,7 @@ message ProviderModelRefV1 {
     MoonshotTextModelV1 moonshot = 5;
     DeepSeekTextModelV1 deepseek = 6;
     OpenRouterTextModelV1 openrouter = 7;
+    MetaTextModelV1 meta = 8;
   }
 }
 
@@ -310,6 +345,10 @@ message ProviderRequestSettingsV1 {
   optional string anthropic_metadata_user_id = 26;
   map<string, string> provider_metadata = 27;
   optional string tool_choice_name = 28;
+  // O11Y-592. Sent only by the adapters that take one (Gemini, xAI,
+  // OpenRouter), and best effort even there; absent means none was asked for.
+  // Values above 2^31-1 are refused, because Gemini's seed is an int32.
+  optional uint32 seed = 29;
 }
 
 // ===========================================================================
@@ -627,6 +666,7 @@ enum EvaluationCandidateKindV1 {
   EVALUATION_CANDIDATE_KIND_V1_AGENT_RELEASE_REVISION = 5;
   EVALUATION_CANDIDATE_KIND_V1_EXTERNALLY_EXECUTED = 6;
   EVALUATION_CANDIDATE_KIND_V1_CONVERSATION_SIMULATION = 7;
+  EVALUATION_CANDIDATE_KIND_V1_REPLAY = 8;
 }
 
 message RecordedOutputCandidateV1 {
@@ -692,6 +732,18 @@ message ExternallyExecutedCandidateV1 {
   ExternalExecutionLeasePolicyV1 lease_policy = 2;
   uint32 submission_deadline_seconds = 3;
   optional string expected_sdk_contract_version = 4;
+  // JSON objects, as the runtime hands them to its model. Frozen at launch as
+  // the harness's `tool_schema_digest` (O11Y-633).
+  repeated string tool_definitions_json = 5;
+}
+
+// O11Y-633. An externally executed candidate whose runtime answers each model
+// and tool call from another run's recording, through `LookupReplayStep`.
+message ReplayCandidateV1 {
+  ExternallyExecutedCandidateV1 execution = 1;
+  // A run in the same organisation that recorded `source_candidate_key`.
+  string source_evaluation_run_id = 2;
+  string source_candidate_key = 3;
 }
 
 enum ConversationTerminationKindV1 {
@@ -762,6 +814,7 @@ message EvaluationCandidateV1 {
     AgentReleaseRevisionCandidateV1 agent_release_revision = 8;
     ExternallyExecutedCandidateV1 externally_executed = 9;
     ConversationSimulationCandidateV1 conversation_simulation = 10;
+    ReplayCandidateV1 replay = 19;
   }
   // Credential by reference. Material never appears in this contract.
   optional string credential_ref = 11;
@@ -1409,6 +1462,19 @@ enum RecoveryActionV1 {
   RECOVERY_ACTION_V1_CONTACT_SUPPORT = 5;
 }
 
+// O11Y-592. Whether a failure says anything about the candidate's task.
+enum EvaluationFailureClassV1 {
+  EVALUATION_FAILURE_CLASS_V1_UNSPECIFIED = 0;
+  // Our platform failed (a lease, a budget, a credential, our egress policy,
+  // the scoring machinery), or a model provider was unavailable. Never a
+  // failed trial; pass@k and pass^k leave it out.
+  EVALUATION_FAILURE_CLASS_V1_INFRASTRUCTURE = 1;
+  // The system under test failed: the candidate model's own output, the
+  // customer's endpoint or external agent, or anything not classified as
+  // infrastructure. A failed trial.
+  EVALUATION_FAILURE_CLASS_V1_TASK = 2;
+}
+
 message EvaluationFailureV1 {
   EvaluationFailureStageV1 stage = 1;
   string code = 2;
@@ -1418,6 +1484,8 @@ message EvaluationFailureV1 {
   optional string correlation_id = 5;
   optional RecoveryActionV1 recovery = 6;
   google.protobuf.Timestamp last_attempt_at = 7;
+  // O11Y-592. UNSPECIFIED from a server that predates the taxonomy.
+  EvaluationFailureClassV1 failure_class = 8;
 }
 
 // ===========================================================================
@@ -1438,6 +1506,17 @@ message EvaluationCohortSnapshotV1 {
   optional string dataset_schema_revision_id = 5;
 }
 
+// O11Y-592. Whether a scorer gives the same verdict on the same input twice.
+enum EvaluationDeterminismClassV1 {
+  EVALUATION_DETERMINISM_CLASS_V1_UNSPECIFIED = 0;
+  // Bounded code over the input: every built-in comparator.
+  EVALUATION_DETERMINISM_CLASS_V1_DETERMINISTIC = 1;
+  // A judge whose provider was sent a seed. Best effort, never a guarantee.
+  EVALUATION_DETERMINISM_CLASS_V1_SEEDED_BEST_EFFORT = 2;
+  // A judge without a seed, or a person.
+  EVALUATION_DETERMINISM_CLASS_V1_NONDETERMINISTIC = 3;
+}
+
 // Pins the scorer configuration a run was launched against. `version_discriminator`
 // is the configuration row's own last-changed instant rather than a version id,
 // because scorer version rows do not exist yet; the two slices that need them
@@ -1452,6 +1531,8 @@ message EvaluationScorerVersionSnapshotV1 {
   MetricAvailabilityV1 required_context_availability = 7;
   optional double weight = 8;
   optional bool is_blocking_gate = 9;
+  // O11Y-592. UNSPECIFIED on a manifest frozen before the class existed.
+  EvaluationDeterminismClassV1 determinism_class = 10;
 }
 
 // Reference only. Credential material appears in no message on this surface
@@ -1878,6 +1959,39 @@ message EvaluationRunManifestV1 {
   // plane rather than a dataset. Absent on every dataset-sourced run, which is
   // every run that existed before this field.
   optional LiveTraceCaseSourceSnapshotV1 live_trace_source = 22;
+  // O11Y-592. What reproducing this run takes, beyond what `candidates`
+  // already freezes. Absent on a manifest frozen before it existed.
+  optional EvaluationHarnessManifestV1 harness = 23;
+}
+
+// O11Y-592. One candidate's reproduction facts, frozen at launch. Digests and
+// identifiers only, never a prompt.
+message EvaluationCandidateHarnessV1 {
+  string candidate_key = 1;
+  // UNSPECIFIED for a candidate that calls no model.
+  ProviderNameV1 provider = 2;
+  // The model id the request names, which is a dated snapshot wherever the
+  // provider publishes one. What the provider actually served, and its
+  // fingerprint, are recorded per run apart from this, and the manifest
+  // section's provider drift compares them (O11Y-634).
+  string model_snapshot_id = 3;
+  // True only when the candidate set a seed AND its adapter puts one on the
+  // wire. Sampling is still best effort; no provider guarantees it.
+  bool seed_sent = 4;
+  // sha256 hex over the template reference, its version and the request
+  // mapping that build the prompt. Absent for a candidate that builds none.
+  optional string prompt_bundle_digest = 5;
+  // sha256 hex over the canonical JSON of the candidate's tool definitions,
+  // sorted, so a reordered list is the same catalog. Absent for a candidate
+  // that declares none (O11Y-633).
+  optional string tool_schema_digest = 6;
+}
+
+message EvaluationHarnessManifestV1 {
+  repeated EvaluationCandidateHarnessV1 candidates = 1;
+  // Held for P2's host class and placement. Never used; lifted when they ship.
+  reserved 2, 3;
+  reserved "host_class", "placement";
 }
 
 // Everything a launch freezes about ONE scorer's evaluator, so a template or
@@ -2697,6 +2811,12 @@ message ProviderUsageRecordV1 {
   // `E1-5` slice 2 owns the modifier that reads it. Absent means the provider
   // sent none, never "standard".
   optional string echoed_service_tier = 10;
+  // O11Y-538. Set when the provider's terms let it train on this call's inputs
+  // (DeepSeek; Meta's contributor tier). Absent for every other attempt.
+  optional bool provider_trains_on_inputs = 11;
+  // Set beside the above when the tenant recorded its acknowledgement. A
+  // DeepSeek call is refused before it is made without one.
+  optional bool provider_terms_acknowledged = 12;
 }
 
 // One scalar leaf of a provider's `usage` object, in the provider's own
@@ -2827,6 +2947,9 @@ message ExecutionMetricsV1 {
   optional string execution_trace_id = 8;
   optional EvaluationFailureV1 failure = 9;
   InstrumentationCompletenessV1 completeness = 10;
+  // The output-token budget the call was sent. Set on EVALUATOR_EXECUTION
+  // only; absent where this build did not record it.
+  optional uint32 max_output_tokens = 11;
 }
 
 // ===========================================================================
@@ -3270,6 +3393,28 @@ message StatisticalResultV1 {
 // Candidate comparison (screen contract §6.7; canonical-type contract §4.10)
 // ===========================================================================
 
+// O11Y-592. pass@k and pass^k for one challenger under one scorer, over the
+// same trials. An infrastructure failure is not a trial; a task failure is a
+// failed one. Each is the unbiased per-case estimate over n usable trials,
+// C(c,k)/C(n,k) for pass^k and 1 - C(n-c,k)/C(n,k) for pass@k, averaged over
+// the cases with n >= k.
+message EvaluationConsistencyV1 {
+  // The rollout floor, so runs with different trial counts estimate the same
+  // quantity.
+  uint32 k = 1;
+  // The chance at least one of k trials passes.
+  optional double pass_at_k = 2;
+  // The chance all k trials pass.
+  optional double pass_hat_k = 3;
+  // Cases with at least k usable trials: the denominator of both.
+  uint32 case_count = 4;
+  // Cases left out because fewer than k of their trials were usable. Absent
+  // from the estimate, never scored zero.
+  uint32 cases_below_k = 5;
+  // NOT_SUPPORTED with `fewer_usable_trials_than_k` when no case reached k.
+  MetricAvailabilityV1 availability = 6;
+}
+
 message CandidatePairComparisonV1 {
   string candidate_key = 1;
   string score_config_id = 2;
@@ -3317,6 +3462,9 @@ message CandidatePairComparisonV1 {
   // or `mde_undefined_for_the_declared_alpha_and_power` — none of which
   // resolves by waiting on this run's evidence.
   MetricAvailabilityV1 minimum_detectable_effect_availability = 15;
+  // O11Y-592. The challenger's consistency under this scorer. Absent from a
+  // server that predates it.
+  EvaluationConsistencyV1 consistency = 16;
 }
 
 message EvaluationCandidateComparisonV1 {
@@ -3525,6 +3673,10 @@ message CandidateTradeoffV1 {
   // independent — the anti-conservatism non-negotiable 45 names, one level up.
   // Absent when no pair met the floors.
   optional double quality_delta_standard_error = 9;
+  // O11Y-592. The consistency of this candidate's least consistent scorer, by
+  // pass^k. Absent when no scorer produced an estimate, or from a server that
+  // predates it.
+  optional EvaluationConsistencyV1 consistency = 10;
 }
 
 // How much of the evidence the decision is standing on.
@@ -4648,6 +4800,33 @@ message EvaluationRunManifestSectionV1 {
   // say so (increment 3A).
   EvaluationFreshnessV1 freshness = 15;
   MetricAvailabilityV1 availability = 16;
+  // O11Y-592 and O11Y-634. What changed per candidate since the previous run
+  // of the same definition, one entry per change, with that run in
+  // `reference_evaluation_run_id`:
+  //   PROVIDER_MODEL: the REQUESTED model snapshot, from the two frozen
+  //     harnesses;
+  //   PROMPT: the requested prompt bundle digest, from the same harnesses;
+  //   RESPONSE_MODEL: what the provider SERVED, for the candidates in
+  //     `served_drift_candidate_keys` only. Each side lists that run's
+  //     distinct served model ids, each with the fingerprint it was served
+  //     under where the provider sent one. A changed set of model ids is
+  //     drift whatever the fingerprints say; otherwise a changed set of
+  //     fingerprints is drift when both runs recorded some.
+  // An empty list means nothing compared moved; `availability` says when there
+  // was nothing to compare. Its reason code is `served_runs_incomplete` when
+  // either run is not COMPLETED, since only then has every cell been served
+  // and a smaller set is not drift; otherwise it is `launch_harness_only` when
+  // no candidate's served models were compared. Absent from a server that
+  // predates it.
+  optional EvaluationConfigurationDiffV1 provider_drift = 17;
+  // O11Y-634. The candidates `provider_drift` also compared on what was
+  // SERVED. Both runs are COMPLETED, both recorded a served model for the
+  // candidate, and either the model ids differ or the fingerprints are
+  // comparable: both runs recorded some, or neither did. The same model with
+  // a fingerprint only one run recorded is not comparable, so that candidate
+  // is not listed. Every unlisted candidate is compared on its launch harness
+  // alone.
+  repeated string served_drift_candidate_keys = 18;
 }
 
 // ===========================================================================
@@ -6232,9 +6411,12 @@ enum EvaluationScorerKindV1 {
   EVALUATION_SCORER_KIND_V1_LLM_JUDGE = 3;
 }
 
-// The deterministic comparators this build RETAINS, authored rather than
-// invented. Each value names an existing comparison mode; none of them adds an
-// execution kind, and the sandboxed/code-scorer deferral boundary is unmoved.
+// The deterministic comparators this build runs, authored rather than
+// invented. EXACT, NUMERIC_THRESHOLD and PATTERN name the retained comparison
+// modes. The rest are built-ins: bounded Rust in the scorer worker, compiled at
+// publication from a config frozen with its implementation version into the
+// evaluator template a run's manifest snapshots. None is a sandboxed code
+// scorer, and that deferral boundary is unmoved.
 enum EvaluationScorerEvaluatorV1 {
   EVALUATION_SCORER_EVALUATOR_V1_UNSPECIFIED = 0;
   // Whole-value equality. Stored comparison mode `exact`.
@@ -6243,10 +6425,34 @@ enum EvaluationScorerEvaluatorV1 {
   // comparison mode `numeric_gte`.
   EVALUATION_SCORER_EVALUATOR_V1_NUMERIC_THRESHOLD = 2;
   // SUBSTRING CONTAINMENT, not a regular expression. Stored comparison mode
-  // `contains`. A regex would be a new execution kind with unbounded cost on
-  // customer input; this value is the retained `contains` comparator under the
-  // design's word for it, and it must stay that way.
+  // `contains`. Regular expressions are REGEX, a separate value, so what an
+  // existing PATTERN scorer measures never changes under it.
   EVALUATION_SCORER_EVALUATOR_V1_PATTERN = 3;
+  // The subject string matches a Rust `regex` pattern, anywhere unless the
+  // pattern anchors itself. The syntax has no look-around or backreferences,
+  // which is what makes matching linear in the subject; a pattern using them is
+  // refused at publication, as is one over the published size limits and one
+  // using the Unicode word boundary `\b` (the ASCII `(?-u:\b)` runs). Matching
+  // runs on a bounded automaton: a search that outgrows it stops and the cell
+  // is the Error verdict `regex_search_gave_up`, never a slow pass or fail.
+  EVALUATION_SCORER_EVALUATOR_V1_REGEX = 4;
+  // The subject string is JSON text the pinned parser accepts. A repeated
+  // object key is valid and is reported as the `json_duplicate_keys`
+  // diagnostic. A subject that is not a string was decoded from JSON already.
+  EVALUATION_SCORER_EVALUATOR_V1_JSON_VALID = 5;
+  // The subject equals the expected value after the frozen normalization;
+  // byte-exact when no option is set.
+  EVALUATION_SCORER_EVALUATOR_V1_NORMALIZED_STRING = 6;
+  // The edit distance between subject and expected value, counted in Unicode
+  // scalar values after the frozen normalization, is at most `max_distance`.
+  EVALUATION_SCORER_EVALUATOR_V1_LEVENSHTEIN = 7;
+  // The subject satisfies a Draft 2020-12 JSON Schema. A string subject is
+  // parsed as JSON text first; any other subject is JSON already. Every `$ref`
+  // must resolve inside the schema document: nothing is fetched, at publication
+  // or at run time. `pattern` runs on REGEX's bounded automaton under REGEX's
+  // refusals, and a search that gives up is the Error verdict
+  // `regex_search_gave_up`; `patternProperties` is refused at publication.
+  EVALUATION_SCORER_EVALUATOR_V1_JSON_SCHEMA = 8;
 }
 
 message EvaluationScorerDeterministicSpecV1 {
@@ -6257,6 +6463,48 @@ message EvaluationScorerDeterministicSpecV1 {
   // Dotted path into the case. Absent defaults to `expected_output`, the one
   // field a dataset is guaranteed to carry.
   optional string expected_path = 3;
+  // Present exactly when `evaluator` takes a config: REGEX, NORMALIZED_STRING,
+  // LEVENSHTEIN and JSON_SCHEMA. Any other pairing is refused as a spec mismatch. Not
+  // echoed on read: it is frozen into the evaluator template, which the
+  // scorer configuration row does not carry.
+  oneof config {
+    EvaluationScorerRegexConfigV1 regex = 4;
+    EvaluationScorerStringNormalizationV1 normalized_string = 5;
+    EvaluationScorerLevenshteinConfigV1 levenshtein = 6;
+    EvaluationScorerJsonSchemaConfigV1 json_schema = 7;
+  }
+}
+
+message EvaluationScorerRegexConfigV1 {
+  string pattern = 1;
+}
+
+// Applied to both operands, in this order: case folding, NFC, trim, whitespace
+// collapse. All false is byte-exact.
+message EvaluationScorerStringNormalizationV1 {
+  // Unicode full case folding (CaseFolding.txt statuses C and F).
+  bool case_fold = 1;
+  // Unicode Normalization Form C.
+  bool nfc = 2;
+  // Drops leading and trailing Unicode whitespace.
+  bool trim = 3;
+  // Replaces each run of Unicode whitespace with one ASCII space.
+  bool collapse_whitespace = 4;
+}
+
+message EvaluationScorerLevenshteinConfigV1 {
+  uint32 max_distance = 1;
+  EvaluationScorerStringNormalizationV1 normalization = 2;
+}
+
+message EvaluationScorerJsonSchemaConfigV1 {
+  // The schema as JSON text. A declared `$schema` must name the Draft 2020-12
+  // meta-schema; the published caps bound its bytes, its nesting depth and the
+  // subschemas it can run at one instance location, each `$ref` counted at its
+  // target. A `$ref` is a `#` JSON pointer into this schema; `$dynamicRef`, a
+  // nested `$id` and a reference cycle that never descends are refused.
+  // Numbers, in the schema and the subject, compare as IEEE 754 doubles.
+  string schema_json = 1;
 }
 
 // The review policy a human-kind scorer is authored with.
@@ -8093,6 +8341,18 @@ service AgenticEvaluationService {
   // would be the only way to give work back.
   rpc ReleaseEvaluationCaseLease(ReleaseEvaluationCaseLeaseRequest) returns (ReleaseEvaluationCaseLeaseResponse);
   // ---- end wave 50 lane B ----
+
+  // ---- O11Y-633: record and replay, on the same lease fence ----
+  // Stores a leased case's steps; acknowledged only once stored. Record, then
+  // submit: a replay answers from the recording of the execution whose
+  // submission is the case's verdict, so a case's steps are recorded, its last
+  // chunk included, before its output is submitted. A chunk for a case this
+  // lease already submitted is rejected `case_already_submitted`.
+  rpc RecordEvaluationCaseSteps(RecordEvaluationCaseStepsRequest) returns (RecordEvaluationCaseStepsResponse);
+  // Answers one step of a REPLAY candidate's case with its recorded response,
+  // or records the divergence on the case. A lookup on a case that already has
+  // its verdict is refused `CASE_ALREADY_SUBMITTED`, for that case alone.
+  rpc LookupReplayStep(LookupReplayStepRequest) returns (LookupReplayStepResponse);
 
   // ---- wave 50 lane C: the platform-annotations plane ----
   //
@@ -12738,6 +12998,12 @@ enum ExternalLeaseRefusalKindV1 {
   EXTERNAL_LEASE_REFUSAL_KIND_V1_BOUNDS_EXCEEDED = 6;
   // The caller's principal lacks the scope this verb requires (NN44).
   EXTERNAL_LEASE_REFUSAL_KIND_V1_SCOPE_MISSING = 7;
+  // Recording and replay are unavailable on this deployment (O11Y-633).
+  EXTERNAL_LEASE_REFUSAL_KIND_V1_RECORDING_UNAVAILABLE = 8;
+  // This case already has its verdict under this lease: its runtime submitted
+  // it, or a replay divergence was recorded on it. The lease's other cases are
+  // unaffected. Stop executing this case; never retried (O11Y-633).
+  EXTERNAL_LEASE_REFUSAL_KIND_V1_CASE_ALREADY_SUBMITTED = 9;
 }
 
 message ExternalLeaseRefusalV1 {
@@ -12825,6 +13091,124 @@ message ReleaseEvaluationCaseLeaseResponse {
   AgenticEvaluationCapabilitiesV1 capabilities = 3;
 }
 // ---- end wave 50 lane B ----
+
+// ---- O11Y-633: record and replay on the lease plane ----
+//
+// A runtime records each model and tool call its agent made for a leased
+// case, and a REPLAY candidate's runtime asks, call by call, for the response
+// that recording holds. Every call is redacted server-side before it is
+// digested or stored, whatever the runtime sent.
+
+enum RecordedCallKindV1 {
+  RECORDED_CALL_KIND_V1_UNSPECIFIED = 0;
+  RECORDED_CALL_KIND_V1_MODEL = 1;
+  RECORDED_CALL_KIND_V1_TOOL = 2;
+}
+
+// One step of a trajectory. There is deliberately no field for headers, call
+// ids or timestamps: what is not on the wire is neither stored nor matched.
+message RecordedCallV1 {
+  RecordedCallKindV1 kind = 1;
+  // Required for a TOOL call, empty for a MODEL call.
+  string tool_name = 2;
+  // JSON. What a replay matches on, after redaction.
+  string request_json = 3;
+  // JSON. What a replay answers with. Ignored on a lookup.
+  string response_json = 4;
+}
+
+// Consecutive steps of one leased case's trajectory, starting at `first_step`.
+message RecordedTrajectoryChunkV1 {
+  string cohort_key = 1;
+  string candidate_key = 2;
+  string case_revision_id = 3;
+  uint32 trial = 4;
+  int32 attempt_generation = 5;
+  // The trajectory's next unrecorded step, so a retried chunk converges and a
+  // gap is refused. A chunk at step 0 under a new lease starts the trajectory
+  // over, since a reclaimed case is executed again.
+  uint32 first_step = 6;
+  repeated RecordedCallV1 calls = 7;
+  // The trajectory is complete once this chunk is stored. A trajectory never
+  // completed replays as `REPLAY_DIVERGENCE_KIND_V1_RECORDING_INCOMPLETE`.
+  // A runtime whose final call went out without `last` closes the trajectory
+  // with a chunk of no calls, `last` set, at its next unrecorded step, under
+  // the lease that recorded it; it stores nothing. An empty chunk without
+  // `last`, or anywhere else, is malformed.
+  bool last = 8;
+}
+
+message RecordEvaluationCaseStepsRequest {
+  string evaluation_run_id = 1;
+  string lease_id = 2;
+  string lease_token = 3;
+  repeated RecordedTrajectoryChunkV1 chunks = 4;
+}
+
+// `ACCEPTED` once stored, `ALREADY_SUBMITTED` for steps already recorded,
+// `REJECTED` with a typed reason otherwise.
+message RecordedChunkAckV1 {
+  string cohort_key = 1;
+  string candidate_key = 2;
+  string case_revision_id = 3;
+  uint32 trial = 4;
+  ExternalSubmissionAckKindV1 kind = 5;
+  uint32 next_step = 6;
+  bool complete = 7;
+  optional EvaluationFailureV1 rejection = 8;
+}
+
+message RecordEvaluationCaseStepsResponse {
+  repeated RecordedChunkAckV1 acks = 1;
+  // A WHOLE-REQUEST refusal; never set alongside acks.
+  optional ExternalLeaseRefusalV1 refusal = 2;
+  AgenticEvaluationCapabilitiesV1 capabilities = 3;
+}
+
+message LookupReplayStepRequest {
+  string evaluation_run_id = 1;
+  string lease_id = 2;
+  string lease_token = 3;
+  string cohort_key = 4;
+  string candidate_key = 5;
+  string case_revision_id = 6;
+  uint32 trial = 7;
+  int32 attempt_generation = 8;
+  // The runtime numbers its calls from 0.
+  uint32 step = 9;
+  RecordedCallV1 observed = 10;
+}
+
+enum ReplayDivergenceKindV1 {
+  REPLAY_DIVERGENCE_KIND_V1_UNSPECIFIED = 0;
+  REPLAY_DIVERGENCE_KIND_V1_MODEL_REQUEST_DIFFERS = 1;
+  REPLAY_DIVERGENCE_KIND_V1_TOOL_REQUEST_DIFFERS = 2;
+  // The agent made more calls than the recording holds.
+  REPLAY_DIVERGENCE_KIND_V1_RECORDING_EXHAUSTED = 3;
+  // The source case has no complete recording.
+  REPLAY_DIVERGENCE_KIND_V1_RECORDING_INCOMPLETE = 4;
+}
+
+// The first step at which the replayed agent left its recording. Recorded on
+// the case as its verdict; the runtime stops executing that case.
+message ReplayDivergenceV1 {
+  uint32 step = 1;
+  ReplayDivergenceKindV1 kind = 2;
+  // sha256 hex. Empty when the recording holds no such step.
+  string expected_request_digest = 3;
+  string observed_request_digest = 4;
+}
+
+message LookupReplayStepResponse {
+  oneof outcome {
+    // JSON: the recorded response, redacted as it was stored.
+    string response_json = 1;
+    ReplayDivergenceV1 divergence = 2;
+  }
+  optional ExternalLeaseRefusalV1 refusal = 3;
+  AgenticEvaluationCapabilitiesV1 capabilities = 4;
+}
+// ---- end O11Y-633 ----
 // ---- wave 50 lane C: the platform-annotations plane ----
 //
 // APPROVED BY THE OPERATOR ON 2026-09-05 over an OTLP ridealong, with the

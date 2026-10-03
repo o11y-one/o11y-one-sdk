@@ -332,6 +332,12 @@ class AgenticEvaluationService(Protocol):
     async def release_evaluation_case_lease(self, request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.ReleaseEvaluationCaseLeaseRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.ReleaseEvaluationCaseLeaseResponse:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
+    async def record_evaluation_case_steps(self, request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.RecordEvaluationCaseStepsRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.RecordEvaluationCaseStepsResponse:
+        raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
+
+    async def lookup_replay_step(self, request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.LookupReplayStepRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.LookupReplayStepResponse:
+        raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
+
     async def record_platform_annotation(self, request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.RecordPlatformAnnotationRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.RecordPlatformAnnotationResponse:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
@@ -1447,6 +1453,26 @@ class AgenticEvaluationServiceASGIApplication(ConnectASGIApplication[AgenticEval
                         idempotency_level=IdempotencyLevel.UNKNOWN,
                     ),
                     function=svc.release_evaluation_case_lease,
+                ),
+                "/o11y_one.agentic.v1.AgenticEvaluationService/RecordEvaluationCaseSteps": Endpoint.unary(
+                    method=MethodInfo(
+                        name="RecordEvaluationCaseSteps",
+                        service_name="o11y_one.agentic.v1.AgenticEvaluationService",
+                        input=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.RecordEvaluationCaseStepsRequest,
+                        output=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.RecordEvaluationCaseStepsResponse,
+                        idempotency_level=IdempotencyLevel.UNKNOWN,
+                    ),
+                    function=svc.record_evaluation_case_steps,
+                ),
+                "/o11y_one.agentic.v1.AgenticEvaluationService/LookupReplayStep": Endpoint.unary(
+                    method=MethodInfo(
+                        name="LookupReplayStep",
+                        service_name="o11y_one.agentic.v1.AgenticEvaluationService",
+                        input=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.LookupReplayStepRequest,
+                        output=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.LookupReplayStepResponse,
+                        idempotency_level=IdempotencyLevel.UNKNOWN,
+                    ),
+                    function=svc.lookup_replay_step,
                 ),
                 "/o11y_one.agentic.v1.AgenticEvaluationService/RecordPlatformAnnotation": Endpoint.unary(
                     method=MethodInfo(
@@ -3761,6 +3787,46 @@ class AgenticEvaluationServiceClient(ConnectClient):
             timeout_ms=timeout_ms,
         )
 
+    async def record_evaluation_case_steps(
+        self,
+        request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.RecordEvaluationCaseStepsRequest,
+        *,
+        headers: Headers | Mapping[str, str] | None = None,
+        timeout_ms: int | None = None,
+    ) -> o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.RecordEvaluationCaseStepsResponse:
+        return await self.execute_unary(
+            request=request,
+            method=MethodInfo(
+                name="RecordEvaluationCaseSteps",
+                service_name="o11y_one.agentic.v1.AgenticEvaluationService",
+                input=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.RecordEvaluationCaseStepsRequest,
+                output=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.RecordEvaluationCaseStepsResponse,
+                idempotency_level=IdempotencyLevel.UNKNOWN,
+            ),
+            headers=headers,
+            timeout_ms=timeout_ms,
+        )
+
+    async def lookup_replay_step(
+        self,
+        request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.LookupReplayStepRequest,
+        *,
+        headers: Headers | Mapping[str, str] | None = None,
+        timeout_ms: int | None = None,
+    ) -> o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.LookupReplayStepResponse:
+        return await self.execute_unary(
+            request=request,
+            method=MethodInfo(
+                name="LookupReplayStep",
+                service_name="o11y_one.agentic.v1.AgenticEvaluationService",
+                input=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.LookupReplayStepRequest,
+                output=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.LookupReplayStepResponse,
+                idempotency_level=IdempotencyLevel.UNKNOWN,
+            ),
+            headers=headers,
+            timeout_ms=timeout_ms,
+        )
+
     async def record_platform_annotation(
         self,
         request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.RecordPlatformAnnotationRequest,
@@ -4372,6 +4438,10 @@ class AgenticEvaluationServiceSync(Protocol):
     def submit_evaluation_case_outputs(self, request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.SubmitEvaluationCaseOutputsRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.SubmitEvaluationCaseOutputsResponse:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
     def release_evaluation_case_lease(self, request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.ReleaseEvaluationCaseLeaseRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.ReleaseEvaluationCaseLeaseResponse:
+        raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
+    def record_evaluation_case_steps(self, request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.RecordEvaluationCaseStepsRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.RecordEvaluationCaseStepsResponse:
+        raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
+    def lookup_replay_step(self, request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.LookupReplayStepRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.LookupReplayStepResponse:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
     def record_platform_annotation(self, request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.RecordPlatformAnnotationRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.RecordPlatformAnnotationResponse:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
@@ -5468,6 +5538,26 @@ class AgenticEvaluationServiceWSGIApplication(ConnectWSGIApplication):
                         idempotency_level=IdempotencyLevel.UNKNOWN,
                     ),
                     function=service.release_evaluation_case_lease,
+                ),
+                "/o11y_one.agentic.v1.AgenticEvaluationService/RecordEvaluationCaseSteps": EndpointSync.unary(
+                    method=MethodInfo(
+                        name="RecordEvaluationCaseSteps",
+                        service_name="o11y_one.agentic.v1.AgenticEvaluationService",
+                        input=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.RecordEvaluationCaseStepsRequest,
+                        output=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.RecordEvaluationCaseStepsResponse,
+                        idempotency_level=IdempotencyLevel.UNKNOWN,
+                    ),
+                    function=service.record_evaluation_case_steps,
+                ),
+                "/o11y_one.agentic.v1.AgenticEvaluationService/LookupReplayStep": EndpointSync.unary(
+                    method=MethodInfo(
+                        name="LookupReplayStep",
+                        service_name="o11y_one.agentic.v1.AgenticEvaluationService",
+                        input=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.LookupReplayStepRequest,
+                        output=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.LookupReplayStepResponse,
+                        idempotency_level=IdempotencyLevel.UNKNOWN,
+                    ),
+                    function=service.lookup_replay_step,
                 ),
                 "/o11y_one.agentic.v1.AgenticEvaluationService/RecordPlatformAnnotation": EndpointSync.unary(
                     method=MethodInfo(
@@ -7776,6 +7866,46 @@ class AgenticEvaluationServiceClientSync(ConnectClientSync):
                 service_name="o11y_one.agentic.v1.AgenticEvaluationService",
                 input=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.ReleaseEvaluationCaseLeaseRequest,
                 output=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.ReleaseEvaluationCaseLeaseResponse,
+                idempotency_level=IdempotencyLevel.UNKNOWN,
+            ),
+            headers=headers,
+            timeout_ms=timeout_ms,
+        )
+
+    def record_evaluation_case_steps(
+        self,
+        request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.RecordEvaluationCaseStepsRequest,
+        *,
+        headers: Headers | Mapping[str, str] | None = None,
+        timeout_ms: int | None = None,
+    ) -> o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.RecordEvaluationCaseStepsResponse:
+        return self.execute_unary(
+            request=request,
+            method=MethodInfo(
+                name="RecordEvaluationCaseSteps",
+                service_name="o11y_one.agentic.v1.AgenticEvaluationService",
+                input=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.RecordEvaluationCaseStepsRequest,
+                output=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.RecordEvaluationCaseStepsResponse,
+                idempotency_level=IdempotencyLevel.UNKNOWN,
+            ),
+            headers=headers,
+            timeout_ms=timeout_ms,
+        )
+
+    def lookup_replay_step(
+        self,
+        request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.LookupReplayStepRequest,
+        *,
+        headers: Headers | Mapping[str, str] | None = None,
+        timeout_ms: int | None = None,
+    ) -> o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.LookupReplayStepResponse:
+        return self.execute_unary(
+            request=request,
+            method=MethodInfo(
+                name="LookupReplayStep",
+                service_name="o11y_one.agentic.v1.AgenticEvaluationService",
+                input=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.LookupReplayStepRequest,
+                output=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.LookupReplayStepResponse,
                 idempotency_level=IdempotencyLevel.UNKNOWN,
             ),
             headers=headers,
