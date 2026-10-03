@@ -274,6 +274,18 @@ exit `3` with the run's failure message and code on stderr. A run in
 `AWAITING_REVIEW` keeps the wait going until review ends or the wait times out,
 which also exits `3`.
 
+`o11y-eval run --definition <id> --candidate <key> --record` (or `--replay`)
+asserts, from the manifest it previews, that the candidate is externally
+executed (or a replay), and prints `candidate_key` and `mode`, plus
+`source_evaluation_run_id` and `source_candidate_key` for a replay, for the
+harness step. A candidate the definition does not hold, or holds as another
+kind, exits `64` and launches nothing, as do the flags misused together. The
+runner never executes a harness: the SDK tape records and replays (see
+`packages/sdk-ts` and `packages/sdk-py`). A divergence is a failed trial the
+server scores, so `diff` renders it like any other verdict; a case whose
+recording never completed is not a failed trial, so it leaves the evidence thin
+and the verdict indeterminate (`2`).
+
 ## License
 
 Apache-2.0.

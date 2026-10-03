@@ -53,6 +53,43 @@ into a fully typed client; a hand-written facade over every service would be a
 second API surface to keep in sync with the proto, and it would rot the first
 time a field is added upstream.
 
+## Record and replay
+
+An externally executed candidate's runtime routes each model and tool call
+through a lease tape. Under record, `live` runs and the call is buffered, then
+sent to `RecordEvaluationCaseSteps` within the bounds the server publishes on
+`sdk_record_replay`. Under replay, `live` never runs: each call is answered from
+the source recording through `LookupReplayStep`. The harness code is the same
+in both modes.
+
+```ts
+const evals = new AgenticEvaluationClient(client);
+const tape = await evals.recordLease({ evaluationRunId, lease }); // or replayLease
+const c = tape.case(leasedCase);
+const reply = await c.model(requestJson, () => callModel(requestJson));
+const hits = await c.tool("search", argsJson, () => search(argsJson));
+c.finish();
+await tape.flush(); // record, then submit
+await evals.submitCaseOutputs({ ... });
+```
+
+- `ReplayDivergedError` names the step, the divergence kind and both request
+  digests. The server has already made it the case's verdict: stop the case and
+  do not submit it.
+- `LeaseRefusedError` carries a lease refusal (`CASE_ALREADY_SUBMITTED`,
+  `LEASE_EXPIRED`, ...). `RecordingUnavailableError` means this deployment
+  cannot record or replay, and is not retryable.
+- A `ConnectError` with code `Unavailable` is transient; the buffered calls are
+  kept and the next `flush()` resends them.
+- Steps that never reached a flush are lost with the process, and the case
+  replays as `RECORDING_INCOMPLETE`.
+- Redaction is the server's, before anything is digested or stored. The SDK
+  redacts nothing and logs no call.
+
+The tape records and replays. `o11y-eval run --record|--replay --candidate <key>`
+only asserts, before launching, that the candidate is the kind that mode needs;
+the runner never executes a harness.
+
 ## The distinction this package exists to preserve
 
 `UNAUTHENTICATED` and `PERMISSION_DENIED` are different problems:
