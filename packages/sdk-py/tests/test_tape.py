@@ -187,7 +187,7 @@ def test_a_conflict_keeps_the_chunk_and_another_rejection_raises() -> None:
     with pytest.raises(CaseRecordingRejectedError) as info:
         tape.flush()
     assert len(sent(fake)[1].chunks[0].calls) == 1, "the conflicted call was resent"
-    assert (info.value.code, info.value.case_revision_id) == ("case_already_submitted", "r1")
+    assert (info.value.code, info.value.case.case_revision_id) == ("case_already_submitted", "r1")
     tape.flush()
     assert len(sent(fake)) == 2, "a rejected case is never resent"
 
