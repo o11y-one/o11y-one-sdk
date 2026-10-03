@@ -47,7 +47,22 @@ export {
   scopesToCanonical,
   type CallerIdentity,
   type LeaseOutcome,
+  type RecordReplayLimits,
+  type ReplayAnswer,
 } from "./evaluation.js";
+
+export {
+  LeaseTape,
+  CaseTape,
+  LeaseRefusedError,
+  RecordingUnavailableError,
+  ReplayDivergedError,
+  CaseRecordingRejectedError,
+  toReplayDivergence,
+  type RecordedCall,
+  type ReplayDivergence,
+  type ReplayDivergenceReason,
+} from "./tape.js";
 
 export {
   ok,

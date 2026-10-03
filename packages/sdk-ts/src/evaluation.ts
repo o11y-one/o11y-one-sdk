@@ -11,12 +11,15 @@
  * to its verbs, guards their inputs, and names their outcomes. The generated
  * client is reachable as `.raw` for any verb this surface has not lifted.
  */
-import type { Client } from "@connectrpc/connect";
+import { Code, ConnectError, type Client } from "@connectrpc/connect";
+import type { MessageInitShape } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 
 import {
   AgenticEvaluationService,
+  CapabilityStateV1,
+  ExternalLeaseRefusalV1Schema,
   MachinePrincipalScopeV1,
   PlatformAnnotationKindV1,
   EvaluationLaunchRejectionV1Schema,
@@ -42,11 +45,21 @@ import {
   type EvaluationCaptureSpanSourceV1,
   type EvaluationCaptureCellSourceV1,
   type DatasetFieldMappingV1,
+  type CapabilityPostureV1,
+  type RecordedCallV1Schema,
+  type RecordedChunkAckV1,
+  type RecordedTrajectoryChunkV1Schema,
 } from "@o11y-one/api-agentic/o11y_one/agentic/v1/evaluation_pb";
 
 import type { O11yClient } from "./client.js";
 import type { MachineScope } from "./errors.js";
-import { ok, err, type Result } from "./result.js";
+import { ok, err, type Err, type Result } from "./result.js";
+import {
+  LeaseTape,
+  RecordingUnavailableError,
+  toReplayDivergence,
+  type ReplayDivergence,
+} from "./tape.js";
 import {
   findDetail,
   toLaunchRejection,
@@ -176,10 +189,60 @@ export interface LeaseOutcome {
   readonly exhausted: boolean;
 }
 
+/** The bounds `sdk_record_replay` publishes, each read from the constant the server enforces. */
+export interface RecordReplayLimits {
+  readonly maxRecordRequestBytes: number;
+  readonly maxCallBytes: number;
+  readonly maxChunksPerRequest: number;
+  readonly maxCallsPerRequest: number;
+  readonly maxToolNameBytes: number;
+}
+
+/** One replayed step: the recorded response, or where the agent left its recording. */
+export type ReplayAnswer =
+  | { readonly type: "response"; readonly responseJson: string }
+  | { readonly type: "divergence"; readonly divergence: ReplayDivergence };
+
+function toRecordReplayLimits(postures: readonly CapabilityPostureV1[]): RecordReplayLimits {
+  const posture = postures.find((p) => p.capabilityKey === "sdk_record_replay");
+  if (posture?.state !== CapabilityStateV1.AVAILABLE) {
+    throw new RecordingUnavailableError();
+  }
+  const limit = (key: string): number => {
+    const found = posture.limits.find((l) => l.limitKey === key);
+    if (found === undefined) {
+      throw new Error(`sdk_record_replay publishes no ${key}`);
+    }
+    return Number(found.limitValue);
+  };
+  return {
+    maxRecordRequestBytes: limit("max_record_request_bytes"),
+    maxCallBytes: limit("max_call_bytes"),
+    maxChunksPerRequest: limit("max_chunks_per_request"),
+    maxCallsPerRequest: limit("max_calls_per_request"),
+    maxToolNameBytes: limit("max_tool_name_bytes"),
+  };
+}
+
+/**
+ * A lease refusal riding in `Status.details` folds into `err`. Not on
+ * UNAVAILABLE: that is the server's payload store failing, which is transient,
+ * so it stays a `ConnectError` that `classify()` calls retryable.
+ */
+function foldLeaseRefusal(e: unknown): Err<LeaseRefusal> {
+  const detail =
+    e instanceof ConnectError && e.code !== Code.Unavailable ? findDetail(e, ExternalLeaseRefusalV1Schema) : undefined;
+  if (detail === undefined) {
+    throw e;
+  }
+  return err(toLeaseRefusal(detail));
+}
+
 // --- the client -------------------------------------------------------------
 
 export class AgenticEvaluationClient {
   readonly raw: Client<typeof AgenticEvaluationService>;
+  #limits: RecordReplayLimits | undefined;
 
   constructor(client: O11yClient) {
     this.raw = client.service(AgenticEvaluationService);
@@ -469,6 +532,115 @@ export class AgenticEvaluationClient {
       return err(toLeaseRefusal(res.refusal));
     }
     return ok(res.releasedCaseCount);
+  }
+
+  // -- 4b. record and replay, on the same lease fence -----------------------
+
+  /**
+   * The bounds recording is batched to, fetched once per client. Throws
+   * {@link RecordingUnavailableError} when the server publishes no AVAILABLE
+   * `sdk_record_replay` posture.
+   */
+  async recordReplayLimits(): Promise<RecordReplayLimits> {
+    if (this.#limits === undefined) {
+      const res = await this.raw.getAgenticEvaluationCapabilities({});
+      this.#limits = toRecordReplayLimits(res.capabilities?.postures ?? []);
+    }
+    return this.#limits;
+  }
+
+  /** A tape that runs each call live and records it under the lease. See tape.ts. */
+  async recordLease(args: {
+    evaluationRunId: string;
+    lease: Pick<ExternalCaseLeaseV1, "leaseId" | "leaseToken">;
+  }): Promise<LeaseTape> {
+    requireNonEmpty("evaluationRunId", args.evaluationRunId);
+    return new LeaseTape(this, false, args.evaluationRunId, args.lease, await this.recordReplayLimits());
+  }
+
+  /** A tape that answers each call from a REPLAY candidate's source recording. See tape.ts. */
+  async replayLease(args: {
+    evaluationRunId: string;
+    lease: Pick<ExternalCaseLeaseV1, "leaseId" | "leaseToken">;
+  }): Promise<LeaseTape> {
+    requireNonEmpty("evaluationRunId", args.evaluationRunId);
+    return new LeaseTape(this, true, args.evaluationRunId, args.lease, await this.recordReplayLimits());
+  }
+
+  /**
+   * Store leased cases' steps, one chunk per case. `ok` carries one ack per
+   * chunk, in order; `err(LeaseRefusal)` when the whole request was refused,
+   * on a 200 or in `Status.details`.
+   */
+  async recordCaseSteps(args: {
+    evaluationRunId: string;
+    leaseId: string;
+    leaseToken: string;
+    chunks: readonly MessageInitShape<typeof RecordedTrajectoryChunkV1Schema>[];
+  }): Promise<Result<RecordedChunkAckV1[], LeaseRefusal>> {
+    requireNonEmpty("evaluationRunId", args.evaluationRunId);
+    requireNonEmpty("leaseId", args.leaseId);
+    requireNonEmpty("leaseToken", args.leaseToken);
+    let res;
+    try {
+      res = await this.raw.recordEvaluationCaseSteps({
+        evaluationRunId: args.evaluationRunId,
+        leaseId: args.leaseId,
+        leaseToken: args.leaseToken,
+        chunks: args.chunks as MessageInitShape<typeof RecordedTrajectoryChunkV1Schema>[],
+      });
+    } catch (e) {
+      return foldLeaseRefusal(e);
+    }
+    if (res.refusal !== undefined) {
+      return err(toLeaseRefusal(res.refusal));
+    }
+    return ok(res.acks);
+  }
+
+  /** Answer one step of a REPLAY candidate's case from its source recording. */
+  async lookupReplayStep(args: {
+    evaluationRunId: string;
+    leaseId: string;
+    leaseToken: string;
+    leased: Pick<
+      LeasedEvaluationCaseV1,
+      "cohortKey" | "candidateKey" | "caseRevisionId" | "trial" | "attemptGeneration"
+    >;
+    step: number;
+    observed: MessageInitShape<typeof RecordedCallV1Schema>;
+  }): Promise<Result<ReplayAnswer, LeaseRefusal>> {
+    requireNonEmpty("evaluationRunId", args.evaluationRunId);
+    requireNonEmpty("leaseId", args.leaseId);
+    requireNonEmpty("leaseToken", args.leaseToken);
+    let res;
+    try {
+      res = await this.raw.lookupReplayStep({
+        evaluationRunId: args.evaluationRunId,
+        leaseId: args.leaseId,
+        leaseToken: args.leaseToken,
+        cohortKey: args.leased.cohortKey,
+        candidateKey: args.leased.candidateKey,
+        caseRevisionId: args.leased.caseRevisionId,
+        trial: args.leased.trial,
+        attemptGeneration: args.leased.attemptGeneration,
+        step: args.step,
+        observed: args.observed,
+      });
+    } catch (e) {
+      return foldLeaseRefusal(e);
+    }
+    if (res.refusal !== undefined) {
+      return err(toLeaseRefusal(res.refusal));
+    }
+    switch (res.outcome.case) {
+      case "responseJson":
+        return ok({ type: "response", responseJson: res.outcome.value });
+      case "divergence":
+        return ok({ type: "divergence", divergence: toReplayDivergence(res.outcome.value) });
+      default:
+        throw new Error("lookupReplayStep: neither an outcome nor a refusal was returned");
+    }
   }
 
   // -- 6. dataset drafts: create / append / publish -------------------------
