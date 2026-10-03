@@ -188,6 +188,8 @@ def test_a_conflict_keeps_the_chunk_and_another_rejection_raises() -> None:
         tape.flush()
     assert len(sent(fake)[1].chunks[0].calls) == 1, "the conflicted call was resent"
     assert (info.value.code, info.value.case_revision_id) == ("case_already_submitted", "r1")
+    tape.flush()
+    assert len(sent(fake)) == 2, "a rejected case is never resent"
 
 
 def test_recording_unavailable_on_failed_precondition_is_typed_and_non_retryable() -> None:
