@@ -30,6 +30,8 @@ def test_bare_enum_name_covers_every_declared_member() -> None:
         "RENEWAL_BUDGET_EXHAUSTED",
         "BOUNDS_EXCEEDED",
         "SCOPE_MISSING",
+        "RECORDING_UNAVAILABLE",
+        "CASE_ALREADY_SUBMITTED",
     }
     actual = {
         bare_enum_name(ExternalLeaseRefusalKindV1, v) for v in ExternalLeaseRefusalKindV1.values()
