@@ -5,13 +5,14 @@
 #
 # source_repo:   o11y-api  (private; local checkouts are commonly ../o11y-api)
 # source_path:   proto/o11y_one/
-# source_branch: feat/loop-p1-foundations, the Loop trunk, which carries the
-#                record and replay RPCs (RecordEvaluationCaseSteps,
-#                LookupReplayStep). Do not release from this pin until that
-#                trunk (o11y-api PR #527) reaches main.
+# source_branch: feat/611-code-scorer-capabilities (o11y-api #611 PR c), on the
+#                Loop P2 trunk, which carries the code scorer RPCs
+#                (StartEvaluationScorerPreview, PublishEvaluationScorerConfig,
+#                SetLoopOverageCap) over P1's record and replay ones. Do not
+#                release from this pin until that branch reaches main.
 #
 # Regenerate with:
 #   ./tools/sync-proto.sh ../o11y-api
 # which verifies the checkout is at the commit below, re-vendors proto/o11y_one/,
 # and re-runs `buf generate`. Generated code is committed.
-4b2d699187d419ce20ef7bdce48c9bb182c6a8bf
+f7cc63d0680aaab92f58951b119aa7fd668b146b
