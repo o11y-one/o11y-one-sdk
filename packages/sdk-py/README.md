@@ -90,6 +90,36 @@ The tape records and replays. `o11y-eval run --record|--replay --candidate <key>
 only asserts, before launching, that the candidate is the kind that mode needs;
 the runner never executes a harness.
 
+## Code scorers
+
+A code scorer is a Python `score(input, context)` the server runs in its sandbox.
+A member drafts and previews one; an admin publishes it, and only a published
+version runs across a dataset. `o11y_one.sdk.scorer` types the contract.
+
+```python
+from o11y_one.sdk.code_scorer import CodeScorerClientSync
+
+scorers = CodeScorerClientSync(client.service_sync(AgenticEvaluationServiceClientSync))
+draft = scorers.create_code_scorer(
+    config_key="exact-answer", name="Exact answer", metric_name="quality.exact",
+    files={"score.py": open("score.py").read()}, idempotency_key="exact-answer-v1",
+)
+result = scorers.preview_code_scorer(  # waits at most wait_seconds for the sandbox
+    score_config_id=draft.score_config_id,
+    scorer_input={"candidate_output": "42", "reference_output": "42"},
+    idempotency_key="exact-answer-preview-1",
+)
+publishing = scorers.publish_code_scorer(  # admin; GetEvaluationScorerConfig reads the outcome
+    score_config_id=draft.score_config_id,
+    smoke_inputs=[{"candidate_output": "42", "reference_output": "42"}],
+    idempotency_key="exact-answer-publish-1",
+)
+```
+
+Each returns a `Refusal` for a typed rejection (`SANDBOX_UNAVAILABLE`,
+`CODE_SPEC_INVALID`, `CODE_INPUT_INVALID`, `CODE_VERSION_IMMUTABLE`, ...), whose
+`message` starts with the server's stable code.
+
 ## The distinction this package exists to preserve
 
 `UNAUTHENTICATED` and `PERMISSION_DENIED` are different problems:
