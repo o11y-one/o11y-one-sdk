@@ -96,23 +96,29 @@ A code scorer is a Python `score(input, context)` the server runs in its sandbox
 A member drafts and previews one; an admin publishes it, and only a published
 version runs across a dataset. `o11y_one.sdk.scorer` types the contract.
 
+These verbs are a person's, never a machine credential's, so the client carries
+no credential and each call carries the person's token:
+
 ```python
+from connectrpc.request import Headers
 from o11y_one.sdk.code_scorer import CodeScorerClientSync
 
-scorers = CodeScorerClientSync(client.service_sync(AgenticEvaluationServiceClientSync))
+o11y = O11yClient(base_url="https://grpc.o11y.one", org_id=os.environ["O11Y_ORG_ID"])
+scorers = CodeScorerClientSync(o11y.service_sync(AgenticEvaluationServiceClientSync))
+me = Headers({"authorization": f"Bearer {os.environ['O11Y_USER_TOKEN']}"})
 draft = scorers.create_code_scorer(
     config_key="exact-answer", name="Exact answer", metric_name="quality.exact",
-    files={"score.py": open("score.py").read()}, idempotency_key="exact-answer-v1",
+    files={"score.py": open("score.py").read()}, idempotency_key="exact-answer-v1", headers=me,
 )
 result = scorers.preview_code_scorer(  # waits at most wait_seconds for the sandbox
     score_config_id=draft.score_config_id,
     scorer_input={"candidate_output": "42", "reference_output": "42"},
-    idempotency_key="exact-answer-preview-1",
+    idempotency_key="exact-answer-preview-1", headers=me,
 )
 publishing = scorers.publish_code_scorer(  # admin; GetEvaluationScorerConfig reads the outcome
     score_config_id=draft.score_config_id,
     smoke_inputs=[{"candidate_output": "42", "reference_output": "42"}],
-    idempotency_key="exact-answer-publish-1",
+    idempotency_key="exact-answer-publish-1", headers=me,
 )
 ```
 

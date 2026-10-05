@@ -13,6 +13,9 @@ Three calls, on the same ``AgenticEvaluationServiceClient`` /
   smoke input runs once, a seeded scorer twice more, and
   ``GetEvaluationScorerConfig`` reads its ``publication_state``.
 
+These are a person's verbs: the server refuses a machine credential, so pass
+the person's token in each call's ``headers``.
+
 Inputs are the dicts ``score()`` receives (:class:`o11y_one.sdk.scorer.ScorerInput`);
 each field goes over the wire as its JSON text. A typed refusal (the sandbox
 unavailable, a bundle or input the sandbox would refuse, a published version)
