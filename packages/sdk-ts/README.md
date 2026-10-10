@@ -90,6 +90,40 @@ The tape records and replays. `o11y-eval run --record|--replay --candidate <key>
 only asserts, before launching, that the candidate is the kind that mode needs;
 the runner never executes a harness.
 
+## TypeScript code scorers
+
+A code scorer can be a TypeScript `score(input, context)` that the server runs in
+its sandbox, where the deployment serves the `typescript-base` runtime. Its
+bundle is `.ts` files with the entry `score.ts`. Node loads them as ES modules
+and strips their types, so they use erasable syntax only, and they import the
+bundle's own files (relative, naming the `.ts`) and Node's built-ins: no npm
+packages and no network. `scorer-kit/tsconfig.json` type-checks them that way,
+in a `"type": "module"` package. This package is not in the sandbox, so
+[`scorer-kit/`](scorer-kit) is copied into the bundle instead:
+
+- `o11y_scorer.ts`: the types, imported with `import type`;
+- `o11y_prng.ts`: `seededRandom(context.seed)`, the same draws on every retry
+  and repeatability trial, since the sandbox gives `Math.random()` no seed;
+- `score.ts`: an example that uses both.
+
+```ts
+import { seededRandom } from "./o11y_prng.ts";
+import type { ScorerContext, ScorerInput, ScorerOutput } from "./o11y_scorer.ts";
+
+export function score(input: ScorerInput, context: ScorerContext): ScorerOutput {
+  const random = seededRandom(context.seed); // a bigint: all 64 bits seed the draws
+  const lines = String(input.reference_output ?? "").split("\n");
+  const line = Math.floor(random() * lines.length); // the same line on every retry
+  const ok = String(input.candidate_output ?? "").split("\n")[line] === lines[line];
+  return { score: ok ? 1 : 0, verdict: ok ? "pass" : "fail" };
+}
+```
+
+`context.seed` and `context.frozen_evaluation_time_unix_nanos` are `bigint`s:
+both are unsigned 64-bit integers, which a `number` rounds past 2^53. `score()`
+may be `async`. sdk-py's `create_code_scorer(language="typescript")` uploads the
+bundle.
+
 ## The distinction this package exists to preserve
 
 `UNAUTHENTICATED` and `PERMISSION_DENIED` are different problems:
