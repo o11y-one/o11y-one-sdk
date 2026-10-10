@@ -95,6 +95,9 @@ const (
 	// AgenticEvaluationServiceAdoptEvaluationDecisionRevisionProcedure is the fully-qualified name of
 	// the AgenticEvaluationService's AdoptEvaluationDecisionRevision RPC.
 	AgenticEvaluationServiceAdoptEvaluationDecisionRevisionProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/AdoptEvaluationDecisionRevision"
+	// AgenticEvaluationServiceListEvaluationCaseMovementsProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's ListEvaluationCaseMovements RPC.
+	AgenticEvaluationServiceListEvaluationCaseMovementsProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/ListEvaluationCaseMovements"
 	// AgenticEvaluationServiceListEvaluationMatrixRowsProcedure is the fully-qualified name of the
 	// AgenticEvaluationService's ListEvaluationMatrixRows RPC.
 	AgenticEvaluationServiceListEvaluationMatrixRowsProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/ListEvaluationMatrixRows"
@@ -131,6 +134,12 @@ const (
 	// AgenticEvaluationServiceGetEvaluationExportProcedure is the fully-qualified name of the
 	// AgenticEvaluationService's GetEvaluationExport RPC.
 	AgenticEvaluationServiceGetEvaluationExportProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/GetEvaluationExport"
+	// AgenticEvaluationServiceCreateEvaluationExportDownloadProcedure is the fully-qualified name of
+	// the AgenticEvaluationService's CreateEvaluationExportDownload RPC.
+	AgenticEvaluationServiceCreateEvaluationExportDownloadProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/CreateEvaluationExportDownload"
+	// AgenticEvaluationServiceListEvaluationExportsProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's ListEvaluationExports RPC.
+	AgenticEvaluationServiceListEvaluationExportsProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/ListEvaluationExports"
 	// AgenticEvaluationServiceCreateEvaluationShareProcedure is the fully-qualified name of the
 	// AgenticEvaluationService's CreateEvaluationShare RPC.
 	AgenticEvaluationServiceCreateEvaluationShareProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/CreateEvaluationShare"
@@ -179,6 +188,12 @@ const (
 	// AgenticEvaluationServiceCreateEvaluationScorerConfigProcedure is the fully-qualified name of the
 	// AgenticEvaluationService's CreateEvaluationScorerConfig RPC.
 	AgenticEvaluationServiceCreateEvaluationScorerConfigProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/CreateEvaluationScorerConfig"
+	// AgenticEvaluationServicePreviewEvaluationScorerProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's PreviewEvaluationScorer RPC.
+	AgenticEvaluationServicePreviewEvaluationScorerProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/PreviewEvaluationScorer"
+	// AgenticEvaluationServiceCheckEvaluationScorerAgainstRunProcedure is the fully-qualified name of
+	// the AgenticEvaluationService's CheckEvaluationScorerAgainstRun RPC.
+	AgenticEvaluationServiceCheckEvaluationScorerAgainstRunProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/CheckEvaluationScorerAgainstRun"
 	// AgenticEvaluationServiceCreateEvaluationDatasetVersionProcedure is the fully-qualified name of
 	// the AgenticEvaluationService's CreateEvaluationDatasetVersion RPC.
 	AgenticEvaluationServiceCreateEvaluationDatasetVersionProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/CreateEvaluationDatasetVersion"
@@ -203,6 +218,9 @@ const (
 	// AgenticEvaluationServiceListEvaluationRunsProcedure is the fully-qualified name of the
 	// AgenticEvaluationService's ListEvaluationRuns RPC.
 	AgenticEvaluationServiceListEvaluationRunsProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/ListEvaluationRuns"
+	// AgenticEvaluationServiceListRecentEvaluationRunsProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's ListRecentEvaluationRuns RPC.
+	AgenticEvaluationServiceListRecentEvaluationRunsProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/ListRecentEvaluationRuns"
 	// AgenticEvaluationServiceReleaseEvaluationReviewTasksProcedure is the fully-qualified name of the
 	// AgenticEvaluationService's ReleaseEvaluationReviewTasks RPC.
 	AgenticEvaluationServiceReleaseEvaluationReviewTasksProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/ReleaseEvaluationReviewTasks"
@@ -375,6 +393,15 @@ const (
 	// AgenticEvaluationServiceLookupReplayStepProcedure is the fully-qualified name of the
 	// AgenticEvaluationService's LookupReplayStep RPC.
 	AgenticEvaluationServiceLookupReplayStepProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/LookupReplayStep"
+	// AgenticEvaluationServiceListEvaluationReplaysProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's ListEvaluationReplays RPC.
+	AgenticEvaluationServiceListEvaluationReplaysProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/ListEvaluationReplays"
+	// AgenticEvaluationServiceGetEvaluationReplayProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's GetEvaluationReplay RPC.
+	AgenticEvaluationServiceGetEvaluationReplayProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/GetEvaluationReplay"
+	// AgenticEvaluationServiceListOrganizationReplaysProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's ListOrganizationReplays RPC.
+	AgenticEvaluationServiceListOrganizationReplaysProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/ListOrganizationReplays"
 	// AgenticEvaluationServiceRecordPlatformAnnotationProcedure is the fully-qualified name of the
 	// AgenticEvaluationService's RecordPlatformAnnotation RPC.
 	AgenticEvaluationServiceRecordPlatformAnnotationProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/RecordPlatformAnnotation"
@@ -435,6 +462,24 @@ const (
 	// AgenticEvaluationServiceGetAgenticEvaluationCapabilitiesProcedure is the fully-qualified name of
 	// the AgenticEvaluationService's GetAgenticEvaluationCapabilities RPC.
 	AgenticEvaluationServiceGetAgenticEvaluationCapabilitiesProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/GetAgenticEvaluationCapabilities"
+	// AgenticEvaluationServiceStartEvaluationScorerPreviewProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's StartEvaluationScorerPreview RPC.
+	AgenticEvaluationServiceStartEvaluationScorerPreviewProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/StartEvaluationScorerPreview"
+	// AgenticEvaluationServiceGetEvaluationScorerPreviewProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's GetEvaluationScorerPreview RPC.
+	AgenticEvaluationServiceGetEvaluationScorerPreviewProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/GetEvaluationScorerPreview"
+	// AgenticEvaluationServicePublishEvaluationScorerConfigProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's PublishEvaluationScorerConfig RPC.
+	AgenticEvaluationServicePublishEvaluationScorerConfigProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/PublishEvaluationScorerConfig"
+	// AgenticEvaluationServiceSetLoopOverageCapProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's SetLoopOverageCap RPC.
+	AgenticEvaluationServiceSetLoopOverageCapProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/SetLoopOverageCap"
+	// AgenticEvaluationServiceGetLoopOverageCapProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's GetLoopOverageCap RPC.
+	AgenticEvaluationServiceGetLoopOverageCapProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/GetLoopOverageCap"
+	// AgenticEvaluationServiceGetEvaluationScorerSourceSnapshotProcedure is the fully-qualified name of
+	// the AgenticEvaluationService's GetEvaluationScorerSourceSnapshot RPC.
+	AgenticEvaluationServiceGetEvaluationScorerSourceSnapshotProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/GetEvaluationScorerSourceSnapshot"
 )
 
 // AgenticEvaluationServiceClient is a client for the o11y_one.agentic.v1.AgenticEvaluationService
@@ -454,6 +499,9 @@ type AgenticEvaluationServiceClient interface {
 	RetryEvaluationCells(context.Context, *connect.Request[v1.RetryEvaluationCellsRequest]) (*connect.Response[v1.RetryEvaluationCellsResponse], error)
 	PreviewEvaluationDecision(context.Context, *connect.Request[v1.PreviewEvaluationDecisionRequest]) (*connect.Response[v1.PreviewEvaluationDecisionResponse], error)
 	AdoptEvaluationDecisionRevision(context.Context, *connect.Request[v1.AdoptEvaluationDecisionRevisionRequest]) (*connect.Response[v1.AdoptEvaluationDecisionRevisionResponse], error)
+	// #710. Each aligned case's collapsed outcome against the reference, from the
+	// pair statement's own CTE, regressions first.
+	ListEvaluationCaseMovements(context.Context, *connect.Request[v1.ListEvaluationCaseMovementsRequest]) (*connect.Response[v1.ListEvaluationCaseMovementsResponse], error)
 	ListEvaluationMatrixRows(context.Context, *connect.Request[v1.ListEvaluationMatrixRowsRequest]) (*connect.Response[v1.ListEvaluationMatrixRowsResponse], error)
 	BatchGetEvaluationCellDetails(context.Context, *connect.Request[v1.BatchGetEvaluationCellDetailsRequest]) (*connect.Response[v1.BatchGetEvaluationCellDetailsResponse], error)
 	ListEvaluationRunChanges(context.Context, *connect.Request[v1.ListEvaluationRunChangesRequest]) (*connect.Response[v1.ListEvaluationRunChangesResponse], error)
@@ -473,6 +521,10 @@ type AgenticEvaluationServiceClient interface {
 	SubmitEvaluationReview(context.Context, *connect.Request[v1.SubmitEvaluationReviewRequest]) (*connect.Response[v1.SubmitEvaluationReviewResponse], error)
 	CreateEvaluationExport(context.Context, *connect.Request[v1.CreateEvaluationExportRequest]) (*connect.Response[v1.CreateEvaluationExportResponse], error)
 	GetEvaluationExport(context.Context, *connect.Request[v1.GetEvaluationExportRequest]) (*connect.Response[v1.GetEvaluationExportResponse], error)
+	CreateEvaluationExportDownload(context.Context, *connect.Request[v1.CreateEvaluationExportDownloadRequest]) (*connect.Response[v1.CreateEvaluationExportDownloadResponse], error)
+	// #636. Every export in the caller's organisation, newest first, keyset on
+	// `(created_at DESC, id DESC)`. Empty for a tenant fenced for offboarding.
+	ListEvaluationExports(context.Context, *connect.Request[v1.ListEvaluationExportsRequest]) (*connect.Response[v1.ListEvaluationExportsResponse], error)
 	CreateEvaluationShare(context.Context, *connect.Request[v1.CreateEvaluationShareRequest]) (*connect.Response[v1.CreateEvaluationShareResponse], error)
 	GetEvaluationShare(context.Context, *connect.Request[v1.GetEvaluationShareRequest]) (*connect.Response[v1.GetEvaluationShareResponse], error)
 	RevokeEvaluationShare(context.Context, *connect.Request[v1.RevokeEvaluationShareRequest]) (*connect.Response[v1.RevokeEvaluationShareResponse], error)
@@ -497,6 +549,12 @@ type AgenticEvaluationServiceClient interface {
 	// or finalize from a capture draft.
 	RegisterEvaluationProviderCredential(context.Context, *connect.Request[v1.RegisterEvaluationProviderCredentialRequest]) (*connect.Response[v1.RegisterEvaluationProviderCredentialResponse], error)
 	CreateEvaluationScorerConfig(context.Context, *connect.Request[v1.CreateEvaluationScorerConfigRequest]) (*connect.Response[v1.CreateEvaluationScorerConfigResponse], error)
+	// #618. A deterministic scorer spec run on one sample through the real
+	// compile and scoring path. Stores nothing.
+	PreviewEvaluationScorer(context.Context, *connect.Request[v1.PreviewEvaluationScorerRequest]) (*connect.Response[v1.PreviewEvaluationScorerResponse], error)
+	// #709. A deterministic scorer spec scored over a finished run's retained
+	// candidate outputs, a page at a time. Stores nothing.
+	CheckEvaluationScorerAgainstRun(context.Context, *connect.Request[v1.CheckEvaluationScorerAgainstRunRequest]) (*connect.Response[v1.CheckEvaluationScorerAgainstRunResponse], error)
 	CreateEvaluationDatasetVersion(context.Context, *connect.Request[v1.CreateEvaluationDatasetVersionRequest]) (*connect.Response[v1.CreateEvaluationDatasetVersionResponse], error)
 	// Wave 31 lane B. The per-credential kill switch, enforced at execution
 	// planning: a switched-off key is refused by the preview, by the launch and
@@ -525,6 +583,10 @@ type AgenticEvaluationServiceClient interface {
 	// a cursor carrying only a timestamp would skip or repeat two runs that
 	// shared a microsecond.
 	ListEvaluationRuns(context.Context, *connect.Request[v1.ListEvaluationRunsRequest]) (*connect.Response[v1.ListEvaluationRunsResponse], error)
+	// #616. Every run in the caller's organisation, newest first, with the
+	// summary the Loop overview's recent-runs table renders. Same keyset and
+	// resync discipline as `ListEvaluationRuns`.
+	ListRecentEvaluationRuns(context.Context, *connect.Request[v1.ListRecentEvaluationRunsRequest]) (*connect.Response[v1.ListRecentEvaluationRunsResponse], error)
 	// Wave 37 lane A (`PLAN:1387`). The two verbs the row names and the tree did
 	// not have. Release is a reviewer giving a task back; requeue is an operator
 	// returning one to the pool WITH a typed reason. Both bounded by the claim's
@@ -760,6 +822,17 @@ type AgenticEvaluationServiceClient interface {
 	// or records the divergence on the case. A lookup on a case that already has
 	// its verdict is refused `CASE_ALREADY_SUBMITTED`, for that case alone.
 	LookupReplayStep(context.Context, *connect.Request[v1.LookupReplayStepRequest]) (*connect.Response[v1.LookupReplayStepResponse], error)
+	// ---- #591: the replay read API ----
+	// A run's replay cases, each with its outcome against the recording it
+	// replays. NOT_FOUND for a run outside the caller's organisation.
+	ListEvaluationReplays(context.Context, *connect.Request[v1.ListEvaluationReplaysRequest]) (*connect.Response[v1.ListEvaluationReplaysResponse], error)
+	// One replay case: its recorded steps a page at a time, and for a
+	// divergence the recorded and replayed requests, each body capped at the
+	// published limit.
+	GetEvaluationReplay(context.Context, *connect.Request[v1.GetEvaluationReplayRequest]) (*connect.Response[v1.GetEvaluationReplayResponse], error)
+	// #639. The organisation's decided replays across every run, newest verdict
+	// first. Empty for a tenant fenced for offboarding.
+	ListOrganizationReplays(context.Context, *connect.Request[v1.ListOrganizationReplaysRequest]) (*connect.Response[v1.ListOrganizationReplaysResponse], error)
 	// `MUTATION_ACK`. Idempotency-keyed, machine-principal attributable, and
 	// required-scope `PLATFORM_ANNOTATION_WRITE` (wave 50 lane A's fifth
 	// discriminant, minted on this lane's ask).
@@ -939,6 +1012,23 @@ type AgenticEvaluationServiceClient interface {
 	// reasoning: a machine that must discover what it may do before it plans
 	// cannot be asked for a scope in order to ask.
 	GetAgenticEvaluationCapabilities(context.Context, *connect.Request[v1.GetAgenticEvaluationCapabilitiesRequest]) (*connect.Response[v1.GetAgenticEvaluationCapabilitiesResponse], error)
+	// P2.9b (#611). A member runs a code scorer on one input it supplies, as one
+	// PREVIEW sandbox job: no score and no dataset row is written, and it bills.
+	// The start returns at once; the read answers the job's status and result.
+	StartEvaluationScorerPreview(context.Context, *connect.Request[v1.StartEvaluationScorerPreviewRequest]) (*connect.Response[v1.StartEvaluationScorerPreviewResponse], error)
+	GetEvaluationScorerPreview(context.Context, *connect.Request[v1.GetEvaluationScorerPreviewRequest]) (*connect.Response[v1.GetEvaluationScorerPreviewResponse], error)
+	// P2.9b (#611). An admin publishes a code scorer's draft: a conformance run on
+	// each declared smoke input, then the repeatability trials its determinism
+	// class asks for, all asynchronous. `GetEvaluationScorerConfig` reads the
+	// publication's state.
+	PublishEvaluationScorerConfig(context.Context, *connect.Request[v1.PublishEvaluationScorerConfigRequest]) (*connect.Response[v1.PublishEvaluationScorerConfigResponse], error)
+	// P2.9c (#611). An owner or admin sets or clears the organization's own Loop
+	// spend cap, audited; any member reads the cap in force.
+	SetLoopOverageCap(context.Context, *connect.Request[v1.SetLoopOverageCapRequest]) (*connect.Response[v1.SetLoopOverageCapResponse], error)
+	GetLoopOverageCap(context.Context, *connect.Request[v1.GetLoopOverageCapRequest]) (*connect.Response[v1.GetLoopOverageCapResponse], error)
+	// P2.9d (#611). A saved version's source, unsealed for this read, for
+	// members and admins; a viewer is refused PERMISSION_DENIED.
+	GetEvaluationScorerSourceSnapshot(context.Context, *connect.Request[v1.GetEvaluationScorerSourceSnapshotRequest]) (*connect.Response[v1.GetEvaluationScorerSourceSnapshotResponse], error)
 }
 
 // NewAgenticEvaluationServiceClient constructs a client for the
@@ -1037,6 +1127,12 @@ func NewAgenticEvaluationServiceClient(httpClient connect.HTTPClient, baseURL st
 			connect.WithSchema(agenticEvaluationServiceMethods.ByName("AdoptEvaluationDecisionRevision")),
 			connect.WithClientOptions(opts...),
 		),
+		listEvaluationCaseMovements: connect.NewClient[v1.ListEvaluationCaseMovementsRequest, v1.ListEvaluationCaseMovementsResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceListEvaluationCaseMovementsProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("ListEvaluationCaseMovements")),
+			connect.WithClientOptions(opts...),
+		),
 		listEvaluationMatrixRows: connect.NewClient[v1.ListEvaluationMatrixRowsRequest, v1.ListEvaluationMatrixRowsResponse](
 			httpClient,
 			baseURL+AgenticEvaluationServiceListEvaluationMatrixRowsProcedure,
@@ -1107,6 +1203,18 @@ func NewAgenticEvaluationServiceClient(httpClient connect.HTTPClient, baseURL st
 			httpClient,
 			baseURL+AgenticEvaluationServiceGetEvaluationExportProcedure,
 			connect.WithSchema(agenticEvaluationServiceMethods.ByName("GetEvaluationExport")),
+			connect.WithClientOptions(opts...),
+		),
+		createEvaluationExportDownload: connect.NewClient[v1.CreateEvaluationExportDownloadRequest, v1.CreateEvaluationExportDownloadResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceCreateEvaluationExportDownloadProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("CreateEvaluationExportDownload")),
+			connect.WithClientOptions(opts...),
+		),
+		listEvaluationExports: connect.NewClient[v1.ListEvaluationExportsRequest, v1.ListEvaluationExportsResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceListEvaluationExportsProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("ListEvaluationExports")),
 			connect.WithClientOptions(opts...),
 		),
 		createEvaluationShare: connect.NewClient[v1.CreateEvaluationShareRequest, v1.CreateEvaluationShareResponse](
@@ -1205,6 +1313,18 @@ func NewAgenticEvaluationServiceClient(httpClient connect.HTTPClient, baseURL st
 			connect.WithSchema(agenticEvaluationServiceMethods.ByName("CreateEvaluationScorerConfig")),
 			connect.WithClientOptions(opts...),
 		),
+		previewEvaluationScorer: connect.NewClient[v1.PreviewEvaluationScorerRequest, v1.PreviewEvaluationScorerResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServicePreviewEvaluationScorerProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("PreviewEvaluationScorer")),
+			connect.WithClientOptions(opts...),
+		),
+		checkEvaluationScorerAgainstRun: connect.NewClient[v1.CheckEvaluationScorerAgainstRunRequest, v1.CheckEvaluationScorerAgainstRunResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceCheckEvaluationScorerAgainstRunProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("CheckEvaluationScorerAgainstRun")),
+			connect.WithClientOptions(opts...),
+		),
 		createEvaluationDatasetVersion: connect.NewClient[v1.CreateEvaluationDatasetVersionRequest, v1.CreateEvaluationDatasetVersionResponse](
 			httpClient,
 			baseURL+AgenticEvaluationServiceCreateEvaluationDatasetVersionProcedure,
@@ -1251,6 +1371,12 @@ func NewAgenticEvaluationServiceClient(httpClient connect.HTTPClient, baseURL st
 			httpClient,
 			baseURL+AgenticEvaluationServiceListEvaluationRunsProcedure,
 			connect.WithSchema(agenticEvaluationServiceMethods.ByName("ListEvaluationRuns")),
+			connect.WithClientOptions(opts...),
+		),
+		listRecentEvaluationRuns: connect.NewClient[v1.ListRecentEvaluationRunsRequest, v1.ListRecentEvaluationRunsResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceListRecentEvaluationRunsProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("ListRecentEvaluationRuns")),
 			connect.WithClientOptions(opts...),
 		),
 		releaseEvaluationReviewTasks: connect.NewClient[v1.ReleaseEvaluationReviewTasksRequest, v1.ReleaseEvaluationReviewTasksResponse](
@@ -1595,6 +1721,24 @@ func NewAgenticEvaluationServiceClient(httpClient connect.HTTPClient, baseURL st
 			connect.WithSchema(agenticEvaluationServiceMethods.ByName("LookupReplayStep")),
 			connect.WithClientOptions(opts...),
 		),
+		listEvaluationReplays: connect.NewClient[v1.ListEvaluationReplaysRequest, v1.ListEvaluationReplaysResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceListEvaluationReplaysProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("ListEvaluationReplays")),
+			connect.WithClientOptions(opts...),
+		),
+		getEvaluationReplay: connect.NewClient[v1.GetEvaluationReplayRequest, v1.GetEvaluationReplayResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceGetEvaluationReplayProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("GetEvaluationReplay")),
+			connect.WithClientOptions(opts...),
+		),
+		listOrganizationReplays: connect.NewClient[v1.ListOrganizationReplaysRequest, v1.ListOrganizationReplaysResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceListOrganizationReplaysProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("ListOrganizationReplays")),
+			connect.WithClientOptions(opts...),
+		),
 		recordPlatformAnnotation: connect.NewClient[v1.RecordPlatformAnnotationRequest, v1.RecordPlatformAnnotationResponse](
 			httpClient,
 			baseURL+AgenticEvaluationServiceRecordPlatformAnnotationProcedure,
@@ -1715,6 +1859,42 @@ func NewAgenticEvaluationServiceClient(httpClient connect.HTTPClient, baseURL st
 			connect.WithSchema(agenticEvaluationServiceMethods.ByName("GetAgenticEvaluationCapabilities")),
 			connect.WithClientOptions(opts...),
 		),
+		startEvaluationScorerPreview: connect.NewClient[v1.StartEvaluationScorerPreviewRequest, v1.StartEvaluationScorerPreviewResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceStartEvaluationScorerPreviewProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("StartEvaluationScorerPreview")),
+			connect.WithClientOptions(opts...),
+		),
+		getEvaluationScorerPreview: connect.NewClient[v1.GetEvaluationScorerPreviewRequest, v1.GetEvaluationScorerPreviewResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceGetEvaluationScorerPreviewProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("GetEvaluationScorerPreview")),
+			connect.WithClientOptions(opts...),
+		),
+		publishEvaluationScorerConfig: connect.NewClient[v1.PublishEvaluationScorerConfigRequest, v1.PublishEvaluationScorerConfigResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServicePublishEvaluationScorerConfigProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("PublishEvaluationScorerConfig")),
+			connect.WithClientOptions(opts...),
+		),
+		setLoopOverageCap: connect.NewClient[v1.SetLoopOverageCapRequest, v1.SetLoopOverageCapResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceSetLoopOverageCapProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("SetLoopOverageCap")),
+			connect.WithClientOptions(opts...),
+		),
+		getLoopOverageCap: connect.NewClient[v1.GetLoopOverageCapRequest, v1.GetLoopOverageCapResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceGetLoopOverageCapProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("GetLoopOverageCap")),
+			connect.WithClientOptions(opts...),
+		),
+		getEvaluationScorerSourceSnapshot: connect.NewClient[v1.GetEvaluationScorerSourceSnapshotRequest, v1.GetEvaluationScorerSourceSnapshotResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceGetEvaluationScorerSourceSnapshotProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("GetEvaluationScorerSourceSnapshot")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -1734,6 +1914,7 @@ type agenticEvaluationServiceClient struct {
 	retryEvaluationCells                       *connect.Client[v1.RetryEvaluationCellsRequest, v1.RetryEvaluationCellsResponse]
 	previewEvaluationDecision                  *connect.Client[v1.PreviewEvaluationDecisionRequest, v1.PreviewEvaluationDecisionResponse]
 	adoptEvaluationDecisionRevision            *connect.Client[v1.AdoptEvaluationDecisionRevisionRequest, v1.AdoptEvaluationDecisionRevisionResponse]
+	listEvaluationCaseMovements                *connect.Client[v1.ListEvaluationCaseMovementsRequest, v1.ListEvaluationCaseMovementsResponse]
 	listEvaluationMatrixRows                   *connect.Client[v1.ListEvaluationMatrixRowsRequest, v1.ListEvaluationMatrixRowsResponse]
 	batchGetEvaluationCellDetails              *connect.Client[v1.BatchGetEvaluationCellDetailsRequest, v1.BatchGetEvaluationCellDetailsResponse]
 	listEvaluationRunChanges                   *connect.Client[v1.ListEvaluationRunChangesRequest, v1.ListEvaluationRunChangesResponse]
@@ -1746,6 +1927,8 @@ type agenticEvaluationServiceClient struct {
 	submitEvaluationReview                     *connect.Client[v1.SubmitEvaluationReviewRequest, v1.SubmitEvaluationReviewResponse]
 	createEvaluationExport                     *connect.Client[v1.CreateEvaluationExportRequest, v1.CreateEvaluationExportResponse]
 	getEvaluationExport                        *connect.Client[v1.GetEvaluationExportRequest, v1.GetEvaluationExportResponse]
+	createEvaluationExportDownload             *connect.Client[v1.CreateEvaluationExportDownloadRequest, v1.CreateEvaluationExportDownloadResponse]
+	listEvaluationExports                      *connect.Client[v1.ListEvaluationExportsRequest, v1.ListEvaluationExportsResponse]
 	createEvaluationShare                      *connect.Client[v1.CreateEvaluationShareRequest, v1.CreateEvaluationShareResponse]
 	getEvaluationShare                         *connect.Client[v1.GetEvaluationShareRequest, v1.GetEvaluationShareResponse]
 	revokeEvaluationShare                      *connect.Client[v1.RevokeEvaluationShareRequest, v1.RevokeEvaluationShareResponse]
@@ -1762,6 +1945,8 @@ type agenticEvaluationServiceClient struct {
 	captureEvaluationCase                      *connect.Client[v1.CaptureEvaluationCaseRequest, v1.CaptureEvaluationCaseResponse]
 	registerEvaluationProviderCredential       *connect.Client[v1.RegisterEvaluationProviderCredentialRequest, v1.RegisterEvaluationProviderCredentialResponse]
 	createEvaluationScorerConfig               *connect.Client[v1.CreateEvaluationScorerConfigRequest, v1.CreateEvaluationScorerConfigResponse]
+	previewEvaluationScorer                    *connect.Client[v1.PreviewEvaluationScorerRequest, v1.PreviewEvaluationScorerResponse]
+	checkEvaluationScorerAgainstRun            *connect.Client[v1.CheckEvaluationScorerAgainstRunRequest, v1.CheckEvaluationScorerAgainstRunResponse]
 	createEvaluationDatasetVersion             *connect.Client[v1.CreateEvaluationDatasetVersionRequest, v1.CreateEvaluationDatasetVersionResponse]
 	setEvaluationProviderCredentialEnabled     *connect.Client[v1.SetEvaluationProviderCredentialEnabledRequest, v1.SetEvaluationProviderCredentialEnabledResponse]
 	createEvaluationScorerSuite                *connect.Client[v1.CreateEvaluationScorerSuiteRequest, v1.CreateEvaluationScorerSuiteResponse]
@@ -1770,6 +1955,7 @@ type agenticEvaluationServiceClient struct {
 	previewEvaluationJudgeRegrade              *connect.Client[v1.PreviewEvaluationJudgeRegradeRequest, v1.PreviewEvaluationJudgeRegradeResponse]
 	cancelEvaluationJudgeRegradeJob            *connect.Client[v1.CancelEvaluationJudgeRegradeJobRequest, v1.CancelEvaluationJudgeRegradeJobResponse]
 	listEvaluationRuns                         *connect.Client[v1.ListEvaluationRunsRequest, v1.ListEvaluationRunsResponse]
+	listRecentEvaluationRuns                   *connect.Client[v1.ListRecentEvaluationRunsRequest, v1.ListRecentEvaluationRunsResponse]
 	releaseEvaluationReviewTasks               *connect.Client[v1.ReleaseEvaluationReviewTasksRequest, v1.ReleaseEvaluationReviewTasksResponse]
 	requeueEvaluationReviewTasks               *connect.Client[v1.RequeueEvaluationReviewTasksRequest, v1.RequeueEvaluationReviewTasksResponse]
 	previewEvaluationCaseCapture               *connect.Client[v1.PreviewEvaluationCaseCaptureRequest, v1.PreviewEvaluationCaseCaptureResponse]
@@ -1827,6 +2013,9 @@ type agenticEvaluationServiceClient struct {
 	releaseEvaluationCaseLease                 *connect.Client[v1.ReleaseEvaluationCaseLeaseRequest, v1.ReleaseEvaluationCaseLeaseResponse]
 	recordEvaluationCaseSteps                  *connect.Client[v1.RecordEvaluationCaseStepsRequest, v1.RecordEvaluationCaseStepsResponse]
 	lookupReplayStep                           *connect.Client[v1.LookupReplayStepRequest, v1.LookupReplayStepResponse]
+	listEvaluationReplays                      *connect.Client[v1.ListEvaluationReplaysRequest, v1.ListEvaluationReplaysResponse]
+	getEvaluationReplay                        *connect.Client[v1.GetEvaluationReplayRequest, v1.GetEvaluationReplayResponse]
+	listOrganizationReplays                    *connect.Client[v1.ListOrganizationReplaysRequest, v1.ListOrganizationReplaysResponse]
 	recordPlatformAnnotation                   *connect.Client[v1.RecordPlatformAnnotationRequest, v1.RecordPlatformAnnotationResponse]
 	listPlatformAnnotations                    *connect.Client[v1.ListPlatformAnnotationsRequest, v1.ListPlatformAnnotationsResponse]
 	captureScore                               *connect.Client[v1.CaptureScoreRequest, v1.CaptureScoreResponse]
@@ -1847,6 +2036,12 @@ type agenticEvaluationServiceClient struct {
 	listDatasetChangesets                      *connect.Client[v1.ListDatasetChangesetsRequest, v1.ListDatasetChangesetsResponse]
 	listProductionAttentionItems               *connect.Client[v1.ListProductionAttentionItemsRequest, v1.ListProductionAttentionItemsResponse]
 	getAgenticEvaluationCapabilities           *connect.Client[v1.GetAgenticEvaluationCapabilitiesRequest, v1.GetAgenticEvaluationCapabilitiesResponse]
+	startEvaluationScorerPreview               *connect.Client[v1.StartEvaluationScorerPreviewRequest, v1.StartEvaluationScorerPreviewResponse]
+	getEvaluationScorerPreview                 *connect.Client[v1.GetEvaluationScorerPreviewRequest, v1.GetEvaluationScorerPreviewResponse]
+	publishEvaluationScorerConfig              *connect.Client[v1.PublishEvaluationScorerConfigRequest, v1.PublishEvaluationScorerConfigResponse]
+	setLoopOverageCap                          *connect.Client[v1.SetLoopOverageCapRequest, v1.SetLoopOverageCapResponse]
+	getLoopOverageCap                          *connect.Client[v1.GetLoopOverageCapRequest, v1.GetLoopOverageCapResponse]
+	getEvaluationScorerSourceSnapshot          *connect.Client[v1.GetEvaluationScorerSourceSnapshotRequest, v1.GetEvaluationScorerSourceSnapshotResponse]
 }
 
 // CreateEvaluationDefinition calls
@@ -1928,6 +2123,12 @@ func (c *agenticEvaluationServiceClient) AdoptEvaluationDecisionRevision(ctx con
 	return c.adoptEvaluationDecisionRevision.CallUnary(ctx, req)
 }
 
+// ListEvaluationCaseMovements calls
+// o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationCaseMovements.
+func (c *agenticEvaluationServiceClient) ListEvaluationCaseMovements(ctx context.Context, req *connect.Request[v1.ListEvaluationCaseMovementsRequest]) (*connect.Response[v1.ListEvaluationCaseMovementsResponse], error) {
+	return c.listEvaluationCaseMovements.CallUnary(ctx, req)
+}
+
 // ListEvaluationMatrixRows calls
 // o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationMatrixRows.
 func (c *agenticEvaluationServiceClient) ListEvaluationMatrixRows(ctx context.Context, req *connect.Request[v1.ListEvaluationMatrixRowsRequest]) (*connect.Response[v1.ListEvaluationMatrixRowsResponse], error) {
@@ -1995,6 +2196,17 @@ func (c *agenticEvaluationServiceClient) CreateEvaluationExport(ctx context.Cont
 // GetEvaluationExport calls o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationExport.
 func (c *agenticEvaluationServiceClient) GetEvaluationExport(ctx context.Context, req *connect.Request[v1.GetEvaluationExportRequest]) (*connect.Response[v1.GetEvaluationExportResponse], error) {
 	return c.getEvaluationExport.CallUnary(ctx, req)
+}
+
+// CreateEvaluationExportDownload calls
+// o11y_one.agentic.v1.AgenticEvaluationService.CreateEvaluationExportDownload.
+func (c *agenticEvaluationServiceClient) CreateEvaluationExportDownload(ctx context.Context, req *connect.Request[v1.CreateEvaluationExportDownloadRequest]) (*connect.Response[v1.CreateEvaluationExportDownloadResponse], error) {
+	return c.createEvaluationExportDownload.CallUnary(ctx, req)
+}
+
+// ListEvaluationExports calls o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationExports.
+func (c *agenticEvaluationServiceClient) ListEvaluationExports(ctx context.Context, req *connect.Request[v1.ListEvaluationExportsRequest]) (*connect.Response[v1.ListEvaluationExportsResponse], error) {
+	return c.listEvaluationExports.CallUnary(ctx, req)
 }
 
 // CreateEvaluationShare calls o11y_one.agentic.v1.AgenticEvaluationService.CreateEvaluationShare.
@@ -2088,6 +2300,18 @@ func (c *agenticEvaluationServiceClient) CreateEvaluationScorerConfig(ctx contex
 	return c.createEvaluationScorerConfig.CallUnary(ctx, req)
 }
 
+// PreviewEvaluationScorer calls
+// o11y_one.agentic.v1.AgenticEvaluationService.PreviewEvaluationScorer.
+func (c *agenticEvaluationServiceClient) PreviewEvaluationScorer(ctx context.Context, req *connect.Request[v1.PreviewEvaluationScorerRequest]) (*connect.Response[v1.PreviewEvaluationScorerResponse], error) {
+	return c.previewEvaluationScorer.CallUnary(ctx, req)
+}
+
+// CheckEvaluationScorerAgainstRun calls
+// o11y_one.agentic.v1.AgenticEvaluationService.CheckEvaluationScorerAgainstRun.
+func (c *agenticEvaluationServiceClient) CheckEvaluationScorerAgainstRun(ctx context.Context, req *connect.Request[v1.CheckEvaluationScorerAgainstRunRequest]) (*connect.Response[v1.CheckEvaluationScorerAgainstRunResponse], error) {
+	return c.checkEvaluationScorerAgainstRun.CallUnary(ctx, req)
+}
+
 // CreateEvaluationDatasetVersion calls
 // o11y_one.agentic.v1.AgenticEvaluationService.CreateEvaluationDatasetVersion.
 func (c *agenticEvaluationServiceClient) CreateEvaluationDatasetVersion(ctx context.Context, req *connect.Request[v1.CreateEvaluationDatasetVersionRequest]) (*connect.Response[v1.CreateEvaluationDatasetVersionResponse], error) {
@@ -2133,6 +2357,12 @@ func (c *agenticEvaluationServiceClient) CancelEvaluationJudgeRegradeJob(ctx con
 // ListEvaluationRuns calls o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationRuns.
 func (c *agenticEvaluationServiceClient) ListEvaluationRuns(ctx context.Context, req *connect.Request[v1.ListEvaluationRunsRequest]) (*connect.Response[v1.ListEvaluationRunsResponse], error) {
 	return c.listEvaluationRuns.CallUnary(ctx, req)
+}
+
+// ListRecentEvaluationRuns calls
+// o11y_one.agentic.v1.AgenticEvaluationService.ListRecentEvaluationRuns.
+func (c *agenticEvaluationServiceClient) ListRecentEvaluationRuns(ctx context.Context, req *connect.Request[v1.ListRecentEvaluationRunsRequest]) (*connect.Response[v1.ListRecentEvaluationRunsResponse], error) {
+	return c.listRecentEvaluationRuns.CallUnary(ctx, req)
 }
 
 // ReleaseEvaluationReviewTasks calls
@@ -2449,6 +2679,22 @@ func (c *agenticEvaluationServiceClient) LookupReplayStep(ctx context.Context, r
 	return c.lookupReplayStep.CallUnary(ctx, req)
 }
 
+// ListEvaluationReplays calls o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationReplays.
+func (c *agenticEvaluationServiceClient) ListEvaluationReplays(ctx context.Context, req *connect.Request[v1.ListEvaluationReplaysRequest]) (*connect.Response[v1.ListEvaluationReplaysResponse], error) {
+	return c.listEvaluationReplays.CallUnary(ctx, req)
+}
+
+// GetEvaluationReplay calls o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationReplay.
+func (c *agenticEvaluationServiceClient) GetEvaluationReplay(ctx context.Context, req *connect.Request[v1.GetEvaluationReplayRequest]) (*connect.Response[v1.GetEvaluationReplayResponse], error) {
+	return c.getEvaluationReplay.CallUnary(ctx, req)
+}
+
+// ListOrganizationReplays calls
+// o11y_one.agentic.v1.AgenticEvaluationService.ListOrganizationReplays.
+func (c *agenticEvaluationServiceClient) ListOrganizationReplays(ctx context.Context, req *connect.Request[v1.ListOrganizationReplaysRequest]) (*connect.Response[v1.ListOrganizationReplaysResponse], error) {
+	return c.listOrganizationReplays.CallUnary(ctx, req)
+}
+
 // RecordPlatformAnnotation calls
 // o11y_one.agentic.v1.AgenticEvaluationService.RecordPlatformAnnotation.
 func (c *agenticEvaluationServiceClient) RecordPlatformAnnotation(ctx context.Context, req *connect.Request[v1.RecordPlatformAnnotationRequest]) (*connect.Response[v1.RecordPlatformAnnotationResponse], error) {
@@ -2562,6 +2808,40 @@ func (c *agenticEvaluationServiceClient) GetAgenticEvaluationCapabilities(ctx co
 	return c.getAgenticEvaluationCapabilities.CallUnary(ctx, req)
 }
 
+// StartEvaluationScorerPreview calls
+// o11y_one.agentic.v1.AgenticEvaluationService.StartEvaluationScorerPreview.
+func (c *agenticEvaluationServiceClient) StartEvaluationScorerPreview(ctx context.Context, req *connect.Request[v1.StartEvaluationScorerPreviewRequest]) (*connect.Response[v1.StartEvaluationScorerPreviewResponse], error) {
+	return c.startEvaluationScorerPreview.CallUnary(ctx, req)
+}
+
+// GetEvaluationScorerPreview calls
+// o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationScorerPreview.
+func (c *agenticEvaluationServiceClient) GetEvaluationScorerPreview(ctx context.Context, req *connect.Request[v1.GetEvaluationScorerPreviewRequest]) (*connect.Response[v1.GetEvaluationScorerPreviewResponse], error) {
+	return c.getEvaluationScorerPreview.CallUnary(ctx, req)
+}
+
+// PublishEvaluationScorerConfig calls
+// o11y_one.agentic.v1.AgenticEvaluationService.PublishEvaluationScorerConfig.
+func (c *agenticEvaluationServiceClient) PublishEvaluationScorerConfig(ctx context.Context, req *connect.Request[v1.PublishEvaluationScorerConfigRequest]) (*connect.Response[v1.PublishEvaluationScorerConfigResponse], error) {
+	return c.publishEvaluationScorerConfig.CallUnary(ctx, req)
+}
+
+// SetLoopOverageCap calls o11y_one.agentic.v1.AgenticEvaluationService.SetLoopOverageCap.
+func (c *agenticEvaluationServiceClient) SetLoopOverageCap(ctx context.Context, req *connect.Request[v1.SetLoopOverageCapRequest]) (*connect.Response[v1.SetLoopOverageCapResponse], error) {
+	return c.setLoopOverageCap.CallUnary(ctx, req)
+}
+
+// GetLoopOverageCap calls o11y_one.agentic.v1.AgenticEvaluationService.GetLoopOverageCap.
+func (c *agenticEvaluationServiceClient) GetLoopOverageCap(ctx context.Context, req *connect.Request[v1.GetLoopOverageCapRequest]) (*connect.Response[v1.GetLoopOverageCapResponse], error) {
+	return c.getLoopOverageCap.CallUnary(ctx, req)
+}
+
+// GetEvaluationScorerSourceSnapshot calls
+// o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationScorerSourceSnapshot.
+func (c *agenticEvaluationServiceClient) GetEvaluationScorerSourceSnapshot(ctx context.Context, req *connect.Request[v1.GetEvaluationScorerSourceSnapshotRequest]) (*connect.Response[v1.GetEvaluationScorerSourceSnapshotResponse], error) {
+	return c.getEvaluationScorerSourceSnapshot.CallUnary(ctx, req)
+}
+
 // AgenticEvaluationServiceHandler is an implementation of the
 // o11y_one.agentic.v1.AgenticEvaluationService service.
 type AgenticEvaluationServiceHandler interface {
@@ -2579,6 +2859,9 @@ type AgenticEvaluationServiceHandler interface {
 	RetryEvaluationCells(context.Context, *connect.Request[v1.RetryEvaluationCellsRequest]) (*connect.Response[v1.RetryEvaluationCellsResponse], error)
 	PreviewEvaluationDecision(context.Context, *connect.Request[v1.PreviewEvaluationDecisionRequest]) (*connect.Response[v1.PreviewEvaluationDecisionResponse], error)
 	AdoptEvaluationDecisionRevision(context.Context, *connect.Request[v1.AdoptEvaluationDecisionRevisionRequest]) (*connect.Response[v1.AdoptEvaluationDecisionRevisionResponse], error)
+	// #710. Each aligned case's collapsed outcome against the reference, from the
+	// pair statement's own CTE, regressions first.
+	ListEvaluationCaseMovements(context.Context, *connect.Request[v1.ListEvaluationCaseMovementsRequest]) (*connect.Response[v1.ListEvaluationCaseMovementsResponse], error)
 	ListEvaluationMatrixRows(context.Context, *connect.Request[v1.ListEvaluationMatrixRowsRequest]) (*connect.Response[v1.ListEvaluationMatrixRowsResponse], error)
 	BatchGetEvaluationCellDetails(context.Context, *connect.Request[v1.BatchGetEvaluationCellDetailsRequest]) (*connect.Response[v1.BatchGetEvaluationCellDetailsResponse], error)
 	ListEvaluationRunChanges(context.Context, *connect.Request[v1.ListEvaluationRunChangesRequest]) (*connect.Response[v1.ListEvaluationRunChangesResponse], error)
@@ -2598,6 +2881,10 @@ type AgenticEvaluationServiceHandler interface {
 	SubmitEvaluationReview(context.Context, *connect.Request[v1.SubmitEvaluationReviewRequest]) (*connect.Response[v1.SubmitEvaluationReviewResponse], error)
 	CreateEvaluationExport(context.Context, *connect.Request[v1.CreateEvaluationExportRequest]) (*connect.Response[v1.CreateEvaluationExportResponse], error)
 	GetEvaluationExport(context.Context, *connect.Request[v1.GetEvaluationExportRequest]) (*connect.Response[v1.GetEvaluationExportResponse], error)
+	CreateEvaluationExportDownload(context.Context, *connect.Request[v1.CreateEvaluationExportDownloadRequest]) (*connect.Response[v1.CreateEvaluationExportDownloadResponse], error)
+	// #636. Every export in the caller's organisation, newest first, keyset on
+	// `(created_at DESC, id DESC)`. Empty for a tenant fenced for offboarding.
+	ListEvaluationExports(context.Context, *connect.Request[v1.ListEvaluationExportsRequest]) (*connect.Response[v1.ListEvaluationExportsResponse], error)
 	CreateEvaluationShare(context.Context, *connect.Request[v1.CreateEvaluationShareRequest]) (*connect.Response[v1.CreateEvaluationShareResponse], error)
 	GetEvaluationShare(context.Context, *connect.Request[v1.GetEvaluationShareRequest]) (*connect.Response[v1.GetEvaluationShareResponse], error)
 	RevokeEvaluationShare(context.Context, *connect.Request[v1.RevokeEvaluationShareRequest]) (*connect.Response[v1.RevokeEvaluationShareResponse], error)
@@ -2622,6 +2909,12 @@ type AgenticEvaluationServiceHandler interface {
 	// or finalize from a capture draft.
 	RegisterEvaluationProviderCredential(context.Context, *connect.Request[v1.RegisterEvaluationProviderCredentialRequest]) (*connect.Response[v1.RegisterEvaluationProviderCredentialResponse], error)
 	CreateEvaluationScorerConfig(context.Context, *connect.Request[v1.CreateEvaluationScorerConfigRequest]) (*connect.Response[v1.CreateEvaluationScorerConfigResponse], error)
+	// #618. A deterministic scorer spec run on one sample through the real
+	// compile and scoring path. Stores nothing.
+	PreviewEvaluationScorer(context.Context, *connect.Request[v1.PreviewEvaluationScorerRequest]) (*connect.Response[v1.PreviewEvaluationScorerResponse], error)
+	// #709. A deterministic scorer spec scored over a finished run's retained
+	// candidate outputs, a page at a time. Stores nothing.
+	CheckEvaluationScorerAgainstRun(context.Context, *connect.Request[v1.CheckEvaluationScorerAgainstRunRequest]) (*connect.Response[v1.CheckEvaluationScorerAgainstRunResponse], error)
 	CreateEvaluationDatasetVersion(context.Context, *connect.Request[v1.CreateEvaluationDatasetVersionRequest]) (*connect.Response[v1.CreateEvaluationDatasetVersionResponse], error)
 	// Wave 31 lane B. The per-credential kill switch, enforced at execution
 	// planning: a switched-off key is refused by the preview, by the launch and
@@ -2650,6 +2943,10 @@ type AgenticEvaluationServiceHandler interface {
 	// a cursor carrying only a timestamp would skip or repeat two runs that
 	// shared a microsecond.
 	ListEvaluationRuns(context.Context, *connect.Request[v1.ListEvaluationRunsRequest]) (*connect.Response[v1.ListEvaluationRunsResponse], error)
+	// #616. Every run in the caller's organisation, newest first, with the
+	// summary the Loop overview's recent-runs table renders. Same keyset and
+	// resync discipline as `ListEvaluationRuns`.
+	ListRecentEvaluationRuns(context.Context, *connect.Request[v1.ListRecentEvaluationRunsRequest]) (*connect.Response[v1.ListRecentEvaluationRunsResponse], error)
 	// Wave 37 lane A (`PLAN:1387`). The two verbs the row names and the tree did
 	// not have. Release is a reviewer giving a task back; requeue is an operator
 	// returning one to the pool WITH a typed reason. Both bounded by the claim's
@@ -2885,6 +3182,17 @@ type AgenticEvaluationServiceHandler interface {
 	// or records the divergence on the case. A lookup on a case that already has
 	// its verdict is refused `CASE_ALREADY_SUBMITTED`, for that case alone.
 	LookupReplayStep(context.Context, *connect.Request[v1.LookupReplayStepRequest]) (*connect.Response[v1.LookupReplayStepResponse], error)
+	// ---- #591: the replay read API ----
+	// A run's replay cases, each with its outcome against the recording it
+	// replays. NOT_FOUND for a run outside the caller's organisation.
+	ListEvaluationReplays(context.Context, *connect.Request[v1.ListEvaluationReplaysRequest]) (*connect.Response[v1.ListEvaluationReplaysResponse], error)
+	// One replay case: its recorded steps a page at a time, and for a
+	// divergence the recorded and replayed requests, each body capped at the
+	// published limit.
+	GetEvaluationReplay(context.Context, *connect.Request[v1.GetEvaluationReplayRequest]) (*connect.Response[v1.GetEvaluationReplayResponse], error)
+	// #639. The organisation's decided replays across every run, newest verdict
+	// first. Empty for a tenant fenced for offboarding.
+	ListOrganizationReplays(context.Context, *connect.Request[v1.ListOrganizationReplaysRequest]) (*connect.Response[v1.ListOrganizationReplaysResponse], error)
 	// `MUTATION_ACK`. Idempotency-keyed, machine-principal attributable, and
 	// required-scope `PLATFORM_ANNOTATION_WRITE` (wave 50 lane A's fifth
 	// discriminant, minted on this lane's ask).
@@ -3064,6 +3372,23 @@ type AgenticEvaluationServiceHandler interface {
 	// reasoning: a machine that must discover what it may do before it plans
 	// cannot be asked for a scope in order to ask.
 	GetAgenticEvaluationCapabilities(context.Context, *connect.Request[v1.GetAgenticEvaluationCapabilitiesRequest]) (*connect.Response[v1.GetAgenticEvaluationCapabilitiesResponse], error)
+	// P2.9b (#611). A member runs a code scorer on one input it supplies, as one
+	// PREVIEW sandbox job: no score and no dataset row is written, and it bills.
+	// The start returns at once; the read answers the job's status and result.
+	StartEvaluationScorerPreview(context.Context, *connect.Request[v1.StartEvaluationScorerPreviewRequest]) (*connect.Response[v1.StartEvaluationScorerPreviewResponse], error)
+	GetEvaluationScorerPreview(context.Context, *connect.Request[v1.GetEvaluationScorerPreviewRequest]) (*connect.Response[v1.GetEvaluationScorerPreviewResponse], error)
+	// P2.9b (#611). An admin publishes a code scorer's draft: a conformance run on
+	// each declared smoke input, then the repeatability trials its determinism
+	// class asks for, all asynchronous. `GetEvaluationScorerConfig` reads the
+	// publication's state.
+	PublishEvaluationScorerConfig(context.Context, *connect.Request[v1.PublishEvaluationScorerConfigRequest]) (*connect.Response[v1.PublishEvaluationScorerConfigResponse], error)
+	// P2.9c (#611). An owner or admin sets or clears the organization's own Loop
+	// spend cap, audited; any member reads the cap in force.
+	SetLoopOverageCap(context.Context, *connect.Request[v1.SetLoopOverageCapRequest]) (*connect.Response[v1.SetLoopOverageCapResponse], error)
+	GetLoopOverageCap(context.Context, *connect.Request[v1.GetLoopOverageCapRequest]) (*connect.Response[v1.GetLoopOverageCapResponse], error)
+	// P2.9d (#611). A saved version's source, unsealed for this read, for
+	// members and admins; a viewer is refused PERMISSION_DENIED.
+	GetEvaluationScorerSourceSnapshot(context.Context, *connect.Request[v1.GetEvaluationScorerSourceSnapshotRequest]) (*connect.Response[v1.GetEvaluationScorerSourceSnapshotResponse], error)
 }
 
 // NewAgenticEvaluationServiceHandler builds an HTTP handler from the service implementation. It
@@ -3157,6 +3482,12 @@ func NewAgenticEvaluationServiceHandler(svc AgenticEvaluationServiceHandler, opt
 		connect.WithSchema(agenticEvaluationServiceMethods.ByName("AdoptEvaluationDecisionRevision")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agenticEvaluationServiceListEvaluationCaseMovementsHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceListEvaluationCaseMovementsProcedure,
+		svc.ListEvaluationCaseMovements,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("ListEvaluationCaseMovements")),
+		connect.WithHandlerOptions(opts...),
+	)
 	agenticEvaluationServiceListEvaluationMatrixRowsHandler := connect.NewUnaryHandler(
 		AgenticEvaluationServiceListEvaluationMatrixRowsProcedure,
 		svc.ListEvaluationMatrixRows,
@@ -3227,6 +3558,18 @@ func NewAgenticEvaluationServiceHandler(svc AgenticEvaluationServiceHandler, opt
 		AgenticEvaluationServiceGetEvaluationExportProcedure,
 		svc.GetEvaluationExport,
 		connect.WithSchema(agenticEvaluationServiceMethods.ByName("GetEvaluationExport")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceCreateEvaluationExportDownloadHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceCreateEvaluationExportDownloadProcedure,
+		svc.CreateEvaluationExportDownload,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("CreateEvaluationExportDownload")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceListEvaluationExportsHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceListEvaluationExportsProcedure,
+		svc.ListEvaluationExports,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("ListEvaluationExports")),
 		connect.WithHandlerOptions(opts...),
 	)
 	agenticEvaluationServiceCreateEvaluationShareHandler := connect.NewUnaryHandler(
@@ -3325,6 +3668,18 @@ func NewAgenticEvaluationServiceHandler(svc AgenticEvaluationServiceHandler, opt
 		connect.WithSchema(agenticEvaluationServiceMethods.ByName("CreateEvaluationScorerConfig")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agenticEvaluationServicePreviewEvaluationScorerHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServicePreviewEvaluationScorerProcedure,
+		svc.PreviewEvaluationScorer,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("PreviewEvaluationScorer")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceCheckEvaluationScorerAgainstRunHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceCheckEvaluationScorerAgainstRunProcedure,
+		svc.CheckEvaluationScorerAgainstRun,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("CheckEvaluationScorerAgainstRun")),
+		connect.WithHandlerOptions(opts...),
+	)
 	agenticEvaluationServiceCreateEvaluationDatasetVersionHandler := connect.NewUnaryHandler(
 		AgenticEvaluationServiceCreateEvaluationDatasetVersionProcedure,
 		svc.CreateEvaluationDatasetVersion,
@@ -3371,6 +3726,12 @@ func NewAgenticEvaluationServiceHandler(svc AgenticEvaluationServiceHandler, opt
 		AgenticEvaluationServiceListEvaluationRunsProcedure,
 		svc.ListEvaluationRuns,
 		connect.WithSchema(agenticEvaluationServiceMethods.ByName("ListEvaluationRuns")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceListRecentEvaluationRunsHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceListRecentEvaluationRunsProcedure,
+		svc.ListRecentEvaluationRuns,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("ListRecentEvaluationRuns")),
 		connect.WithHandlerOptions(opts...),
 	)
 	agenticEvaluationServiceReleaseEvaluationReviewTasksHandler := connect.NewUnaryHandler(
@@ -3715,6 +4076,24 @@ func NewAgenticEvaluationServiceHandler(svc AgenticEvaluationServiceHandler, opt
 		connect.WithSchema(agenticEvaluationServiceMethods.ByName("LookupReplayStep")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agenticEvaluationServiceListEvaluationReplaysHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceListEvaluationReplaysProcedure,
+		svc.ListEvaluationReplays,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("ListEvaluationReplays")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceGetEvaluationReplayHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceGetEvaluationReplayProcedure,
+		svc.GetEvaluationReplay,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("GetEvaluationReplay")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceListOrganizationReplaysHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceListOrganizationReplaysProcedure,
+		svc.ListOrganizationReplays,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("ListOrganizationReplays")),
+		connect.WithHandlerOptions(opts...),
+	)
 	agenticEvaluationServiceRecordPlatformAnnotationHandler := connect.NewUnaryHandler(
 		AgenticEvaluationServiceRecordPlatformAnnotationProcedure,
 		svc.RecordPlatformAnnotation,
@@ -3835,6 +4214,42 @@ func NewAgenticEvaluationServiceHandler(svc AgenticEvaluationServiceHandler, opt
 		connect.WithSchema(agenticEvaluationServiceMethods.ByName("GetAgenticEvaluationCapabilities")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agenticEvaluationServiceStartEvaluationScorerPreviewHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceStartEvaluationScorerPreviewProcedure,
+		svc.StartEvaluationScorerPreview,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("StartEvaluationScorerPreview")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceGetEvaluationScorerPreviewHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceGetEvaluationScorerPreviewProcedure,
+		svc.GetEvaluationScorerPreview,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("GetEvaluationScorerPreview")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServicePublishEvaluationScorerConfigHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServicePublishEvaluationScorerConfigProcedure,
+		svc.PublishEvaluationScorerConfig,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("PublishEvaluationScorerConfig")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceSetLoopOverageCapHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceSetLoopOverageCapProcedure,
+		svc.SetLoopOverageCap,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("SetLoopOverageCap")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceGetLoopOverageCapHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceGetLoopOverageCapProcedure,
+		svc.GetLoopOverageCap,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("GetLoopOverageCap")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceGetEvaluationScorerSourceSnapshotHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceGetEvaluationScorerSourceSnapshotProcedure,
+		svc.GetEvaluationScorerSourceSnapshot,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("GetEvaluationScorerSourceSnapshot")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/o11y_one.agentic.v1.AgenticEvaluationService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgenticEvaluationServiceCreateEvaluationDefinitionProcedure:
@@ -3865,6 +4280,8 @@ func NewAgenticEvaluationServiceHandler(svc AgenticEvaluationServiceHandler, opt
 			agenticEvaluationServicePreviewEvaluationDecisionHandler.ServeHTTP(w, r)
 		case AgenticEvaluationServiceAdoptEvaluationDecisionRevisionProcedure:
 			agenticEvaluationServiceAdoptEvaluationDecisionRevisionHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceListEvaluationCaseMovementsProcedure:
+			agenticEvaluationServiceListEvaluationCaseMovementsHandler.ServeHTTP(w, r)
 		case AgenticEvaluationServiceListEvaluationMatrixRowsProcedure:
 			agenticEvaluationServiceListEvaluationMatrixRowsHandler.ServeHTTP(w, r)
 		case AgenticEvaluationServiceBatchGetEvaluationCellDetailsProcedure:
@@ -3889,6 +4306,10 @@ func NewAgenticEvaluationServiceHandler(svc AgenticEvaluationServiceHandler, opt
 			agenticEvaluationServiceCreateEvaluationExportHandler.ServeHTTP(w, r)
 		case AgenticEvaluationServiceGetEvaluationExportProcedure:
 			agenticEvaluationServiceGetEvaluationExportHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceCreateEvaluationExportDownloadProcedure:
+			agenticEvaluationServiceCreateEvaluationExportDownloadHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceListEvaluationExportsProcedure:
+			agenticEvaluationServiceListEvaluationExportsHandler.ServeHTTP(w, r)
 		case AgenticEvaluationServiceCreateEvaluationShareProcedure:
 			agenticEvaluationServiceCreateEvaluationShareHandler.ServeHTTP(w, r)
 		case AgenticEvaluationServiceGetEvaluationShareProcedure:
@@ -3921,6 +4342,10 @@ func NewAgenticEvaluationServiceHandler(svc AgenticEvaluationServiceHandler, opt
 			agenticEvaluationServiceRegisterEvaluationProviderCredentialHandler.ServeHTTP(w, r)
 		case AgenticEvaluationServiceCreateEvaluationScorerConfigProcedure:
 			agenticEvaluationServiceCreateEvaluationScorerConfigHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServicePreviewEvaluationScorerProcedure:
+			agenticEvaluationServicePreviewEvaluationScorerHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceCheckEvaluationScorerAgainstRunProcedure:
+			agenticEvaluationServiceCheckEvaluationScorerAgainstRunHandler.ServeHTTP(w, r)
 		case AgenticEvaluationServiceCreateEvaluationDatasetVersionProcedure:
 			agenticEvaluationServiceCreateEvaluationDatasetVersionHandler.ServeHTTP(w, r)
 		case AgenticEvaluationServiceSetEvaluationProviderCredentialEnabledProcedure:
@@ -3937,6 +4362,8 @@ func NewAgenticEvaluationServiceHandler(svc AgenticEvaluationServiceHandler, opt
 			agenticEvaluationServiceCancelEvaluationJudgeRegradeJobHandler.ServeHTTP(w, r)
 		case AgenticEvaluationServiceListEvaluationRunsProcedure:
 			agenticEvaluationServiceListEvaluationRunsHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceListRecentEvaluationRunsProcedure:
+			agenticEvaluationServiceListRecentEvaluationRunsHandler.ServeHTTP(w, r)
 		case AgenticEvaluationServiceReleaseEvaluationReviewTasksProcedure:
 			agenticEvaluationServiceReleaseEvaluationReviewTasksHandler.ServeHTTP(w, r)
 		case AgenticEvaluationServiceRequeueEvaluationReviewTasksProcedure:
@@ -4051,6 +4478,12 @@ func NewAgenticEvaluationServiceHandler(svc AgenticEvaluationServiceHandler, opt
 			agenticEvaluationServiceRecordEvaluationCaseStepsHandler.ServeHTTP(w, r)
 		case AgenticEvaluationServiceLookupReplayStepProcedure:
 			agenticEvaluationServiceLookupReplayStepHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceListEvaluationReplaysProcedure:
+			agenticEvaluationServiceListEvaluationReplaysHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceGetEvaluationReplayProcedure:
+			agenticEvaluationServiceGetEvaluationReplayHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceListOrganizationReplaysProcedure:
+			agenticEvaluationServiceListOrganizationReplaysHandler.ServeHTTP(w, r)
 		case AgenticEvaluationServiceRecordPlatformAnnotationProcedure:
 			agenticEvaluationServiceRecordPlatformAnnotationHandler.ServeHTTP(w, r)
 		case AgenticEvaluationServiceListPlatformAnnotationsProcedure:
@@ -4091,6 +4524,18 @@ func NewAgenticEvaluationServiceHandler(svc AgenticEvaluationServiceHandler, opt
 			agenticEvaluationServiceListProductionAttentionItemsHandler.ServeHTTP(w, r)
 		case AgenticEvaluationServiceGetAgenticEvaluationCapabilitiesProcedure:
 			agenticEvaluationServiceGetAgenticEvaluationCapabilitiesHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceStartEvaluationScorerPreviewProcedure:
+			agenticEvaluationServiceStartEvaluationScorerPreviewHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceGetEvaluationScorerPreviewProcedure:
+			agenticEvaluationServiceGetEvaluationScorerPreviewHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServicePublishEvaluationScorerConfigProcedure:
+			agenticEvaluationServicePublishEvaluationScorerConfigHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceSetLoopOverageCapProcedure:
+			agenticEvaluationServiceSetLoopOverageCapHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceGetLoopOverageCapProcedure:
+			agenticEvaluationServiceGetLoopOverageCapHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceGetEvaluationScorerSourceSnapshotProcedure:
+			agenticEvaluationServiceGetEvaluationScorerSourceSnapshotHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -4156,6 +4601,10 @@ func (UnimplementedAgenticEvaluationServiceHandler) AdoptEvaluationDecisionRevis
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.AdoptEvaluationDecisionRevision is not implemented"))
 }
 
+func (UnimplementedAgenticEvaluationServiceHandler) ListEvaluationCaseMovements(context.Context, *connect.Request[v1.ListEvaluationCaseMovementsRequest]) (*connect.Response[v1.ListEvaluationCaseMovementsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationCaseMovements is not implemented"))
+}
+
 func (UnimplementedAgenticEvaluationServiceHandler) ListEvaluationMatrixRows(context.Context, *connect.Request[v1.ListEvaluationMatrixRowsRequest]) (*connect.Response[v1.ListEvaluationMatrixRowsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationMatrixRows is not implemented"))
 }
@@ -4202,6 +4651,14 @@ func (UnimplementedAgenticEvaluationServiceHandler) CreateEvaluationExport(conte
 
 func (UnimplementedAgenticEvaluationServiceHandler) GetEvaluationExport(context.Context, *connect.Request[v1.GetEvaluationExportRequest]) (*connect.Response[v1.GetEvaluationExportResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationExport is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) CreateEvaluationExportDownload(context.Context, *connect.Request[v1.CreateEvaluationExportDownloadRequest]) (*connect.Response[v1.CreateEvaluationExportDownloadResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.CreateEvaluationExportDownload is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) ListEvaluationExports(context.Context, *connect.Request[v1.ListEvaluationExportsRequest]) (*connect.Response[v1.ListEvaluationExportsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationExports is not implemented"))
 }
 
 func (UnimplementedAgenticEvaluationServiceHandler) CreateEvaluationShare(context.Context, *connect.Request[v1.CreateEvaluationShareRequest]) (*connect.Response[v1.CreateEvaluationShareResponse], error) {
@@ -4268,6 +4725,14 @@ func (UnimplementedAgenticEvaluationServiceHandler) CreateEvaluationScorerConfig
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.CreateEvaluationScorerConfig is not implemented"))
 }
 
+func (UnimplementedAgenticEvaluationServiceHandler) PreviewEvaluationScorer(context.Context, *connect.Request[v1.PreviewEvaluationScorerRequest]) (*connect.Response[v1.PreviewEvaluationScorerResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.PreviewEvaluationScorer is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) CheckEvaluationScorerAgainstRun(context.Context, *connect.Request[v1.CheckEvaluationScorerAgainstRunRequest]) (*connect.Response[v1.CheckEvaluationScorerAgainstRunResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.CheckEvaluationScorerAgainstRun is not implemented"))
+}
+
 func (UnimplementedAgenticEvaluationServiceHandler) CreateEvaluationDatasetVersion(context.Context, *connect.Request[v1.CreateEvaluationDatasetVersionRequest]) (*connect.Response[v1.CreateEvaluationDatasetVersionResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.CreateEvaluationDatasetVersion is not implemented"))
 }
@@ -4298,6 +4763,10 @@ func (UnimplementedAgenticEvaluationServiceHandler) CancelEvaluationJudgeRegrade
 
 func (UnimplementedAgenticEvaluationServiceHandler) ListEvaluationRuns(context.Context, *connect.Request[v1.ListEvaluationRunsRequest]) (*connect.Response[v1.ListEvaluationRunsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationRuns is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) ListRecentEvaluationRuns(context.Context, *connect.Request[v1.ListRecentEvaluationRunsRequest]) (*connect.Response[v1.ListRecentEvaluationRunsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.ListRecentEvaluationRuns is not implemented"))
 }
 
 func (UnimplementedAgenticEvaluationServiceHandler) ReleaseEvaluationReviewTasks(context.Context, *connect.Request[v1.ReleaseEvaluationReviewTasksRequest]) (*connect.Response[v1.ReleaseEvaluationReviewTasksResponse], error) {
@@ -4528,6 +4997,18 @@ func (UnimplementedAgenticEvaluationServiceHandler) LookupReplayStep(context.Con
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.LookupReplayStep is not implemented"))
 }
 
+func (UnimplementedAgenticEvaluationServiceHandler) ListEvaluationReplays(context.Context, *connect.Request[v1.ListEvaluationReplaysRequest]) (*connect.Response[v1.ListEvaluationReplaysResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationReplays is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) GetEvaluationReplay(context.Context, *connect.Request[v1.GetEvaluationReplayRequest]) (*connect.Response[v1.GetEvaluationReplayResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationReplay is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) ListOrganizationReplays(context.Context, *connect.Request[v1.ListOrganizationReplaysRequest]) (*connect.Response[v1.ListOrganizationReplaysResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.ListOrganizationReplays is not implemented"))
+}
+
 func (UnimplementedAgenticEvaluationServiceHandler) RecordPlatformAnnotation(context.Context, *connect.Request[v1.RecordPlatformAnnotationRequest]) (*connect.Response[v1.RecordPlatformAnnotationResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.RecordPlatformAnnotation is not implemented"))
 }
@@ -4606,4 +5087,28 @@ func (UnimplementedAgenticEvaluationServiceHandler) ListProductionAttentionItems
 
 func (UnimplementedAgenticEvaluationServiceHandler) GetAgenticEvaluationCapabilities(context.Context, *connect.Request[v1.GetAgenticEvaluationCapabilitiesRequest]) (*connect.Response[v1.GetAgenticEvaluationCapabilitiesResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.GetAgenticEvaluationCapabilities is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) StartEvaluationScorerPreview(context.Context, *connect.Request[v1.StartEvaluationScorerPreviewRequest]) (*connect.Response[v1.StartEvaluationScorerPreviewResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.StartEvaluationScorerPreview is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) GetEvaluationScorerPreview(context.Context, *connect.Request[v1.GetEvaluationScorerPreviewRequest]) (*connect.Response[v1.GetEvaluationScorerPreviewResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationScorerPreview is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) PublishEvaluationScorerConfig(context.Context, *connect.Request[v1.PublishEvaluationScorerConfigRequest]) (*connect.Response[v1.PublishEvaluationScorerConfigResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.PublishEvaluationScorerConfig is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) SetLoopOverageCap(context.Context, *connect.Request[v1.SetLoopOverageCapRequest]) (*connect.Response[v1.SetLoopOverageCapResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.SetLoopOverageCap is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) GetLoopOverageCap(context.Context, *connect.Request[v1.GetLoopOverageCapRequest]) (*connect.Response[v1.GetLoopOverageCapResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.GetLoopOverageCap is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) GetEvaluationScorerSourceSnapshot(context.Context, *connect.Request[v1.GetEvaluationScorerSourceSnapshotRequest]) (*connect.Response[v1.GetEvaluationScorerSourceSnapshotResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationScorerSourceSnapshot is not implemented"))
 }

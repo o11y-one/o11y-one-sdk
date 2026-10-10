@@ -537,6 +537,20 @@ message AgenticEvaluationCapabilitiesV1 {
   uint64 capability_set_version = 1;
   repeated CapabilityPostureV1 postures = 2;
   google.protobuf.Timestamp checked_at = 3;
+  // P2.9d (#611), set 68. The runtimes a code scorer is authored against, in
+  // the full set only, as `postures` are: an embedded copy carries none.
+  repeated EvaluationScorerRuntimeV1 scorer_runtimes = 4;
+}
+
+// One language runtime a code scorer can be authored against.
+message EvaluationScorerRuntimeV1 {
+  // What `CreateEvaluationScorerConfig` takes, e.g. {id: "python-3.14", version: 1}.
+  EvaluationScorerRuntimeProfileRefV1 profile = 1;
+  EvaluationScorerCodeLanguageV1 language = 2;
+  // The interpreter release, e.g. "3.14.8".
+  string language_version = 3;
+  // The one an authoring screen preselects for its language.
+  bool is_default = 4;
 }
 
 // No subject and no filter: the set is a property of the BUILD, not of a row,
@@ -892,6 +906,8 @@ message EvaluationScorerSuiteV1 {
   EvaluationScorerSuiteCombineRuleV1 combine_rule = 5;
   repeated EvaluationScorerSuiteMemberV1 members = 6;
   google.protobuf.Timestamp created_at = 7;
+  // P2.9b (#611). One per CODE member, in author order.
+  repeated EvaluationScorerSuiteCodeMemberV1 code_members = 8;
 }
 
 // What a launch froze. Its own message rather than a reuse of the one above,
@@ -999,6 +1015,13 @@ message EvaluationHumanReviewPolicyV1 {
   bool enabled = 1;
   optional EvaluationReviewSamplingPolicyV1 sampling = 2;
   optional string rubric_score_config_id = 3;
+  // #656. Each unit compares its candidate against the decision policy's
+  // reference candidate, and the reviewer also picks a winner. Needs a reference
+  // and at least one other candidate, else INVALID_ARGUMENT
+  // `pairwise_review_needs_reference_and_challenger`. The reference's own units
+  // are not pairwise. Absent is false, so a manifest frozen before this stays
+  // non-pairwise.
+  optional bool pairwise = 4;
 }
 
 // The authored content. Everything a definition revision freezes and a run
@@ -1319,6 +1342,10 @@ message EvaluationBuilderScorerChoiceV1 {
   // one would be the unmeasured assertion `compatible_subject_kinds` above
   // already refuses to make.
   EvaluationScorerKindV1 kind = 9;
+  // P2.9d (#611). Present exactly when `kind` is CODE. The builder lists a
+  // code scorer only once it is PUBLISHED, so this carries its determinism
+  // class and whether its runtime changed.
+  optional EvaluationScorerCodeSummaryV1 code = 10;
 }
 
 message EvaluationBuilderRecommendedMeasureV1 {
@@ -1443,6 +1470,9 @@ enum EvaluationFailureStageV1 {
   EVALUATION_FAILURE_STAGE_V1_FACT_PUBLICATION = 7;
   EVALUATION_FAILURE_STAGE_V1_HUMAN_REVIEW = 8;
   EVALUATION_FAILURE_STAGE_V1_EXTERNAL_LEASE = 9;
+  // O11Y-596. Producing an export's object. A client that predates it reads
+  // the value as unknown and still has the failure's code.
+  EVALUATION_FAILURE_STAGE_V1_EXPORT = 10;
 }
 
 enum RetryabilityV1 {
@@ -2074,6 +2104,10 @@ message EvaluationRunProgressV1 {
   // this is how many of them there are, not how many were deleted (there are
   // never any of those — non-negotiable 16).
   uint32 superseded_result_count = 14;
+  // P2.9b (#611). Code scores still to come, and the cells waiting for them:
+  // a cell scoring in the sandbox is neither failed nor unscored.
+  uint32 pending_code_scorer_count = 15;
+  uint32 scoring_in_sandbox_cell_count = 16;
 }
 
 message EvaluationRunV1 {
@@ -2182,6 +2216,19 @@ message EvaluationPreviewEstimatesV1 {
   // which echoes what the author typed.
   optional CostAmountV1 budget_ceiling = 19;
   MetricAvailabilityV1 budget_ceiling_availability = 20;
+  // P2.9d (#611). The worst case of the run's code scorers: for each job, its
+  // profile's wall limit times its units, which is what launch admission
+  // reserves; no measured average exists before a run. Absent with no code
+  // scorer.
+  optional int64 sandbox_unit_seconds = 21;
+  // That worst case past what the Loop window has left of its included and
+  // purchased hours, at the plan's overage rate.
+  optional CostAmountV1 sandbox_cost = 22;
+  // NOT_SUPPORTED on a plan with no Loop rate (a contract, the trial). Sandbox
+  // time bills through the Loop window and never counts against
+  // `EvaluationBudgetV1`, so it is never folded into `evaluator_cost` or
+  // `total_cost`.
+  MetricAvailabilityV1 sandbox_cost_availability = 23;
 }
 
 // Non-negotiable 41: what this run would touch in the outside world, stated
@@ -2319,12 +2366,24 @@ message PreviewEvaluationRunRequest {
   // materialises the population whose estimate the operator agreed to rather
   // than whatever the span plane holds a minute later.
   optional LiveTraceCaseSourceV1 live_traces = 4;
+  // Price this unsaved draft instead of a saved revision (#839), so a builder
+  // can quote a draft before its author saves it.
+  //
+  // Exactly one of `definition_id` and this names what is previewed, and
+  // `revision_id` only rides `definition_id`; anything else is
+  // INVALID_ARGUMENT. The draft is accepted exactly as a create or an update
+  // accepts it, with the same refusals, and priced by the same resolver a saved
+  // revision is. Nothing is persisted, so the response names no definition or
+  // revision, carries an empty `preview_token`, and reports the blocking
+  // finding `inline_draft_not_launchable`: a launch previews the saved revision.
+  optional EvaluationDefinitionDraftV1 inline_draft = 5;
 }
 
 message PreviewEvaluationRunResponse {
   // Opaque. Verified by reconstruction at launch, not merely parsed: the server
   // re-resolves every input it binds and recomputes the digest, so a tampered
-  // or drifted token cannot launch.
+  // or drifted token cannot launch. Empty for an `inline_draft` preview, which
+  // has no saved revision to bind.
   string preview_token = 1;
   string preview_digest = 2;
   google.protobuf.Timestamp expires_at = 3;
@@ -3103,6 +3162,17 @@ message EvaluationRunFailureRollupV1 {
   // profile's budget does not have, so the availability says so rather than the
   // section implying a fidelity it does not carry.
   MetricAvailabilityV1 by_stage_availability = 6;
+  // #616. Failed cells per class and stage, classified by the taxonomy the
+  // trial counts use. Cells only: a scorer error is not a trial, and is
+  // `scorer_failure_count`.
+  repeated EvaluationFailureClassCountV1 by_class = 7;
+  MetricAvailabilityV1 by_class_availability = 8;
+}
+
+message EvaluationFailureClassCountV1 {
+  EvaluationFailureClassV1 failure_class = 1;
+  EvaluationFailureStageV1 stage = 2;
+  uint32 count = 3;
 }
 
 // The run's recovery posture: what is left, what can be re-executed, and what
@@ -3262,8 +3332,9 @@ enum StatisticalValidityV1 {
 // rather than leaving a client to assume they are the same count.
 enum EvaluationRepeatBasisV1 {
   EVALUATION_REPEAT_BASIS_V1_UNSPECIFIED = 0;
-  // Non-ERROR rollouts that produced a verdict, counted per
-  // (candidate, case, scorer) coordinate from the run's cell results.
+  // Rollouts that produced evidence, counted per (candidate, case, scorer)
+  // coordinate: a verdict, or a task-class failure counted as a failed trial.
+  // Infrastructure failures are not rollouts.
   EVALUATION_REPEAT_BASIS_V1_SCORED_ROLLOUTS = 1;
   // Rollouts the frozen plan prepared per (candidate, case) coordinate. Never
   // smaller than the scored count for the same run.
@@ -3273,7 +3344,7 @@ enum EvaluationRepeatBasisV1 {
 // How a coordinate's repeated rollouts became one outcome per case.
 enum ComparisonAlignmentRuleV1 {
   COMPARISON_ALIGNMENT_RULE_V1_UNSPECIFIED = 0;
-  // Exactly one non-ERROR rollout per coordinate: the collapse is the identity.
+  // Exactly one usable rollout per coordinate: the collapse is the identity.
   COMPARISON_ALIGNMENT_RULE_V1_SINGLE_ROLLOUT = 1;
   // The verdict with a strict lead in rollout count wins the case. An exact tie
   // for the lead is neither a regression nor an improvement AND stays in the
@@ -3326,7 +3397,7 @@ message ComparisonRepeatAlignmentV1 {
   ComparisonAlignmentRuleV1 rule = 1;
   // The rule in words, so a surface never hard-codes the semantics of `rule`.
   string reason_code = 2;
-  // Cases carrying two or more non-ERROR rollouts — the only cases a collapse
+  // Cases carrying two or more usable rollouts — the only cases a collapse
   // could resolve.
   uint32 repeated_case_count = 3;
   // Cases whose own rollouts disagreed with each other.
@@ -3347,9 +3418,11 @@ message MinimumSampleCheckV1 {
   uint32 required_count = 3;
 }
 
-// Declared per canonical-type contract §4.10 and deliberately not populated by
-// this build: a confidence interval for a paired sign test requires a method
-// choice nothing here has measured, and a wrong interval is worse than none.
+// #694. An interval on a net improved-case rate that inverts the exact sign
+// test it sits beside: it excludes zero exactly when that test is significant
+// after Holm's correction. `confidence_level` is the level it was built at,
+// Holm's per-test level 1 - alpha / (m - rank + 1), so it equals 1 - alpha only
+// when one pair was tested; its coverage is never below 1 - alpha.
 message ConfidenceIntervalV1 {
   double lower = 1;
   double upper = 2;
@@ -3421,8 +3494,10 @@ message CandidatePairComparisonV1 {
   string config_key = 3;
   string metric_name = 4;
   bool is_blocking_gate = 5;
-  // Cases where BOTH the challenger and the reference produced a non-ERROR
-  // verdict. Every count below is out of this denominator.
+  // Cases where BOTH the challenger and the reference produced evidence: a
+  // verdict, or a task-class failure, which counts as a failed trial.
+  // Infrastructure failures are not evidence. Every count below is out of this
+  // denominator.
   uint32 aligned_pair_count = 6;
   // Reference passed, challenger failed.
   uint32 regressed_count = 7;
@@ -3618,6 +3693,19 @@ enum EvaluationDecisionOutcomeV1 {
   EVALUATION_DECISION_OUTCOME_V1_BLOCKED = 4;
 }
 
+// #708. Which way a candidate's net effect went, and whether its strongest
+// Holm-corrected p cleared the decision's alpha: the test RECOMMENDED already
+// applies, stated for regressions too. Significance follows the sign of the
+// net effect, so a candidate significantly worse on one scorer and better on
+// net reads SIGNIFICANT_IMPROVEMENT.
+enum EvaluationEffectDirectionV1 {
+  EVALUATION_EFFECT_DIRECTION_V1_UNSPECIFIED = 0;
+  EVALUATION_EFFECT_DIRECTION_V1_SIGNIFICANT_IMPROVEMENT = 1;
+  EVALUATION_EFFECT_DIRECTION_V1_SIGNIFICANT_REGRESSION = 2;
+  // Tested and not significant, or significant with a net effect of zero.
+  EVALUATION_EFFECT_DIRECTION_V1_NOT_SIGNIFICANT = 3;
+}
+
 // Whether this decision is the record or a what-if.
 //
 // One enum on the one decision shape, rather than a parallel "exploration"
@@ -3677,6 +3765,18 @@ message CandidateTradeoffV1 {
   // pass^k. Absent when no scorer produced an estimate, or from a server that
   // predates it.
   optional EvaluationConsistencyV1 consistency = 10;
+  // #708. The denominator of `quality_delta`: aligned pairs summed across this
+  // candidate's scorers, so pairs × scorers rather than cases. With the summed
+  // counts above, quality_delta == (improved - regressed) / aligned_pair_count.
+  uint32 aligned_pair_count = 11;
+  // #708. Absent when `corrected_p_value` is: below a sample floor nothing was
+  // tested, which is a different answer from NOT_SIGNIFICANT.
+  optional EvaluationEffectDirectionV1 direction = 12;
+  // #694. The interval on `quality_delta` at the decision's alpha, agreeing with
+  // `direction`. Absent when `direction` is, and when `quality_delta` pools
+  // several scorers: no interval on a pooled rate agrees with a direction
+  // decided by the strongest single scorer.
+  optional ConfidenceIntervalV1 quality_delta_interval = 13;
 }
 
 // How much of the evidence the decision is standing on.
@@ -3706,6 +3806,10 @@ message EvaluationDecisionV1 {
   // was not — standing on. Below it the outcome is INSUFFICIENT_EVIDENCE, which
   // is a different answer from NO_CLEAR_WINNER and must not be confused with it.
   RepeatSampleCheckV1 repeat_sample = 12;
+  // #708. The significance threshold every tradeoff's `direction` was decided
+  // against: 1 - the policy's `minimum_confidence`, else the default. Absent on
+  // a recorded revision, whose ledger row does not persist it.
+  optional double alpha = 13;
 }
 
 // One row of the append-only ledger (canonical-type contract §4.10, plan
@@ -3963,6 +4067,87 @@ message AdoptEvaluationDecisionRevisionResponse {
 }
 
 // ===========================================================================
+// #710. Each aligned case's collapsed outcome, from the pair statement's own
+// CTE, so a list of moved cases always sums to the comparison's totals.
+// ===========================================================================
+
+// One (cohort, case, candidate, scorer) coordinate's trials collapsed to one
+// outcome: infrastructure failures dropped, task failures counted as FAIL, the
+// verdict with a strict lead in trial count, TIE on an exact tie.
+enum EvaluationCaseOutcomeV1 {
+  EVALUATION_CASE_OUTCOME_V1_UNSPECIFIED = 0;
+  EVALUATION_CASE_OUTCOME_V1_PASS = 1;
+  EVALUATION_CASE_OUTCOME_V1_FAIL = 2;
+  EVALUATION_CASE_OUTCOME_V1_TIE = 3;
+  EVALUATION_CASE_OUTCOME_V1_SKIPPED = 4;
+  EVALUATION_CASE_OUTCOME_V1_NOT_APPLICABLE = 5;
+}
+
+// How an aligned case moved against the reference. A pair's
+// `aligned_pair_count` is exactly REGRESSED + IMPROVED + UNCHANGED +
+// CHANGED_UNRANKED, and its `regressed_count`, `improved_count` and
+// `unchanged_count` are the first three.
+enum EvaluationCaseMovementV1 {
+  EVALUATION_CASE_MOVEMENT_V1_UNSPECIFIED = 0;
+  // The reference passed and the candidate failed.
+  EVALUATION_CASE_MOVEMENT_V1_REGRESSED = 1;
+  // The reference failed and the candidate passed.
+  EVALUATION_CASE_MOVEMENT_V1_IMPROVED = 2;
+  // The outcomes differ without a pass/fail flip: a TIE, SKIPPED or
+  // NOT_APPLICABLE on one side. Neither a win nor a loss.
+  EVALUATION_CASE_MOVEMENT_V1_CHANGED_UNRANKED = 3;
+  EVALUATION_CASE_MOVEMENT_V1_UNCHANGED = 4;
+}
+
+message EvaluationCaseMovementRowV1 {
+  string cohort_key = 1;
+  string case_revision_id = 2;
+  string candidate_key = 3;
+  string score_config_id = 4;
+  // Empty when the scorer has no projection row.
+  string config_key = 5;
+  EvaluationCaseOutcomeV1 candidate_outcome = 6;
+  EvaluationCaseOutcomeV1 reference_outcome = 7;
+  EvaluationCaseMovementV1 movement = 8;
+  // Rollouts the collapse counted on each side (infrastructure failures are
+  // not rollouts), and how many of them passed.
+  uint32 candidate_usable_rollout_count = 9;
+  uint32 candidate_passed_rollout_count = 10;
+  uint32 reference_usable_rollout_count = 11;
+  uint32 reference_passed_rollout_count = 12;
+}
+
+message ListEvaluationCaseMovementsRequest {
+  string evaluation_run_id = 1;
+  // Default 50, at most the published `max_page_size`. A page token is bound
+  // to the `movements` it was minted under; another filter refuses it.
+  o11y_one.common.v1.PageRequestV1 page = 2;
+  // Empty means every aligned case. UNSPECIFIED is refused, never a wildcard.
+  repeated EvaluationCaseMovementV1 movements = 3;
+  // Empty means every challenger. A key that is not one of this run's
+  // challengers (the reference included) matches no row rather than being
+  // refused. At most as many keys as a run may have candidates. A page token
+  // is bound to these too.
+  repeated string candidate_keys = 4;
+}
+
+message ListEvaluationCaseMovementsResponse {
+  // REGRESSED first, then IMPROVED, CHANGED_UNRANKED and UNCHANGED; within a
+  // movement by candidate, scorer config key, scorer id, cohort and case.
+  repeated EvaluationCaseMovementRowV1 rows = 1;
+  // `total_count` is the filtered set, counted by each page's own statement
+  // over the evidence as it stood for that page. It is read off the page's
+  // rows, so an empty continuation page (the evidence moved after the token was
+  // minted) reports 0.
+  o11y_one.common.v1.PageResponseV1 page = 2;
+  optional string reference_candidate_key = 3;
+  // NOT_SUPPORTED `no_reference_candidate` when the run pinned no reference:
+  // nothing is aligned, and an empty list must not read as "nothing moved".
+  MetricAvailabilityV1 availability = 4;
+  AgenticEvaluationCapabilitiesV1 capabilities = 5;
+}
+
+// ===========================================================================
 // The case matrix and the cell inspector (screen contract J1.11-J1.15, gaps
 // G4, G5 and G6) — increment 3B-1
 //
@@ -4073,6 +4258,42 @@ message EvaluationMatrixCellV1 {
   optional string scorer_failure_code = 13;
   uint32 attempt_generation = 14;
   bool is_blocking_gate = 15;
+  // P2.9d (#611). How the cell's scorer produces its verdict, so a chip can
+  // mark a code scorer without reading the manifest. UNSPECIFIED on a cell
+  // with no result yet, and on a scorer authored outside
+  // `CreateEvaluationScorerConfig`.
+  EvaluationScorerKindV1 scorer_kind = 16;
+}
+
+// #840. The first line of one candidate's output on one matrix row, so the grid
+// can show what a candidate answered beside its scorers' marks without a cell
+// read per cell.
+//
+// Never the output itself. `first_line` is the answer's first non-blank line
+// with every whitespace run collapsed to one space, cut at 200 characters, so a
+// row's lines cost at most 800 bytes per candidate (200 for ASCII) beside the
+// 400 B budget each of its cells already carries.
+//
+// A provider candidate's line is sanitized when its cell is written: the
+// reasoning the provider marks is never part of the answer (NN24), the
+// organization's redaction policy runs over the answer, and the line is stamped
+// with the policy that produced it; an unstamped line is never served. A
+// recorded-output candidate's line is read from its case revision. Otherwise
+// `first_line` is empty and `availability` says why:
+//   NOT_SUPPORTED `reasoning_unseparable`: an HTTP endpoint's or an external
+//     runtime's answer, which no adapter separates from its reasoning;
+//   REDACTED `candidate_output_redaction_refused`: the redaction policy
+//     refused the answer;
+//   PENDING `candidate_output_pending`: the cell has not executed yet;
+//   NOT_OBSERVED `candidate_output_absent`: the candidate produced no output,
+//     or `recorded_case_missing` when its case revision is gone;
+//   NOT_OBSERVED `candidate_output_not_retained`: written before this build,
+//     or reduced by retention.
+// AVAILABLE with an empty line is an answer that is blank.
+message EvaluationMatrixOutputPreviewV1 {
+  string candidate_key = 1;
+  string first_line = 2;
+  MetricAvailabilityV1 availability = 3;
 }
 
 message EvaluationMatrixRowV1 {
@@ -4099,6 +4320,9 @@ message EvaluationMatrixRowV1 {
   // verdicts and their own scores. A suite that replaced its members would have
   // to delete the evidence it is computed from.
   repeated EvaluationScorerSuiteCellV1 suite_cells = 9;
+  // #840. One per candidate in `cells`, in their order. Empty when the run's
+  // frozen manifest cannot be decoded.
+  repeated EvaluationMatrixOutputPreviewV1 output_previews = 10;
 }
 
 // The eight facets. A fixed vocabulary rather than a discovered one: a
@@ -4330,6 +4554,9 @@ message EvaluationScorerEvidenceV1 {
   optional CostAmountV1 attempt_economics_total = 15;
   // Whether the union is complete for this scorer, and when it is not, why.
   MetricAvailabilityV1 attempt_economics_availability = 16;
+  // P2.9b (#611). Present on a code scorer's evidence: its job's result and
+  // typed failure stage.
+  optional EvaluationCodeScorerResultV1 code = 17;
 }
 
 // Which plane recorded one scorer attempt.
@@ -4404,6 +4631,11 @@ message EvaluationCellDetailV1 {
   MetricAvailabilityV1 artifacts_availability = 7;
   EvaluationMatrixEvidenceStateV1 evidence_state = 8;
   EvaluationFreshnessV1 freshness = 9;
+  // Set only when this attempt's SDK recording never completed (the process
+  // died, or a chunk was rejected): the last step it stored. A replay of this
+  // cell answers RECORDING_INCOMPLETE, so re-run it before replaying from it.
+  // Absent for a complete recording and for a cell that recorded nothing.
+  optional uint32 incomplete_recording_last_step = 10;
 }
 
 message BatchGetEvaluationCellDetailsRequest {
@@ -4470,6 +4702,10 @@ message EvaluationRunProgressChangeV1 {
   uint32 failed_cell_count = 6;
   uint32 cancelled_cell_count = 7;
   uint32 awaiting_review_cell_count = 8;
+  // #790. As on `EvaluationRunProgressV1` (15, 16), read with every tick: the
+  // code scores still to come, and the cells waiting for them.
+  uint32 pending_code_scorer_count = 9;
+  uint32 scoring_in_sandbox_cell_count = 10;
 }
 
 // One cell moved. Coordinates and state only — the row's evidence comes from the
@@ -4892,6 +5128,15 @@ enum ReviewAdjudicationStateV1 {
   REVIEW_ADJUDICATION_STATE_V1_UNRESOLVABLE = 5;
 }
 
+// #656. Why a unit's binding submissions disagree.
+enum EvaluationReviewConflictKindV1 {
+  EVALUATION_REVIEW_CONFLICT_KIND_V1_UNSPECIFIED = 0;
+  // The verdicts differ.
+  EVALUATION_REVIEW_CONFLICT_KIND_V1_GRADES_DIFFER = 1;
+  // Same verdict, different winner. Pairwise units only.
+  EVALUATION_REVIEW_CONFLICT_KIND_V1_SPLIT_ON_PICK = 2;
+}
+
 // The unit: (evaluation run, cell coordinate, human scorer version). Owns the
 // completion policy, the conflict state, and the evidence contribution.
 message EvaluationReviewUnitV1 {
@@ -4915,6 +5160,13 @@ message EvaluationReviewUnitV1 {
   // `evaluation_run_id` and `cell` are empty — the unit names no run, because a
   // production match is not a run.
   optional string dataset_proposed_case_id = 13;
+  // #656. Present on a queue row when the unit's binding submissions conflict
+  // and the caller holds the adjudicator role; absent otherwise, so a blind
+  // reviewer learns nothing about their peers. The same rule moves a unit to
+  // `_AWAITING_ADJUDICATION` / `_REQUIRED` when its last required reviewer
+  // submits (#760). The queue lists parked cells only, so a resolved unit
+  // leaves it.
+  optional EvaluationReviewConflictKindV1 conflict_kind = 14;
 }
 
 // The task: one reviewer's slot. `review_task_id` is the durable task URL's
@@ -4975,6 +5227,10 @@ message EvaluationReviewSubjectV1 {
   // production rule proposed and asked a human to look at before it becomes
   // golden data.
   optional string dataset_proposed_case_id = 7;
+  // #656. Present on a pairwise unit: the run's reference candidate, which
+  // `presented_candidate_keys` shows beside the unit's own candidate
+  // (`cell.candidate_key`). A winner names a side relative to these two.
+  optional string baseline_candidate_key = 8;
 }
 
 message EvaluationReviewRubricFieldV1 {
@@ -5126,6 +5382,18 @@ message GetEvaluationReviewTaskResponse {
   repeated AllowedActionV1 allowed_actions = 10;
   EvaluationFreshnessV1 freshness = 11;
   AgenticEvaluationCapabilitiesV1 capabilities = 12;
+  // #775. The body of each `subject.presented_candidate_keys` entry, at the same
+  // index and never named: `artifact_id` is `presented_output_{index}`, so the
+  // subject's key at that index names it. Bounded and refused per entry as
+  // `BatchGetExecutionArtifactContents` is. Only a recorded-output candidate
+  // keeps its output; any other is `candidate_output_not_retained`. Empty
+  // unless the caller holds the task's live lease or adjudicates another
+  // reviewer's task; `presented_outputs_availability` says which.
+  repeated EvaluationArtifactContentV1 presented_outputs = 13;
+  // AVAILABLE when `presented_outputs` was read; NOT_SUPPORTED
+  // `review_lease_not_live` when the caller holds no live lease (never claimed,
+  // lapsed, or already submitted).
+  MetricAvailabilityV1 presented_outputs_availability = 14;
 }
 
 message SubmitEvaluationReviewRequest {
@@ -5152,6 +5420,9 @@ message SubmitEvaluationReviewRequest {
   //   nothing; it only made HR-4 unreachable.
   string reservation_token = 2;
   repeated MetadataEntryV1 field_values = 3;
+  // #656. Required on a pairwise unit (field error `pairwise_winner` /
+  // `required_field_missing`), and INVALID_ARGUMENT
+  // `review_pairwise_not_enabled` on any other.
   optional AnnotationPairwiseWinnerV1 pairwise_winner = 4;
   optional string explanation = 5;
   string idempotency_key = 6;
@@ -5171,6 +5442,11 @@ message SubmitEvaluationReviewRequest {
   // revision) or `_REJECT` (the row's CHECK demands a typed reason).
   optional string merge_target_case_revision_id = 9;
   optional DatasetCaseDraftRejectionReasonV1 dataset_case_rejection_reason = 10;
+  // #588. The candidate this reviewer judged the unit's candidate against, as
+  // presented to them. Optional: the server stores the subject's
+  // `baseline_candidate_key` beside the winner (#656). When sent it must equal
+  // that, else INVALID_ARGUMENT `review_baseline_invalid`.
+  optional string baseline_candidate_key = 11;
 }
 
 message SubmitEvaluationReviewResponse {
@@ -5222,12 +5498,21 @@ message EvaluationExportV1 {
   google.protobuf.Timestamp created_at = 12;
   google.protobuf.Timestamp updated_at = 13;
   optional google.protobuf.Timestamp finished_at = 14;
+  // O11Y-596. When the export's object is deleted and its download refused.
+  // Absent until the export succeeds.
+  optional google.protobuf.Timestamp expires_at = 15;
+  // #636. True once the object was deleted or `expires_at` has passed: the
+  // download is refused as expired.
+  bool expired = 16;
 }
 
 message CreateEvaluationExportRequest {
   string evaluation_run_id = 1;
   EvaluationExportFormatV1 format = 2;
   string idempotency_key = 3;
+  // O11Y-596. How long the export's object is kept once written, 1 to 720
+  // hours. Absent keeps it 48 hours.
+  optional uint32 retention_hours = 4;
 }
 
 message CreateEvaluationExportResponse {
@@ -5245,6 +5530,42 @@ message GetEvaluationExportResponse {
   repeated AllowedActionV1 allowed_actions = 2;
   EvaluationFreshnessV1 freshness = 3;
   AgenticEvaluationCapabilitiesV1 capabilities = 4;
+}
+
+// #636. One row of the organisation's exports. Never a download URL: a
+// download is `CreateEvaluationExportDownload`, audited per call.
+message EvaluationExportListRowV1 {
+  EvaluationExportV1 export = 1;
+  // The run's evaluation, by its display name.
+  string definition_display_name = 2;
+}
+
+message ListEvaluationExportsRequest {
+  o11y_one.common.v1.PageRequestV1 page = 1;
+  optional string evaluation_run_id = 2;
+  // Empty means every state. UNSPECIFIED is refused, never a wildcard.
+  repeated EvaluationOperationStateV1 states = 3;
+}
+
+message ListEvaluationExportsResponse {
+  repeated EvaluationExportListRowV1 exports = 1;
+  o11y_one.common.v1.PageResponseV1 page = 2;
+  AgenticEvaluationCapabilitiesV1 capabilities = 3;
+  optional EvaluationCursorResyncV1 resync = 4;
+}
+
+// O11Y-596. A short-lived URL for one succeeded export's object. Each call is
+// audited.
+message CreateEvaluationExportDownloadRequest {
+  string export_id = 1;
+}
+
+message CreateEvaluationExportDownloadResponse {
+  // Signed for a GET of this export's object and nothing else. Server-minted.
+  string url = 1;
+  // At most 15 minutes away, and never past the export's own expiry.
+  google.protobuf.Timestamp expires_at = 2;
+  AgenticEvaluationCapabilitiesV1 capabilities = 3;
 }
 
 enum EvaluationShareStateV1 {
@@ -5573,9 +5894,13 @@ message EvaluationReviewAdjudicationV1 {
 message AdjudicateEvaluationReviewConflictRequest {
   string review_unit_id = 1;
   repeated MetadataEntryV1 field_values = 2;
+  // #656. Required on a pairwise unit, else INVALID_ARGUMENT
+  // `review_pairwise_winner_required`.
   optional AnnotationPairwiseWinnerV1 pairwise_winner = 3;
   string reason = 4;
   string idempotency_key = 5;
+  // #588. As `SubmitEvaluationReviewRequest.baseline_candidate_key`.
+  optional string baseline_candidate_key = 6;
 }
 
 message AdjudicateEvaluationReviewConflictResponse {
@@ -6409,6 +6734,9 @@ enum EvaluationScorerKindV1 {
   // the legacy evaluator-template plane whose own executor addresses fewer
   // providers than this one does.
   EVALUATION_SCORER_KIND_V1_LLM_JUDGE = 3;
+  // P2.9a (#611). Customer code run in the sandbox. Authored as a member draft;
+  // preview and publication come later, and a run refuses a draft by name.
+  EVALUATION_SCORER_KIND_V1_CODE = 4;
 }
 
 // The deterministic comparators this build runs, authored rather than
@@ -6550,6 +6878,8 @@ message EvaluationScorerConfigV1 {
   // echoing the reference would tell a client its scorer still points at a row
   // it no longer depends on.
   optional EvaluationScorerJudgeSpecV1 judge = 14;
+  // P2.9a (#611). Present exactly when `kind` is CODE.
+  optional EvaluationScorerCodeConfigV1 code = 15;
 }
 
 enum EvaluationScorerConfigRejectionKindV1 {
@@ -6589,6 +6919,26 @@ enum EvaluationScorerConfigRejectionKindV1 {
   // it. Refused rather than copied, so "copy from the template as you last saw
   // it" is a keepable promise.
   EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_JUDGE_TEMPLATE_MOVED = 8;
+  // The evaluator's config block cannot run as written: absent for a built-in
+  // that needs one, present on an evaluator that takes none, belonging to
+  // another evaluator, or a regex or JSON Schema this build refuses to compile.
+  // `reason_code` says which.
+  EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_EVALUATOR_CONFIG_INVALID = 9;
+  // P2.9a (#611). Code scorers are not available to this organization right
+  // now. `reason_code` is `sandbox_unavailable`.
+  EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_SANDBOX_UNAVAILABLE = 10;
+  // P2.9a (#611). The code specification cannot run as written: a source
+  // bundle over a limit or with a path that is not a relative `.py` path, a
+  // language, runtime profile or limit profile this build does not have, or a
+  // determinism class a code scorer cannot declare. `reason_code` says which.
+  EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_CODE_SPEC_INVALID = 11;
+  // P2.9b (#611). The code scorer is published, or being published, and a
+  // published version never changes: author a new config key. `reason_code` is
+  // `scorer_config_published` or `scorer_config_publishing`.
+  EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_CODE_VERSION_IMMUTABLE = 12;
+  // P2.9b (#611). A preview input or a smoke input the sandbox would refuse, or
+  // a publish without 1 to 3 smoke inputs. `reason_code` says which.
+  EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_CODE_INPUT_INVALID = 13;
 }
 
 message EvaluationScorerConfigRejectionV1 {
@@ -6763,6 +7113,8 @@ message CreateEvaluationScorerConfigRequest {
   string idempotency_key = 11;
   // Wave 45 lane A. Present exactly when `kind` is LLM_JUDGE.
   optional EvaluationScorerJudgeSpecV1 judge = 12;
+  // P2.9a (#611). Present exactly when `kind` is CODE.
+  optional EvaluationScorerCodeSpecV1 code = 13;
 }
 
 message CreateEvaluationScorerConfigResponse {
@@ -6770,6 +7122,513 @@ message CreateEvaluationScorerConfigResponse {
   bool idempotent_replay = 2;
   AgenticEvaluationCapabilitiesV1 capabilities = 3;
 }
+
+// #618. A deterministic spec run once on a sample, nothing stored. The spec
+// compiles as publication compiles it, so a spec publication would refuse is
+// refused here with the same EVALUATOR_CONFIG_INVALID `reason_code`, and the
+// sample is scored as the scorer worker scores a cell.
+message PreviewEvaluationScorerRequest {
+  EvaluationScorerDeterministicSpecV1 spec = 1;
+  // JSON text: the candidate output `subject_path` reads. Text and not
+  // `google.protobuf.Value` because this file imports no `struct.proto` (R6/R7).
+  string sample_output_json = 2;
+  // JSON text: the case document `expected_path` reads, so the expected value
+  // sits under `expected_output` unless the spec names another path.
+  optional string sample_case_json = 3;
+}
+
+message PreviewEvaluationScorerResponse {
+  EvaluationScorerPreviewResultV1 result = 1;
+  AgenticEvaluationCapabilitiesV1 capabilities = 2;
+}
+
+enum EvaluationScorerPreviewVerdictV1 {
+  EVALUATION_SCORER_PREVIEW_VERDICT_V1_UNSPECIFIED = 0;
+  EVALUATION_SCORER_PREVIEW_VERDICT_V1_PASS = 1;
+  EVALUATION_SCORER_PREVIEW_VERDICT_V1_FAIL = 2;
+  // The scorer could not produce a verdict; `reason_code` says why.
+  EVALUATION_SCORER_PREVIEW_VERDICT_V1_ERROR = 3;
+}
+
+// What the scorer worker would record for this sample, and what decided it.
+// The diagnostic is computed after the verdict and never changes it. Every
+// offset counts UTF-16 code units into `subject_text`.
+message EvaluationScorerPreviewResultV1 {
+  EvaluationScorerPreviewVerdictV1 verdict = 1;
+  // Absent on ERROR.
+  optional double score = 2;
+  // The code the worker records: on ERROR why there is no verdict, otherwise
+  // its note on the input (`json_invalid`, `json_duplicate_keys`) or empty.
+  string reason_code = 3;
+  // The value at `subject_path`: a string as itself, any other value as JSON
+  // text. Empty when the path resolves nothing.
+  string subject_text = 4;
+  // Absent when the evaluator did not get far enough to have one.
+  oneof diagnostic {
+    // REGEX: the first match.
+    EvaluationScorerPreviewSpanV1 regex_match = 5;
+    // PATTERN: where the expected substring is first found.
+    EvaluationScorerPreviewSpanV1 contains_found = 6;
+    EvaluationScorerPreviewExactV1 exact = 7;
+    EvaluationScorerPreviewNumericV1 numeric = 8;
+    EvaluationScorerPreviewJsonValidV1 json_valid = 9;
+    EvaluationScorerPreviewJsonSchemaV1 json_schema = 10;
+    EvaluationScorerPreviewNormalizedV1 normalized_string = 11;
+    EvaluationScorerPreviewLevenshteinV1 levenshtein = 12;
+  }
+}
+
+// A half-open range of UTF-16 code units into `subject_text`.
+message EvaluationScorerPreviewSpanV1 {
+  uint32 start = 1;
+  uint32 end = 2;
+}
+
+message EvaluationScorerPreviewExactV1 {
+  // RFC 6901 pointer to the first place subject and expected differ, `""` for
+  // the whole value. Absent when they are equal.
+  optional string first_difference_pointer = 1;
+}
+
+message EvaluationScorerPreviewNumericV1 {
+  // Each absent when that operand is not a number.
+  optional double subject = 1;
+  optional double expected = 2;
+}
+
+message EvaluationScorerPreviewJsonValidV1 {
+  // Where the parser stopped, present when the subject is not valid JSON.
+  // Line and column are one-based; column and offset count UTF-16 code units.
+  optional uint32 error_line = 1;
+  optional uint32 error_column = 2;
+  optional uint32 error_offset = 3;
+  // Valid JSON that names one object key twice.
+  bool duplicate_keys = 4;
+}
+
+message EvaluationScorerPreviewSchemaErrorV1 {
+  // JSON pointer into the subject's JSON value, not an offset into `subject_text`.
+  string instance_path = 1;
+  string keyword = 2;
+}
+
+message EvaluationScorerPreviewJsonSchemaV1 {
+  // The first `max_schema_errors` failures, as `evaluation_scorer_preview`
+  // publishes it.
+  repeated EvaluationScorerPreviewSchemaErrorV1 errors = 1;
+  // The true count, always.
+  uint32 error_count = 2;
+}
+
+message EvaluationScorerPreviewNormalizedV1 {
+  string folded_subject = 1;
+  string folded_expected = 2;
+}
+
+message EvaluationScorerPreviewLevenshteinV1 {
+  // Absent when the operands are over `max_levenshtein_cells`.
+  optional uint64 distance = 1;
+  uint64 max_distance = 2;
+}
+
+// #709. A deterministic spec scored over a finished run's retained candidate
+// outputs, one keyset page at a time, through the same compile and scoring as
+// `PreviewEvaluationScorer`. Stores nothing.
+//
+// Only a recorded-output candidate keeps its output, in the case revision its
+// `dataset_field` names. Nothing else is retained: live provider and endpoint
+// responses are never stored, and an externally executed candidate's
+// submission is a queue row (NN24) that `discard_external_submissions` deletes
+// once its cell is scored. Every other candidate's cells are counted as not
+// scored, never re-run; do not add a read of the submission queue here.
+//
+// A recorded output is the same text on every trial and in every cohort, so a
+// page scores each distinct (case revision, recorded candidate) once and
+// counts outputs, not trials. A run that is still preparing or running is
+// refused `run_not_finished`; one awaiting review is not, since its recorded
+// outputs are complete.
+message CheckEvaluationScorerAgainstRunRequest {
+  string evaluation_run_id = 1;
+  EvaluationScorerDeterministicSpecV1 spec = 2;
+  // Absent starts at the run's first output. Only a token this verb issued.
+  optional string page_token = 3;
+}
+
+// An output the spec failed or could not score. It is the same output on every
+// trial and in every cohort, so it names neither.
+message EvaluationScorerRunCheckFailureV1 {
+  reserved 1, 4;
+  reserved "cohort_key", "trial";
+  string candidate_key = 2;
+  string case_revision_id = 3;
+  // FAIL or ERROR.
+  EvaluationScorerPreviewVerdictV1 verdict = 5;
+  string reason_code = 6;
+}
+
+// Cells this page could not score, for one reason:
+// `candidate_output_not_retained` (the candidate keeps no output),
+// `candidate_output_absent` (the cell did not succeed, or its recorded output
+// is missing) or `recorded_case_missing`.
+message EvaluationScorerRunCheckNotScoredV1 {
+  string reason_code = 1;
+  // Cells, not outputs.
+  uint32 cell_count = 2;
+}
+
+message CheckEvaluationScorerAgainstRunResponse {
+  // This page's distinct outputs by verdict. A client sums them across pages.
+  uint32 pass_count = 1;
+  uint32 fail_count = 2;
+  uint32 error_count = 3;
+  repeated EvaluationScorerRunCheckNotScoredV1 not_scored = 4;
+  // This page's first `max_first_failures`, in (candidate, case) order.
+  repeated EvaluationScorerRunCheckFailureV1 first_failures = 5;
+  // The cells this page covered, scored or not.
+  uint32 cells_checked = 6;
+  // Every cell in the run, so a client can show progress across pages.
+  uint32 total_cell_count = 7;
+  // Absent on the last page.
+  optional string next_page_token = 8;
+  AgenticEvaluationCapabilitiesV1 capabilities = 9;
+  // The distinct (case revision, recorded candidate) outputs this page scored:
+  // pass + fail + error.
+  uint32 scored_output_count = 10;
+}
+
+// ---- P2.9a (#611): code scorer authoring ----
+//
+// The sandbox's own wire (`sandbox/v1`) is internal; these mirror the parts of
+// it an author chooses, with the same numbers, and the server converts.
+
+enum EvaluationScorerCodeLanguageV1 {
+  EVALUATION_SCORER_CODE_LANGUAGE_V1_UNSPECIFIED = 0;
+  EVALUATION_SCORER_CODE_LANGUAGE_V1_PYTHON = 1;
+  // P2.9d (#611). The sandbox runs it where the deployment serves the
+  // `typescript-base` runtime (#764), but `scorer_runtimes` lists none yet and
+  // authoring refuses it with `code_language_unsupported`.
+  EVALUATION_SCORER_CODE_LANGUAGE_V1_TYPESCRIPT = 2;
+}
+
+// One file of a source bundle. There is no file-type field, so a bundle cannot
+// carry a symlink.
+message EvaluationScorerSourceFileV1 {
+  // A relative path of identifiers ending in `.py` or `.ts`, as the language
+  // says (the entry file is `score.py` or `score.ts`), at most 256 bytes.
+  string path = 1;
+  // UTF-8 text without NUL.
+  bytes content = 2;
+}
+
+message EvaluationScorerRuntimeProfileRefV1 {
+  // 1 to 64 bytes.
+  string id = 1;
+  uint32 version = 2;
+}
+
+// The sandbox's launch limit table, by its numbers.
+enum EvaluationScorerLimitProfileV1 {
+  EVALUATION_SCORER_LIMIT_PROFILE_V1_UNSPECIFIED = 0;
+  EVALUATION_SCORER_LIMIT_PROFILE_V1_SMALL = 1;
+  EVALUATION_SCORER_LIMIT_PROFILE_V1_STANDARD = 2;
+  EVALUATION_SCORER_LIMIT_PROFILE_V1_LARGE = 3;
+}
+
+message EvaluationScorerLimitProfileRefV1 {
+  EvaluationScorerLimitProfileV1 id = 1;
+  uint32 version = 2;
+}
+
+// What a code scorer is authored with. The source is write-only through the
+// authoring RPC; readable by members through GetEvaluationScorerSourceSnapshot.
+// It is sealed under the organization's data key and stored outside the
+// database, and every other read shows its digest instead.
+message EvaluationScorerCodeSpecV1 {
+  EvaluationScorerCodeLanguageV1 language = 1;
+  // At most 32 files and 256 KiB of content, paths strictly ascending, so one
+  // bundle has one encoding and one digest.
+  repeated EvaluationScorerSourceFileV1 files = 2;
+  // The bundle path of the module that defines `score(input, context)`.
+  string entrypoint_path = 3;
+  EvaluationScorerRuntimeProfileRefV1 runtime_profile = 4;
+  EvaluationScorerLimitProfileRefV1 limit_profile = 5;
+  // SEEDED_BEST_EFFORT or NONDETERMINISTIC. DETERMINISTIC belongs to the
+  // built-in comparators and is refused here.
+  EvaluationDeterminismClassV1 determinism_class = 6;
+  // P2.9b (#611). The case fields the scorer reads, distinct; empty reads the
+  // case input, the candidate output and the reference output. The correction
+  // and the original context enter the sandbox only when named here.
+  repeated EvaluationScorerInputFieldV1 input_fields = 7;
+}
+
+// A code scorer as every read shows it: what will run, and never the source.
+message EvaluationScorerCodeConfigV1 {
+  EvaluationScorerCodeLanguageV1 language = 1;
+  // SHA-256 of the encoded bundle, 32 bytes.
+  bytes bundle_sha256 = 2;
+  uint64 bundle_size_bytes = 3;
+  string entrypoint_path = 4;
+  EvaluationScorerRuntimeProfileRefV1 runtime_profile = 5;
+  EvaluationScorerLimitProfileRefV1 limit_profile = 6;
+  // P2.9b (#611). NONDETERMINISTIC once a SEEDED_BEST_EFFORT version's
+  // repeatability trials disagreed.
+  EvaluationDeterminismClassV1 determinism_class = 7;
+  // P2.9b (#611).
+  repeated EvaluationScorerInputFieldV1 input_fields = 8;
+  EvaluationScorerCodePublicationStateV1 publication_state = 9;
+  // Why the last publication was rejected, or published NONDETERMINISTIC.
+  optional string publication_reason_code = 10;
+  // SHA-256 of the sandbox artifact manifest the conformance run ran on; empty
+  // until published.
+  bytes artifact_manifest_sha256 = 11;
+  // P2.9d (#611). True when the sandbox now boots other artifacts than this
+  // version was published on, the check a launch refuses with
+  // `code_scorer_artifacts_changed`. Present only on a PUBLISHED version while
+  // the sandbox serves the organization; absent otherwise, which is unknown.
+  // The fix is a new scorer key: a published version never changes.
+  optional bool runtime_changed = 12;
+  // P2.9d (#611), on GetEvaluationScorerConfig's read. The 1-based index into
+  // the publication's `smoke_inputs` whose conformance run failed. Present
+  // exactly when the version is REJECTED by the scorer's own failure; absent
+  // for `sandbox_unavailable`.
+  optional uint32 publication_failed_smoke_input = 13;
+  // That conformance run's result: its stage, code, limit and log counts, the
+  // streams for members and admins only.
+  optional EvaluationCodeScorerResultV1 publication_failure = 14;
+}
+
+// P2.9d (#611). A code scorer as the library and the builder list it: the
+// same values as `EvaluationScorerCodeConfigV1`, read from the same row.
+message EvaluationScorerCodeSummaryV1 {
+  EvaluationScorerCodePublicationStateV1 publication_state = 1;
+  // Why the last publication was rejected, or published NONDETERMINISTIC.
+  optional string publication_reason_code = 2;
+  EvaluationDeterminismClassV1 determinism_class = 3;
+  // As `EvaluationScorerCodeConfigV1.runtime_changed`.
+  optional bool runtime_changed = 4;
+}
+
+// ---- end P2.9a ----
+
+// ---- P2.9b (#611): code scorer preview, publication and results ----
+
+// The sandbox contract's input fields, by its numbers.
+enum EvaluationScorerInputFieldV1 {
+  EVALUATION_SCORER_INPUT_FIELD_V1_UNSPECIFIED = 0;
+  EVALUATION_SCORER_INPUT_FIELD_V1_CASE_INPUT = 1;
+  EVALUATION_SCORER_INPUT_FIELD_V1_CANDIDATE_OUTPUT = 2;
+  EVALUATION_SCORER_INPUT_FIELD_V1_REFERENCE_OUTPUT = 3;
+  EVALUATION_SCORER_INPUT_FIELD_V1_CORRECTION = 4;
+  EVALUATION_SCORER_INPUT_FIELD_V1_ORIGINAL_CONTEXT = 5;
+}
+
+// DRAFT -> PUBLISHING -> PUBLISHED | REJECTED. A published version is
+// immutable, and only a published version joins a suite.
+enum EvaluationScorerCodePublicationStateV1 {
+  EVALUATION_SCORER_CODE_PUBLICATION_STATE_V1_UNSPECIFIED = 0;
+  EVALUATION_SCORER_CODE_PUBLICATION_STATE_V1_DRAFT = 1;
+  EVALUATION_SCORER_CODE_PUBLICATION_STATE_V1_PUBLISHING = 2;
+  EVALUATION_SCORER_CODE_PUBLICATION_STATE_V1_PUBLISHED = 3;
+  EVALUATION_SCORER_CODE_PUBLICATION_STATE_V1_REJECTED = 4;
+}
+
+// One case as a code scorer reads it. Each field is JSON text, given only for
+// a field the scorer's input fields name.
+message EvaluationScorerCodeInputV1 {
+  optional string case_input_json = 1;
+  optional string candidate_output_json = 2;
+  optional string reference_output_json = 3;
+  optional string correction_json = 4;
+  optional string original_context_json = 5;
+}
+
+enum EvaluationCodeScorerJobStateV1 {
+  EVALUATION_CODE_SCORER_JOB_STATE_V1_UNSPECIFIED = 0;
+  EVALUATION_CODE_SCORER_JOB_STATE_V1_QUEUED = 1;
+  EVALUATION_CODE_SCORER_JOB_STATE_V1_RUNNING = 2;
+  EVALUATION_CODE_SCORER_JOB_STATE_V1_FINISHED = 3;
+}
+
+// Where a code scorer's attempt failed, by the sandbox contract's numbers:
+// COMPILE, RUNTIME and LIMIT are the scorer's own, the rest the platform's.
+enum EvaluationCodeScorerFailureStageV1 {
+  EVALUATION_CODE_SCORER_FAILURE_STAGE_V1_UNSPECIFIED = 0;
+  EVALUATION_CODE_SCORER_FAILURE_STAGE_V1_COMPILE = 1;
+  EVALUATION_CODE_SCORER_FAILURE_STAGE_V1_RUNTIME = 2;
+  EVALUATION_CODE_SCORER_FAILURE_STAGE_V1_LIMIT = 3;
+  EVALUATION_CODE_SCORER_FAILURE_STAGE_V1_SANDBOX = 4;
+  EVALUATION_CODE_SCORER_FAILURE_STAGE_V1_HOST_LOSS = 5;
+  EVALUATION_CODE_SCORER_FAILURE_STAGE_V1_CANCELLATION = 6;
+  EVALUATION_CODE_SCORER_FAILURE_STAGE_V1_AMBIGUOUS = 7;
+}
+
+// The scorer's capped stdout and stderr, sealed under the organization's data
+// key. The streams themselves are for members and admins; a viewer reads the
+// counts, flags and digests only.
+message EvaluationCodeScorerLogsV1 {
+  uint32 stdout_bytes = 1;
+  bool stdout_truncated = 2;
+  bytes stdout_sha256 = 3;
+  uint32 stderr_bytes = 4;
+  bool stderr_truncated = 5;
+  bytes stderr_sha256 = 6;
+  optional bytes stdout = 7;
+  optional bytes stderr = 8;
+}
+
+// One code scorer job: a cell's, a preview's or a publication's.
+message EvaluationCodeScorerResultV1 {
+  string job_id = 1;
+  EvaluationCodeScorerJobStateV1 state = 2;
+  // UNSPECIFIED until FINISHED.
+  EvaluationVerdictV1 verdict = 3;
+  optional double score = 4;
+  // The canonical attempt's stage; absent on a success and on a job no
+  // attempt ended.
+  EvaluationCodeScorerFailureStageV1 failure_stage = 5;
+  // The stable code the result settles as, e.g. `scorer_runtime_error` or
+  // `sandbox_unavailable`. Never the guest's text.
+  optional string failure_code = 6;
+  // Absent until the attempt reported streams.
+  optional EvaluationCodeScorerLogsV1 logs = 7;
+  // P2.9d (#611). The label `score()` returned, at most 256 bytes: present on a
+  // FINISHED job with a PASS or FAIL verdict whose scorer returned one. It is
+  // the scorer's output, not a log, so every role reads it.
+  optional string label = 8;
+  // The canonical attempt's sandbox clock from ready to end, before billing
+  // rounds it. A cell's `EvaluationScorerEvidenceV1.duration_micros` is the
+  // same value.
+  optional int64 duration_micros = 9;
+  // The limit the scorer reached: `wall_time_exceeded`, `cpu_time_exceeded`,
+  // `memory_limit_exceeded` or `pids_limit_exceeded`. Present exactly when
+  // `failure_stage` is LIMIT; `failure_code` stays `scorer_resource_limit`.
+  optional string limit_code = 10;
+  // The sandbox blocked a system call the scorer made. Which call is never
+  // said; `failure_code` stays `scorer_runtime_error` at stage RUNTIME.
+  bool system_call_blocked = 11;
+  // Where a preview's scorer failed to compile or raised: set on a preview's
+  // job only, for members and admins only, at stage COMPILE or RUNTIME. Never
+  // on a cell or a publication's trial.
+  optional EvaluationCodeScorerErrorDetailV1 error_detail = 12;
+  // The unit-seconds charged to the job's attempts: each attempt's ready-to-end
+  // time rounded up to whole seconds, at least 1 and at most the profile's wall
+  // limit, times the profile's units. 0 when only attempts the platform caused
+  // ran. Present once FINISHED.
+  optional int64 billed_unit_seconds = 13;
+}
+
+// A preview's compile or runtime error, as the scorer's code raised it.
+message EvaluationCodeScorerErrorDetailV1 {
+  // e.g. "ModuleNotFoundError"; empty when the scorer raised nothing of its
+  // own, as for an output outside the scorer contract.
+  string exception_type = 1;
+  // Sanitized, at most 1 KiB. It may quote the preview's own input.
+  string message = 2;
+  // A bundle path, e.g. "score.py". Absent when the failing frame is outside
+  // the bundle.
+  optional string path = 3;
+  optional uint32 line = 4;
+}
+
+message StartEvaluationScorerPreviewRequest {
+  string score_config_id = 1;
+  EvaluationScorerCodeInputV1 input = 2;
+  string idempotency_key = 3;
+}
+
+message StartEvaluationScorerPreviewResponse {
+  string preview_id = 1;
+  bool idempotent_replay = 2;
+  AgenticEvaluationCapabilitiesV1 capabilities = 3;
+}
+
+message GetEvaluationScorerPreviewRequest {
+  string preview_id = 1;
+}
+
+message GetEvaluationScorerPreviewResponse {
+  string preview_id = 1;
+  string score_config_id = 2;
+  EvaluationCodeScorerResultV1 result = 3;
+}
+
+message PublishEvaluationScorerConfigRequest {
+  string score_config_id = 1;
+  // 1 to 3, each within the scorer's limit profile.
+  repeated EvaluationScorerCodeInputV1 smoke_inputs = 2;
+  string idempotency_key = 3;
+}
+
+message PublishEvaluationScorerConfigResponse {
+  string score_config_id = 1;
+  // PUBLISHING once a publication started; a replay reads it as it stands.
+  EvaluationScorerCodeConfigV1 code = 2;
+  bool idempotent_replay = 3;
+  AgenticEvaluationCapabilitiesV1 capabilities = 4;
+}
+
+message GetEvaluationScorerSourceSnapshotRequest {
+  string score_config_id = 1;
+  // Absent: the current version.
+  optional string version_discriminator = 2;
+}
+
+// One saved version of a code scorer, its source included. Every version
+// authored from P2.9d on is kept, and the version current when it shipped.
+message GetEvaluationScorerSourceSnapshotResponse {
+  string score_config_id = 1;
+  string version_discriminator = 2;
+  EvaluationScorerCodeLanguageV1 language = 3;
+  bytes bundle_sha256 = 4;
+  uint64 bundle_size_bytes = 5;
+  string entrypoint_path = 6;
+  // At most 32 files and 256 KiB of content, paths ascending.
+  repeated EvaluationScorerSourceFileV1 files = 7;
+}
+
+// What a suite froze of a code member when it was authored.
+message EvaluationScorerSuiteCodeMemberV1 {
+  string score_config_id = 1;
+  bytes bundle_sha256 = 2;
+  EvaluationScorerRuntimeProfileRefV1 runtime_profile = 3;
+  EvaluationScorerLimitProfileRefV1 limit_profile = 4;
+  bytes artifact_manifest_sha256 = 5;
+}
+
+// ---- end P2.9b ----
+
+// ---- P2.9c (#611): the organization's Loop spend cap ----
+
+// The most a window's Loop sandbox overage may reach before new code-scorer
+// work is refused with `loop_spend_cap_reached`; work already started finishes.
+message LoopOverageCapV1 {
+  // The cap in force, in cents: the organization's own, else its plan's.
+  // Absent when neither caps it.
+  optional int64 cap_cents = 1;
+  // True when the organization set no cap of its own, so its plan's applies.
+  bool plan_default = 2;
+  // P2.9d (#611). The plan's own default cap, whether or not the organization
+  // set one. Absent when the plan has none.
+  optional int64 plan_default_cap_cents = 3;
+}
+
+message SetLoopOverageCapRequest {
+  // In cents, at least 0. Absent clears the organization's own cap, and its
+  // plan's default applies again.
+  optional int64 cap_cents = 1;
+}
+
+message SetLoopOverageCapResponse {
+  LoopOverageCapV1 cap = 1;
+}
+
+message GetLoopOverageCapRequest {}
+
+message GetLoopOverageCapResponse {
+  LoopOverageCapV1 cap = 1;
+}
+
+// ---- end P2.9c ----
 
 // What one ingested case declared about itself.
 //
@@ -7058,6 +7917,12 @@ enum EvaluationScorerSuiteRejectionKindV1 {
   // storage CHECK as an untyped error; a bound only a 500 can teach you is not
   // a published bound.
   EVALUATION_SCORER_SUITE_REJECTION_KIND_V1_MEMBER_WEIGHT_UNUSABLE = 8;
+  // P2.9b (#611). A CODE member that is not published. `offending_members`
+  // names each, reason `code_member_not_published`.
+  EVALUATION_SCORER_SUITE_REJECTION_KIND_V1_MEMBER_NOT_PUBLISHED = 9;
+  // P2.9b (#611). The suite's only blocking gate is a NONDETERMINISTIC code
+  // scorer.
+  EVALUATION_SCORER_SUITE_REJECTION_KIND_V1_NONDETERMINISTIC_SOLE_GATE = 10;
 }
 
 // One member the suite was refused FOR, and why.
@@ -7849,6 +8714,110 @@ message ListEvaluationRunsResponse {
   optional EvaluationCursorResyncV1 resync = 5;
 }
 
+// #616. A dataset a run's frozen cohorts drew from. `name` is the collection's
+// CURRENT name, and is unset when the collection no longer exists.
+message EvaluationRecentRunDatasetV1 {
+  string dataset_collection_id = 1;
+  optional string name = 2;
+}
+
+// #616. The run's latest ADOPTED decision revision, as recorded.
+message EvaluationRecentRunVerdictV1 {
+  EvaluationDecisionOutcomeV1 outcome = 1;
+  // The method the revision was adopted under, never relabelled.
+  string algorithm_version = 2;
+  uint32 revision_ordinal = 3;
+  optional string recommended_candidate_key = 4;
+  optional string reference_candidate_key = 5;
+  google.protobuf.Timestamp adopted_at = 6;
+}
+
+// #616. One row of the Loop overview's recent runs. Every field is read from
+// stored data; an unset field is an absence its availability names.
+message EvaluationRecentRunV1 {
+  EvaluationRunSummaryV1 run = 1;
+  string definition_display_name = 2;
+  // From the frozen manifest. Unset only when the manifest cannot be read.
+  optional uint32 case_count = 3;
+  optional uint32 trials = 4;
+  MetricAvailabilityV1 manifest_availability = 5;
+  // One per frozen cohort. Empty, with NOT_SUPPORTED, for a live-trace run.
+  repeated EvaluationRecentRunDatasetV1 datasets = 6;
+  MetricAvailabilityV1 datasets_availability = 7;
+  // The weakest class across the frozen scorers. Unset when any scorer was
+  // frozen before the class existed: an unknown scorer is never read as
+  // deterministic.
+  optional EvaluationDeterminismClassV1 weakest_determinism_class = 8;
+  MetricAvailabilityV1 determinism_availability = 9;
+  // PENDING `no_decision_adopted` until somebody adopts one.
+  optional EvaluationRecentRunVerdictV1 verdict = 10;
+  MetricAvailabilityV1 verdict_availability = 11;
+  // The decision's evidence, read from the run summary written when the run
+  // finished (#637) and never derived per row. The headline is the recommended
+  // candidate, else the sole challenger; with neither, these stay unset under
+  // `no_single_headline`, and without a summary under
+  // `run_summary_not_recorded`.
+  optional string headline_candidate_key = 12;
+  optional double p_value = 13;
+  optional uint32 improved_case_count = 14;
+  optional uint32 regressed_case_count = 15;
+  optional double pass_at_k = 16;
+  optional double pass_hat_k = 17;
+  // Signed: the headline candidate's pass^k minus the reference's.
+  optional double pass_hat_k_delta = 18;
+  optional uint32 flaky_case_count = 19;
+  MetricAvailabilityV1 decision_evidence_availability = 20;
+  // #637. The evidence version the summary was computed over, and whether the
+  // run's evidence has since moved past it. A stale summary is still served,
+  // flagged, until the maintenance sweep refreshes it.
+  optional uint64 summary_evidence_version = 21;
+  bool summary_stale = 22;
+  // #637. The method the summary was computed under, and whether it differs
+  // from the adopted verdict's (`verdict.algorithm_version`): a run finished
+  // before summaries existed is backfilled under today's method, and its
+  // evidence must not read as the support for a verdict adopted under another.
+  optional string summary_algorithm_version = 23;
+  bool evidence_method_differs = 24;
+  // #708. The headline's `CandidateTradeoffV1` figures and its decision's
+  // alpha, copied from the summary and unset with the other headline fields.
+  // `effect_size` is the signed net improved rate,
+  // (improved - regressed) / aligned_pair_count, using this row's counts.
+  optional double effect_size = 25;
+  // Aligned pairs summed across the headline's scorers: pairs × scorers, not
+  // cases.
+  optional uint32 aligned_pair_count = 26;
+  // Absent when `p_value` is: below a sample floor nothing was tested, which
+  // is a different answer from NOT_SIGNIFICANT.
+  optional EvaluationEffectDirectionV1 direction = 27;
+  // The threshold `direction` was decided against, under the run's frozen
+  // decision policy.
+  optional double alpha = 28;
+  // #694. The headline tradeoff's `quality_delta_interval`, copied from the
+  // summary. Its availability says why it is unset: the headline fields' own
+  // reasons, `pooled_across_scorers`, or `summary_predates_interval` for a
+  // summary computed under a method before the interval existed, which is never
+  // recomputed for that alone.
+  optional ConfidenceIntervalV1 confidence_interval = 29;
+  MetricAvailabilityV1 confidence_interval_availability = 30;
+}
+
+message ListRecentEvaluationRunsRequest {
+  o11y_one.common.v1.PageRequestV1 page = 1;
+  // Empty means every state. UNSPECIFIED is refused, never a wildcard.
+  repeated EvaluationRunStateV1 states = 2;
+  // Matched against the latest adopted revision. Empty means every run,
+  // including runs with no decision.
+  repeated EvaluationDecisionOutcomeV1 decision_outcomes = 3;
+}
+
+message ListRecentEvaluationRunsResponse {
+  repeated EvaluationRecentRunV1 runs = 1;
+  o11y_one.common.v1.PageResponseV1 page = 2;
+  EvaluationFreshnessV1 freshness = 3;
+  AgenticEvaluationCapabilitiesV1 capabilities = 4;
+  optional EvaluationCursorResyncV1 resync = 5;
+}
+
 // ===========================================================================
 // Review task release and requeue — PLAN:1387, wave 37 lane A
 // ===========================================================================
@@ -7957,6 +8926,9 @@ service AgenticEvaluationService {
   rpc RetryEvaluationCells(RetryEvaluationCellsRequest) returns (RetryEvaluationCellsResponse);
   rpc PreviewEvaluationDecision(PreviewEvaluationDecisionRequest) returns (PreviewEvaluationDecisionResponse);
   rpc AdoptEvaluationDecisionRevision(AdoptEvaluationDecisionRevisionRequest) returns (AdoptEvaluationDecisionRevisionResponse);
+  // #710. Each aligned case's collapsed outcome against the reference, from the
+  // pair statement's own CTE, regressions first.
+  rpc ListEvaluationCaseMovements(ListEvaluationCaseMovementsRequest) returns (ListEvaluationCaseMovementsResponse);
   rpc ListEvaluationMatrixRows(ListEvaluationMatrixRowsRequest) returns (ListEvaluationMatrixRowsResponse);
   rpc BatchGetEvaluationCellDetails(BatchGetEvaluationCellDetailsRequest) returns (BatchGetEvaluationCellDetailsResponse);
   rpc ListEvaluationRunChanges(ListEvaluationRunChangesRequest) returns (ListEvaluationRunChangesResponse);
@@ -7978,6 +8950,10 @@ service AgenticEvaluationService {
   rpc SubmitEvaluationReview(SubmitEvaluationReviewRequest) returns (SubmitEvaluationReviewResponse);
   rpc CreateEvaluationExport(CreateEvaluationExportRequest) returns (CreateEvaluationExportResponse);
   rpc GetEvaluationExport(GetEvaluationExportRequest) returns (GetEvaluationExportResponse);
+  rpc CreateEvaluationExportDownload(CreateEvaluationExportDownloadRequest) returns (CreateEvaluationExportDownloadResponse);
+  // #636. Every export in the caller's organisation, newest first, keyset on
+  // `(created_at DESC, id DESC)`. Empty for a tenant fenced for offboarding.
+  rpc ListEvaluationExports(ListEvaluationExportsRequest) returns (ListEvaluationExportsResponse);
   rpc CreateEvaluationShare(CreateEvaluationShareRequest) returns (CreateEvaluationShareResponse);
   rpc GetEvaluationShare(GetEvaluationShareRequest) returns (GetEvaluationShareResponse);
   rpc RevokeEvaluationShare(RevokeEvaluationShareRequest) returns (RevokeEvaluationShareResponse);
@@ -8002,6 +8978,12 @@ service AgenticEvaluationService {
   // or finalize from a capture draft.
   rpc RegisterEvaluationProviderCredential(RegisterEvaluationProviderCredentialRequest) returns (RegisterEvaluationProviderCredentialResponse);
   rpc CreateEvaluationScorerConfig(CreateEvaluationScorerConfigRequest) returns (CreateEvaluationScorerConfigResponse);
+  // #618. A deterministic scorer spec run on one sample through the real
+  // compile and scoring path. Stores nothing.
+  rpc PreviewEvaluationScorer(PreviewEvaluationScorerRequest) returns (PreviewEvaluationScorerResponse);
+  // #709. A deterministic scorer spec scored over a finished run's retained
+  // candidate outputs, a page at a time. Stores nothing.
+  rpc CheckEvaluationScorerAgainstRun(CheckEvaluationScorerAgainstRunRequest) returns (CheckEvaluationScorerAgainstRunResponse);
   rpc CreateEvaluationDatasetVersion(CreateEvaluationDatasetVersionRequest) returns (CreateEvaluationDatasetVersionResponse);
   // Wave 31 lane B. The per-credential kill switch, enforced at execution
   // planning: a switched-off key is refused by the preview, by the launch and
@@ -8030,6 +9012,10 @@ service AgenticEvaluationService {
   // a cursor carrying only a timestamp would skip or repeat two runs that
   // shared a microsecond.
   rpc ListEvaluationRuns(ListEvaluationRunsRequest) returns (ListEvaluationRunsResponse);
+  // #616. Every run in the caller's organisation, newest first, with the
+  // summary the Loop overview's recent-runs table renders. Same keyset and
+  // resync discipline as `ListEvaluationRuns`.
+  rpc ListRecentEvaluationRuns(ListRecentEvaluationRunsRequest) returns (ListRecentEvaluationRunsResponse);
   // Wave 37 lane A (`PLAN:1387`). The two verbs the row names and the tree did
   // not have. Release is a reviewer giving a task back; requeue is an operator
   // returning one to the pool WITH a typed reason. Both bounded by the claim's
@@ -8353,6 +9339,17 @@ service AgenticEvaluationService {
   // or records the divergence on the case. A lookup on a case that already has
   // its verdict is refused `CASE_ALREADY_SUBMITTED`, for that case alone.
   rpc LookupReplayStep(LookupReplayStepRequest) returns (LookupReplayStepResponse);
+  // ---- #591: the replay read API ----
+  // A run's replay cases, each with its outcome against the recording it
+  // replays. NOT_FOUND for a run outside the caller's organisation.
+  rpc ListEvaluationReplays(ListEvaluationReplaysRequest) returns (ListEvaluationReplaysResponse);
+  // One replay case: its recorded steps a page at a time, and for a
+  // divergence the recorded and replayed requests, each body capped at the
+  // published limit.
+  rpc GetEvaluationReplay(GetEvaluationReplayRequest) returns (GetEvaluationReplayResponse);
+  // #639. The organisation's decided replays across every run, newest verdict
+  // first. Empty for a tenant fenced for offboarding.
+  rpc ListOrganizationReplays(ListOrganizationReplaysRequest) returns (ListOrganizationReplaysResponse);
 
   // ---- wave 50 lane C: the platform-annotations plane ----
   //
@@ -8587,6 +9584,24 @@ service AgenticEvaluationService {
   // reasoning: a machine that must discover what it may do before it plans
   // cannot be asked for a scope in order to ask.
   rpc GetAgenticEvaluationCapabilities(GetAgenticEvaluationCapabilitiesRequest) returns (GetAgenticEvaluationCapabilitiesResponse);
+  // P2.9b (#611). A member runs a code scorer on one input it supplies, as one
+  // PREVIEW sandbox job: no score and no dataset row is written, and it bills.
+  // The start returns at once; the read answers the job's status and result.
+  rpc StartEvaluationScorerPreview(StartEvaluationScorerPreviewRequest) returns (StartEvaluationScorerPreviewResponse);
+  rpc GetEvaluationScorerPreview(GetEvaluationScorerPreviewRequest) returns (GetEvaluationScorerPreviewResponse);
+  // P2.9b (#611). An admin publishes a code scorer's draft: a conformance run on
+  // each declared smoke input, then the repeatability trials its determinism
+  // class asks for, all asynchronous. `GetEvaluationScorerConfig` reads the
+  // publication's state.
+  rpc PublishEvaluationScorerConfig(PublishEvaluationScorerConfigRequest) returns (PublishEvaluationScorerConfigResponse);
+  // P2.9c (#611). An owner or admin sets or clears the organization's own Loop
+  // spend cap, audited; any member reads the cap in force.
+  rpc SetLoopOverageCap(SetLoopOverageCapRequest) returns (SetLoopOverageCapResponse);
+  rpc GetLoopOverageCap(GetLoopOverageCapRequest) returns (GetLoopOverageCapResponse);
+  // P2.9d (#611). A saved version's source, unsealed for this read, for
+  // members and admins; a viewer is refused PERMISSION_DENIED.
+  rpc GetEvaluationScorerSourceSnapshot(GetEvaluationScorerSourceSnapshotRequest)
+      returns (GetEvaluationScorerSourceSnapshotResponse);
 }
 
 // ===========================================================================
@@ -13209,6 +14224,201 @@ message LookupReplayStepResponse {
   AgenticEvaluationCapabilitiesV1 capabilities = 4;
 }
 // ---- end O11Y-633 ----
+
+// ---- #591: the replay read API ----
+//
+// What a person reads of a replay candidate's cases: each case's outcome
+// against the recording it replays, and for a divergence, the recorded and the
+// replayed requests side by side. Every body is shown as the server stored it,
+// redacted.
+
+enum ReplayStatusV1 {
+  REPLAY_STATUS_V1_UNSPECIFIED = 0;
+  // No verdict yet.
+  REPLAY_STATUS_V1_PENDING = 1;
+  // No call left the recording, and the runtime submitted the case's output.
+  REPLAY_STATUS_V1_MATCHED = 2;
+  // A request differed from the recorded one, or the agent made more calls
+  // than were recorded. A failed trial of the agent.
+  REPLAY_STATUS_V1_DIVERGED = 3;
+  // The source has no complete recording of the case. Not a failed trial.
+  REPLAY_STATUS_V1_INCOMPLETE = 4;
+  // Any other verdict; `failure_code` names it.
+  REPLAY_STATUS_V1_FAILED = 5;
+}
+
+// UNSPECIFIED lists every replay case, PENDING and FAILED included.
+enum ReplayListFilterV1 {
+  REPLAY_LIST_FILTER_V1_UNSPECIFIED = 0;
+  REPLAY_LIST_FILTER_V1_MATCHED = 1;
+  REPLAY_LIST_FILTER_V1_DIVERGED = 2;
+  REPLAY_LIST_FILTER_V1_INCOMPLETE = 3;
+}
+
+message ReplaySummaryV1 {
+  EvaluationCellRefV1 cell = 1;
+  int32 attempt_generation = 2;
+  ReplayStatusV1 status = 3;
+  optional string failure_code = 4;
+  // Set for DIVERGED and INCOMPLETE.
+  optional ReplayDivergenceKindV1 divergence_kind = 5;
+  optional uint32 divergence_step = 6;
+  // Steps answered from the recording, set only when known: those before the
+  // divergence. Unset for a MATCHED or PENDING replay, whose lookups are not
+  // counted.
+  optional uint32 replayed_steps = 7;
+  // Steps in the recording of the source's verdict execution; unset when it
+  // has none.
+  optional uint32 recorded_steps = 8;
+  bool source_complete = 9;
+  string source_evaluation_run_id = 10;
+  string source_candidate_key = 11;
+  // When the case's verdict was reached.
+  optional google.protobuf.Timestamp verdict_at = 12;
+  // #639. The source's recording this case replays, and when its last step was
+  // stored; unset when the source has none.
+  optional string recording_id = 13;
+  optional google.protobuf.Timestamp recorded_at = 14;
+}
+
+// #639. How many cases each filter lists for the request's run and candidate,
+// whatever its own filter and page: what that filter pages through.
+message ReplayListTotalsV1 {
+  uint32 all = 1;
+  uint32 matched = 2;
+  uint32 diverged = 3;
+  uint32 incomplete = 4;
+}
+
+message ListEvaluationReplaysRequest {
+  string evaluation_run_id = 1;
+  // One replay candidate of the run; absent means every one.
+  optional string candidate_key = 2;
+  ReplayListFilterV1 filter = 3;
+  // 1 to 100; absent means 50.
+  optional uint32 page_size = 4;
+  // The previous page's `next_page_token`.
+  optional string page_token = 5;
+}
+
+// In cell-coordinate order. An empty run or filter is an empty list.
+message ListEvaluationReplaysResponse {
+  repeated ReplaySummaryV1 replays = 1;
+  optional string next_page_token = 2;
+  bool has_more = 3;
+  AgenticEvaluationCapabilitiesV1 capabilities = 4;
+  ReplayListTotalsV1 totals = 5;
+}
+
+message GetEvaluationReplayRequest {
+  string evaluation_run_id = 1;
+  EvaluationCellRefV1 cell = 2;
+  // The previous response's `next_steps_page_token`.
+  optional string steps_page_token = 3;
+}
+
+enum ReplayStepResultV1 {
+  REPLAY_STEP_RESULT_V1_UNSPECIFIED = 0;
+  // Before the divergence: answered from the recording.
+  REPLAY_STEP_RESULT_V1_MATCHED = 1;
+  REPLAY_STEP_RESULT_V1_DIVERGED = 2;
+  // After the divergence: the case stopped before it.
+  REPLAY_STEP_RESULT_V1_NOT_REPLAYED = 3;
+  // A replay with no divergence: lookups are not counted, so whether the
+  // agent reached this step is not known.
+  REPLAY_STEP_RESULT_V1_UNCOUNTED = 4;
+}
+
+// One recorded step, from the recording's index: no body.
+message ReplayStepV1 {
+  uint32 step = 1;
+  RecordedCallKindV1 kind = 2;
+  string tool_name = 3;
+  ReplayStepResultV1 result = 4;
+}
+
+// Why a body is not shown. UNSPECIFIED means it is.
+enum ReplayPayloadOmissionV1 {
+  REPLAY_PAYLOAD_OMISSION_V1_UNSPECIFIED = 0;
+  // Over the published per-body limit; `byte_length` says by how much.
+  REPLAY_PAYLOAD_OMISSION_V1_TOO_LARGE = 1;
+  // This deployment cannot read stored bodies.
+  REPLAY_PAYLOAD_OMISSION_V1_UNAVAILABLE = 2;
+}
+
+message ReplayPayloadV1 {
+  // JSON, redacted as stored.
+  optional string body_json = 1;
+  uint64 byte_length = 2;
+  ReplayPayloadOmissionV1 omitted = 3;
+}
+
+// A candidate's tool definitions as frozen at launch.
+message ReplayToolSchemaV1 {
+  repeated string tool_definitions_json = 1;
+  optional string tool_schema_digest = 2;
+  uint64 byte_length = 3;
+  ReplayPayloadOmissionV1 omitted = 4;
+}
+
+message GetEvaluationReplayResponse {
+  ReplaySummaryV1 replay = 1;
+  bool counts_as_task_failure = 2;
+  // A shown body holds the redaction marker.
+  bool redaction_applied = 3;
+  repeated ReplayStepV1 steps = 4;
+  optional string next_steps_page_token = 5;
+  bool steps_has_more = 6;
+  // The diverging step's, unset where the recording holds no such step.
+  optional ReplayPayloadV1 recorded_request = 7;
+  optional ReplayPayloadV1 recorded_response = 8;
+  // What the replayed agent sent at the diverging step, redacted as a
+  // recorded request is.
+  optional ReplayPayloadV1 observed_request = 9;
+  // The source candidate's, and the replay candidate's.
+  optional ReplayToolSchemaV1 recorded_tool_schema = 10;
+  optional ReplayToolSchemaV1 replayed_tool_schema = 11;
+  // The two frozen tool-schema digests differ.
+  bool tool_schema_drift = 12;
+  AgenticEvaluationCapabilitiesV1 capabilities = 13;
+  // #639. The trace the case was recorded from; unset for a case not taken
+  // from a trace. Not the replay's own execution, which records no trace.
+  optional string case_trace_id = 14;
+  // #639. The evaluation definition of the run this case replays; unset once
+  // that run is gone.
+  optional string source_definition_id = 15;
+}
+
+// #639. A replay's run and its labels, for a list that spans runs.
+message OrganizationReplayV1 {
+  string evaluation_run_id = 1;
+  string definition_id = 2;
+  string definition_name = 3;
+  string candidate_display_label = 4;
+  ReplaySummaryV1 replay = 5;
+}
+
+message ListOrganizationReplaysRequest {
+  ReplayListFilterV1 filter = 1;
+  // 1 to 100; absent means 50.
+  optional uint32 page_size = 2;
+  // The previous page's `next_page_token`, for the same filter.
+  optional string page_token = 3;
+}
+
+// Replays with a verdict, the runtime's or the server's, newest first. A
+// pending replay, or one its runtime abandoned, lists only in its run.
+message ListOrganizationReplaysResponse {
+  repeated OrganizationReplayV1 replays = 1;
+  optional string next_page_token = 2;
+  bool has_more = 3;
+  // Over the newest `replay_views.org_totals_cap` replays.
+  ReplayListTotalsV1 totals = 4;
+  // More replays exist than the totals count.
+  bool totals_capped = 5;
+  AgenticEvaluationCapabilitiesV1 capabilities = 6;
+}
+// ---- end #591 ----
 // ---- wave 50 lane C: the platform-annotations plane ----
 //
 // APPROVED BY THE OPERATOR ON 2026-09-05 over an OTLP ridealong, with the
@@ -13502,6 +14712,9 @@ message EvaluationScorerConfigSummaryV1 {
   // UUID is the shape wave 50 lane A's principal-kind column pair exists to
   // stop.
   optional PrincipalRefV1 created_by = 18;
+  // P2.9d (#611). Present exactly when `kind` is CODE, read from the same row,
+  // so the library shows a publication with no read per scorer.
+  optional EvaluationScorerCodeSummaryV1 code = 19;
   // NOTE — there is deliberately no `updated_by`. The authoring record carries
   // `updated_at` and no updater column, and inventing one from `created_by`
   // would attribute a revision to whoever authored `v0`.
@@ -13653,6 +14866,10 @@ message EvaluationScorerConfigDetailV1 {
   // cell publishes and may be shorter.
   uint32 pinned_run_count = 24;
   repeated string pinned_run_id = 25;
+  // P2.9a (#611). Present on the CURRENT version of a CODE scorer: only the
+  // current one can run. A historic version's source reads through
+  // GetEvaluationScorerSourceSnapshot, and its digest through the version list.
+  optional EvaluationScorerCodeConfigV1 code = 26;
 }
 
 // Who depends on this scorer.
@@ -13750,6 +14967,9 @@ message EvaluationScorerConfigVersionV1 {
   uint32 verdict_mapping_count = 8;
   google.protobuf.Timestamp created_at = 9;
   optional PrincipalRefV1 created_by = 10;
+  // P2.9d (#611). A code version's bundle digest, where its source was kept,
+  // so two versions with the same digest need no comparing.
+  optional bytes code_bundle_sha256 = 11;
   // NOTE — `pass_threshold`, `metric_name` and `description` are deliberately
   // ABSENT from this message at every version. All three live on
   // `score_configs`, which the revision path UPDATES IN PLACE, so the values a

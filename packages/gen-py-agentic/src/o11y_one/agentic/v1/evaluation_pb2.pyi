@@ -419,6 +419,7 @@ class EvaluationFailureStageV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper
     EVALUATION_FAILURE_STAGE_V1_FACT_PUBLICATION: _ClassVar[EvaluationFailureStageV1]
     EVALUATION_FAILURE_STAGE_V1_HUMAN_REVIEW: _ClassVar[EvaluationFailureStageV1]
     EVALUATION_FAILURE_STAGE_V1_EXTERNAL_LEASE: _ClassVar[EvaluationFailureStageV1]
+    EVALUATION_FAILURE_STAGE_V1_EXPORT: _ClassVar[EvaluationFailureStageV1]
 
 class RetryabilityV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -694,6 +695,13 @@ class EvaluationDecisionOutcomeV1(int, metaclass=_enum_type_wrapper.EnumTypeWrap
     EVALUATION_DECISION_OUTCOME_V1_INSUFFICIENT_EVIDENCE: _ClassVar[EvaluationDecisionOutcomeV1]
     EVALUATION_DECISION_OUTCOME_V1_BLOCKED: _ClassVar[EvaluationDecisionOutcomeV1]
 
+class EvaluationEffectDirectionV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    EVALUATION_EFFECT_DIRECTION_V1_UNSPECIFIED: _ClassVar[EvaluationEffectDirectionV1]
+    EVALUATION_EFFECT_DIRECTION_V1_SIGNIFICANT_IMPROVEMENT: _ClassVar[EvaluationEffectDirectionV1]
+    EVALUATION_EFFECT_DIRECTION_V1_SIGNIFICANT_REGRESSION: _ClassVar[EvaluationEffectDirectionV1]
+    EVALUATION_EFFECT_DIRECTION_V1_NOT_SIGNIFICANT: _ClassVar[EvaluationEffectDirectionV1]
+
 class EvaluationDecisionProvenanceV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     EVALUATION_DECISION_PROVENANCE_V1_UNSPECIFIED: _ClassVar[EvaluationDecisionProvenanceV1]
@@ -709,6 +717,23 @@ class DecisionBlockerKindV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     DECISION_BLOCKER_KIND_V1_MIN_COVERAGE_NOT_MET: _ClassVar[DecisionBlockerKindV1]
     DECISION_BLOCKER_KIND_V1_EVIDENCE_INCOMPLETE: _ClassVar[DecisionBlockerKindV1]
     DECISION_BLOCKER_KIND_V1_NOT_COMPARABLE: _ClassVar[DecisionBlockerKindV1]
+
+class EvaluationCaseOutcomeV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    EVALUATION_CASE_OUTCOME_V1_UNSPECIFIED: _ClassVar[EvaluationCaseOutcomeV1]
+    EVALUATION_CASE_OUTCOME_V1_PASS: _ClassVar[EvaluationCaseOutcomeV1]
+    EVALUATION_CASE_OUTCOME_V1_FAIL: _ClassVar[EvaluationCaseOutcomeV1]
+    EVALUATION_CASE_OUTCOME_V1_TIE: _ClassVar[EvaluationCaseOutcomeV1]
+    EVALUATION_CASE_OUTCOME_V1_SKIPPED: _ClassVar[EvaluationCaseOutcomeV1]
+    EVALUATION_CASE_OUTCOME_V1_NOT_APPLICABLE: _ClassVar[EvaluationCaseOutcomeV1]
+
+class EvaluationCaseMovementV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    EVALUATION_CASE_MOVEMENT_V1_UNSPECIFIED: _ClassVar[EvaluationCaseMovementV1]
+    EVALUATION_CASE_MOVEMENT_V1_REGRESSED: _ClassVar[EvaluationCaseMovementV1]
+    EVALUATION_CASE_MOVEMENT_V1_IMPROVED: _ClassVar[EvaluationCaseMovementV1]
+    EVALUATION_CASE_MOVEMENT_V1_CHANGED_UNRANKED: _ClassVar[EvaluationCaseMovementV1]
+    EVALUATION_CASE_MOVEMENT_V1_UNCHANGED: _ClassVar[EvaluationCaseMovementV1]
 
 class EvaluationMatrixSortKeyV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -870,6 +895,12 @@ class ReviewAdjudicationStateV1(int, metaclass=_enum_type_wrapper.EnumTypeWrappe
     REVIEW_ADJUDICATION_STATE_V1_RESOLVED: _ClassVar[ReviewAdjudicationStateV1]
     REVIEW_ADJUDICATION_STATE_V1_UNRESOLVABLE: _ClassVar[ReviewAdjudicationStateV1]
 
+class EvaluationReviewConflictKindV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    EVALUATION_REVIEW_CONFLICT_KIND_V1_UNSPECIFIED: _ClassVar[EvaluationReviewConflictKindV1]
+    EVALUATION_REVIEW_CONFLICT_KIND_V1_GRADES_DIFFER: _ClassVar[EvaluationReviewConflictKindV1]
+    EVALUATION_REVIEW_CONFLICT_KIND_V1_SPLIT_ON_PICK: _ClassVar[EvaluationReviewConflictKindV1]
+
 class EvaluationExportFormatV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     EVALUATION_EXPORT_FORMAT_V1_UNSPECIFIED: _ClassVar[EvaluationExportFormatV1]
@@ -1006,6 +1037,7 @@ class EvaluationScorerKindV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     EVALUATION_SCORER_KIND_V1_DETERMINISTIC: _ClassVar[EvaluationScorerKindV1]
     EVALUATION_SCORER_KIND_V1_HUMAN: _ClassVar[EvaluationScorerKindV1]
     EVALUATION_SCORER_KIND_V1_LLM_JUDGE: _ClassVar[EvaluationScorerKindV1]
+    EVALUATION_SCORER_KIND_V1_CODE: _ClassVar[EvaluationScorerKindV1]
 
 class EvaluationScorerEvaluatorV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -1030,6 +1062,66 @@ class EvaluationScorerConfigRejectionKindV1(int, metaclass=_enum_type_wrapper.En
     EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_JUDGE_SPEC_INVALID: _ClassVar[EvaluationScorerConfigRejectionKindV1]
     EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_JUDGE_PROVIDER_NOT_AVAILABLE: _ClassVar[EvaluationScorerConfigRejectionKindV1]
     EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_JUDGE_TEMPLATE_MOVED: _ClassVar[EvaluationScorerConfigRejectionKindV1]
+    EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_EVALUATOR_CONFIG_INVALID: _ClassVar[EvaluationScorerConfigRejectionKindV1]
+    EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_SANDBOX_UNAVAILABLE: _ClassVar[EvaluationScorerConfigRejectionKindV1]
+    EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_CODE_SPEC_INVALID: _ClassVar[EvaluationScorerConfigRejectionKindV1]
+    EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_CODE_VERSION_IMMUTABLE: _ClassVar[EvaluationScorerConfigRejectionKindV1]
+    EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_CODE_INPUT_INVALID: _ClassVar[EvaluationScorerConfigRejectionKindV1]
+
+class EvaluationScorerPreviewVerdictV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    EVALUATION_SCORER_PREVIEW_VERDICT_V1_UNSPECIFIED: _ClassVar[EvaluationScorerPreviewVerdictV1]
+    EVALUATION_SCORER_PREVIEW_VERDICT_V1_PASS: _ClassVar[EvaluationScorerPreviewVerdictV1]
+    EVALUATION_SCORER_PREVIEW_VERDICT_V1_FAIL: _ClassVar[EvaluationScorerPreviewVerdictV1]
+    EVALUATION_SCORER_PREVIEW_VERDICT_V1_ERROR: _ClassVar[EvaluationScorerPreviewVerdictV1]
+
+class EvaluationScorerCodeLanguageV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    EVALUATION_SCORER_CODE_LANGUAGE_V1_UNSPECIFIED: _ClassVar[EvaluationScorerCodeLanguageV1]
+    EVALUATION_SCORER_CODE_LANGUAGE_V1_PYTHON: _ClassVar[EvaluationScorerCodeLanguageV1]
+    EVALUATION_SCORER_CODE_LANGUAGE_V1_TYPESCRIPT: _ClassVar[EvaluationScorerCodeLanguageV1]
+
+class EvaluationScorerLimitProfileV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    EVALUATION_SCORER_LIMIT_PROFILE_V1_UNSPECIFIED: _ClassVar[EvaluationScorerLimitProfileV1]
+    EVALUATION_SCORER_LIMIT_PROFILE_V1_SMALL: _ClassVar[EvaluationScorerLimitProfileV1]
+    EVALUATION_SCORER_LIMIT_PROFILE_V1_STANDARD: _ClassVar[EvaluationScorerLimitProfileV1]
+    EVALUATION_SCORER_LIMIT_PROFILE_V1_LARGE: _ClassVar[EvaluationScorerLimitProfileV1]
+
+class EvaluationScorerInputFieldV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    EVALUATION_SCORER_INPUT_FIELD_V1_UNSPECIFIED: _ClassVar[EvaluationScorerInputFieldV1]
+    EVALUATION_SCORER_INPUT_FIELD_V1_CASE_INPUT: _ClassVar[EvaluationScorerInputFieldV1]
+    EVALUATION_SCORER_INPUT_FIELD_V1_CANDIDATE_OUTPUT: _ClassVar[EvaluationScorerInputFieldV1]
+    EVALUATION_SCORER_INPUT_FIELD_V1_REFERENCE_OUTPUT: _ClassVar[EvaluationScorerInputFieldV1]
+    EVALUATION_SCORER_INPUT_FIELD_V1_CORRECTION: _ClassVar[EvaluationScorerInputFieldV1]
+    EVALUATION_SCORER_INPUT_FIELD_V1_ORIGINAL_CONTEXT: _ClassVar[EvaluationScorerInputFieldV1]
+
+class EvaluationScorerCodePublicationStateV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    EVALUATION_SCORER_CODE_PUBLICATION_STATE_V1_UNSPECIFIED: _ClassVar[EvaluationScorerCodePublicationStateV1]
+    EVALUATION_SCORER_CODE_PUBLICATION_STATE_V1_DRAFT: _ClassVar[EvaluationScorerCodePublicationStateV1]
+    EVALUATION_SCORER_CODE_PUBLICATION_STATE_V1_PUBLISHING: _ClassVar[EvaluationScorerCodePublicationStateV1]
+    EVALUATION_SCORER_CODE_PUBLICATION_STATE_V1_PUBLISHED: _ClassVar[EvaluationScorerCodePublicationStateV1]
+    EVALUATION_SCORER_CODE_PUBLICATION_STATE_V1_REJECTED: _ClassVar[EvaluationScorerCodePublicationStateV1]
+
+class EvaluationCodeScorerJobStateV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    EVALUATION_CODE_SCORER_JOB_STATE_V1_UNSPECIFIED: _ClassVar[EvaluationCodeScorerJobStateV1]
+    EVALUATION_CODE_SCORER_JOB_STATE_V1_QUEUED: _ClassVar[EvaluationCodeScorerJobStateV1]
+    EVALUATION_CODE_SCORER_JOB_STATE_V1_RUNNING: _ClassVar[EvaluationCodeScorerJobStateV1]
+    EVALUATION_CODE_SCORER_JOB_STATE_V1_FINISHED: _ClassVar[EvaluationCodeScorerJobStateV1]
+
+class EvaluationCodeScorerFailureStageV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    EVALUATION_CODE_SCORER_FAILURE_STAGE_V1_UNSPECIFIED: _ClassVar[EvaluationCodeScorerFailureStageV1]
+    EVALUATION_CODE_SCORER_FAILURE_STAGE_V1_COMPILE: _ClassVar[EvaluationCodeScorerFailureStageV1]
+    EVALUATION_CODE_SCORER_FAILURE_STAGE_V1_RUNTIME: _ClassVar[EvaluationCodeScorerFailureStageV1]
+    EVALUATION_CODE_SCORER_FAILURE_STAGE_V1_LIMIT: _ClassVar[EvaluationCodeScorerFailureStageV1]
+    EVALUATION_CODE_SCORER_FAILURE_STAGE_V1_SANDBOX: _ClassVar[EvaluationCodeScorerFailureStageV1]
+    EVALUATION_CODE_SCORER_FAILURE_STAGE_V1_HOST_LOSS: _ClassVar[EvaluationCodeScorerFailureStageV1]
+    EVALUATION_CODE_SCORER_FAILURE_STAGE_V1_CANCELLATION: _ClassVar[EvaluationCodeScorerFailureStageV1]
+    EVALUATION_CODE_SCORER_FAILURE_STAGE_V1_AMBIGUOUS: _ClassVar[EvaluationCodeScorerFailureStageV1]
 
 class EvaluationDatasetVersionRejectionKindV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -1055,6 +1147,8 @@ class EvaluationScorerSuiteRejectionKindV1(int, metaclass=_enum_type_wrapper.Enu
     EVALUATION_SCORER_SUITE_REJECTION_KIND_V1_COMBINE_RULE_NOT_SUPPORTED: _ClassVar[EvaluationScorerSuiteRejectionKindV1]
     EVALUATION_SCORER_SUITE_REJECTION_KIND_V1_MEMBER_NOT_SCOREABLE: _ClassVar[EvaluationScorerSuiteRejectionKindV1]
     EVALUATION_SCORER_SUITE_REJECTION_KIND_V1_MEMBER_WEIGHT_UNUSABLE: _ClassVar[EvaluationScorerSuiteRejectionKindV1]
+    EVALUATION_SCORER_SUITE_REJECTION_KIND_V1_MEMBER_NOT_PUBLISHED: _ClassVar[EvaluationScorerSuiteRejectionKindV1]
+    EVALUATION_SCORER_SUITE_REJECTION_KIND_V1_NONDETERMINISTIC_SOLE_GATE: _ClassVar[EvaluationScorerSuiteRejectionKindV1]
 
 class EvaluationJudgeRegradeJobStateV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -1699,6 +1793,36 @@ class ReplayDivergenceKindV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     REPLAY_DIVERGENCE_KIND_V1_RECORDING_EXHAUSTED: _ClassVar[ReplayDivergenceKindV1]
     REPLAY_DIVERGENCE_KIND_V1_RECORDING_INCOMPLETE: _ClassVar[ReplayDivergenceKindV1]
 
+class ReplayStatusV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    REPLAY_STATUS_V1_UNSPECIFIED: _ClassVar[ReplayStatusV1]
+    REPLAY_STATUS_V1_PENDING: _ClassVar[ReplayStatusV1]
+    REPLAY_STATUS_V1_MATCHED: _ClassVar[ReplayStatusV1]
+    REPLAY_STATUS_V1_DIVERGED: _ClassVar[ReplayStatusV1]
+    REPLAY_STATUS_V1_INCOMPLETE: _ClassVar[ReplayStatusV1]
+    REPLAY_STATUS_V1_FAILED: _ClassVar[ReplayStatusV1]
+
+class ReplayListFilterV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    REPLAY_LIST_FILTER_V1_UNSPECIFIED: _ClassVar[ReplayListFilterV1]
+    REPLAY_LIST_FILTER_V1_MATCHED: _ClassVar[ReplayListFilterV1]
+    REPLAY_LIST_FILTER_V1_DIVERGED: _ClassVar[ReplayListFilterV1]
+    REPLAY_LIST_FILTER_V1_INCOMPLETE: _ClassVar[ReplayListFilterV1]
+
+class ReplayStepResultV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    REPLAY_STEP_RESULT_V1_UNSPECIFIED: _ClassVar[ReplayStepResultV1]
+    REPLAY_STEP_RESULT_V1_MATCHED: _ClassVar[ReplayStepResultV1]
+    REPLAY_STEP_RESULT_V1_DIVERGED: _ClassVar[ReplayStepResultV1]
+    REPLAY_STEP_RESULT_V1_NOT_REPLAYED: _ClassVar[ReplayStepResultV1]
+    REPLAY_STEP_RESULT_V1_UNCOUNTED: _ClassVar[ReplayStepResultV1]
+
+class ReplayPayloadOmissionV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    REPLAY_PAYLOAD_OMISSION_V1_UNSPECIFIED: _ClassVar[ReplayPayloadOmissionV1]
+    REPLAY_PAYLOAD_OMISSION_V1_TOO_LARGE: _ClassVar[ReplayPayloadOmissionV1]
+    REPLAY_PAYLOAD_OMISSION_V1_UNAVAILABLE: _ClassVar[ReplayPayloadOmissionV1]
+
 class PlatformAnnotationKindV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     PLATFORM_ANNOTATION_KIND_V1_UNSPECIFIED: _ClassVar[PlatformAnnotationKindV1]
@@ -2038,6 +2162,7 @@ EVALUATION_FAILURE_STAGE_V1_AGGREGATION: EvaluationFailureStageV1
 EVALUATION_FAILURE_STAGE_V1_FACT_PUBLICATION: EvaluationFailureStageV1
 EVALUATION_FAILURE_STAGE_V1_HUMAN_REVIEW: EvaluationFailureStageV1
 EVALUATION_FAILURE_STAGE_V1_EXTERNAL_LEASE: EvaluationFailureStageV1
+EVALUATION_FAILURE_STAGE_V1_EXPORT: EvaluationFailureStageV1
 RETRYABILITY_V1_UNSPECIFIED: RetryabilityV1
 RETRYABILITY_V1_RETRYABLE: RetryabilityV1
 RETRYABILITY_V1_NOT_RETRYABLE: RetryabilityV1
@@ -2210,6 +2335,10 @@ EVALUATION_DECISION_OUTCOME_V1_RECOMMENDED: EvaluationDecisionOutcomeV1
 EVALUATION_DECISION_OUTCOME_V1_NO_CLEAR_WINNER: EvaluationDecisionOutcomeV1
 EVALUATION_DECISION_OUTCOME_V1_INSUFFICIENT_EVIDENCE: EvaluationDecisionOutcomeV1
 EVALUATION_DECISION_OUTCOME_V1_BLOCKED: EvaluationDecisionOutcomeV1
+EVALUATION_EFFECT_DIRECTION_V1_UNSPECIFIED: EvaluationEffectDirectionV1
+EVALUATION_EFFECT_DIRECTION_V1_SIGNIFICANT_IMPROVEMENT: EvaluationEffectDirectionV1
+EVALUATION_EFFECT_DIRECTION_V1_SIGNIFICANT_REGRESSION: EvaluationEffectDirectionV1
+EVALUATION_EFFECT_DIRECTION_V1_NOT_SIGNIFICANT: EvaluationEffectDirectionV1
 EVALUATION_DECISION_PROVENANCE_V1_UNSPECIFIED: EvaluationDecisionProvenanceV1
 EVALUATION_DECISION_PROVENANCE_V1_ADOPTED: EvaluationDecisionProvenanceV1
 EVALUATION_DECISION_PROVENANCE_V1_EXPLORATION: EvaluationDecisionProvenanceV1
@@ -2220,6 +2349,17 @@ DECISION_BLOCKER_KIND_V1_MAX_COST_EXCEEDED: DecisionBlockerKindV1
 DECISION_BLOCKER_KIND_V1_MIN_COVERAGE_NOT_MET: DecisionBlockerKindV1
 DECISION_BLOCKER_KIND_V1_EVIDENCE_INCOMPLETE: DecisionBlockerKindV1
 DECISION_BLOCKER_KIND_V1_NOT_COMPARABLE: DecisionBlockerKindV1
+EVALUATION_CASE_OUTCOME_V1_UNSPECIFIED: EvaluationCaseOutcomeV1
+EVALUATION_CASE_OUTCOME_V1_PASS: EvaluationCaseOutcomeV1
+EVALUATION_CASE_OUTCOME_V1_FAIL: EvaluationCaseOutcomeV1
+EVALUATION_CASE_OUTCOME_V1_TIE: EvaluationCaseOutcomeV1
+EVALUATION_CASE_OUTCOME_V1_SKIPPED: EvaluationCaseOutcomeV1
+EVALUATION_CASE_OUTCOME_V1_NOT_APPLICABLE: EvaluationCaseOutcomeV1
+EVALUATION_CASE_MOVEMENT_V1_UNSPECIFIED: EvaluationCaseMovementV1
+EVALUATION_CASE_MOVEMENT_V1_REGRESSED: EvaluationCaseMovementV1
+EVALUATION_CASE_MOVEMENT_V1_IMPROVED: EvaluationCaseMovementV1
+EVALUATION_CASE_MOVEMENT_V1_CHANGED_UNRANKED: EvaluationCaseMovementV1
+EVALUATION_CASE_MOVEMENT_V1_UNCHANGED: EvaluationCaseMovementV1
 EVALUATION_MATRIX_SORT_KEY_V1_UNSPECIFIED: EvaluationMatrixSortKeyV1
 EVALUATION_MATRIX_SORT_KEY_V1_DECISION_IMPACT: EvaluationMatrixSortKeyV1
 EVALUATION_MATRIX_SORT_KEY_V1_CASE_ORDER: EvaluationMatrixSortKeyV1
@@ -2335,6 +2475,9 @@ REVIEW_ADJUDICATION_STATE_V1_REQUIRED: ReviewAdjudicationStateV1
 REVIEW_ADJUDICATION_STATE_V1_ASSIGNED: ReviewAdjudicationStateV1
 REVIEW_ADJUDICATION_STATE_V1_RESOLVED: ReviewAdjudicationStateV1
 REVIEW_ADJUDICATION_STATE_V1_UNRESOLVABLE: ReviewAdjudicationStateV1
+EVALUATION_REVIEW_CONFLICT_KIND_V1_UNSPECIFIED: EvaluationReviewConflictKindV1
+EVALUATION_REVIEW_CONFLICT_KIND_V1_GRADES_DIFFER: EvaluationReviewConflictKindV1
+EVALUATION_REVIEW_CONFLICT_KIND_V1_SPLIT_ON_PICK: EvaluationReviewConflictKindV1
 EVALUATION_EXPORT_FORMAT_V1_UNSPECIFIED: EvaluationExportFormatV1
 EVALUATION_EXPORT_FORMAT_V1_CSV: EvaluationExportFormatV1
 EVALUATION_EXPORT_FORMAT_V1_JSONL: EvaluationExportFormatV1
@@ -2424,6 +2567,7 @@ EVALUATION_SCORER_KIND_V1_UNSPECIFIED: EvaluationScorerKindV1
 EVALUATION_SCORER_KIND_V1_DETERMINISTIC: EvaluationScorerKindV1
 EVALUATION_SCORER_KIND_V1_HUMAN: EvaluationScorerKindV1
 EVALUATION_SCORER_KIND_V1_LLM_JUDGE: EvaluationScorerKindV1
+EVALUATION_SCORER_KIND_V1_CODE: EvaluationScorerKindV1
 EVALUATION_SCORER_EVALUATOR_V1_UNSPECIFIED: EvaluationScorerEvaluatorV1
 EVALUATION_SCORER_EVALUATOR_V1_EXACT: EvaluationScorerEvaluatorV1
 EVALUATION_SCORER_EVALUATOR_V1_NUMERIC_THRESHOLD: EvaluationScorerEvaluatorV1
@@ -2442,6 +2586,45 @@ EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_REVIEW_POLICY_UNSATISFIABLE: Evaluati
 EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_JUDGE_SPEC_INVALID: EvaluationScorerConfigRejectionKindV1
 EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_JUDGE_PROVIDER_NOT_AVAILABLE: EvaluationScorerConfigRejectionKindV1
 EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_JUDGE_TEMPLATE_MOVED: EvaluationScorerConfigRejectionKindV1
+EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_EVALUATOR_CONFIG_INVALID: EvaluationScorerConfigRejectionKindV1
+EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_SANDBOX_UNAVAILABLE: EvaluationScorerConfigRejectionKindV1
+EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_CODE_SPEC_INVALID: EvaluationScorerConfigRejectionKindV1
+EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_CODE_VERSION_IMMUTABLE: EvaluationScorerConfigRejectionKindV1
+EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_CODE_INPUT_INVALID: EvaluationScorerConfigRejectionKindV1
+EVALUATION_SCORER_PREVIEW_VERDICT_V1_UNSPECIFIED: EvaluationScorerPreviewVerdictV1
+EVALUATION_SCORER_PREVIEW_VERDICT_V1_PASS: EvaluationScorerPreviewVerdictV1
+EVALUATION_SCORER_PREVIEW_VERDICT_V1_FAIL: EvaluationScorerPreviewVerdictV1
+EVALUATION_SCORER_PREVIEW_VERDICT_V1_ERROR: EvaluationScorerPreviewVerdictV1
+EVALUATION_SCORER_CODE_LANGUAGE_V1_UNSPECIFIED: EvaluationScorerCodeLanguageV1
+EVALUATION_SCORER_CODE_LANGUAGE_V1_PYTHON: EvaluationScorerCodeLanguageV1
+EVALUATION_SCORER_CODE_LANGUAGE_V1_TYPESCRIPT: EvaluationScorerCodeLanguageV1
+EVALUATION_SCORER_LIMIT_PROFILE_V1_UNSPECIFIED: EvaluationScorerLimitProfileV1
+EVALUATION_SCORER_LIMIT_PROFILE_V1_SMALL: EvaluationScorerLimitProfileV1
+EVALUATION_SCORER_LIMIT_PROFILE_V1_STANDARD: EvaluationScorerLimitProfileV1
+EVALUATION_SCORER_LIMIT_PROFILE_V1_LARGE: EvaluationScorerLimitProfileV1
+EVALUATION_SCORER_INPUT_FIELD_V1_UNSPECIFIED: EvaluationScorerInputFieldV1
+EVALUATION_SCORER_INPUT_FIELD_V1_CASE_INPUT: EvaluationScorerInputFieldV1
+EVALUATION_SCORER_INPUT_FIELD_V1_CANDIDATE_OUTPUT: EvaluationScorerInputFieldV1
+EVALUATION_SCORER_INPUT_FIELD_V1_REFERENCE_OUTPUT: EvaluationScorerInputFieldV1
+EVALUATION_SCORER_INPUT_FIELD_V1_CORRECTION: EvaluationScorerInputFieldV1
+EVALUATION_SCORER_INPUT_FIELD_V1_ORIGINAL_CONTEXT: EvaluationScorerInputFieldV1
+EVALUATION_SCORER_CODE_PUBLICATION_STATE_V1_UNSPECIFIED: EvaluationScorerCodePublicationStateV1
+EVALUATION_SCORER_CODE_PUBLICATION_STATE_V1_DRAFT: EvaluationScorerCodePublicationStateV1
+EVALUATION_SCORER_CODE_PUBLICATION_STATE_V1_PUBLISHING: EvaluationScorerCodePublicationStateV1
+EVALUATION_SCORER_CODE_PUBLICATION_STATE_V1_PUBLISHED: EvaluationScorerCodePublicationStateV1
+EVALUATION_SCORER_CODE_PUBLICATION_STATE_V1_REJECTED: EvaluationScorerCodePublicationStateV1
+EVALUATION_CODE_SCORER_JOB_STATE_V1_UNSPECIFIED: EvaluationCodeScorerJobStateV1
+EVALUATION_CODE_SCORER_JOB_STATE_V1_QUEUED: EvaluationCodeScorerJobStateV1
+EVALUATION_CODE_SCORER_JOB_STATE_V1_RUNNING: EvaluationCodeScorerJobStateV1
+EVALUATION_CODE_SCORER_JOB_STATE_V1_FINISHED: EvaluationCodeScorerJobStateV1
+EVALUATION_CODE_SCORER_FAILURE_STAGE_V1_UNSPECIFIED: EvaluationCodeScorerFailureStageV1
+EVALUATION_CODE_SCORER_FAILURE_STAGE_V1_COMPILE: EvaluationCodeScorerFailureStageV1
+EVALUATION_CODE_SCORER_FAILURE_STAGE_V1_RUNTIME: EvaluationCodeScorerFailureStageV1
+EVALUATION_CODE_SCORER_FAILURE_STAGE_V1_LIMIT: EvaluationCodeScorerFailureStageV1
+EVALUATION_CODE_SCORER_FAILURE_STAGE_V1_SANDBOX: EvaluationCodeScorerFailureStageV1
+EVALUATION_CODE_SCORER_FAILURE_STAGE_V1_HOST_LOSS: EvaluationCodeScorerFailureStageV1
+EVALUATION_CODE_SCORER_FAILURE_STAGE_V1_CANCELLATION: EvaluationCodeScorerFailureStageV1
+EVALUATION_CODE_SCORER_FAILURE_STAGE_V1_AMBIGUOUS: EvaluationCodeScorerFailureStageV1
 EVALUATION_DATASET_VERSION_REJECTION_KIND_V1_UNSPECIFIED: EvaluationDatasetVersionRejectionKindV1
 EVALUATION_DATASET_VERSION_REJECTION_KIND_V1_COLLECTION_CAP_EXCEEDED: EvaluationDatasetVersionRejectionKindV1
 EVALUATION_DATASET_VERSION_REJECTION_KIND_V1_VERSION_CAP_ALL_PINNED: EvaluationDatasetVersionRejectionKindV1
@@ -2461,6 +2644,8 @@ EVALUATION_SCORER_SUITE_REJECTION_KIND_V1_MEMBER_CAP_EXCEEDED: EvaluationScorerS
 EVALUATION_SCORER_SUITE_REJECTION_KIND_V1_COMBINE_RULE_NOT_SUPPORTED: EvaluationScorerSuiteRejectionKindV1
 EVALUATION_SCORER_SUITE_REJECTION_KIND_V1_MEMBER_NOT_SCOREABLE: EvaluationScorerSuiteRejectionKindV1
 EVALUATION_SCORER_SUITE_REJECTION_KIND_V1_MEMBER_WEIGHT_UNUSABLE: EvaluationScorerSuiteRejectionKindV1
+EVALUATION_SCORER_SUITE_REJECTION_KIND_V1_MEMBER_NOT_PUBLISHED: EvaluationScorerSuiteRejectionKindV1
+EVALUATION_SCORER_SUITE_REJECTION_KIND_V1_NONDETERMINISTIC_SOLE_GATE: EvaluationScorerSuiteRejectionKindV1
 EVALUATION_JUDGE_REGRADE_JOB_STATE_V1_UNSPECIFIED: EvaluationJudgeRegradeJobStateV1
 EVALUATION_JUDGE_REGRADE_JOB_STATE_V1_QUEUED: EvaluationJudgeRegradeJobStateV1
 EVALUATION_JUDGE_REGRADE_JOB_STATE_V1_RUNNING: EvaluationJudgeRegradeJobStateV1
@@ -2888,6 +3073,24 @@ REPLAY_DIVERGENCE_KIND_V1_MODEL_REQUEST_DIFFERS: ReplayDivergenceKindV1
 REPLAY_DIVERGENCE_KIND_V1_TOOL_REQUEST_DIFFERS: ReplayDivergenceKindV1
 REPLAY_DIVERGENCE_KIND_V1_RECORDING_EXHAUSTED: ReplayDivergenceKindV1
 REPLAY_DIVERGENCE_KIND_V1_RECORDING_INCOMPLETE: ReplayDivergenceKindV1
+REPLAY_STATUS_V1_UNSPECIFIED: ReplayStatusV1
+REPLAY_STATUS_V1_PENDING: ReplayStatusV1
+REPLAY_STATUS_V1_MATCHED: ReplayStatusV1
+REPLAY_STATUS_V1_DIVERGED: ReplayStatusV1
+REPLAY_STATUS_V1_INCOMPLETE: ReplayStatusV1
+REPLAY_STATUS_V1_FAILED: ReplayStatusV1
+REPLAY_LIST_FILTER_V1_UNSPECIFIED: ReplayListFilterV1
+REPLAY_LIST_FILTER_V1_MATCHED: ReplayListFilterV1
+REPLAY_LIST_FILTER_V1_DIVERGED: ReplayListFilterV1
+REPLAY_LIST_FILTER_V1_INCOMPLETE: ReplayListFilterV1
+REPLAY_STEP_RESULT_V1_UNSPECIFIED: ReplayStepResultV1
+REPLAY_STEP_RESULT_V1_MATCHED: ReplayStepResultV1
+REPLAY_STEP_RESULT_V1_DIVERGED: ReplayStepResultV1
+REPLAY_STEP_RESULT_V1_NOT_REPLAYED: ReplayStepResultV1
+REPLAY_STEP_RESULT_V1_UNCOUNTED: ReplayStepResultV1
+REPLAY_PAYLOAD_OMISSION_V1_UNSPECIFIED: ReplayPayloadOmissionV1
+REPLAY_PAYLOAD_OMISSION_V1_TOO_LARGE: ReplayPayloadOmissionV1
+REPLAY_PAYLOAD_OMISSION_V1_UNAVAILABLE: ReplayPayloadOmissionV1
 PLATFORM_ANNOTATION_KIND_V1_UNSPECIFIED: PlatformAnnotationKindV1
 PLATFORM_ANNOTATION_KIND_V1_DEPLOYMENT: PlatformAnnotationKindV1
 PLATFORM_ANNOTATION_KIND_V1_MARKER: PlatformAnnotationKindV1
@@ -3181,14 +3384,28 @@ class CapabilityPostureV1(_message.Message):
     def __init__(self, capability_key: _Optional[str] = ..., state: _Optional[_Union[CapabilityStateV1, str]] = ..., limits: _Optional[_Iterable[_Union[CapabilityLimitV1, _Mapping]]] = ..., unavailable_reason_code: _Optional[str] = ...) -> None: ...
 
 class AgenticEvaluationCapabilitiesV1(_message.Message):
-    __slots__ = ("capability_set_version", "postures", "checked_at")
+    __slots__ = ("capability_set_version", "postures", "checked_at", "scorer_runtimes")
     CAPABILITY_SET_VERSION_FIELD_NUMBER: _ClassVar[int]
     POSTURES_FIELD_NUMBER: _ClassVar[int]
     CHECKED_AT_FIELD_NUMBER: _ClassVar[int]
+    SCORER_RUNTIMES_FIELD_NUMBER: _ClassVar[int]
     capability_set_version: int
     postures: _containers.RepeatedCompositeFieldContainer[CapabilityPostureV1]
     checked_at: _timestamp_pb2.Timestamp
-    def __init__(self, capability_set_version: _Optional[int] = ..., postures: _Optional[_Iterable[_Union[CapabilityPostureV1, _Mapping]]] = ..., checked_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+    scorer_runtimes: _containers.RepeatedCompositeFieldContainer[EvaluationScorerRuntimeV1]
+    def __init__(self, capability_set_version: _Optional[int] = ..., postures: _Optional[_Iterable[_Union[CapabilityPostureV1, _Mapping]]] = ..., checked_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., scorer_runtimes: _Optional[_Iterable[_Union[EvaluationScorerRuntimeV1, _Mapping]]] = ...) -> None: ...
+
+class EvaluationScorerRuntimeV1(_message.Message):
+    __slots__ = ("profile", "language", "language_version", "is_default")
+    PROFILE_FIELD_NUMBER: _ClassVar[int]
+    LANGUAGE_FIELD_NUMBER: _ClassVar[int]
+    LANGUAGE_VERSION_FIELD_NUMBER: _ClassVar[int]
+    IS_DEFAULT_FIELD_NUMBER: _ClassVar[int]
+    profile: EvaluationScorerRuntimeProfileRefV1
+    language: EvaluationScorerCodeLanguageV1
+    language_version: str
+    is_default: bool
+    def __init__(self, profile: _Optional[_Union[EvaluationScorerRuntimeProfileRefV1, _Mapping]] = ..., language: _Optional[_Union[EvaluationScorerCodeLanguageV1, str]] = ..., language_version: _Optional[str] = ..., is_default: _Optional[bool] = ...) -> None: ...
 
 class GetAgenticEvaluationCapabilitiesRequest(_message.Message):
     __slots__ = ()
@@ -3457,7 +3674,7 @@ class EvaluationScorerSuiteMemberV1(_message.Message):
     def __init__(self, score_config_id: _Optional[str] = ..., config_key: _Optional[str] = ..., weight: _Optional[float] = ..., is_blocking_gate: _Optional[bool] = ...) -> None: ...
 
 class EvaluationScorerSuiteV1(_message.Message):
-    __slots__ = ("scorer_suite_id", "suite_key", "name", "version_discriminator", "combine_rule", "members", "created_at")
+    __slots__ = ("scorer_suite_id", "suite_key", "name", "version_discriminator", "combine_rule", "members", "created_at", "code_members")
     SCORER_SUITE_ID_FIELD_NUMBER: _ClassVar[int]
     SUITE_KEY_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
@@ -3465,6 +3682,7 @@ class EvaluationScorerSuiteV1(_message.Message):
     COMBINE_RULE_FIELD_NUMBER: _ClassVar[int]
     MEMBERS_FIELD_NUMBER: _ClassVar[int]
     CREATED_AT_FIELD_NUMBER: _ClassVar[int]
+    CODE_MEMBERS_FIELD_NUMBER: _ClassVar[int]
     scorer_suite_id: str
     suite_key: str
     name: str
@@ -3472,7 +3690,8 @@ class EvaluationScorerSuiteV1(_message.Message):
     combine_rule: EvaluationScorerSuiteCombineRuleV1
     members: _containers.RepeatedCompositeFieldContainer[EvaluationScorerSuiteMemberV1]
     created_at: _timestamp_pb2.Timestamp
-    def __init__(self, scorer_suite_id: _Optional[str] = ..., suite_key: _Optional[str] = ..., name: _Optional[str] = ..., version_discriminator: _Optional[str] = ..., combine_rule: _Optional[_Union[EvaluationScorerSuiteCombineRuleV1, str]] = ..., members: _Optional[_Iterable[_Union[EvaluationScorerSuiteMemberV1, _Mapping]]] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+    code_members: _containers.RepeatedCompositeFieldContainer[EvaluationScorerSuiteCodeMemberV1]
+    def __init__(self, scorer_suite_id: _Optional[str] = ..., suite_key: _Optional[str] = ..., name: _Optional[str] = ..., version_discriminator: _Optional[str] = ..., combine_rule: _Optional[_Union[EvaluationScorerSuiteCombineRuleV1, str]] = ..., members: _Optional[_Iterable[_Union[EvaluationScorerSuiteMemberV1, _Mapping]]] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., code_members: _Optional[_Iterable[_Union[EvaluationScorerSuiteCodeMemberV1, _Mapping]]] = ...) -> None: ...
 
 class EvaluationScorerSuiteSnapshotV1(_message.Message):
     __slots__ = ("scorer_suite_id", "suite_key", "version_discriminator", "combine_rule", "members")
@@ -3595,14 +3814,16 @@ class EvaluationReviewSamplingPolicyV1(_message.Message):
     def __init__(self, sample_rate: _Optional[float] = ..., max_sampled_cases: _Optional[int] = ..., reviewers_per_case: _Optional[int] = ...) -> None: ...
 
 class EvaluationHumanReviewPolicyV1(_message.Message):
-    __slots__ = ("enabled", "sampling", "rubric_score_config_id")
+    __slots__ = ("enabled", "sampling", "rubric_score_config_id", "pairwise")
     ENABLED_FIELD_NUMBER: _ClassVar[int]
     SAMPLING_FIELD_NUMBER: _ClassVar[int]
     RUBRIC_SCORE_CONFIG_ID_FIELD_NUMBER: _ClassVar[int]
+    PAIRWISE_FIELD_NUMBER: _ClassVar[int]
     enabled: bool
     sampling: EvaluationReviewSamplingPolicyV1
     rubric_score_config_id: str
-    def __init__(self, enabled: _Optional[bool] = ..., sampling: _Optional[_Union[EvaluationReviewSamplingPolicyV1, _Mapping]] = ..., rubric_score_config_id: _Optional[str] = ...) -> None: ...
+    pairwise: bool
+    def __init__(self, enabled: _Optional[bool] = ..., sampling: _Optional[_Union[EvaluationReviewSamplingPolicyV1, _Mapping]] = ..., rubric_score_config_id: _Optional[str] = ..., pairwise: _Optional[bool] = ...) -> None: ...
 
 class EvaluationDefinitionDraftV1(_message.Message):
     __slots__ = ("display_name", "description", "cohorts", "candidates", "scorer_target", "trials", "execution_policy", "budget", "decision_policy", "launch_mode", "human_review_policy", "metadata", "trials_source")
@@ -3977,7 +4198,7 @@ class EvaluationBuilderCandidateSourcesV1(_message.Message):
     def __init__(self, models: _Optional[_Iterable[_Union[EvaluationBuilderModelOptionV1, _Mapping]]] = ..., agent_endpoints: _Optional[_Union[CapabilityPostureV1, _Mapping]] = ..., release_revisions: _Optional[_Union[CapabilityPostureV1, _Mapping]] = ..., recorded_outputs: _Optional[_Union[CapabilityPostureV1, _Mapping]] = ...) -> None: ...
 
 class EvaluationBuilderScorerChoiceV1(_message.Message):
-    __slots__ = ("score_config_id", "config_key", "name", "description", "metric_name", "success_dimension", "compatible_subject_kinds", "is_archived", "kind")
+    __slots__ = ("score_config_id", "config_key", "name", "description", "metric_name", "success_dimension", "compatible_subject_kinds", "is_archived", "kind", "code")
     SCORE_CONFIG_ID_FIELD_NUMBER: _ClassVar[int]
     CONFIG_KEY_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
@@ -3987,6 +4208,7 @@ class EvaluationBuilderScorerChoiceV1(_message.Message):
     COMPATIBLE_SUBJECT_KINDS_FIELD_NUMBER: _ClassVar[int]
     IS_ARCHIVED_FIELD_NUMBER: _ClassVar[int]
     KIND_FIELD_NUMBER: _ClassVar[int]
+    CODE_FIELD_NUMBER: _ClassVar[int]
     score_config_id: str
     config_key: str
     name: str
@@ -3996,7 +4218,8 @@ class EvaluationBuilderScorerChoiceV1(_message.Message):
     compatible_subject_kinds: _containers.RepeatedScalarFieldContainer[EvaluationSubjectKindV1]
     is_archived: bool
     kind: EvaluationScorerKindV1
-    def __init__(self, score_config_id: _Optional[str] = ..., config_key: _Optional[str] = ..., name: _Optional[str] = ..., description: _Optional[str] = ..., metric_name: _Optional[str] = ..., success_dimension: _Optional[str] = ..., compatible_subject_kinds: _Optional[_Iterable[_Union[EvaluationSubjectKindV1, str]]] = ..., is_archived: _Optional[bool] = ..., kind: _Optional[_Union[EvaluationScorerKindV1, str]] = ...) -> None: ...
+    code: EvaluationScorerCodeSummaryV1
+    def __init__(self, score_config_id: _Optional[str] = ..., config_key: _Optional[str] = ..., name: _Optional[str] = ..., description: _Optional[str] = ..., metric_name: _Optional[str] = ..., success_dimension: _Optional[str] = ..., compatible_subject_kinds: _Optional[_Iterable[_Union[EvaluationSubjectKindV1, str]]] = ..., is_archived: _Optional[bool] = ..., kind: _Optional[_Union[EvaluationScorerKindV1, str]] = ..., code: _Optional[_Union[EvaluationScorerCodeSummaryV1, _Mapping]] = ...) -> None: ...
 
 class EvaluationBuilderRecommendedMeasureV1(_message.Message):
     __slots__ = ("score_config_id", "rationale", "assumptions", "is_blocking_gate_by_default")
@@ -4485,7 +4708,7 @@ class EvaluationFrozenEvaluatorRefV1(_message.Message):
     def __init__(self, score_config_id: _Optional[str] = ..., config_key: _Optional[str] = ..., evaluator_template_id: _Optional[str] = ..., template_version_discriminator: _Optional[str] = ..., evaluator_kind: _Optional[str] = ..., execution_mode: _Optional[str] = ..., evaluator_config_json: _Optional[str] = ..., provider_execution_json: _Optional[str] = ..., provider: _Optional[_Union[ProviderNameV1, str]] = ..., model_id: _Optional[str] = ..., provider_credential_id: _Optional[str] = ..., model_rate: _Optional[_Union[EvaluationModelRateV1, _Mapping]] = ...) -> None: ...
 
 class EvaluationRunProgressV1(_message.Message):
-    __slots__ = ("expected_cell_count", "prepared_cell_count", "queued_cell_count", "cancelled_cell_count", "completed_shard_count", "total_shard_count", "execution_progress_availability", "executed_cell_count", "succeeded_cell_count", "failed_cell_count", "scorer_result_count", "awaiting_review_cell_count", "skipped_cell_count", "superseded_result_count")
+    __slots__ = ("expected_cell_count", "prepared_cell_count", "queued_cell_count", "cancelled_cell_count", "completed_shard_count", "total_shard_count", "execution_progress_availability", "executed_cell_count", "succeeded_cell_count", "failed_cell_count", "scorer_result_count", "awaiting_review_cell_count", "skipped_cell_count", "superseded_result_count", "pending_code_scorer_count", "scoring_in_sandbox_cell_count")
     EXPECTED_CELL_COUNT_FIELD_NUMBER: _ClassVar[int]
     PREPARED_CELL_COUNT_FIELD_NUMBER: _ClassVar[int]
     QUEUED_CELL_COUNT_FIELD_NUMBER: _ClassVar[int]
@@ -4500,6 +4723,8 @@ class EvaluationRunProgressV1(_message.Message):
     AWAITING_REVIEW_CELL_COUNT_FIELD_NUMBER: _ClassVar[int]
     SKIPPED_CELL_COUNT_FIELD_NUMBER: _ClassVar[int]
     SUPERSEDED_RESULT_COUNT_FIELD_NUMBER: _ClassVar[int]
+    PENDING_CODE_SCORER_COUNT_FIELD_NUMBER: _ClassVar[int]
+    SCORING_IN_SANDBOX_CELL_COUNT_FIELD_NUMBER: _ClassVar[int]
     expected_cell_count: int
     prepared_cell_count: int
     queued_cell_count: int
@@ -4514,7 +4739,9 @@ class EvaluationRunProgressV1(_message.Message):
     awaiting_review_cell_count: int
     skipped_cell_count: int
     superseded_result_count: int
-    def __init__(self, expected_cell_count: _Optional[int] = ..., prepared_cell_count: _Optional[int] = ..., queued_cell_count: _Optional[int] = ..., cancelled_cell_count: _Optional[int] = ..., completed_shard_count: _Optional[int] = ..., total_shard_count: _Optional[int] = ..., execution_progress_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., executed_cell_count: _Optional[int] = ..., succeeded_cell_count: _Optional[int] = ..., failed_cell_count: _Optional[int] = ..., scorer_result_count: _Optional[int] = ..., awaiting_review_cell_count: _Optional[int] = ..., skipped_cell_count: _Optional[int] = ..., superseded_result_count: _Optional[int] = ...) -> None: ...
+    pending_code_scorer_count: int
+    scoring_in_sandbox_cell_count: int
+    def __init__(self, expected_cell_count: _Optional[int] = ..., prepared_cell_count: _Optional[int] = ..., queued_cell_count: _Optional[int] = ..., cancelled_cell_count: _Optional[int] = ..., completed_shard_count: _Optional[int] = ..., total_shard_count: _Optional[int] = ..., execution_progress_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., executed_cell_count: _Optional[int] = ..., succeeded_cell_count: _Optional[int] = ..., failed_cell_count: _Optional[int] = ..., scorer_result_count: _Optional[int] = ..., awaiting_review_cell_count: _Optional[int] = ..., skipped_cell_count: _Optional[int] = ..., superseded_result_count: _Optional[int] = ..., pending_code_scorer_count: _Optional[int] = ..., scoring_in_sandbox_cell_count: _Optional[int] = ...) -> None: ...
 
 class EvaluationRunV1(_message.Message):
     __slots__ = ("evaluation_run_id", "definition_id", "definition_revision_id", "tenant_id", "org_id", "manifest", "state", "progress", "freshness", "launched_by", "accepted_preview_digest", "failure", "allowed_actions", "created_at", "started_at", "finished_at", "idempotency_key", "comparability_availability")
@@ -4605,7 +4832,7 @@ class EvaluationCohortEstimateV1(_message.Message):
     def __init__(self, cohort_key: _Optional[str] = ..., dataset_version_id: _Optional[str] = ..., case_count: _Optional[int] = ..., case_count_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ...) -> None: ...
 
 class EvaluationPreviewEstimatesV1(_message.Message):
-    __slots__ = ("cohorts", "total_case_count", "candidate_count", "scorer_count", "trials", "candidate_call_count", "scorer_call_count", "max_retry_count", "max_concurrency", "candidate_cost", "candidate_cost_availability", "evaluator_cost", "evaluator_cost_availability", "total_cost", "total_cost_availability", "reserved_budget", "cost_assumption", "cost_breakdown", "budget_ceiling", "budget_ceiling_availability")
+    __slots__ = ("cohorts", "total_case_count", "candidate_count", "scorer_count", "trials", "candidate_call_count", "scorer_call_count", "max_retry_count", "max_concurrency", "candidate_cost", "candidate_cost_availability", "evaluator_cost", "evaluator_cost_availability", "total_cost", "total_cost_availability", "reserved_budget", "cost_assumption", "cost_breakdown", "budget_ceiling", "budget_ceiling_availability", "sandbox_unit_seconds", "sandbox_cost", "sandbox_cost_availability")
     COHORTS_FIELD_NUMBER: _ClassVar[int]
     TOTAL_CASE_COUNT_FIELD_NUMBER: _ClassVar[int]
     CANDIDATE_COUNT_FIELD_NUMBER: _ClassVar[int]
@@ -4626,6 +4853,9 @@ class EvaluationPreviewEstimatesV1(_message.Message):
     COST_BREAKDOWN_FIELD_NUMBER: _ClassVar[int]
     BUDGET_CEILING_FIELD_NUMBER: _ClassVar[int]
     BUDGET_CEILING_AVAILABILITY_FIELD_NUMBER: _ClassVar[int]
+    SANDBOX_UNIT_SECONDS_FIELD_NUMBER: _ClassVar[int]
+    SANDBOX_COST_FIELD_NUMBER: _ClassVar[int]
+    SANDBOX_COST_AVAILABILITY_FIELD_NUMBER: _ClassVar[int]
     cohorts: _containers.RepeatedCompositeFieldContainer[EvaluationCohortEstimateV1]
     total_case_count: int
     candidate_count: int
@@ -4646,7 +4876,10 @@ class EvaluationPreviewEstimatesV1(_message.Message):
     cost_breakdown: CostBreakdownV1
     budget_ceiling: CostAmountV1
     budget_ceiling_availability: MetricAvailabilityV1
-    def __init__(self, cohorts: _Optional[_Iterable[_Union[EvaluationCohortEstimateV1, _Mapping]]] = ..., total_case_count: _Optional[int] = ..., candidate_count: _Optional[int] = ..., scorer_count: _Optional[int] = ..., trials: _Optional[int] = ..., candidate_call_count: _Optional[int] = ..., scorer_call_count: _Optional[int] = ..., max_retry_count: _Optional[int] = ..., max_concurrency: _Optional[int] = ..., candidate_cost: _Optional[_Union[CostAmountV1, _Mapping]] = ..., candidate_cost_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., evaluator_cost: _Optional[_Union[CostAmountV1, _Mapping]] = ..., evaluator_cost_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., total_cost: _Optional[_Union[CostAmountV1, _Mapping]] = ..., total_cost_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., reserved_budget: _Optional[_Union[CostAmountV1, _Mapping]] = ..., cost_assumption: _Optional[_Union[EvaluationCostAssumptionV1, _Mapping]] = ..., cost_breakdown: _Optional[_Union[CostBreakdownV1, _Mapping]] = ..., budget_ceiling: _Optional[_Union[CostAmountV1, _Mapping]] = ..., budget_ceiling_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ...) -> None: ...
+    sandbox_unit_seconds: int
+    sandbox_cost: CostAmountV1
+    sandbox_cost_availability: MetricAvailabilityV1
+    def __init__(self, cohorts: _Optional[_Iterable[_Union[EvaluationCohortEstimateV1, _Mapping]]] = ..., total_case_count: _Optional[int] = ..., candidate_count: _Optional[int] = ..., scorer_count: _Optional[int] = ..., trials: _Optional[int] = ..., candidate_call_count: _Optional[int] = ..., scorer_call_count: _Optional[int] = ..., max_retry_count: _Optional[int] = ..., max_concurrency: _Optional[int] = ..., candidate_cost: _Optional[_Union[CostAmountV1, _Mapping]] = ..., candidate_cost_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., evaluator_cost: _Optional[_Union[CostAmountV1, _Mapping]] = ..., evaluator_cost_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., total_cost: _Optional[_Union[CostAmountV1, _Mapping]] = ..., total_cost_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., reserved_budget: _Optional[_Union[CostAmountV1, _Mapping]] = ..., cost_assumption: _Optional[_Union[EvaluationCostAssumptionV1, _Mapping]] = ..., cost_breakdown: _Optional[_Union[CostBreakdownV1, _Mapping]] = ..., budget_ceiling: _Optional[_Union[CostAmountV1, _Mapping]] = ..., budget_ceiling_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., sandbox_unit_seconds: _Optional[int] = ..., sandbox_cost: _Optional[_Union[CostAmountV1, _Mapping]] = ..., sandbox_cost_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ...) -> None: ...
 
 class EvaluationBlastRadiusV1(_message.Message):
     __slots__ = ("case_count", "trials", "estimated_external_calls", "worst_posture", "has_unattested_mutating_candidate", "attestation_enforcement_availability")
@@ -4725,16 +4958,18 @@ class LiveTraceCaseSourceSnapshotV1(_message.Message):
     def __init__(self, source: _Optional[_Union[LiveTraceCaseSourceV1, _Mapping]] = ..., trace_ids: _Optional[_Iterable[str]] = ..., effective_limit: _Optional[int] = ..., clamped: _Optional[bool] = ..., clamp_reason_code: _Optional[str] = ..., dataset_collection_id: _Optional[str] = ..., dataset_version_id: _Optional[str] = ..., window_start: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., window_end: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
 
 class PreviewEvaluationRunRequest(_message.Message):
-    __slots__ = ("definition_id", "revision_id", "launch_mode", "live_traces")
+    __slots__ = ("definition_id", "revision_id", "launch_mode", "live_traces", "inline_draft")
     DEFINITION_ID_FIELD_NUMBER: _ClassVar[int]
     REVISION_ID_FIELD_NUMBER: _ClassVar[int]
     LAUNCH_MODE_FIELD_NUMBER: _ClassVar[int]
     LIVE_TRACES_FIELD_NUMBER: _ClassVar[int]
+    INLINE_DRAFT_FIELD_NUMBER: _ClassVar[int]
     definition_id: str
     revision_id: str
     launch_mode: EvaluationLaunchModeV1
     live_traces: LiveTraceCaseSourceV1
-    def __init__(self, definition_id: _Optional[str] = ..., revision_id: _Optional[str] = ..., launch_mode: _Optional[_Union[EvaluationLaunchModeV1, str]] = ..., live_traces: _Optional[_Union[LiveTraceCaseSourceV1, _Mapping]] = ...) -> None: ...
+    inline_draft: EvaluationDefinitionDraftV1
+    def __init__(self, definition_id: _Optional[str] = ..., revision_id: _Optional[str] = ..., launch_mode: _Optional[_Union[EvaluationLaunchModeV1, str]] = ..., live_traces: _Optional[_Union[LiveTraceCaseSourceV1, _Mapping]] = ..., inline_draft: _Optional[_Union[EvaluationDefinitionDraftV1, _Mapping]] = ...) -> None: ...
 
 class PreviewEvaluationRunResponse(_message.Message):
     __slots__ = ("preview_token", "preview_digest", "expires_at", "definition_id", "definition_revision_id", "revision_number", "launch_mode", "estimates", "blast_radius", "resolved_manifest", "blockers", "comparability_availability", "data_quality_availability", "inferred_subject", "launch_allowed", "allowed_actions", "capabilities", "freshness")
@@ -5343,20 +5578,34 @@ class EvaluationFailureStageCountV1(_message.Message):
     def __init__(self, stage: _Optional[_Union[EvaluationFailureStageV1, str]] = ..., code: _Optional[str] = ..., count: _Optional[int] = ...) -> None: ...
 
 class EvaluationRunFailureRollupV1(_message.Message):
-    __slots__ = ("candidate_failure_count", "scorer_failure_count", "cancelled_cell_count", "by_stage", "terminal_failure", "by_stage_availability")
+    __slots__ = ("candidate_failure_count", "scorer_failure_count", "cancelled_cell_count", "by_stage", "terminal_failure", "by_stage_availability", "by_class", "by_class_availability")
     CANDIDATE_FAILURE_COUNT_FIELD_NUMBER: _ClassVar[int]
     SCORER_FAILURE_COUNT_FIELD_NUMBER: _ClassVar[int]
     CANCELLED_CELL_COUNT_FIELD_NUMBER: _ClassVar[int]
     BY_STAGE_FIELD_NUMBER: _ClassVar[int]
     TERMINAL_FAILURE_FIELD_NUMBER: _ClassVar[int]
     BY_STAGE_AVAILABILITY_FIELD_NUMBER: _ClassVar[int]
+    BY_CLASS_FIELD_NUMBER: _ClassVar[int]
+    BY_CLASS_AVAILABILITY_FIELD_NUMBER: _ClassVar[int]
     candidate_failure_count: int
     scorer_failure_count: int
     cancelled_cell_count: int
     by_stage: _containers.RepeatedCompositeFieldContainer[EvaluationFailureStageCountV1]
     terminal_failure: EvaluationFailureV1
     by_stage_availability: MetricAvailabilityV1
-    def __init__(self, candidate_failure_count: _Optional[int] = ..., scorer_failure_count: _Optional[int] = ..., cancelled_cell_count: _Optional[int] = ..., by_stage: _Optional[_Iterable[_Union[EvaluationFailureStageCountV1, _Mapping]]] = ..., terminal_failure: _Optional[_Union[EvaluationFailureV1, _Mapping]] = ..., by_stage_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ...) -> None: ...
+    by_class: _containers.RepeatedCompositeFieldContainer[EvaluationFailureClassCountV1]
+    by_class_availability: MetricAvailabilityV1
+    def __init__(self, candidate_failure_count: _Optional[int] = ..., scorer_failure_count: _Optional[int] = ..., cancelled_cell_count: _Optional[int] = ..., by_stage: _Optional[_Iterable[_Union[EvaluationFailureStageCountV1, _Mapping]]] = ..., terminal_failure: _Optional[_Union[EvaluationFailureV1, _Mapping]] = ..., by_stage_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., by_class: _Optional[_Iterable[_Union[EvaluationFailureClassCountV1, _Mapping]]] = ..., by_class_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ...) -> None: ...
+
+class EvaluationFailureClassCountV1(_message.Message):
+    __slots__ = ("failure_class", "stage", "count")
+    FAILURE_CLASS_FIELD_NUMBER: _ClassVar[int]
+    STAGE_FIELD_NUMBER: _ClassVar[int]
+    COUNT_FIELD_NUMBER: _ClassVar[int]
+    failure_class: EvaluationFailureClassV1
+    stage: EvaluationFailureStageV1
+    count: int
+    def __init__(self, failure_class: _Optional[_Union[EvaluationFailureClassV1, str]] = ..., stage: _Optional[_Union[EvaluationFailureStageV1, str]] = ..., count: _Optional[int] = ...) -> None: ...
 
 class EvaluationRunRecoveryV1(_message.Message):
     __slots__ = ("retryable_cell_count", "awaiting_review_cell_count", "budget_blocked_cell_count", "cancelled_cell_count", "superseded_result_count", "attempt_generation", "recommended_action", "availability")
@@ -5735,7 +5984,7 @@ class DecisionBlockerV1(_message.Message):
     def __init__(self, kind: _Optional[_Union[DecisionBlockerKindV1, str]] = ..., candidate_key: _Optional[str] = ..., score_config_id: _Optional[str] = ..., observed_value: _Optional[float] = ..., threshold_value: _Optional[float] = ..., detail: _Optional[str] = ...) -> None: ...
 
 class CandidateTradeoffV1(_message.Message):
-    __slots__ = ("candidate_key", "quality_delta", "cost_delta", "improved_case_count", "regressed_case_count", "corrected_p_value", "blocked", "instability_rate", "quality_delta_standard_error", "consistency")
+    __slots__ = ("candidate_key", "quality_delta", "cost_delta", "improved_case_count", "regressed_case_count", "corrected_p_value", "blocked", "instability_rate", "quality_delta_standard_error", "consistency", "aligned_pair_count", "direction", "quality_delta_interval")
     CANDIDATE_KEY_FIELD_NUMBER: _ClassVar[int]
     QUALITY_DELTA_FIELD_NUMBER: _ClassVar[int]
     COST_DELTA_FIELD_NUMBER: _ClassVar[int]
@@ -5746,6 +5995,9 @@ class CandidateTradeoffV1(_message.Message):
     INSTABILITY_RATE_FIELD_NUMBER: _ClassVar[int]
     QUALITY_DELTA_STANDARD_ERROR_FIELD_NUMBER: _ClassVar[int]
     CONSISTENCY_FIELD_NUMBER: _ClassVar[int]
+    ALIGNED_PAIR_COUNT_FIELD_NUMBER: _ClassVar[int]
+    DIRECTION_FIELD_NUMBER: _ClassVar[int]
+    QUALITY_DELTA_INTERVAL_FIELD_NUMBER: _ClassVar[int]
     candidate_key: str
     quality_delta: float
     cost_delta: CostAmountV1
@@ -5756,7 +6008,10 @@ class CandidateTradeoffV1(_message.Message):
     instability_rate: float
     quality_delta_standard_error: float
     consistency: EvaluationConsistencyV1
-    def __init__(self, candidate_key: _Optional[str] = ..., quality_delta: _Optional[float] = ..., cost_delta: _Optional[_Union[CostAmountV1, _Mapping]] = ..., improved_case_count: _Optional[int] = ..., regressed_case_count: _Optional[int] = ..., corrected_p_value: _Optional[float] = ..., blocked: _Optional[bool] = ..., instability_rate: _Optional[float] = ..., quality_delta_standard_error: _Optional[float] = ..., consistency: _Optional[_Union[EvaluationConsistencyV1, _Mapping]] = ...) -> None: ...
+    aligned_pair_count: int
+    direction: EvaluationEffectDirectionV1
+    quality_delta_interval: ConfidenceIntervalV1
+    def __init__(self, candidate_key: _Optional[str] = ..., quality_delta: _Optional[float] = ..., cost_delta: _Optional[_Union[CostAmountV1, _Mapping]] = ..., improved_case_count: _Optional[int] = ..., regressed_case_count: _Optional[int] = ..., corrected_p_value: _Optional[float] = ..., blocked: _Optional[bool] = ..., instability_rate: _Optional[float] = ..., quality_delta_standard_error: _Optional[float] = ..., consistency: _Optional[_Union[EvaluationConsistencyV1, _Mapping]] = ..., aligned_pair_count: _Optional[int] = ..., direction: _Optional[_Union[EvaluationEffectDirectionV1, str]] = ..., quality_delta_interval: _Optional[_Union[ConfidenceIntervalV1, _Mapping]] = ...) -> None: ...
 
 class EvidencePostureV1(_message.Message):
     __slots__ = ("completeness", "aligned_case_count", "expected_case_count", "unscored_result_count", "awaiting_review_cell_count", "availability")
@@ -5775,7 +6030,7 @@ class EvidencePostureV1(_message.Message):
     def __init__(self, completeness: _Optional[_Union[CompletenessStateV1, str]] = ..., aligned_case_count: _Optional[int] = ..., expected_case_count: _Optional[int] = ..., unscored_result_count: _Optional[int] = ..., awaiting_review_cell_count: _Optional[int] = ..., availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ...) -> None: ...
 
 class EvaluationDecisionV1(_message.Message):
-    __slots__ = ("decision_policy_version", "outcome", "recommended_candidate_key", "reference_candidate_key", "tradeoffs", "blockers", "minimum_sample", "statistics", "evidence_posture", "provenance", "algorithm_version", "repeat_sample")
+    __slots__ = ("decision_policy_version", "outcome", "recommended_candidate_key", "reference_candidate_key", "tradeoffs", "blockers", "minimum_sample", "statistics", "evidence_posture", "provenance", "algorithm_version", "repeat_sample", "alpha")
     DECISION_POLICY_VERSION_FIELD_NUMBER: _ClassVar[int]
     OUTCOME_FIELD_NUMBER: _ClassVar[int]
     RECOMMENDED_CANDIDATE_KEY_FIELD_NUMBER: _ClassVar[int]
@@ -5788,6 +6043,7 @@ class EvaluationDecisionV1(_message.Message):
     PROVENANCE_FIELD_NUMBER: _ClassVar[int]
     ALGORITHM_VERSION_FIELD_NUMBER: _ClassVar[int]
     REPEAT_SAMPLE_FIELD_NUMBER: _ClassVar[int]
+    ALPHA_FIELD_NUMBER: _ClassVar[int]
     decision_policy_version: str
     outcome: EvaluationDecisionOutcomeV1
     recommended_candidate_key: str
@@ -5800,7 +6056,8 @@ class EvaluationDecisionV1(_message.Message):
     provenance: EvaluationDecisionProvenanceV1
     algorithm_version: str
     repeat_sample: RepeatSampleCheckV1
-    def __init__(self, decision_policy_version: _Optional[str] = ..., outcome: _Optional[_Union[EvaluationDecisionOutcomeV1, str]] = ..., recommended_candidate_key: _Optional[str] = ..., reference_candidate_key: _Optional[str] = ..., tradeoffs: _Optional[_Iterable[_Union[CandidateTradeoffV1, _Mapping]]] = ..., blockers: _Optional[_Iterable[_Union[DecisionBlockerV1, _Mapping]]] = ..., minimum_sample: _Optional[_Union[MinimumSampleCheckV1, _Mapping]] = ..., statistics: _Optional[_Union[StatisticalResultV1, _Mapping]] = ..., evidence_posture: _Optional[_Union[EvidencePostureV1, _Mapping]] = ..., provenance: _Optional[_Union[EvaluationDecisionProvenanceV1, str]] = ..., algorithm_version: _Optional[str] = ..., repeat_sample: _Optional[_Union[RepeatSampleCheckV1, _Mapping]] = ...) -> None: ...
+    alpha: float
+    def __init__(self, decision_policy_version: _Optional[str] = ..., outcome: _Optional[_Union[EvaluationDecisionOutcomeV1, str]] = ..., recommended_candidate_key: _Optional[str] = ..., reference_candidate_key: _Optional[str] = ..., tradeoffs: _Optional[_Iterable[_Union[CandidateTradeoffV1, _Mapping]]] = ..., blockers: _Optional[_Iterable[_Union[DecisionBlockerV1, _Mapping]]] = ..., minimum_sample: _Optional[_Union[MinimumSampleCheckV1, _Mapping]] = ..., statistics: _Optional[_Union[StatisticalResultV1, _Mapping]] = ..., evidence_posture: _Optional[_Union[EvidencePostureV1, _Mapping]] = ..., provenance: _Optional[_Union[EvaluationDecisionProvenanceV1, str]] = ..., algorithm_version: _Optional[str] = ..., repeat_sample: _Optional[_Union[RepeatSampleCheckV1, _Mapping]] = ..., alpha: _Optional[float] = ...) -> None: ...
 
 class EvaluationDecisionRevisionV1(_message.Message):
     __slots__ = ("id", "evaluation_run_id", "revision_ordinal", "evidence_projection_version", "decision_policy_version", "algorithm_version", "inputs_digest", "decision", "exclusions", "reason", "actor", "created_at")
@@ -6000,6 +6257,60 @@ class AdoptEvaluationDecisionRevisionResponse(_message.Message):
     release_adoption_warning: ReleaseAdoptionWarningV1
     def __init__(self, revision: _Optional[_Union[EvaluationDecisionRevisionV1, _Mapping]] = ..., idempotent_replay: _Optional[bool] = ..., release_adoption_warning: _Optional[_Union[ReleaseAdoptionWarningV1, _Mapping]] = ...) -> None: ...
 
+class EvaluationCaseMovementRowV1(_message.Message):
+    __slots__ = ("cohort_key", "case_revision_id", "candidate_key", "score_config_id", "config_key", "candidate_outcome", "reference_outcome", "movement", "candidate_usable_rollout_count", "candidate_passed_rollout_count", "reference_usable_rollout_count", "reference_passed_rollout_count")
+    COHORT_KEY_FIELD_NUMBER: _ClassVar[int]
+    CASE_REVISION_ID_FIELD_NUMBER: _ClassVar[int]
+    CANDIDATE_KEY_FIELD_NUMBER: _ClassVar[int]
+    SCORE_CONFIG_ID_FIELD_NUMBER: _ClassVar[int]
+    CONFIG_KEY_FIELD_NUMBER: _ClassVar[int]
+    CANDIDATE_OUTCOME_FIELD_NUMBER: _ClassVar[int]
+    REFERENCE_OUTCOME_FIELD_NUMBER: _ClassVar[int]
+    MOVEMENT_FIELD_NUMBER: _ClassVar[int]
+    CANDIDATE_USABLE_ROLLOUT_COUNT_FIELD_NUMBER: _ClassVar[int]
+    CANDIDATE_PASSED_ROLLOUT_COUNT_FIELD_NUMBER: _ClassVar[int]
+    REFERENCE_USABLE_ROLLOUT_COUNT_FIELD_NUMBER: _ClassVar[int]
+    REFERENCE_PASSED_ROLLOUT_COUNT_FIELD_NUMBER: _ClassVar[int]
+    cohort_key: str
+    case_revision_id: str
+    candidate_key: str
+    score_config_id: str
+    config_key: str
+    candidate_outcome: EvaluationCaseOutcomeV1
+    reference_outcome: EvaluationCaseOutcomeV1
+    movement: EvaluationCaseMovementV1
+    candidate_usable_rollout_count: int
+    candidate_passed_rollout_count: int
+    reference_usable_rollout_count: int
+    reference_passed_rollout_count: int
+    def __init__(self, cohort_key: _Optional[str] = ..., case_revision_id: _Optional[str] = ..., candidate_key: _Optional[str] = ..., score_config_id: _Optional[str] = ..., config_key: _Optional[str] = ..., candidate_outcome: _Optional[_Union[EvaluationCaseOutcomeV1, str]] = ..., reference_outcome: _Optional[_Union[EvaluationCaseOutcomeV1, str]] = ..., movement: _Optional[_Union[EvaluationCaseMovementV1, str]] = ..., candidate_usable_rollout_count: _Optional[int] = ..., candidate_passed_rollout_count: _Optional[int] = ..., reference_usable_rollout_count: _Optional[int] = ..., reference_passed_rollout_count: _Optional[int] = ...) -> None: ...
+
+class ListEvaluationCaseMovementsRequest(_message.Message):
+    __slots__ = ("evaluation_run_id", "page", "movements", "candidate_keys")
+    EVALUATION_RUN_ID_FIELD_NUMBER: _ClassVar[int]
+    PAGE_FIELD_NUMBER: _ClassVar[int]
+    MOVEMENTS_FIELD_NUMBER: _ClassVar[int]
+    CANDIDATE_KEYS_FIELD_NUMBER: _ClassVar[int]
+    evaluation_run_id: str
+    page: _common_pb2.PageRequestV1
+    movements: _containers.RepeatedScalarFieldContainer[EvaluationCaseMovementV1]
+    candidate_keys: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, evaluation_run_id: _Optional[str] = ..., page: _Optional[_Union[_common_pb2.PageRequestV1, _Mapping]] = ..., movements: _Optional[_Iterable[_Union[EvaluationCaseMovementV1, str]]] = ..., candidate_keys: _Optional[_Iterable[str]] = ...) -> None: ...
+
+class ListEvaluationCaseMovementsResponse(_message.Message):
+    __slots__ = ("rows", "page", "reference_candidate_key", "availability", "capabilities")
+    ROWS_FIELD_NUMBER: _ClassVar[int]
+    PAGE_FIELD_NUMBER: _ClassVar[int]
+    REFERENCE_CANDIDATE_KEY_FIELD_NUMBER: _ClassVar[int]
+    AVAILABILITY_FIELD_NUMBER: _ClassVar[int]
+    CAPABILITIES_FIELD_NUMBER: _ClassVar[int]
+    rows: _containers.RepeatedCompositeFieldContainer[EvaluationCaseMovementRowV1]
+    page: _common_pb2.PageResponseV1
+    reference_candidate_key: str
+    availability: MetricAvailabilityV1
+    capabilities: AgenticEvaluationCapabilitiesV1
+    def __init__(self, rows: _Optional[_Iterable[_Union[EvaluationCaseMovementRowV1, _Mapping]]] = ..., page: _Optional[_Union[_common_pb2.PageResponseV1, _Mapping]] = ..., reference_candidate_key: _Optional[str] = ..., availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., capabilities: _Optional[_Union[AgenticEvaluationCapabilitiesV1, _Mapping]] = ...) -> None: ...
+
 class EvaluationMatrixFilterV1(_message.Message):
     __slots__ = ("cohort_keys", "candidate_keys", "score_config_ids", "verdicts", "decision_impacts", "evidence_states", "trial", "blocking_gates_only")
     COHORT_KEYS_FIELD_NUMBER: _ClassVar[int]
@@ -6021,7 +6332,7 @@ class EvaluationMatrixFilterV1(_message.Message):
     def __init__(self, cohort_keys: _Optional[_Iterable[str]] = ..., candidate_keys: _Optional[_Iterable[str]] = ..., score_config_ids: _Optional[_Iterable[str]] = ..., verdicts: _Optional[_Iterable[_Union[EvaluationVerdictV1, str]]] = ..., decision_impacts: _Optional[_Iterable[_Union[EvaluationMatrixDecisionImpactV1, str]]] = ..., evidence_states: _Optional[_Iterable[_Union[EvaluationMatrixEvidenceStateV1, str]]] = ..., trial: _Optional[int] = ..., blocking_gates_only: _Optional[bool] = ...) -> None: ...
 
 class EvaluationMatrixCellV1(_message.Message):
-    __slots__ = ("candidate_key", "score_config_id", "config_key", "verdict", "score", "score_availability", "reference_verdict", "reference_score", "score_delta", "decision_impact", "evidence_state", "candidate_failure_code", "scorer_failure_code", "attempt_generation", "is_blocking_gate")
+    __slots__ = ("candidate_key", "score_config_id", "config_key", "verdict", "score", "score_availability", "reference_verdict", "reference_score", "score_delta", "decision_impact", "evidence_state", "candidate_failure_code", "scorer_failure_code", "attempt_generation", "is_blocking_gate", "scorer_kind")
     CANDIDATE_KEY_FIELD_NUMBER: _ClassVar[int]
     SCORE_CONFIG_ID_FIELD_NUMBER: _ClassVar[int]
     CONFIG_KEY_FIELD_NUMBER: _ClassVar[int]
@@ -6037,6 +6348,7 @@ class EvaluationMatrixCellV1(_message.Message):
     SCORER_FAILURE_CODE_FIELD_NUMBER: _ClassVar[int]
     ATTEMPT_GENERATION_FIELD_NUMBER: _ClassVar[int]
     IS_BLOCKING_GATE_FIELD_NUMBER: _ClassVar[int]
+    SCORER_KIND_FIELD_NUMBER: _ClassVar[int]
     candidate_key: str
     score_config_id: str
     config_key: str
@@ -6052,10 +6364,21 @@ class EvaluationMatrixCellV1(_message.Message):
     scorer_failure_code: str
     attempt_generation: int
     is_blocking_gate: bool
-    def __init__(self, candidate_key: _Optional[str] = ..., score_config_id: _Optional[str] = ..., config_key: _Optional[str] = ..., verdict: _Optional[_Union[EvaluationVerdictV1, str]] = ..., score: _Optional[float] = ..., score_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., reference_verdict: _Optional[_Union[EvaluationVerdictV1, str]] = ..., reference_score: _Optional[float] = ..., score_delta: _Optional[float] = ..., decision_impact: _Optional[_Union[EvaluationMatrixDecisionImpactV1, str]] = ..., evidence_state: _Optional[_Union[EvaluationMatrixEvidenceStateV1, str]] = ..., candidate_failure_code: _Optional[str] = ..., scorer_failure_code: _Optional[str] = ..., attempt_generation: _Optional[int] = ..., is_blocking_gate: _Optional[bool] = ...) -> None: ...
+    scorer_kind: EvaluationScorerKindV1
+    def __init__(self, candidate_key: _Optional[str] = ..., score_config_id: _Optional[str] = ..., config_key: _Optional[str] = ..., verdict: _Optional[_Union[EvaluationVerdictV1, str]] = ..., score: _Optional[float] = ..., score_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., reference_verdict: _Optional[_Union[EvaluationVerdictV1, str]] = ..., reference_score: _Optional[float] = ..., score_delta: _Optional[float] = ..., decision_impact: _Optional[_Union[EvaluationMatrixDecisionImpactV1, str]] = ..., evidence_state: _Optional[_Union[EvaluationMatrixEvidenceStateV1, str]] = ..., candidate_failure_code: _Optional[str] = ..., scorer_failure_code: _Optional[str] = ..., attempt_generation: _Optional[int] = ..., is_blocking_gate: _Optional[bool] = ..., scorer_kind: _Optional[_Union[EvaluationScorerKindV1, str]] = ...) -> None: ...
+
+class EvaluationMatrixOutputPreviewV1(_message.Message):
+    __slots__ = ("candidate_key", "first_line", "availability")
+    CANDIDATE_KEY_FIELD_NUMBER: _ClassVar[int]
+    FIRST_LINE_FIELD_NUMBER: _ClassVar[int]
+    AVAILABILITY_FIELD_NUMBER: _ClassVar[int]
+    candidate_key: str
+    first_line: str
+    availability: MetricAvailabilityV1
+    def __init__(self, candidate_key: _Optional[str] = ..., first_line: _Optional[str] = ..., availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ...) -> None: ...
 
 class EvaluationMatrixRowV1(_message.Message):
-    __slots__ = ("ordinal", "cohort_key", "case_revision_id", "trial", "decision_impact", "evidence_state", "cells", "result_count", "suite_cells")
+    __slots__ = ("ordinal", "cohort_key", "case_revision_id", "trial", "decision_impact", "evidence_state", "cells", "result_count", "suite_cells", "output_previews")
     ORDINAL_FIELD_NUMBER: _ClassVar[int]
     COHORT_KEY_FIELD_NUMBER: _ClassVar[int]
     CASE_REVISION_ID_FIELD_NUMBER: _ClassVar[int]
@@ -6065,6 +6388,7 @@ class EvaluationMatrixRowV1(_message.Message):
     CELLS_FIELD_NUMBER: _ClassVar[int]
     RESULT_COUNT_FIELD_NUMBER: _ClassVar[int]
     SUITE_CELLS_FIELD_NUMBER: _ClassVar[int]
+    OUTPUT_PREVIEWS_FIELD_NUMBER: _ClassVar[int]
     ordinal: int
     cohort_key: str
     case_revision_id: str
@@ -6074,7 +6398,8 @@ class EvaluationMatrixRowV1(_message.Message):
     cells: _containers.RepeatedCompositeFieldContainer[EvaluationMatrixCellV1]
     result_count: int
     suite_cells: _containers.RepeatedCompositeFieldContainer[EvaluationScorerSuiteCellV1]
-    def __init__(self, ordinal: _Optional[int] = ..., cohort_key: _Optional[str] = ..., case_revision_id: _Optional[str] = ..., trial: _Optional[int] = ..., decision_impact: _Optional[_Union[EvaluationMatrixDecisionImpactV1, str]] = ..., evidence_state: _Optional[_Union[EvaluationMatrixEvidenceStateV1, str]] = ..., cells: _Optional[_Iterable[_Union[EvaluationMatrixCellV1, _Mapping]]] = ..., result_count: _Optional[int] = ..., suite_cells: _Optional[_Iterable[_Union[EvaluationScorerSuiteCellV1, _Mapping]]] = ...) -> None: ...
+    output_previews: _containers.RepeatedCompositeFieldContainer[EvaluationMatrixOutputPreviewV1]
+    def __init__(self, ordinal: _Optional[int] = ..., cohort_key: _Optional[str] = ..., case_revision_id: _Optional[str] = ..., trial: _Optional[int] = ..., decision_impact: _Optional[_Union[EvaluationMatrixDecisionImpactV1, str]] = ..., evidence_state: _Optional[_Union[EvaluationMatrixEvidenceStateV1, str]] = ..., cells: _Optional[_Iterable[_Union[EvaluationMatrixCellV1, _Mapping]]] = ..., result_count: _Optional[int] = ..., suite_cells: _Optional[_Iterable[_Union[EvaluationScorerSuiteCellV1, _Mapping]]] = ..., output_previews: _Optional[_Iterable[_Union[EvaluationMatrixOutputPreviewV1, _Mapping]]] = ...) -> None: ...
 
 class EvaluationMatrixFacetV1(_message.Message):
     __slots__ = ("kind", "matching_row_count")
@@ -6227,7 +6552,7 @@ class EvaluationCandidateExecutionDetailV1(_message.Message):
     def __init__(self, candidate_key: _Optional[str] = ..., candidate_source: _Optional[_Union[EvaluationCandidateSourceV1, str]] = ..., state: _Optional[_Union[EvaluationExecutionStateV1, str]] = ..., attempts: _Optional[_Iterable[_Union[EvaluationCandidateAttemptDetailV1, _Mapping]]] = ..., attempt_generation: _Optional[int] = ..., failure: _Optional[_Union[EvaluationFailureV1, _Mapping]] = ..., metrics: _Optional[_Union[ExecutionMetricsV1, _Mapping]] = ..., availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ...) -> None: ...
 
 class EvaluationScorerEvidenceV1(_message.Message):
-    __slots__ = ("score_config_id", "config_key", "metric_name", "verdict", "score", "score_availability", "score_reason_code", "is_blocking_gate", "failure", "duration_micros", "attempt_generation", "is_superseded", "evaluator_execution", "attempt_economics", "attempt_economics_total", "attempt_economics_availability")
+    __slots__ = ("score_config_id", "config_key", "metric_name", "verdict", "score", "score_availability", "score_reason_code", "is_blocking_gate", "failure", "duration_micros", "attempt_generation", "is_superseded", "evaluator_execution", "attempt_economics", "attempt_economics_total", "attempt_economics_availability", "code")
     SCORE_CONFIG_ID_FIELD_NUMBER: _ClassVar[int]
     CONFIG_KEY_FIELD_NUMBER: _ClassVar[int]
     METRIC_NAME_FIELD_NUMBER: _ClassVar[int]
@@ -6244,6 +6569,7 @@ class EvaluationScorerEvidenceV1(_message.Message):
     ATTEMPT_ECONOMICS_FIELD_NUMBER: _ClassVar[int]
     ATTEMPT_ECONOMICS_TOTAL_FIELD_NUMBER: _ClassVar[int]
     ATTEMPT_ECONOMICS_AVAILABILITY_FIELD_NUMBER: _ClassVar[int]
+    CODE_FIELD_NUMBER: _ClassVar[int]
     score_config_id: str
     config_key: str
     metric_name: str
@@ -6260,7 +6586,8 @@ class EvaluationScorerEvidenceV1(_message.Message):
     attempt_economics: _containers.RepeatedCompositeFieldContainer[EvaluationScorerAttemptEconomicsV1]
     attempt_economics_total: CostAmountV1
     attempt_economics_availability: MetricAvailabilityV1
-    def __init__(self, score_config_id: _Optional[str] = ..., config_key: _Optional[str] = ..., metric_name: _Optional[str] = ..., verdict: _Optional[_Union[EvaluationVerdictV1, str]] = ..., score: _Optional[float] = ..., score_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., score_reason_code: _Optional[str] = ..., is_blocking_gate: _Optional[bool] = ..., failure: _Optional[_Union[EvaluationFailureV1, _Mapping]] = ..., duration_micros: _Optional[int] = ..., attempt_generation: _Optional[int] = ..., is_superseded: _Optional[bool] = ..., evaluator_execution: _Optional[_Union[ExecutionMetricsV1, _Mapping]] = ..., attempt_economics: _Optional[_Iterable[_Union[EvaluationScorerAttemptEconomicsV1, _Mapping]]] = ..., attempt_economics_total: _Optional[_Union[CostAmountV1, _Mapping]] = ..., attempt_economics_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ...) -> None: ...
+    code: EvaluationCodeScorerResultV1
+    def __init__(self, score_config_id: _Optional[str] = ..., config_key: _Optional[str] = ..., metric_name: _Optional[str] = ..., verdict: _Optional[_Union[EvaluationVerdictV1, str]] = ..., score: _Optional[float] = ..., score_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., score_reason_code: _Optional[str] = ..., is_blocking_gate: _Optional[bool] = ..., failure: _Optional[_Union[EvaluationFailureV1, _Mapping]] = ..., duration_micros: _Optional[int] = ..., attempt_generation: _Optional[int] = ..., is_superseded: _Optional[bool] = ..., evaluator_execution: _Optional[_Union[ExecutionMetricsV1, _Mapping]] = ..., attempt_economics: _Optional[_Iterable[_Union[EvaluationScorerAttemptEconomicsV1, _Mapping]]] = ..., attempt_economics_total: _Optional[_Union[CostAmountV1, _Mapping]] = ..., attempt_economics_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., code: _Optional[_Union[EvaluationCodeScorerResultV1, _Mapping]] = ...) -> None: ...
 
 class EvaluationScorerAttemptEconomicsV1(_message.Message):
     __slots__ = ("scorer_attempt", "origin", "regrade_job_id", "is_superseded", "evaluator_execution", "economics_availability")
@@ -6293,7 +6620,7 @@ class EvaluationArtifactSummaryV1(_message.Message):
     def __init__(self, artifact_id: _Optional[str] = ..., media_type: _Optional[str] = ..., byte_size: _Optional[int] = ..., content_digest: _Optional[str] = ..., content_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ...) -> None: ...
 
 class EvaluationCellDetailV1(_message.Message):
-    __slots__ = ("cell", "ordinal", "case_context", "candidate_execution", "scorer_evidence", "artifacts", "artifacts_availability", "evidence_state", "freshness")
+    __slots__ = ("cell", "ordinal", "case_context", "candidate_execution", "scorer_evidence", "artifacts", "artifacts_availability", "evidence_state", "freshness", "incomplete_recording_last_step")
     CELL_FIELD_NUMBER: _ClassVar[int]
     ORDINAL_FIELD_NUMBER: _ClassVar[int]
     CASE_CONTEXT_FIELD_NUMBER: _ClassVar[int]
@@ -6303,6 +6630,7 @@ class EvaluationCellDetailV1(_message.Message):
     ARTIFACTS_AVAILABILITY_FIELD_NUMBER: _ClassVar[int]
     EVIDENCE_STATE_FIELD_NUMBER: _ClassVar[int]
     FRESHNESS_FIELD_NUMBER: _ClassVar[int]
+    INCOMPLETE_RECORDING_LAST_STEP_FIELD_NUMBER: _ClassVar[int]
     cell: EvaluationCellRefV1
     ordinal: int
     case_context: EvaluationCaseContextV1
@@ -6312,7 +6640,8 @@ class EvaluationCellDetailV1(_message.Message):
     artifacts_availability: MetricAvailabilityV1
     evidence_state: EvaluationMatrixEvidenceStateV1
     freshness: EvaluationFreshnessV1
-    def __init__(self, cell: _Optional[_Union[EvaluationCellRefV1, _Mapping]] = ..., ordinal: _Optional[int] = ..., case_context: _Optional[_Union[EvaluationCaseContextV1, _Mapping]] = ..., candidate_execution: _Optional[_Union[EvaluationCandidateExecutionDetailV1, _Mapping]] = ..., scorer_evidence: _Optional[_Iterable[_Union[EvaluationScorerEvidenceV1, _Mapping]]] = ..., artifacts: _Optional[_Iterable[_Union[EvaluationArtifactSummaryV1, _Mapping]]] = ..., artifacts_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., evidence_state: _Optional[_Union[EvaluationMatrixEvidenceStateV1, str]] = ..., freshness: _Optional[_Union[EvaluationFreshnessV1, _Mapping]] = ...) -> None: ...
+    incomplete_recording_last_step: int
+    def __init__(self, cell: _Optional[_Union[EvaluationCellRefV1, _Mapping]] = ..., ordinal: _Optional[int] = ..., case_context: _Optional[_Union[EvaluationCaseContextV1, _Mapping]] = ..., candidate_execution: _Optional[_Union[EvaluationCandidateExecutionDetailV1, _Mapping]] = ..., scorer_evidence: _Optional[_Iterable[_Union[EvaluationScorerEvidenceV1, _Mapping]]] = ..., artifacts: _Optional[_Iterable[_Union[EvaluationArtifactSummaryV1, _Mapping]]] = ..., artifacts_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., evidence_state: _Optional[_Union[EvaluationMatrixEvidenceStateV1, str]] = ..., freshness: _Optional[_Union[EvaluationFreshnessV1, _Mapping]] = ..., incomplete_recording_last_step: _Optional[int] = ...) -> None: ...
 
 class BatchGetEvaluationCellDetailsRequest(_message.Message):
     __slots__ = ("evaluation_run_id", "selection", "candidate_keys")
@@ -6349,7 +6678,7 @@ class BatchGetEvaluationCellDetailsResponse(_message.Message):
     def __init__(self, cells: _Optional[_Iterable[_Union[EvaluationCellDetailV1, _Mapping]]] = ..., missing: _Optional[_Iterable[_Union[EvaluationCellRefV1, _Mapping]]] = ..., previous_page_token: _Optional[str] = ..., next_page_token: _Optional[str] = ..., total_matching: _Optional[_Union[TotalMatchingV1, _Mapping]] = ..., evidence_source: _Optional[_Union[EvaluationCellEvidenceSourceV1, str]] = ..., fact_plane_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., allowed_actions: _Optional[_Iterable[_Union[AllowedActionV1, _Mapping]]] = ..., capabilities: _Optional[_Union[AgenticEvaluationCapabilitiesV1, _Mapping]] = ..., freshness: _Optional[_Union[EvaluationFreshnessV1, _Mapping]] = ...) -> None: ...
 
 class EvaluationRunProgressChangeV1(_message.Message):
-    __slots__ = ("run_state", "projection_version", "expected_cell_count", "executed_cell_count", "succeeded_cell_count", "failed_cell_count", "cancelled_cell_count", "awaiting_review_cell_count")
+    __slots__ = ("run_state", "projection_version", "expected_cell_count", "executed_cell_count", "succeeded_cell_count", "failed_cell_count", "cancelled_cell_count", "awaiting_review_cell_count", "pending_code_scorer_count", "scoring_in_sandbox_cell_count")
     RUN_STATE_FIELD_NUMBER: _ClassVar[int]
     PROJECTION_VERSION_FIELD_NUMBER: _ClassVar[int]
     EXPECTED_CELL_COUNT_FIELD_NUMBER: _ClassVar[int]
@@ -6358,6 +6687,8 @@ class EvaluationRunProgressChangeV1(_message.Message):
     FAILED_CELL_COUNT_FIELD_NUMBER: _ClassVar[int]
     CANCELLED_CELL_COUNT_FIELD_NUMBER: _ClassVar[int]
     AWAITING_REVIEW_CELL_COUNT_FIELD_NUMBER: _ClassVar[int]
+    PENDING_CODE_SCORER_COUNT_FIELD_NUMBER: _ClassVar[int]
+    SCORING_IN_SANDBOX_CELL_COUNT_FIELD_NUMBER: _ClassVar[int]
     run_state: EvaluationRunStateV1
     projection_version: int
     expected_cell_count: int
@@ -6366,7 +6697,9 @@ class EvaluationRunProgressChangeV1(_message.Message):
     failed_cell_count: int
     cancelled_cell_count: int
     awaiting_review_cell_count: int
-    def __init__(self, run_state: _Optional[_Union[EvaluationRunStateV1, str]] = ..., projection_version: _Optional[int] = ..., expected_cell_count: _Optional[int] = ..., executed_cell_count: _Optional[int] = ..., succeeded_cell_count: _Optional[int] = ..., failed_cell_count: _Optional[int] = ..., cancelled_cell_count: _Optional[int] = ..., awaiting_review_cell_count: _Optional[int] = ...) -> None: ...
+    pending_code_scorer_count: int
+    scoring_in_sandbox_cell_count: int
+    def __init__(self, run_state: _Optional[_Union[EvaluationRunStateV1, str]] = ..., projection_version: _Optional[int] = ..., expected_cell_count: _Optional[int] = ..., executed_cell_count: _Optional[int] = ..., succeeded_cell_count: _Optional[int] = ..., failed_cell_count: _Optional[int] = ..., cancelled_cell_count: _Optional[int] = ..., awaiting_review_cell_count: _Optional[int] = ..., pending_code_scorer_count: _Optional[int] = ..., scoring_in_sandbox_cell_count: _Optional[int] = ...) -> None: ...
 
 class EvaluationCellDeltaV1(_message.Message):
     __slots__ = ("cell", "state", "attempt_generation")
@@ -6679,7 +7012,7 @@ class EvaluationRunManifestSectionV1(_message.Message):
     def __init__(self, definition_revision_id: _Optional[str] = ..., definition_content_digest: _Optional[str] = ..., manifest_schema_version: _Optional[int] = ..., configuration_diff: _Optional[_Union[EvaluationConfigurationDiffV1, _Mapping]] = ..., scorers: _Optional[_Iterable[_Union[EvaluationScorerVersionSnapshotV1, _Mapping]]] = ..., decision_policy_version: _Optional[str] = ..., pricing_source: _Optional[_Union[EvaluationPricingSourceV1, _Mapping]] = ..., pricing_source_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., evidence_projection_version: _Optional[int] = ..., adopted_decision_revision_id: _Optional[str] = ..., release_adoption: _Optional[_Union[ReleaseAdoptionWarningV1, _Mapping]] = ..., audit: _Optional[_Iterable[_Union[EvaluationAuditEntryV1, _Mapping]]] = ..., audit_next_cursor: _Optional[str] = ..., audit_has_more: _Optional[bool] = ..., freshness: _Optional[_Union[EvaluationFreshnessV1, _Mapping]] = ..., availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., provider_drift: _Optional[_Union[EvaluationConfigurationDiffV1, _Mapping]] = ..., served_drift_candidate_keys: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class EvaluationReviewUnitV1(_message.Message):
-    __slots__ = ("review_unit_id", "evaluation_run_id", "cell", "scorer_key", "scorer_version", "completion_state", "adjudication_state", "submitted_count", "required_count", "blocking_effect_code", "blind_posture", "pairwise", "dataset_proposed_case_id")
+    __slots__ = ("review_unit_id", "evaluation_run_id", "cell", "scorer_key", "scorer_version", "completion_state", "adjudication_state", "submitted_count", "required_count", "blocking_effect_code", "blind_posture", "pairwise", "dataset_proposed_case_id", "conflict_kind")
     REVIEW_UNIT_ID_FIELD_NUMBER: _ClassVar[int]
     EVALUATION_RUN_ID_FIELD_NUMBER: _ClassVar[int]
     CELL_FIELD_NUMBER: _ClassVar[int]
@@ -6693,6 +7026,7 @@ class EvaluationReviewUnitV1(_message.Message):
     BLIND_POSTURE_FIELD_NUMBER: _ClassVar[int]
     PAIRWISE_FIELD_NUMBER: _ClassVar[int]
     DATASET_PROPOSED_CASE_ID_FIELD_NUMBER: _ClassVar[int]
+    CONFLICT_KIND_FIELD_NUMBER: _ClassVar[int]
     review_unit_id: str
     evaluation_run_id: str
     cell: EvaluationCellRefV1
@@ -6706,7 +7040,8 @@ class EvaluationReviewUnitV1(_message.Message):
     blind_posture: bool
     pairwise: bool
     dataset_proposed_case_id: str
-    def __init__(self, review_unit_id: _Optional[str] = ..., evaluation_run_id: _Optional[str] = ..., cell: _Optional[_Union[EvaluationCellRefV1, _Mapping]] = ..., scorer_key: _Optional[str] = ..., scorer_version: _Optional[str] = ..., completion_state: _Optional[_Union[ReviewUnitCompletionStateV1, str]] = ..., adjudication_state: _Optional[_Union[ReviewAdjudicationStateV1, str]] = ..., submitted_count: _Optional[int] = ..., required_count: _Optional[int] = ..., blocking_effect_code: _Optional[str] = ..., blind_posture: _Optional[bool] = ..., pairwise: _Optional[bool] = ..., dataset_proposed_case_id: _Optional[str] = ...) -> None: ...
+    conflict_kind: EvaluationReviewConflictKindV1
+    def __init__(self, review_unit_id: _Optional[str] = ..., evaluation_run_id: _Optional[str] = ..., cell: _Optional[_Union[EvaluationCellRefV1, _Mapping]] = ..., scorer_key: _Optional[str] = ..., scorer_version: _Optional[str] = ..., completion_state: _Optional[_Union[ReviewUnitCompletionStateV1, str]] = ..., adjudication_state: _Optional[_Union[ReviewAdjudicationStateV1, str]] = ..., submitted_count: _Optional[int] = ..., required_count: _Optional[int] = ..., blocking_effect_code: _Optional[str] = ..., blind_posture: _Optional[bool] = ..., pairwise: _Optional[bool] = ..., dataset_proposed_case_id: _Optional[str] = ..., conflict_kind: _Optional[_Union[EvaluationReviewConflictKindV1, str]] = ...) -> None: ...
 
 class EvaluationReviewTaskV1(_message.Message):
     __slots__ = ("review_task_id", "unit", "state", "reservation_state", "reservation_expires_at", "reviewer", "allowed_actions", "created_at", "updated_at", "reservation_token")
@@ -6733,7 +7068,7 @@ class EvaluationReviewTaskV1(_message.Message):
     def __init__(self, review_task_id: _Optional[str] = ..., unit: _Optional[_Union[EvaluationReviewUnitV1, _Mapping]] = ..., state: _Optional[_Union[EvaluationReviewTaskStateV1, str]] = ..., reservation_state: _Optional[_Union[ReviewReservationStateV1, str]] = ..., reservation_expires_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., reviewer: _Optional[_Union[PrincipalRefV1, _Mapping]] = ..., allowed_actions: _Optional[_Iterable[_Union[AllowedActionV1, _Mapping]]] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., updated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., reservation_token: _Optional[str] = ...) -> None: ...
 
 class EvaluationReviewSubjectV1(_message.Message):
-    __slots__ = ("cohort_key", "case_revision_id", "presented_candidate_keys", "artifact_refs", "availability", "subject_kind", "dataset_proposed_case_id")
+    __slots__ = ("cohort_key", "case_revision_id", "presented_candidate_keys", "artifact_refs", "availability", "subject_kind", "dataset_proposed_case_id", "baseline_candidate_key")
     COHORT_KEY_FIELD_NUMBER: _ClassVar[int]
     CASE_REVISION_ID_FIELD_NUMBER: _ClassVar[int]
     PRESENTED_CANDIDATE_KEYS_FIELD_NUMBER: _ClassVar[int]
@@ -6741,6 +7076,7 @@ class EvaluationReviewSubjectV1(_message.Message):
     AVAILABILITY_FIELD_NUMBER: _ClassVar[int]
     SUBJECT_KIND_FIELD_NUMBER: _ClassVar[int]
     DATASET_PROPOSED_CASE_ID_FIELD_NUMBER: _ClassVar[int]
+    BASELINE_CANDIDATE_KEY_FIELD_NUMBER: _ClassVar[int]
     cohort_key: str
     case_revision_id: str
     presented_candidate_keys: _containers.RepeatedScalarFieldContainer[str]
@@ -6748,7 +7084,8 @@ class EvaluationReviewSubjectV1(_message.Message):
     availability: MetricAvailabilityV1
     subject_kind: EvaluationReviewSubjectKindV1
     dataset_proposed_case_id: str
-    def __init__(self, cohort_key: _Optional[str] = ..., case_revision_id: _Optional[str] = ..., presented_candidate_keys: _Optional[_Iterable[str]] = ..., artifact_refs: _Optional[_Iterable[_Union[EvaluationArtifactContentRefV1, _Mapping]]] = ..., availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., subject_kind: _Optional[_Union[EvaluationReviewSubjectKindV1, str]] = ..., dataset_proposed_case_id: _Optional[str] = ...) -> None: ...
+    baseline_candidate_key: str
+    def __init__(self, cohort_key: _Optional[str] = ..., case_revision_id: _Optional[str] = ..., presented_candidate_keys: _Optional[_Iterable[str]] = ..., artifact_refs: _Optional[_Iterable[_Union[EvaluationArtifactContentRefV1, _Mapping]]] = ..., availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., subject_kind: _Optional[_Union[EvaluationReviewSubjectKindV1, str]] = ..., dataset_proposed_case_id: _Optional[str] = ..., baseline_candidate_key: _Optional[str] = ...) -> None: ...
 
 class EvaluationReviewRubricFieldV1(_message.Message):
     __slots__ = ("field_key", "required", "value_type_code", "minimum", "maximum")
@@ -6871,7 +7208,7 @@ class GetEvaluationReviewTaskRequest(_message.Message):
     def __init__(self, review_task_id: _Optional[str] = ...) -> None: ...
 
 class GetEvaluationReviewTaskResponse(_message.Message):
-    __slots__ = ("task", "subject", "rubric", "own_submission", "own_draft_field_values", "other_submissions", "blind_withheld", "blind_withheld_reason_code", "adjudicator_reveal", "allowed_actions", "freshness", "capabilities")
+    __slots__ = ("task", "subject", "rubric", "own_submission", "own_draft_field_values", "other_submissions", "blind_withheld", "blind_withheld_reason_code", "adjudicator_reveal", "allowed_actions", "freshness", "capabilities", "presented_outputs", "presented_outputs_availability")
     TASK_FIELD_NUMBER: _ClassVar[int]
     SUBJECT_FIELD_NUMBER: _ClassVar[int]
     RUBRIC_FIELD_NUMBER: _ClassVar[int]
@@ -6884,6 +7221,8 @@ class GetEvaluationReviewTaskResponse(_message.Message):
     ALLOWED_ACTIONS_FIELD_NUMBER: _ClassVar[int]
     FRESHNESS_FIELD_NUMBER: _ClassVar[int]
     CAPABILITIES_FIELD_NUMBER: _ClassVar[int]
+    PRESENTED_OUTPUTS_FIELD_NUMBER: _ClassVar[int]
+    PRESENTED_OUTPUTS_AVAILABILITY_FIELD_NUMBER: _ClassVar[int]
     task: EvaluationReviewTaskV1
     subject: EvaluationReviewSubjectV1
     rubric: EvaluationReviewRubricV1
@@ -6896,10 +7235,12 @@ class GetEvaluationReviewTaskResponse(_message.Message):
     allowed_actions: _containers.RepeatedCompositeFieldContainer[AllowedActionV1]
     freshness: EvaluationFreshnessV1
     capabilities: AgenticEvaluationCapabilitiesV1
-    def __init__(self, task: _Optional[_Union[EvaluationReviewTaskV1, _Mapping]] = ..., subject: _Optional[_Union[EvaluationReviewSubjectV1, _Mapping]] = ..., rubric: _Optional[_Union[EvaluationReviewRubricV1, _Mapping]] = ..., own_submission: _Optional[_Union[EvaluationReviewSubmissionV1, _Mapping]] = ..., own_draft_field_values: _Optional[_Iterable[_Union[MetadataEntryV1, _Mapping]]] = ..., other_submissions: _Optional[_Iterable[_Union[EvaluationReviewSubmissionV1, _Mapping]]] = ..., blind_withheld: _Optional[bool] = ..., blind_withheld_reason_code: _Optional[str] = ..., adjudicator_reveal: _Optional[bool] = ..., allowed_actions: _Optional[_Iterable[_Union[AllowedActionV1, _Mapping]]] = ..., freshness: _Optional[_Union[EvaluationFreshnessV1, _Mapping]] = ..., capabilities: _Optional[_Union[AgenticEvaluationCapabilitiesV1, _Mapping]] = ...) -> None: ...
+    presented_outputs: _containers.RepeatedCompositeFieldContainer[EvaluationArtifactContentV1]
+    presented_outputs_availability: MetricAvailabilityV1
+    def __init__(self, task: _Optional[_Union[EvaluationReviewTaskV1, _Mapping]] = ..., subject: _Optional[_Union[EvaluationReviewSubjectV1, _Mapping]] = ..., rubric: _Optional[_Union[EvaluationReviewRubricV1, _Mapping]] = ..., own_submission: _Optional[_Union[EvaluationReviewSubmissionV1, _Mapping]] = ..., own_draft_field_values: _Optional[_Iterable[_Union[MetadataEntryV1, _Mapping]]] = ..., other_submissions: _Optional[_Iterable[_Union[EvaluationReviewSubmissionV1, _Mapping]]] = ..., blind_withheld: _Optional[bool] = ..., blind_withheld_reason_code: _Optional[str] = ..., adjudicator_reveal: _Optional[bool] = ..., allowed_actions: _Optional[_Iterable[_Union[AllowedActionV1, _Mapping]]] = ..., freshness: _Optional[_Union[EvaluationFreshnessV1, _Mapping]] = ..., capabilities: _Optional[_Union[AgenticEvaluationCapabilitiesV1, _Mapping]] = ..., presented_outputs: _Optional[_Iterable[_Union[EvaluationArtifactContentV1, _Mapping]]] = ..., presented_outputs_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ...) -> None: ...
 
 class SubmitEvaluationReviewRequest(_message.Message):
-    __slots__ = ("review_task_id", "reservation_token", "field_values", "pairwise_winner", "explanation", "idempotency_key", "draft_only", "dataset_case_outcome", "merge_target_case_revision_id", "dataset_case_rejection_reason")
+    __slots__ = ("review_task_id", "reservation_token", "field_values", "pairwise_winner", "explanation", "idempotency_key", "draft_only", "dataset_case_outcome", "merge_target_case_revision_id", "dataset_case_rejection_reason", "baseline_candidate_key")
     REVIEW_TASK_ID_FIELD_NUMBER: _ClassVar[int]
     RESERVATION_TOKEN_FIELD_NUMBER: _ClassVar[int]
     FIELD_VALUES_FIELD_NUMBER: _ClassVar[int]
@@ -6910,6 +7251,7 @@ class SubmitEvaluationReviewRequest(_message.Message):
     DATASET_CASE_OUTCOME_FIELD_NUMBER: _ClassVar[int]
     MERGE_TARGET_CASE_REVISION_ID_FIELD_NUMBER: _ClassVar[int]
     DATASET_CASE_REJECTION_REASON_FIELD_NUMBER: _ClassVar[int]
+    BASELINE_CANDIDATE_KEY_FIELD_NUMBER: _ClassVar[int]
     review_task_id: str
     reservation_token: str
     field_values: _containers.RepeatedCompositeFieldContainer[MetadataEntryV1]
@@ -6920,7 +7262,8 @@ class SubmitEvaluationReviewRequest(_message.Message):
     dataset_case_outcome: DatasetCaseReviewOutcomeV1
     merge_target_case_revision_id: str
     dataset_case_rejection_reason: DatasetCaseDraftRejectionReasonV1
-    def __init__(self, review_task_id: _Optional[str] = ..., reservation_token: _Optional[str] = ..., field_values: _Optional[_Iterable[_Union[MetadataEntryV1, _Mapping]]] = ..., pairwise_winner: _Optional[_Union[AnnotationPairwiseWinnerV1, str]] = ..., explanation: _Optional[str] = ..., idempotency_key: _Optional[str] = ..., draft_only: _Optional[bool] = ..., dataset_case_outcome: _Optional[_Union[DatasetCaseReviewOutcomeV1, str]] = ..., merge_target_case_revision_id: _Optional[str] = ..., dataset_case_rejection_reason: _Optional[_Union[DatasetCaseDraftRejectionReasonV1, str]] = ...) -> None: ...
+    baseline_candidate_key: str
+    def __init__(self, review_task_id: _Optional[str] = ..., reservation_token: _Optional[str] = ..., field_values: _Optional[_Iterable[_Union[MetadataEntryV1, _Mapping]]] = ..., pairwise_winner: _Optional[_Union[AnnotationPairwiseWinnerV1, str]] = ..., explanation: _Optional[str] = ..., idempotency_key: _Optional[str] = ..., draft_only: _Optional[bool] = ..., dataset_case_outcome: _Optional[_Union[DatasetCaseReviewOutcomeV1, str]] = ..., merge_target_case_revision_id: _Optional[str] = ..., dataset_case_rejection_reason: _Optional[_Union[DatasetCaseDraftRejectionReasonV1, str]] = ..., baseline_candidate_key: _Optional[str] = ...) -> None: ...
 
 class SubmitEvaluationReviewResponse(_message.Message):
     __slots__ = ("submission", "unit", "field_errors", "idempotent_replay", "unit_completed", "run_review_completed", "freshness", "capabilities")
@@ -6943,7 +7286,7 @@ class SubmitEvaluationReviewResponse(_message.Message):
     def __init__(self, submission: _Optional[_Union[EvaluationReviewSubmissionV1, _Mapping]] = ..., unit: _Optional[_Union[EvaluationReviewUnitV1, _Mapping]] = ..., field_errors: _Optional[_Iterable[_Union[EvaluationReviewRubricFieldErrorV1, _Mapping]]] = ..., idempotent_replay: _Optional[bool] = ..., unit_completed: _Optional[bool] = ..., run_review_completed: _Optional[bool] = ..., freshness: _Optional[_Union[EvaluationFreshnessV1, _Mapping]] = ..., capabilities: _Optional[_Union[AgenticEvaluationCapabilitiesV1, _Mapping]] = ...) -> None: ...
 
 class EvaluationExportV1(_message.Message):
-    __slots__ = ("export_id", "evaluation_run_id", "format", "state", "pinned_projection_version", "pinned_facts_watermark", "requested_by", "byte_size", "content_digest", "failure", "attempt_count", "created_at", "updated_at", "finished_at")
+    __slots__ = ("export_id", "evaluation_run_id", "format", "state", "pinned_projection_version", "pinned_facts_watermark", "requested_by", "byte_size", "content_digest", "failure", "attempt_count", "created_at", "updated_at", "finished_at", "expires_at", "expired")
     EXPORT_ID_FIELD_NUMBER: _ClassVar[int]
     EVALUATION_RUN_ID_FIELD_NUMBER: _ClassVar[int]
     FORMAT_FIELD_NUMBER: _ClassVar[int]
@@ -6958,6 +7301,8 @@ class EvaluationExportV1(_message.Message):
     CREATED_AT_FIELD_NUMBER: _ClassVar[int]
     UPDATED_AT_FIELD_NUMBER: _ClassVar[int]
     FINISHED_AT_FIELD_NUMBER: _ClassVar[int]
+    EXPIRES_AT_FIELD_NUMBER: _ClassVar[int]
+    EXPIRED_FIELD_NUMBER: _ClassVar[int]
     export_id: str
     evaluation_run_id: str
     format: EvaluationExportFormatV1
@@ -6972,17 +7317,21 @@ class EvaluationExportV1(_message.Message):
     created_at: _timestamp_pb2.Timestamp
     updated_at: _timestamp_pb2.Timestamp
     finished_at: _timestamp_pb2.Timestamp
-    def __init__(self, export_id: _Optional[str] = ..., evaluation_run_id: _Optional[str] = ..., format: _Optional[_Union[EvaluationExportFormatV1, str]] = ..., state: _Optional[_Union[EvaluationOperationStateV1, str]] = ..., pinned_projection_version: _Optional[int] = ..., pinned_facts_watermark: _Optional[str] = ..., requested_by: _Optional[_Union[PrincipalRefV1, _Mapping]] = ..., byte_size: _Optional[int] = ..., content_digest: _Optional[str] = ..., failure: _Optional[_Union[EvaluationFailureV1, _Mapping]] = ..., attempt_count: _Optional[int] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., updated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., finished_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+    expires_at: _timestamp_pb2.Timestamp
+    expired: bool
+    def __init__(self, export_id: _Optional[str] = ..., evaluation_run_id: _Optional[str] = ..., format: _Optional[_Union[EvaluationExportFormatV1, str]] = ..., state: _Optional[_Union[EvaluationOperationStateV1, str]] = ..., pinned_projection_version: _Optional[int] = ..., pinned_facts_watermark: _Optional[str] = ..., requested_by: _Optional[_Union[PrincipalRefV1, _Mapping]] = ..., byte_size: _Optional[int] = ..., content_digest: _Optional[str] = ..., failure: _Optional[_Union[EvaluationFailureV1, _Mapping]] = ..., attempt_count: _Optional[int] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., updated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., finished_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., expires_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., expired: _Optional[bool] = ...) -> None: ...
 
 class CreateEvaluationExportRequest(_message.Message):
-    __slots__ = ("evaluation_run_id", "format", "idempotency_key")
+    __slots__ = ("evaluation_run_id", "format", "idempotency_key", "retention_hours")
     EVALUATION_RUN_ID_FIELD_NUMBER: _ClassVar[int]
     FORMAT_FIELD_NUMBER: _ClassVar[int]
     IDEMPOTENCY_KEY_FIELD_NUMBER: _ClassVar[int]
+    RETENTION_HOURS_FIELD_NUMBER: _ClassVar[int]
     evaluation_run_id: str
     format: EvaluationExportFormatV1
     idempotency_key: str
-    def __init__(self, evaluation_run_id: _Optional[str] = ..., format: _Optional[_Union[EvaluationExportFormatV1, str]] = ..., idempotency_key: _Optional[str] = ...) -> None: ...
+    retention_hours: int
+    def __init__(self, evaluation_run_id: _Optional[str] = ..., format: _Optional[_Union[EvaluationExportFormatV1, str]] = ..., idempotency_key: _Optional[str] = ..., retention_hours: _Optional[int] = ...) -> None: ...
 
 class CreateEvaluationExportResponse(_message.Message):
     __slots__ = ("export", "idempotent_replay", "capabilities")
@@ -7011,6 +7360,52 @@ class GetEvaluationExportResponse(_message.Message):
     freshness: EvaluationFreshnessV1
     capabilities: AgenticEvaluationCapabilitiesV1
     def __init__(self, export: _Optional[_Union[EvaluationExportV1, _Mapping]] = ..., allowed_actions: _Optional[_Iterable[_Union[AllowedActionV1, _Mapping]]] = ..., freshness: _Optional[_Union[EvaluationFreshnessV1, _Mapping]] = ..., capabilities: _Optional[_Union[AgenticEvaluationCapabilitiesV1, _Mapping]] = ...) -> None: ...
+
+class EvaluationExportListRowV1(_message.Message):
+    __slots__ = ("export", "definition_display_name")
+    EXPORT_FIELD_NUMBER: _ClassVar[int]
+    DEFINITION_DISPLAY_NAME_FIELD_NUMBER: _ClassVar[int]
+    export: EvaluationExportV1
+    definition_display_name: str
+    def __init__(self, export: _Optional[_Union[EvaluationExportV1, _Mapping]] = ..., definition_display_name: _Optional[str] = ...) -> None: ...
+
+class ListEvaluationExportsRequest(_message.Message):
+    __slots__ = ("page", "evaluation_run_id", "states")
+    PAGE_FIELD_NUMBER: _ClassVar[int]
+    EVALUATION_RUN_ID_FIELD_NUMBER: _ClassVar[int]
+    STATES_FIELD_NUMBER: _ClassVar[int]
+    page: _common_pb2.PageRequestV1
+    evaluation_run_id: str
+    states: _containers.RepeatedScalarFieldContainer[EvaluationOperationStateV1]
+    def __init__(self, page: _Optional[_Union[_common_pb2.PageRequestV1, _Mapping]] = ..., evaluation_run_id: _Optional[str] = ..., states: _Optional[_Iterable[_Union[EvaluationOperationStateV1, str]]] = ...) -> None: ...
+
+class ListEvaluationExportsResponse(_message.Message):
+    __slots__ = ("exports", "page", "capabilities", "resync")
+    EXPORTS_FIELD_NUMBER: _ClassVar[int]
+    PAGE_FIELD_NUMBER: _ClassVar[int]
+    CAPABILITIES_FIELD_NUMBER: _ClassVar[int]
+    RESYNC_FIELD_NUMBER: _ClassVar[int]
+    exports: _containers.RepeatedCompositeFieldContainer[EvaluationExportListRowV1]
+    page: _common_pb2.PageResponseV1
+    capabilities: AgenticEvaluationCapabilitiesV1
+    resync: EvaluationCursorResyncV1
+    def __init__(self, exports: _Optional[_Iterable[_Union[EvaluationExportListRowV1, _Mapping]]] = ..., page: _Optional[_Union[_common_pb2.PageResponseV1, _Mapping]] = ..., capabilities: _Optional[_Union[AgenticEvaluationCapabilitiesV1, _Mapping]] = ..., resync: _Optional[_Union[EvaluationCursorResyncV1, _Mapping]] = ...) -> None: ...
+
+class CreateEvaluationExportDownloadRequest(_message.Message):
+    __slots__ = ("export_id",)
+    EXPORT_ID_FIELD_NUMBER: _ClassVar[int]
+    export_id: str
+    def __init__(self, export_id: _Optional[str] = ...) -> None: ...
+
+class CreateEvaluationExportDownloadResponse(_message.Message):
+    __slots__ = ("url", "expires_at", "capabilities")
+    URL_FIELD_NUMBER: _ClassVar[int]
+    EXPIRES_AT_FIELD_NUMBER: _ClassVar[int]
+    CAPABILITIES_FIELD_NUMBER: _ClassVar[int]
+    url: str
+    expires_at: _timestamp_pb2.Timestamp
+    capabilities: AgenticEvaluationCapabilitiesV1
+    def __init__(self, url: _Optional[str] = ..., expires_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., capabilities: _Optional[_Union[AgenticEvaluationCapabilitiesV1, _Mapping]] = ...) -> None: ...
 
 class EvaluationShareV1(_message.Message):
     __slots__ = ("share_id", "evaluation_run_id", "state", "created_by", "created_at", "revoked_at")
@@ -7283,18 +7678,20 @@ class EvaluationReviewAdjudicationV1(_message.Message):
     def __init__(self, adjudication_id: _Optional[str] = ..., review_unit_id: _Optional[str] = ..., evaluation_run_id: _Optional[str] = ..., adjudicator: _Optional[_Union[PrincipalRefV1, _Mapping]] = ..., field_values: _Optional[_Iterable[_Union[MetadataEntryV1, _Mapping]]] = ..., pairwise_winner: _Optional[_Union[AnnotationPairwiseWinnerV1, str]] = ..., reason: _Optional[str] = ..., resolved_submission_ids: _Optional[_Iterable[str]] = ..., resolved_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., binding: _Optional[bool] = ...) -> None: ...
 
 class AdjudicateEvaluationReviewConflictRequest(_message.Message):
-    __slots__ = ("review_unit_id", "field_values", "pairwise_winner", "reason", "idempotency_key")
+    __slots__ = ("review_unit_id", "field_values", "pairwise_winner", "reason", "idempotency_key", "baseline_candidate_key")
     REVIEW_UNIT_ID_FIELD_NUMBER: _ClassVar[int]
     FIELD_VALUES_FIELD_NUMBER: _ClassVar[int]
     PAIRWISE_WINNER_FIELD_NUMBER: _ClassVar[int]
     REASON_FIELD_NUMBER: _ClassVar[int]
     IDEMPOTENCY_KEY_FIELD_NUMBER: _ClassVar[int]
+    BASELINE_CANDIDATE_KEY_FIELD_NUMBER: _ClassVar[int]
     review_unit_id: str
     field_values: _containers.RepeatedCompositeFieldContainer[MetadataEntryV1]
     pairwise_winner: AnnotationPairwiseWinnerV1
     reason: str
     idempotency_key: str
-    def __init__(self, review_unit_id: _Optional[str] = ..., field_values: _Optional[_Iterable[_Union[MetadataEntryV1, _Mapping]]] = ..., pairwise_winner: _Optional[_Union[AnnotationPairwiseWinnerV1, str]] = ..., reason: _Optional[str] = ..., idempotency_key: _Optional[str] = ...) -> None: ...
+    baseline_candidate_key: str
+    def __init__(self, review_unit_id: _Optional[str] = ..., field_values: _Optional[_Iterable[_Union[MetadataEntryV1, _Mapping]]] = ..., pairwise_winner: _Optional[_Union[AnnotationPairwiseWinnerV1, str]] = ..., reason: _Optional[str] = ..., idempotency_key: _Optional[str] = ..., baseline_candidate_key: _Optional[str] = ...) -> None: ...
 
 class AdjudicateEvaluationReviewConflictResponse(_message.Message):
     __slots__ = ("adjudication", "unit", "resolved_submissions", "refusal", "idempotent_replay", "unit_completed", "run_review_completed", "freshness", "capabilities")
@@ -7923,7 +8320,7 @@ class EvaluationScorerReviewPolicySpecV1(_message.Message):
     def __init__(self, reviewers_per_cell: _Optional[int] = ..., blind: _Optional[bool] = ..., claim_size: _Optional[int] = ..., reservation_minutes: _Optional[int] = ..., adjudication_minimum: _Optional[int] = ...) -> None: ...
 
 class EvaluationScorerConfigV1(_message.Message):
-    __slots__ = ("score_config_id", "config_key", "name", "description", "metric_name", "success_dimension", "version_discriminator", "kind", "weight", "is_blocking_gate", "deterministic", "review_policy", "created_at", "judge")
+    __slots__ = ("score_config_id", "config_key", "name", "description", "metric_name", "success_dimension", "version_discriminator", "kind", "weight", "is_blocking_gate", "deterministic", "review_policy", "created_at", "judge", "code")
     SCORE_CONFIG_ID_FIELD_NUMBER: _ClassVar[int]
     CONFIG_KEY_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
@@ -7938,6 +8335,7 @@ class EvaluationScorerConfigV1(_message.Message):
     REVIEW_POLICY_FIELD_NUMBER: _ClassVar[int]
     CREATED_AT_FIELD_NUMBER: _ClassVar[int]
     JUDGE_FIELD_NUMBER: _ClassVar[int]
+    CODE_FIELD_NUMBER: _ClassVar[int]
     score_config_id: str
     config_key: str
     name: str
@@ -7952,7 +8350,8 @@ class EvaluationScorerConfigV1(_message.Message):
     review_policy: EvaluationScorerReviewPolicySpecV1
     created_at: _timestamp_pb2.Timestamp
     judge: EvaluationScorerJudgeSpecV1
-    def __init__(self, score_config_id: _Optional[str] = ..., config_key: _Optional[str] = ..., name: _Optional[str] = ..., description: _Optional[str] = ..., metric_name: _Optional[str] = ..., success_dimension: _Optional[str] = ..., version_discriminator: _Optional[str] = ..., kind: _Optional[_Union[EvaluationScorerKindV1, str]] = ..., weight: _Optional[float] = ..., is_blocking_gate: _Optional[bool] = ..., deterministic: _Optional[_Union[EvaluationScorerDeterministicSpecV1, _Mapping]] = ..., review_policy: _Optional[_Union[EvaluationScorerReviewPolicySpecV1, _Mapping]] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., judge: _Optional[_Union[EvaluationScorerJudgeSpecV1, _Mapping]] = ...) -> None: ...
+    code: EvaluationScorerCodeConfigV1
+    def __init__(self, score_config_id: _Optional[str] = ..., config_key: _Optional[str] = ..., name: _Optional[str] = ..., description: _Optional[str] = ..., metric_name: _Optional[str] = ..., success_dimension: _Optional[str] = ..., version_discriminator: _Optional[str] = ..., kind: _Optional[_Union[EvaluationScorerKindV1, str]] = ..., weight: _Optional[float] = ..., is_blocking_gate: _Optional[bool] = ..., deterministic: _Optional[_Union[EvaluationScorerDeterministicSpecV1, _Mapping]] = ..., review_policy: _Optional[_Union[EvaluationScorerReviewPolicySpecV1, _Mapping]] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., judge: _Optional[_Union[EvaluationScorerJudgeSpecV1, _Mapping]] = ..., code: _Optional[_Union[EvaluationScorerCodeConfigV1, _Mapping]] = ...) -> None: ...
 
 class EvaluationScorerConfigRejectionV1(_message.Message):
     __slots__ = ("kind", "reason_code", "pinned_run_count", "pinned_run_ids", "detail", "recovery", "review_policy_field", "review_policy_observed_value", "review_policy_bound", "judge_provider")
@@ -8033,7 +8432,7 @@ class EvaluationScorerJudgeSpecV1(_message.Message):
     def __init__(self, rubric_content: _Optional[_Union[EvaluationScorerJudgeRubricV1, _Mapping]] = ..., template_ref: _Optional[_Union[EvaluationScorerJudgeTemplateRefV1, _Mapping]] = ..., provider_execution: _Optional[_Union[EvaluationScorerJudgeProviderExecutionV1, _Mapping]] = ..., pass_threshold: _Optional[float] = ...) -> None: ...
 
 class CreateEvaluationScorerConfigRequest(_message.Message):
-    __slots__ = ("config_key", "name", "description", "metric_name", "success_dimension", "kind", "weight", "is_blocking_gate", "deterministic", "review_policy", "idempotency_key", "judge")
+    __slots__ = ("config_key", "name", "description", "metric_name", "success_dimension", "kind", "weight", "is_blocking_gate", "deterministic", "review_policy", "idempotency_key", "judge", "code")
     CONFIG_KEY_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
     DESCRIPTION_FIELD_NUMBER: _ClassVar[int]
@@ -8046,6 +8445,7 @@ class CreateEvaluationScorerConfigRequest(_message.Message):
     REVIEW_POLICY_FIELD_NUMBER: _ClassVar[int]
     IDEMPOTENCY_KEY_FIELD_NUMBER: _ClassVar[int]
     JUDGE_FIELD_NUMBER: _ClassVar[int]
+    CODE_FIELD_NUMBER: _ClassVar[int]
     config_key: str
     name: str
     description: str
@@ -8058,7 +8458,8 @@ class CreateEvaluationScorerConfigRequest(_message.Message):
     review_policy: EvaluationScorerReviewPolicySpecV1
     idempotency_key: str
     judge: EvaluationScorerJudgeSpecV1
-    def __init__(self, config_key: _Optional[str] = ..., name: _Optional[str] = ..., description: _Optional[str] = ..., metric_name: _Optional[str] = ..., success_dimension: _Optional[str] = ..., kind: _Optional[_Union[EvaluationScorerKindV1, str]] = ..., weight: _Optional[float] = ..., is_blocking_gate: _Optional[bool] = ..., deterministic: _Optional[_Union[EvaluationScorerDeterministicSpecV1, _Mapping]] = ..., review_policy: _Optional[_Union[EvaluationScorerReviewPolicySpecV1, _Mapping]] = ..., idempotency_key: _Optional[str] = ..., judge: _Optional[_Union[EvaluationScorerJudgeSpecV1, _Mapping]] = ...) -> None: ...
+    code: EvaluationScorerCodeSpecV1
+    def __init__(self, config_key: _Optional[str] = ..., name: _Optional[str] = ..., description: _Optional[str] = ..., metric_name: _Optional[str] = ..., success_dimension: _Optional[str] = ..., kind: _Optional[_Union[EvaluationScorerKindV1, str]] = ..., weight: _Optional[float] = ..., is_blocking_gate: _Optional[bool] = ..., deterministic: _Optional[_Union[EvaluationScorerDeterministicSpecV1, _Mapping]] = ..., review_policy: _Optional[_Union[EvaluationScorerReviewPolicySpecV1, _Mapping]] = ..., idempotency_key: _Optional[str] = ..., judge: _Optional[_Union[EvaluationScorerJudgeSpecV1, _Mapping]] = ..., code: _Optional[_Union[EvaluationScorerCodeSpecV1, _Mapping]] = ...) -> None: ...
 
 class CreateEvaluationScorerConfigResponse(_message.Message):
     __slots__ = ("scorer_config", "idempotent_replay", "capabilities")
@@ -8069,6 +8470,464 @@ class CreateEvaluationScorerConfigResponse(_message.Message):
     idempotent_replay: bool
     capabilities: AgenticEvaluationCapabilitiesV1
     def __init__(self, scorer_config: _Optional[_Union[EvaluationScorerConfigV1, _Mapping]] = ..., idempotent_replay: _Optional[bool] = ..., capabilities: _Optional[_Union[AgenticEvaluationCapabilitiesV1, _Mapping]] = ...) -> None: ...
+
+class PreviewEvaluationScorerRequest(_message.Message):
+    __slots__ = ("spec", "sample_output_json", "sample_case_json")
+    SPEC_FIELD_NUMBER: _ClassVar[int]
+    SAMPLE_OUTPUT_JSON_FIELD_NUMBER: _ClassVar[int]
+    SAMPLE_CASE_JSON_FIELD_NUMBER: _ClassVar[int]
+    spec: EvaluationScorerDeterministicSpecV1
+    sample_output_json: str
+    sample_case_json: str
+    def __init__(self, spec: _Optional[_Union[EvaluationScorerDeterministicSpecV1, _Mapping]] = ..., sample_output_json: _Optional[str] = ..., sample_case_json: _Optional[str] = ...) -> None: ...
+
+class PreviewEvaluationScorerResponse(_message.Message):
+    __slots__ = ("result", "capabilities")
+    RESULT_FIELD_NUMBER: _ClassVar[int]
+    CAPABILITIES_FIELD_NUMBER: _ClassVar[int]
+    result: EvaluationScorerPreviewResultV1
+    capabilities: AgenticEvaluationCapabilitiesV1
+    def __init__(self, result: _Optional[_Union[EvaluationScorerPreviewResultV1, _Mapping]] = ..., capabilities: _Optional[_Union[AgenticEvaluationCapabilitiesV1, _Mapping]] = ...) -> None: ...
+
+class EvaluationScorerPreviewResultV1(_message.Message):
+    __slots__ = ("verdict", "score", "reason_code", "subject_text", "regex_match", "contains_found", "exact", "numeric", "json_valid", "json_schema", "normalized_string", "levenshtein")
+    VERDICT_FIELD_NUMBER: _ClassVar[int]
+    SCORE_FIELD_NUMBER: _ClassVar[int]
+    REASON_CODE_FIELD_NUMBER: _ClassVar[int]
+    SUBJECT_TEXT_FIELD_NUMBER: _ClassVar[int]
+    REGEX_MATCH_FIELD_NUMBER: _ClassVar[int]
+    CONTAINS_FOUND_FIELD_NUMBER: _ClassVar[int]
+    EXACT_FIELD_NUMBER: _ClassVar[int]
+    NUMERIC_FIELD_NUMBER: _ClassVar[int]
+    JSON_VALID_FIELD_NUMBER: _ClassVar[int]
+    JSON_SCHEMA_FIELD_NUMBER: _ClassVar[int]
+    NORMALIZED_STRING_FIELD_NUMBER: _ClassVar[int]
+    LEVENSHTEIN_FIELD_NUMBER: _ClassVar[int]
+    verdict: EvaluationScorerPreviewVerdictV1
+    score: float
+    reason_code: str
+    subject_text: str
+    regex_match: EvaluationScorerPreviewSpanV1
+    contains_found: EvaluationScorerPreviewSpanV1
+    exact: EvaluationScorerPreviewExactV1
+    numeric: EvaluationScorerPreviewNumericV1
+    json_valid: EvaluationScorerPreviewJsonValidV1
+    json_schema: EvaluationScorerPreviewJsonSchemaV1
+    normalized_string: EvaluationScorerPreviewNormalizedV1
+    levenshtein: EvaluationScorerPreviewLevenshteinV1
+    def __init__(self, verdict: _Optional[_Union[EvaluationScorerPreviewVerdictV1, str]] = ..., score: _Optional[float] = ..., reason_code: _Optional[str] = ..., subject_text: _Optional[str] = ..., regex_match: _Optional[_Union[EvaluationScorerPreviewSpanV1, _Mapping]] = ..., contains_found: _Optional[_Union[EvaluationScorerPreviewSpanV1, _Mapping]] = ..., exact: _Optional[_Union[EvaluationScorerPreviewExactV1, _Mapping]] = ..., numeric: _Optional[_Union[EvaluationScorerPreviewNumericV1, _Mapping]] = ..., json_valid: _Optional[_Union[EvaluationScorerPreviewJsonValidV1, _Mapping]] = ..., json_schema: _Optional[_Union[EvaluationScorerPreviewJsonSchemaV1, _Mapping]] = ..., normalized_string: _Optional[_Union[EvaluationScorerPreviewNormalizedV1, _Mapping]] = ..., levenshtein: _Optional[_Union[EvaluationScorerPreviewLevenshteinV1, _Mapping]] = ...) -> None: ...
+
+class EvaluationScorerPreviewSpanV1(_message.Message):
+    __slots__ = ("start", "end")
+    START_FIELD_NUMBER: _ClassVar[int]
+    END_FIELD_NUMBER: _ClassVar[int]
+    start: int
+    end: int
+    def __init__(self, start: _Optional[int] = ..., end: _Optional[int] = ...) -> None: ...
+
+class EvaluationScorerPreviewExactV1(_message.Message):
+    __slots__ = ("first_difference_pointer",)
+    FIRST_DIFFERENCE_POINTER_FIELD_NUMBER: _ClassVar[int]
+    first_difference_pointer: str
+    def __init__(self, first_difference_pointer: _Optional[str] = ...) -> None: ...
+
+class EvaluationScorerPreviewNumericV1(_message.Message):
+    __slots__ = ("subject", "expected")
+    SUBJECT_FIELD_NUMBER: _ClassVar[int]
+    EXPECTED_FIELD_NUMBER: _ClassVar[int]
+    subject: float
+    expected: float
+    def __init__(self, subject: _Optional[float] = ..., expected: _Optional[float] = ...) -> None: ...
+
+class EvaluationScorerPreviewJsonValidV1(_message.Message):
+    __slots__ = ("error_line", "error_column", "error_offset", "duplicate_keys")
+    ERROR_LINE_FIELD_NUMBER: _ClassVar[int]
+    ERROR_COLUMN_FIELD_NUMBER: _ClassVar[int]
+    ERROR_OFFSET_FIELD_NUMBER: _ClassVar[int]
+    DUPLICATE_KEYS_FIELD_NUMBER: _ClassVar[int]
+    error_line: int
+    error_column: int
+    error_offset: int
+    duplicate_keys: bool
+    def __init__(self, error_line: _Optional[int] = ..., error_column: _Optional[int] = ..., error_offset: _Optional[int] = ..., duplicate_keys: _Optional[bool] = ...) -> None: ...
+
+class EvaluationScorerPreviewSchemaErrorV1(_message.Message):
+    __slots__ = ("instance_path", "keyword")
+    INSTANCE_PATH_FIELD_NUMBER: _ClassVar[int]
+    KEYWORD_FIELD_NUMBER: _ClassVar[int]
+    instance_path: str
+    keyword: str
+    def __init__(self, instance_path: _Optional[str] = ..., keyword: _Optional[str] = ...) -> None: ...
+
+class EvaluationScorerPreviewJsonSchemaV1(_message.Message):
+    __slots__ = ("errors", "error_count")
+    ERRORS_FIELD_NUMBER: _ClassVar[int]
+    ERROR_COUNT_FIELD_NUMBER: _ClassVar[int]
+    errors: _containers.RepeatedCompositeFieldContainer[EvaluationScorerPreviewSchemaErrorV1]
+    error_count: int
+    def __init__(self, errors: _Optional[_Iterable[_Union[EvaluationScorerPreviewSchemaErrorV1, _Mapping]]] = ..., error_count: _Optional[int] = ...) -> None: ...
+
+class EvaluationScorerPreviewNormalizedV1(_message.Message):
+    __slots__ = ("folded_subject", "folded_expected")
+    FOLDED_SUBJECT_FIELD_NUMBER: _ClassVar[int]
+    FOLDED_EXPECTED_FIELD_NUMBER: _ClassVar[int]
+    folded_subject: str
+    folded_expected: str
+    def __init__(self, folded_subject: _Optional[str] = ..., folded_expected: _Optional[str] = ...) -> None: ...
+
+class EvaluationScorerPreviewLevenshteinV1(_message.Message):
+    __slots__ = ("distance", "max_distance")
+    DISTANCE_FIELD_NUMBER: _ClassVar[int]
+    MAX_DISTANCE_FIELD_NUMBER: _ClassVar[int]
+    distance: int
+    max_distance: int
+    def __init__(self, distance: _Optional[int] = ..., max_distance: _Optional[int] = ...) -> None: ...
+
+class CheckEvaluationScorerAgainstRunRequest(_message.Message):
+    __slots__ = ("evaluation_run_id", "spec", "page_token")
+    EVALUATION_RUN_ID_FIELD_NUMBER: _ClassVar[int]
+    SPEC_FIELD_NUMBER: _ClassVar[int]
+    PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    evaluation_run_id: str
+    spec: EvaluationScorerDeterministicSpecV1
+    page_token: str
+    def __init__(self, evaluation_run_id: _Optional[str] = ..., spec: _Optional[_Union[EvaluationScorerDeterministicSpecV1, _Mapping]] = ..., page_token: _Optional[str] = ...) -> None: ...
+
+class EvaluationScorerRunCheckFailureV1(_message.Message):
+    __slots__ = ("candidate_key", "case_revision_id", "verdict", "reason_code")
+    CANDIDATE_KEY_FIELD_NUMBER: _ClassVar[int]
+    CASE_REVISION_ID_FIELD_NUMBER: _ClassVar[int]
+    VERDICT_FIELD_NUMBER: _ClassVar[int]
+    REASON_CODE_FIELD_NUMBER: _ClassVar[int]
+    candidate_key: str
+    case_revision_id: str
+    verdict: EvaluationScorerPreviewVerdictV1
+    reason_code: str
+    def __init__(self, candidate_key: _Optional[str] = ..., case_revision_id: _Optional[str] = ..., verdict: _Optional[_Union[EvaluationScorerPreviewVerdictV1, str]] = ..., reason_code: _Optional[str] = ...) -> None: ...
+
+class EvaluationScorerRunCheckNotScoredV1(_message.Message):
+    __slots__ = ("reason_code", "cell_count")
+    REASON_CODE_FIELD_NUMBER: _ClassVar[int]
+    CELL_COUNT_FIELD_NUMBER: _ClassVar[int]
+    reason_code: str
+    cell_count: int
+    def __init__(self, reason_code: _Optional[str] = ..., cell_count: _Optional[int] = ...) -> None: ...
+
+class CheckEvaluationScorerAgainstRunResponse(_message.Message):
+    __slots__ = ("pass_count", "fail_count", "error_count", "not_scored", "first_failures", "cells_checked", "total_cell_count", "next_page_token", "capabilities", "scored_output_count")
+    PASS_COUNT_FIELD_NUMBER: _ClassVar[int]
+    FAIL_COUNT_FIELD_NUMBER: _ClassVar[int]
+    ERROR_COUNT_FIELD_NUMBER: _ClassVar[int]
+    NOT_SCORED_FIELD_NUMBER: _ClassVar[int]
+    FIRST_FAILURES_FIELD_NUMBER: _ClassVar[int]
+    CELLS_CHECKED_FIELD_NUMBER: _ClassVar[int]
+    TOTAL_CELL_COUNT_FIELD_NUMBER: _ClassVar[int]
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    CAPABILITIES_FIELD_NUMBER: _ClassVar[int]
+    SCORED_OUTPUT_COUNT_FIELD_NUMBER: _ClassVar[int]
+    pass_count: int
+    fail_count: int
+    error_count: int
+    not_scored: _containers.RepeatedCompositeFieldContainer[EvaluationScorerRunCheckNotScoredV1]
+    first_failures: _containers.RepeatedCompositeFieldContainer[EvaluationScorerRunCheckFailureV1]
+    cells_checked: int
+    total_cell_count: int
+    next_page_token: str
+    capabilities: AgenticEvaluationCapabilitiesV1
+    scored_output_count: int
+    def __init__(self, pass_count: _Optional[int] = ..., fail_count: _Optional[int] = ..., error_count: _Optional[int] = ..., not_scored: _Optional[_Iterable[_Union[EvaluationScorerRunCheckNotScoredV1, _Mapping]]] = ..., first_failures: _Optional[_Iterable[_Union[EvaluationScorerRunCheckFailureV1, _Mapping]]] = ..., cells_checked: _Optional[int] = ..., total_cell_count: _Optional[int] = ..., next_page_token: _Optional[str] = ..., capabilities: _Optional[_Union[AgenticEvaluationCapabilitiesV1, _Mapping]] = ..., scored_output_count: _Optional[int] = ...) -> None: ...
+
+class EvaluationScorerSourceFileV1(_message.Message):
+    __slots__ = ("path", "content")
+    PATH_FIELD_NUMBER: _ClassVar[int]
+    CONTENT_FIELD_NUMBER: _ClassVar[int]
+    path: str
+    content: bytes
+    def __init__(self, path: _Optional[str] = ..., content: _Optional[bytes] = ...) -> None: ...
+
+class EvaluationScorerRuntimeProfileRefV1(_message.Message):
+    __slots__ = ("id", "version")
+    ID_FIELD_NUMBER: _ClassVar[int]
+    VERSION_FIELD_NUMBER: _ClassVar[int]
+    id: str
+    version: int
+    def __init__(self, id: _Optional[str] = ..., version: _Optional[int] = ...) -> None: ...
+
+class EvaluationScorerLimitProfileRefV1(_message.Message):
+    __slots__ = ("id", "version")
+    ID_FIELD_NUMBER: _ClassVar[int]
+    VERSION_FIELD_NUMBER: _ClassVar[int]
+    id: EvaluationScorerLimitProfileV1
+    version: int
+    def __init__(self, id: _Optional[_Union[EvaluationScorerLimitProfileV1, str]] = ..., version: _Optional[int] = ...) -> None: ...
+
+class EvaluationScorerCodeSpecV1(_message.Message):
+    __slots__ = ("language", "files", "entrypoint_path", "runtime_profile", "limit_profile", "determinism_class", "input_fields")
+    LANGUAGE_FIELD_NUMBER: _ClassVar[int]
+    FILES_FIELD_NUMBER: _ClassVar[int]
+    ENTRYPOINT_PATH_FIELD_NUMBER: _ClassVar[int]
+    RUNTIME_PROFILE_FIELD_NUMBER: _ClassVar[int]
+    LIMIT_PROFILE_FIELD_NUMBER: _ClassVar[int]
+    DETERMINISM_CLASS_FIELD_NUMBER: _ClassVar[int]
+    INPUT_FIELDS_FIELD_NUMBER: _ClassVar[int]
+    language: EvaluationScorerCodeLanguageV1
+    files: _containers.RepeatedCompositeFieldContainer[EvaluationScorerSourceFileV1]
+    entrypoint_path: str
+    runtime_profile: EvaluationScorerRuntimeProfileRefV1
+    limit_profile: EvaluationScorerLimitProfileRefV1
+    determinism_class: EvaluationDeterminismClassV1
+    input_fields: _containers.RepeatedScalarFieldContainer[EvaluationScorerInputFieldV1]
+    def __init__(self, language: _Optional[_Union[EvaluationScorerCodeLanguageV1, str]] = ..., files: _Optional[_Iterable[_Union[EvaluationScorerSourceFileV1, _Mapping]]] = ..., entrypoint_path: _Optional[str] = ..., runtime_profile: _Optional[_Union[EvaluationScorerRuntimeProfileRefV1, _Mapping]] = ..., limit_profile: _Optional[_Union[EvaluationScorerLimitProfileRefV1, _Mapping]] = ..., determinism_class: _Optional[_Union[EvaluationDeterminismClassV1, str]] = ..., input_fields: _Optional[_Iterable[_Union[EvaluationScorerInputFieldV1, str]]] = ...) -> None: ...
+
+class EvaluationScorerCodeConfigV1(_message.Message):
+    __slots__ = ("language", "bundle_sha256", "bundle_size_bytes", "entrypoint_path", "runtime_profile", "limit_profile", "determinism_class", "input_fields", "publication_state", "publication_reason_code", "artifact_manifest_sha256", "runtime_changed", "publication_failed_smoke_input", "publication_failure")
+    LANGUAGE_FIELD_NUMBER: _ClassVar[int]
+    BUNDLE_SHA256_FIELD_NUMBER: _ClassVar[int]
+    BUNDLE_SIZE_BYTES_FIELD_NUMBER: _ClassVar[int]
+    ENTRYPOINT_PATH_FIELD_NUMBER: _ClassVar[int]
+    RUNTIME_PROFILE_FIELD_NUMBER: _ClassVar[int]
+    LIMIT_PROFILE_FIELD_NUMBER: _ClassVar[int]
+    DETERMINISM_CLASS_FIELD_NUMBER: _ClassVar[int]
+    INPUT_FIELDS_FIELD_NUMBER: _ClassVar[int]
+    PUBLICATION_STATE_FIELD_NUMBER: _ClassVar[int]
+    PUBLICATION_REASON_CODE_FIELD_NUMBER: _ClassVar[int]
+    ARTIFACT_MANIFEST_SHA256_FIELD_NUMBER: _ClassVar[int]
+    RUNTIME_CHANGED_FIELD_NUMBER: _ClassVar[int]
+    PUBLICATION_FAILED_SMOKE_INPUT_FIELD_NUMBER: _ClassVar[int]
+    PUBLICATION_FAILURE_FIELD_NUMBER: _ClassVar[int]
+    language: EvaluationScorerCodeLanguageV1
+    bundle_sha256: bytes
+    bundle_size_bytes: int
+    entrypoint_path: str
+    runtime_profile: EvaluationScorerRuntimeProfileRefV1
+    limit_profile: EvaluationScorerLimitProfileRefV1
+    determinism_class: EvaluationDeterminismClassV1
+    input_fields: _containers.RepeatedScalarFieldContainer[EvaluationScorerInputFieldV1]
+    publication_state: EvaluationScorerCodePublicationStateV1
+    publication_reason_code: str
+    artifact_manifest_sha256: bytes
+    runtime_changed: bool
+    publication_failed_smoke_input: int
+    publication_failure: EvaluationCodeScorerResultV1
+    def __init__(self, language: _Optional[_Union[EvaluationScorerCodeLanguageV1, str]] = ..., bundle_sha256: _Optional[bytes] = ..., bundle_size_bytes: _Optional[int] = ..., entrypoint_path: _Optional[str] = ..., runtime_profile: _Optional[_Union[EvaluationScorerRuntimeProfileRefV1, _Mapping]] = ..., limit_profile: _Optional[_Union[EvaluationScorerLimitProfileRefV1, _Mapping]] = ..., determinism_class: _Optional[_Union[EvaluationDeterminismClassV1, str]] = ..., input_fields: _Optional[_Iterable[_Union[EvaluationScorerInputFieldV1, str]]] = ..., publication_state: _Optional[_Union[EvaluationScorerCodePublicationStateV1, str]] = ..., publication_reason_code: _Optional[str] = ..., artifact_manifest_sha256: _Optional[bytes] = ..., runtime_changed: _Optional[bool] = ..., publication_failed_smoke_input: _Optional[int] = ..., publication_failure: _Optional[_Union[EvaluationCodeScorerResultV1, _Mapping]] = ...) -> None: ...
+
+class EvaluationScorerCodeSummaryV1(_message.Message):
+    __slots__ = ("publication_state", "publication_reason_code", "determinism_class", "runtime_changed")
+    PUBLICATION_STATE_FIELD_NUMBER: _ClassVar[int]
+    PUBLICATION_REASON_CODE_FIELD_NUMBER: _ClassVar[int]
+    DETERMINISM_CLASS_FIELD_NUMBER: _ClassVar[int]
+    RUNTIME_CHANGED_FIELD_NUMBER: _ClassVar[int]
+    publication_state: EvaluationScorerCodePublicationStateV1
+    publication_reason_code: str
+    determinism_class: EvaluationDeterminismClassV1
+    runtime_changed: bool
+    def __init__(self, publication_state: _Optional[_Union[EvaluationScorerCodePublicationStateV1, str]] = ..., publication_reason_code: _Optional[str] = ..., determinism_class: _Optional[_Union[EvaluationDeterminismClassV1, str]] = ..., runtime_changed: _Optional[bool] = ...) -> None: ...
+
+class EvaluationScorerCodeInputV1(_message.Message):
+    __slots__ = ("case_input_json", "candidate_output_json", "reference_output_json", "correction_json", "original_context_json")
+    CASE_INPUT_JSON_FIELD_NUMBER: _ClassVar[int]
+    CANDIDATE_OUTPUT_JSON_FIELD_NUMBER: _ClassVar[int]
+    REFERENCE_OUTPUT_JSON_FIELD_NUMBER: _ClassVar[int]
+    CORRECTION_JSON_FIELD_NUMBER: _ClassVar[int]
+    ORIGINAL_CONTEXT_JSON_FIELD_NUMBER: _ClassVar[int]
+    case_input_json: str
+    candidate_output_json: str
+    reference_output_json: str
+    correction_json: str
+    original_context_json: str
+    def __init__(self, case_input_json: _Optional[str] = ..., candidate_output_json: _Optional[str] = ..., reference_output_json: _Optional[str] = ..., correction_json: _Optional[str] = ..., original_context_json: _Optional[str] = ...) -> None: ...
+
+class EvaluationCodeScorerLogsV1(_message.Message):
+    __slots__ = ("stdout_bytes", "stdout_truncated", "stdout_sha256", "stderr_bytes", "stderr_truncated", "stderr_sha256", "stdout", "stderr")
+    STDOUT_BYTES_FIELD_NUMBER: _ClassVar[int]
+    STDOUT_TRUNCATED_FIELD_NUMBER: _ClassVar[int]
+    STDOUT_SHA256_FIELD_NUMBER: _ClassVar[int]
+    STDERR_BYTES_FIELD_NUMBER: _ClassVar[int]
+    STDERR_TRUNCATED_FIELD_NUMBER: _ClassVar[int]
+    STDERR_SHA256_FIELD_NUMBER: _ClassVar[int]
+    STDOUT_FIELD_NUMBER: _ClassVar[int]
+    STDERR_FIELD_NUMBER: _ClassVar[int]
+    stdout_bytes: int
+    stdout_truncated: bool
+    stdout_sha256: bytes
+    stderr_bytes: int
+    stderr_truncated: bool
+    stderr_sha256: bytes
+    stdout: bytes
+    stderr: bytes
+    def __init__(self, stdout_bytes: _Optional[int] = ..., stdout_truncated: _Optional[bool] = ..., stdout_sha256: _Optional[bytes] = ..., stderr_bytes: _Optional[int] = ..., stderr_truncated: _Optional[bool] = ..., stderr_sha256: _Optional[bytes] = ..., stdout: _Optional[bytes] = ..., stderr: _Optional[bytes] = ...) -> None: ...
+
+class EvaluationCodeScorerResultV1(_message.Message):
+    __slots__ = ("job_id", "state", "verdict", "score", "failure_stage", "failure_code", "logs", "label", "duration_micros", "limit_code", "system_call_blocked", "error_detail", "billed_unit_seconds")
+    JOB_ID_FIELD_NUMBER: _ClassVar[int]
+    STATE_FIELD_NUMBER: _ClassVar[int]
+    VERDICT_FIELD_NUMBER: _ClassVar[int]
+    SCORE_FIELD_NUMBER: _ClassVar[int]
+    FAILURE_STAGE_FIELD_NUMBER: _ClassVar[int]
+    FAILURE_CODE_FIELD_NUMBER: _ClassVar[int]
+    LOGS_FIELD_NUMBER: _ClassVar[int]
+    LABEL_FIELD_NUMBER: _ClassVar[int]
+    DURATION_MICROS_FIELD_NUMBER: _ClassVar[int]
+    LIMIT_CODE_FIELD_NUMBER: _ClassVar[int]
+    SYSTEM_CALL_BLOCKED_FIELD_NUMBER: _ClassVar[int]
+    ERROR_DETAIL_FIELD_NUMBER: _ClassVar[int]
+    BILLED_UNIT_SECONDS_FIELD_NUMBER: _ClassVar[int]
+    job_id: str
+    state: EvaluationCodeScorerJobStateV1
+    verdict: EvaluationVerdictV1
+    score: float
+    failure_stage: EvaluationCodeScorerFailureStageV1
+    failure_code: str
+    logs: EvaluationCodeScorerLogsV1
+    label: str
+    duration_micros: int
+    limit_code: str
+    system_call_blocked: bool
+    error_detail: EvaluationCodeScorerErrorDetailV1
+    billed_unit_seconds: int
+    def __init__(self, job_id: _Optional[str] = ..., state: _Optional[_Union[EvaluationCodeScorerJobStateV1, str]] = ..., verdict: _Optional[_Union[EvaluationVerdictV1, str]] = ..., score: _Optional[float] = ..., failure_stage: _Optional[_Union[EvaluationCodeScorerFailureStageV1, str]] = ..., failure_code: _Optional[str] = ..., logs: _Optional[_Union[EvaluationCodeScorerLogsV1, _Mapping]] = ..., label: _Optional[str] = ..., duration_micros: _Optional[int] = ..., limit_code: _Optional[str] = ..., system_call_blocked: _Optional[bool] = ..., error_detail: _Optional[_Union[EvaluationCodeScorerErrorDetailV1, _Mapping]] = ..., billed_unit_seconds: _Optional[int] = ...) -> None: ...
+
+class EvaluationCodeScorerErrorDetailV1(_message.Message):
+    __slots__ = ("exception_type", "message", "path", "line")
+    EXCEPTION_TYPE_FIELD_NUMBER: _ClassVar[int]
+    MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    PATH_FIELD_NUMBER: _ClassVar[int]
+    LINE_FIELD_NUMBER: _ClassVar[int]
+    exception_type: str
+    message: str
+    path: str
+    line: int
+    def __init__(self, exception_type: _Optional[str] = ..., message: _Optional[str] = ..., path: _Optional[str] = ..., line: _Optional[int] = ...) -> None: ...
+
+class StartEvaluationScorerPreviewRequest(_message.Message):
+    __slots__ = ("score_config_id", "input", "idempotency_key")
+    SCORE_CONFIG_ID_FIELD_NUMBER: _ClassVar[int]
+    INPUT_FIELD_NUMBER: _ClassVar[int]
+    IDEMPOTENCY_KEY_FIELD_NUMBER: _ClassVar[int]
+    score_config_id: str
+    input: EvaluationScorerCodeInputV1
+    idempotency_key: str
+    def __init__(self, score_config_id: _Optional[str] = ..., input: _Optional[_Union[EvaluationScorerCodeInputV1, _Mapping]] = ..., idempotency_key: _Optional[str] = ...) -> None: ...
+
+class StartEvaluationScorerPreviewResponse(_message.Message):
+    __slots__ = ("preview_id", "idempotent_replay", "capabilities")
+    PREVIEW_ID_FIELD_NUMBER: _ClassVar[int]
+    IDEMPOTENT_REPLAY_FIELD_NUMBER: _ClassVar[int]
+    CAPABILITIES_FIELD_NUMBER: _ClassVar[int]
+    preview_id: str
+    idempotent_replay: bool
+    capabilities: AgenticEvaluationCapabilitiesV1
+    def __init__(self, preview_id: _Optional[str] = ..., idempotent_replay: _Optional[bool] = ..., capabilities: _Optional[_Union[AgenticEvaluationCapabilitiesV1, _Mapping]] = ...) -> None: ...
+
+class GetEvaluationScorerPreviewRequest(_message.Message):
+    __slots__ = ("preview_id",)
+    PREVIEW_ID_FIELD_NUMBER: _ClassVar[int]
+    preview_id: str
+    def __init__(self, preview_id: _Optional[str] = ...) -> None: ...
+
+class GetEvaluationScorerPreviewResponse(_message.Message):
+    __slots__ = ("preview_id", "score_config_id", "result")
+    PREVIEW_ID_FIELD_NUMBER: _ClassVar[int]
+    SCORE_CONFIG_ID_FIELD_NUMBER: _ClassVar[int]
+    RESULT_FIELD_NUMBER: _ClassVar[int]
+    preview_id: str
+    score_config_id: str
+    result: EvaluationCodeScorerResultV1
+    def __init__(self, preview_id: _Optional[str] = ..., score_config_id: _Optional[str] = ..., result: _Optional[_Union[EvaluationCodeScorerResultV1, _Mapping]] = ...) -> None: ...
+
+class PublishEvaluationScorerConfigRequest(_message.Message):
+    __slots__ = ("score_config_id", "smoke_inputs", "idempotency_key")
+    SCORE_CONFIG_ID_FIELD_NUMBER: _ClassVar[int]
+    SMOKE_INPUTS_FIELD_NUMBER: _ClassVar[int]
+    IDEMPOTENCY_KEY_FIELD_NUMBER: _ClassVar[int]
+    score_config_id: str
+    smoke_inputs: _containers.RepeatedCompositeFieldContainer[EvaluationScorerCodeInputV1]
+    idempotency_key: str
+    def __init__(self, score_config_id: _Optional[str] = ..., smoke_inputs: _Optional[_Iterable[_Union[EvaluationScorerCodeInputV1, _Mapping]]] = ..., idempotency_key: _Optional[str] = ...) -> None: ...
+
+class PublishEvaluationScorerConfigResponse(_message.Message):
+    __slots__ = ("score_config_id", "code", "idempotent_replay", "capabilities")
+    SCORE_CONFIG_ID_FIELD_NUMBER: _ClassVar[int]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    IDEMPOTENT_REPLAY_FIELD_NUMBER: _ClassVar[int]
+    CAPABILITIES_FIELD_NUMBER: _ClassVar[int]
+    score_config_id: str
+    code: EvaluationScorerCodeConfigV1
+    idempotent_replay: bool
+    capabilities: AgenticEvaluationCapabilitiesV1
+    def __init__(self, score_config_id: _Optional[str] = ..., code: _Optional[_Union[EvaluationScorerCodeConfigV1, _Mapping]] = ..., idempotent_replay: _Optional[bool] = ..., capabilities: _Optional[_Union[AgenticEvaluationCapabilitiesV1, _Mapping]] = ...) -> None: ...
+
+class GetEvaluationScorerSourceSnapshotRequest(_message.Message):
+    __slots__ = ("score_config_id", "version_discriminator")
+    SCORE_CONFIG_ID_FIELD_NUMBER: _ClassVar[int]
+    VERSION_DISCRIMINATOR_FIELD_NUMBER: _ClassVar[int]
+    score_config_id: str
+    version_discriminator: str
+    def __init__(self, score_config_id: _Optional[str] = ..., version_discriminator: _Optional[str] = ...) -> None: ...
+
+class GetEvaluationScorerSourceSnapshotResponse(_message.Message):
+    __slots__ = ("score_config_id", "version_discriminator", "language", "bundle_sha256", "bundle_size_bytes", "entrypoint_path", "files")
+    SCORE_CONFIG_ID_FIELD_NUMBER: _ClassVar[int]
+    VERSION_DISCRIMINATOR_FIELD_NUMBER: _ClassVar[int]
+    LANGUAGE_FIELD_NUMBER: _ClassVar[int]
+    BUNDLE_SHA256_FIELD_NUMBER: _ClassVar[int]
+    BUNDLE_SIZE_BYTES_FIELD_NUMBER: _ClassVar[int]
+    ENTRYPOINT_PATH_FIELD_NUMBER: _ClassVar[int]
+    FILES_FIELD_NUMBER: _ClassVar[int]
+    score_config_id: str
+    version_discriminator: str
+    language: EvaluationScorerCodeLanguageV1
+    bundle_sha256: bytes
+    bundle_size_bytes: int
+    entrypoint_path: str
+    files: _containers.RepeatedCompositeFieldContainer[EvaluationScorerSourceFileV1]
+    def __init__(self, score_config_id: _Optional[str] = ..., version_discriminator: _Optional[str] = ..., language: _Optional[_Union[EvaluationScorerCodeLanguageV1, str]] = ..., bundle_sha256: _Optional[bytes] = ..., bundle_size_bytes: _Optional[int] = ..., entrypoint_path: _Optional[str] = ..., files: _Optional[_Iterable[_Union[EvaluationScorerSourceFileV1, _Mapping]]] = ...) -> None: ...
+
+class EvaluationScorerSuiteCodeMemberV1(_message.Message):
+    __slots__ = ("score_config_id", "bundle_sha256", "runtime_profile", "limit_profile", "artifact_manifest_sha256")
+    SCORE_CONFIG_ID_FIELD_NUMBER: _ClassVar[int]
+    BUNDLE_SHA256_FIELD_NUMBER: _ClassVar[int]
+    RUNTIME_PROFILE_FIELD_NUMBER: _ClassVar[int]
+    LIMIT_PROFILE_FIELD_NUMBER: _ClassVar[int]
+    ARTIFACT_MANIFEST_SHA256_FIELD_NUMBER: _ClassVar[int]
+    score_config_id: str
+    bundle_sha256: bytes
+    runtime_profile: EvaluationScorerRuntimeProfileRefV1
+    limit_profile: EvaluationScorerLimitProfileRefV1
+    artifact_manifest_sha256: bytes
+    def __init__(self, score_config_id: _Optional[str] = ..., bundle_sha256: _Optional[bytes] = ..., runtime_profile: _Optional[_Union[EvaluationScorerRuntimeProfileRefV1, _Mapping]] = ..., limit_profile: _Optional[_Union[EvaluationScorerLimitProfileRefV1, _Mapping]] = ..., artifact_manifest_sha256: _Optional[bytes] = ...) -> None: ...
+
+class LoopOverageCapV1(_message.Message):
+    __slots__ = ("cap_cents", "plan_default", "plan_default_cap_cents")
+    CAP_CENTS_FIELD_NUMBER: _ClassVar[int]
+    PLAN_DEFAULT_FIELD_NUMBER: _ClassVar[int]
+    PLAN_DEFAULT_CAP_CENTS_FIELD_NUMBER: _ClassVar[int]
+    cap_cents: int
+    plan_default: bool
+    plan_default_cap_cents: int
+    def __init__(self, cap_cents: _Optional[int] = ..., plan_default: _Optional[bool] = ..., plan_default_cap_cents: _Optional[int] = ...) -> None: ...
+
+class SetLoopOverageCapRequest(_message.Message):
+    __slots__ = ("cap_cents",)
+    CAP_CENTS_FIELD_NUMBER: _ClassVar[int]
+    cap_cents: int
+    def __init__(self, cap_cents: _Optional[int] = ...) -> None: ...
+
+class SetLoopOverageCapResponse(_message.Message):
+    __slots__ = ("cap",)
+    CAP_FIELD_NUMBER: _ClassVar[int]
+    cap: LoopOverageCapV1
+    def __init__(self, cap: _Optional[_Union[LoopOverageCapV1, _Mapping]] = ...) -> None: ...
+
+class GetLoopOverageCapRequest(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
+class GetLoopOverageCapResponse(_message.Message):
+    __slots__ = ("cap",)
+    CAP_FIELD_NUMBER: _ClassVar[int]
+    cap: LoopOverageCapV1
+    def __init__(self, cap: _Optional[_Union[LoopOverageCapV1, _Mapping]] = ...) -> None: ...
 
 class EvaluationDatasetCaseAbsenceV1(_message.Message):
     __slots__ = ("line_number", "absence_code")
@@ -8695,6 +9554,118 @@ class ListEvaluationRunsResponse(_message.Message):
     capabilities: AgenticEvaluationCapabilitiesV1
     resync: EvaluationCursorResyncV1
     def __init__(self, runs: _Optional[_Iterable[_Union[EvaluationRunSummaryV1, _Mapping]]] = ..., page: _Optional[_Union[_common_pb2.PageResponseV1, _Mapping]] = ..., freshness: _Optional[_Union[EvaluationFreshnessV1, _Mapping]] = ..., capabilities: _Optional[_Union[AgenticEvaluationCapabilitiesV1, _Mapping]] = ..., resync: _Optional[_Union[EvaluationCursorResyncV1, _Mapping]] = ...) -> None: ...
+
+class EvaluationRecentRunDatasetV1(_message.Message):
+    __slots__ = ("dataset_collection_id", "name")
+    DATASET_COLLECTION_ID_FIELD_NUMBER: _ClassVar[int]
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    dataset_collection_id: str
+    name: str
+    def __init__(self, dataset_collection_id: _Optional[str] = ..., name: _Optional[str] = ...) -> None: ...
+
+class EvaluationRecentRunVerdictV1(_message.Message):
+    __slots__ = ("outcome", "algorithm_version", "revision_ordinal", "recommended_candidate_key", "reference_candidate_key", "adopted_at")
+    OUTCOME_FIELD_NUMBER: _ClassVar[int]
+    ALGORITHM_VERSION_FIELD_NUMBER: _ClassVar[int]
+    REVISION_ORDINAL_FIELD_NUMBER: _ClassVar[int]
+    RECOMMENDED_CANDIDATE_KEY_FIELD_NUMBER: _ClassVar[int]
+    REFERENCE_CANDIDATE_KEY_FIELD_NUMBER: _ClassVar[int]
+    ADOPTED_AT_FIELD_NUMBER: _ClassVar[int]
+    outcome: EvaluationDecisionOutcomeV1
+    algorithm_version: str
+    revision_ordinal: int
+    recommended_candidate_key: str
+    reference_candidate_key: str
+    adopted_at: _timestamp_pb2.Timestamp
+    def __init__(self, outcome: _Optional[_Union[EvaluationDecisionOutcomeV1, str]] = ..., algorithm_version: _Optional[str] = ..., revision_ordinal: _Optional[int] = ..., recommended_candidate_key: _Optional[str] = ..., reference_candidate_key: _Optional[str] = ..., adopted_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+
+class EvaluationRecentRunV1(_message.Message):
+    __slots__ = ("run", "definition_display_name", "case_count", "trials", "manifest_availability", "datasets", "datasets_availability", "weakest_determinism_class", "determinism_availability", "verdict", "verdict_availability", "headline_candidate_key", "p_value", "improved_case_count", "regressed_case_count", "pass_at_k", "pass_hat_k", "pass_hat_k_delta", "flaky_case_count", "decision_evidence_availability", "summary_evidence_version", "summary_stale", "summary_algorithm_version", "evidence_method_differs", "effect_size", "aligned_pair_count", "direction", "alpha", "confidence_interval", "confidence_interval_availability")
+    RUN_FIELD_NUMBER: _ClassVar[int]
+    DEFINITION_DISPLAY_NAME_FIELD_NUMBER: _ClassVar[int]
+    CASE_COUNT_FIELD_NUMBER: _ClassVar[int]
+    TRIALS_FIELD_NUMBER: _ClassVar[int]
+    MANIFEST_AVAILABILITY_FIELD_NUMBER: _ClassVar[int]
+    DATASETS_FIELD_NUMBER: _ClassVar[int]
+    DATASETS_AVAILABILITY_FIELD_NUMBER: _ClassVar[int]
+    WEAKEST_DETERMINISM_CLASS_FIELD_NUMBER: _ClassVar[int]
+    DETERMINISM_AVAILABILITY_FIELD_NUMBER: _ClassVar[int]
+    VERDICT_FIELD_NUMBER: _ClassVar[int]
+    VERDICT_AVAILABILITY_FIELD_NUMBER: _ClassVar[int]
+    HEADLINE_CANDIDATE_KEY_FIELD_NUMBER: _ClassVar[int]
+    P_VALUE_FIELD_NUMBER: _ClassVar[int]
+    IMPROVED_CASE_COUNT_FIELD_NUMBER: _ClassVar[int]
+    REGRESSED_CASE_COUNT_FIELD_NUMBER: _ClassVar[int]
+    PASS_AT_K_FIELD_NUMBER: _ClassVar[int]
+    PASS_HAT_K_FIELD_NUMBER: _ClassVar[int]
+    PASS_HAT_K_DELTA_FIELD_NUMBER: _ClassVar[int]
+    FLAKY_CASE_COUNT_FIELD_NUMBER: _ClassVar[int]
+    DECISION_EVIDENCE_AVAILABILITY_FIELD_NUMBER: _ClassVar[int]
+    SUMMARY_EVIDENCE_VERSION_FIELD_NUMBER: _ClassVar[int]
+    SUMMARY_STALE_FIELD_NUMBER: _ClassVar[int]
+    SUMMARY_ALGORITHM_VERSION_FIELD_NUMBER: _ClassVar[int]
+    EVIDENCE_METHOD_DIFFERS_FIELD_NUMBER: _ClassVar[int]
+    EFFECT_SIZE_FIELD_NUMBER: _ClassVar[int]
+    ALIGNED_PAIR_COUNT_FIELD_NUMBER: _ClassVar[int]
+    DIRECTION_FIELD_NUMBER: _ClassVar[int]
+    ALPHA_FIELD_NUMBER: _ClassVar[int]
+    CONFIDENCE_INTERVAL_FIELD_NUMBER: _ClassVar[int]
+    CONFIDENCE_INTERVAL_AVAILABILITY_FIELD_NUMBER: _ClassVar[int]
+    run: EvaluationRunSummaryV1
+    definition_display_name: str
+    case_count: int
+    trials: int
+    manifest_availability: MetricAvailabilityV1
+    datasets: _containers.RepeatedCompositeFieldContainer[EvaluationRecentRunDatasetV1]
+    datasets_availability: MetricAvailabilityV1
+    weakest_determinism_class: EvaluationDeterminismClassV1
+    determinism_availability: MetricAvailabilityV1
+    verdict: EvaluationRecentRunVerdictV1
+    verdict_availability: MetricAvailabilityV1
+    headline_candidate_key: str
+    p_value: float
+    improved_case_count: int
+    regressed_case_count: int
+    pass_at_k: float
+    pass_hat_k: float
+    pass_hat_k_delta: float
+    flaky_case_count: int
+    decision_evidence_availability: MetricAvailabilityV1
+    summary_evidence_version: int
+    summary_stale: bool
+    summary_algorithm_version: str
+    evidence_method_differs: bool
+    effect_size: float
+    aligned_pair_count: int
+    direction: EvaluationEffectDirectionV1
+    alpha: float
+    confidence_interval: ConfidenceIntervalV1
+    confidence_interval_availability: MetricAvailabilityV1
+    def __init__(self, run: _Optional[_Union[EvaluationRunSummaryV1, _Mapping]] = ..., definition_display_name: _Optional[str] = ..., case_count: _Optional[int] = ..., trials: _Optional[int] = ..., manifest_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., datasets: _Optional[_Iterable[_Union[EvaluationRecentRunDatasetV1, _Mapping]]] = ..., datasets_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., weakest_determinism_class: _Optional[_Union[EvaluationDeterminismClassV1, str]] = ..., determinism_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., verdict: _Optional[_Union[EvaluationRecentRunVerdictV1, _Mapping]] = ..., verdict_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., headline_candidate_key: _Optional[str] = ..., p_value: _Optional[float] = ..., improved_case_count: _Optional[int] = ..., regressed_case_count: _Optional[int] = ..., pass_at_k: _Optional[float] = ..., pass_hat_k: _Optional[float] = ..., pass_hat_k_delta: _Optional[float] = ..., flaky_case_count: _Optional[int] = ..., decision_evidence_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., summary_evidence_version: _Optional[int] = ..., summary_stale: _Optional[bool] = ..., summary_algorithm_version: _Optional[str] = ..., evidence_method_differs: _Optional[bool] = ..., effect_size: _Optional[float] = ..., aligned_pair_count: _Optional[int] = ..., direction: _Optional[_Union[EvaluationEffectDirectionV1, str]] = ..., alpha: _Optional[float] = ..., confidence_interval: _Optional[_Union[ConfidenceIntervalV1, _Mapping]] = ..., confidence_interval_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ...) -> None: ...
+
+class ListRecentEvaluationRunsRequest(_message.Message):
+    __slots__ = ("page", "states", "decision_outcomes")
+    PAGE_FIELD_NUMBER: _ClassVar[int]
+    STATES_FIELD_NUMBER: _ClassVar[int]
+    DECISION_OUTCOMES_FIELD_NUMBER: _ClassVar[int]
+    page: _common_pb2.PageRequestV1
+    states: _containers.RepeatedScalarFieldContainer[EvaluationRunStateV1]
+    decision_outcomes: _containers.RepeatedScalarFieldContainer[EvaluationDecisionOutcomeV1]
+    def __init__(self, page: _Optional[_Union[_common_pb2.PageRequestV1, _Mapping]] = ..., states: _Optional[_Iterable[_Union[EvaluationRunStateV1, str]]] = ..., decision_outcomes: _Optional[_Iterable[_Union[EvaluationDecisionOutcomeV1, str]]] = ...) -> None: ...
+
+class ListRecentEvaluationRunsResponse(_message.Message):
+    __slots__ = ("runs", "page", "freshness", "capabilities", "resync")
+    RUNS_FIELD_NUMBER: _ClassVar[int]
+    PAGE_FIELD_NUMBER: _ClassVar[int]
+    FRESHNESS_FIELD_NUMBER: _ClassVar[int]
+    CAPABILITIES_FIELD_NUMBER: _ClassVar[int]
+    RESYNC_FIELD_NUMBER: _ClassVar[int]
+    runs: _containers.RepeatedCompositeFieldContainer[EvaluationRecentRunV1]
+    page: _common_pb2.PageResponseV1
+    freshness: EvaluationFreshnessV1
+    capabilities: AgenticEvaluationCapabilitiesV1
+    resync: EvaluationCursorResyncV1
+    def __init__(self, runs: _Optional[_Iterable[_Union[EvaluationRecentRunV1, _Mapping]]] = ..., page: _Optional[_Union[_common_pb2.PageResponseV1, _Mapping]] = ..., freshness: _Optional[_Union[EvaluationFreshnessV1, _Mapping]] = ..., capabilities: _Optional[_Union[AgenticEvaluationCapabilitiesV1, _Mapping]] = ..., resync: _Optional[_Union[EvaluationCursorResyncV1, _Mapping]] = ...) -> None: ...
 
 class EvaluationReviewTaskRefusalV1(_message.Message):
     __slots__ = ("kind", "reason_code", "offending_review_task_ids", "recovery", "detail")
@@ -12356,6 +13327,196 @@ class LookupReplayStepResponse(_message.Message):
     capabilities: AgenticEvaluationCapabilitiesV1
     def __init__(self, response_json: _Optional[str] = ..., divergence: _Optional[_Union[ReplayDivergenceV1, _Mapping]] = ..., refusal: _Optional[_Union[ExternalLeaseRefusalV1, _Mapping]] = ..., capabilities: _Optional[_Union[AgenticEvaluationCapabilitiesV1, _Mapping]] = ...) -> None: ...
 
+class ReplaySummaryV1(_message.Message):
+    __slots__ = ("cell", "attempt_generation", "status", "failure_code", "divergence_kind", "divergence_step", "replayed_steps", "recorded_steps", "source_complete", "source_evaluation_run_id", "source_candidate_key", "verdict_at", "recording_id", "recorded_at")
+    CELL_FIELD_NUMBER: _ClassVar[int]
+    ATTEMPT_GENERATION_FIELD_NUMBER: _ClassVar[int]
+    STATUS_FIELD_NUMBER: _ClassVar[int]
+    FAILURE_CODE_FIELD_NUMBER: _ClassVar[int]
+    DIVERGENCE_KIND_FIELD_NUMBER: _ClassVar[int]
+    DIVERGENCE_STEP_FIELD_NUMBER: _ClassVar[int]
+    REPLAYED_STEPS_FIELD_NUMBER: _ClassVar[int]
+    RECORDED_STEPS_FIELD_NUMBER: _ClassVar[int]
+    SOURCE_COMPLETE_FIELD_NUMBER: _ClassVar[int]
+    SOURCE_EVALUATION_RUN_ID_FIELD_NUMBER: _ClassVar[int]
+    SOURCE_CANDIDATE_KEY_FIELD_NUMBER: _ClassVar[int]
+    VERDICT_AT_FIELD_NUMBER: _ClassVar[int]
+    RECORDING_ID_FIELD_NUMBER: _ClassVar[int]
+    RECORDED_AT_FIELD_NUMBER: _ClassVar[int]
+    cell: EvaluationCellRefV1
+    attempt_generation: int
+    status: ReplayStatusV1
+    failure_code: str
+    divergence_kind: ReplayDivergenceKindV1
+    divergence_step: int
+    replayed_steps: int
+    recorded_steps: int
+    source_complete: bool
+    source_evaluation_run_id: str
+    source_candidate_key: str
+    verdict_at: _timestamp_pb2.Timestamp
+    recording_id: str
+    recorded_at: _timestamp_pb2.Timestamp
+    def __init__(self, cell: _Optional[_Union[EvaluationCellRefV1, _Mapping]] = ..., attempt_generation: _Optional[int] = ..., status: _Optional[_Union[ReplayStatusV1, str]] = ..., failure_code: _Optional[str] = ..., divergence_kind: _Optional[_Union[ReplayDivergenceKindV1, str]] = ..., divergence_step: _Optional[int] = ..., replayed_steps: _Optional[int] = ..., recorded_steps: _Optional[int] = ..., source_complete: _Optional[bool] = ..., source_evaluation_run_id: _Optional[str] = ..., source_candidate_key: _Optional[str] = ..., verdict_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., recording_id: _Optional[str] = ..., recorded_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+
+class ReplayListTotalsV1(_message.Message):
+    __slots__ = ("all", "matched", "diverged", "incomplete")
+    ALL_FIELD_NUMBER: _ClassVar[int]
+    MATCHED_FIELD_NUMBER: _ClassVar[int]
+    DIVERGED_FIELD_NUMBER: _ClassVar[int]
+    INCOMPLETE_FIELD_NUMBER: _ClassVar[int]
+    all: int
+    matched: int
+    diverged: int
+    incomplete: int
+    def __init__(self, all: _Optional[int] = ..., matched: _Optional[int] = ..., diverged: _Optional[int] = ..., incomplete: _Optional[int] = ...) -> None: ...
+
+class ListEvaluationReplaysRequest(_message.Message):
+    __slots__ = ("evaluation_run_id", "candidate_key", "filter", "page_size", "page_token")
+    EVALUATION_RUN_ID_FIELD_NUMBER: _ClassVar[int]
+    CANDIDATE_KEY_FIELD_NUMBER: _ClassVar[int]
+    FILTER_FIELD_NUMBER: _ClassVar[int]
+    PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
+    PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    evaluation_run_id: str
+    candidate_key: str
+    filter: ReplayListFilterV1
+    page_size: int
+    page_token: str
+    def __init__(self, evaluation_run_id: _Optional[str] = ..., candidate_key: _Optional[str] = ..., filter: _Optional[_Union[ReplayListFilterV1, str]] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
+
+class ListEvaluationReplaysResponse(_message.Message):
+    __slots__ = ("replays", "next_page_token", "has_more", "capabilities", "totals")
+    REPLAYS_FIELD_NUMBER: _ClassVar[int]
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    HAS_MORE_FIELD_NUMBER: _ClassVar[int]
+    CAPABILITIES_FIELD_NUMBER: _ClassVar[int]
+    TOTALS_FIELD_NUMBER: _ClassVar[int]
+    replays: _containers.RepeatedCompositeFieldContainer[ReplaySummaryV1]
+    next_page_token: str
+    has_more: bool
+    capabilities: AgenticEvaluationCapabilitiesV1
+    totals: ReplayListTotalsV1
+    def __init__(self, replays: _Optional[_Iterable[_Union[ReplaySummaryV1, _Mapping]]] = ..., next_page_token: _Optional[str] = ..., has_more: _Optional[bool] = ..., capabilities: _Optional[_Union[AgenticEvaluationCapabilitiesV1, _Mapping]] = ..., totals: _Optional[_Union[ReplayListTotalsV1, _Mapping]] = ...) -> None: ...
+
+class GetEvaluationReplayRequest(_message.Message):
+    __slots__ = ("evaluation_run_id", "cell", "steps_page_token")
+    EVALUATION_RUN_ID_FIELD_NUMBER: _ClassVar[int]
+    CELL_FIELD_NUMBER: _ClassVar[int]
+    STEPS_PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    evaluation_run_id: str
+    cell: EvaluationCellRefV1
+    steps_page_token: str
+    def __init__(self, evaluation_run_id: _Optional[str] = ..., cell: _Optional[_Union[EvaluationCellRefV1, _Mapping]] = ..., steps_page_token: _Optional[str] = ...) -> None: ...
+
+class ReplayStepV1(_message.Message):
+    __slots__ = ("step", "kind", "tool_name", "result")
+    STEP_FIELD_NUMBER: _ClassVar[int]
+    KIND_FIELD_NUMBER: _ClassVar[int]
+    TOOL_NAME_FIELD_NUMBER: _ClassVar[int]
+    RESULT_FIELD_NUMBER: _ClassVar[int]
+    step: int
+    kind: RecordedCallKindV1
+    tool_name: str
+    result: ReplayStepResultV1
+    def __init__(self, step: _Optional[int] = ..., kind: _Optional[_Union[RecordedCallKindV1, str]] = ..., tool_name: _Optional[str] = ..., result: _Optional[_Union[ReplayStepResultV1, str]] = ...) -> None: ...
+
+class ReplayPayloadV1(_message.Message):
+    __slots__ = ("body_json", "byte_length", "omitted")
+    BODY_JSON_FIELD_NUMBER: _ClassVar[int]
+    BYTE_LENGTH_FIELD_NUMBER: _ClassVar[int]
+    OMITTED_FIELD_NUMBER: _ClassVar[int]
+    body_json: str
+    byte_length: int
+    omitted: ReplayPayloadOmissionV1
+    def __init__(self, body_json: _Optional[str] = ..., byte_length: _Optional[int] = ..., omitted: _Optional[_Union[ReplayPayloadOmissionV1, str]] = ...) -> None: ...
+
+class ReplayToolSchemaV1(_message.Message):
+    __slots__ = ("tool_definitions_json", "tool_schema_digest", "byte_length", "omitted")
+    TOOL_DEFINITIONS_JSON_FIELD_NUMBER: _ClassVar[int]
+    TOOL_SCHEMA_DIGEST_FIELD_NUMBER: _ClassVar[int]
+    BYTE_LENGTH_FIELD_NUMBER: _ClassVar[int]
+    OMITTED_FIELD_NUMBER: _ClassVar[int]
+    tool_definitions_json: _containers.RepeatedScalarFieldContainer[str]
+    tool_schema_digest: str
+    byte_length: int
+    omitted: ReplayPayloadOmissionV1
+    def __init__(self, tool_definitions_json: _Optional[_Iterable[str]] = ..., tool_schema_digest: _Optional[str] = ..., byte_length: _Optional[int] = ..., omitted: _Optional[_Union[ReplayPayloadOmissionV1, str]] = ...) -> None: ...
+
+class GetEvaluationReplayResponse(_message.Message):
+    __slots__ = ("replay", "counts_as_task_failure", "redaction_applied", "steps", "next_steps_page_token", "steps_has_more", "recorded_request", "recorded_response", "observed_request", "recorded_tool_schema", "replayed_tool_schema", "tool_schema_drift", "capabilities", "case_trace_id", "source_definition_id")
+    REPLAY_FIELD_NUMBER: _ClassVar[int]
+    COUNTS_AS_TASK_FAILURE_FIELD_NUMBER: _ClassVar[int]
+    REDACTION_APPLIED_FIELD_NUMBER: _ClassVar[int]
+    STEPS_FIELD_NUMBER: _ClassVar[int]
+    NEXT_STEPS_PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    STEPS_HAS_MORE_FIELD_NUMBER: _ClassVar[int]
+    RECORDED_REQUEST_FIELD_NUMBER: _ClassVar[int]
+    RECORDED_RESPONSE_FIELD_NUMBER: _ClassVar[int]
+    OBSERVED_REQUEST_FIELD_NUMBER: _ClassVar[int]
+    RECORDED_TOOL_SCHEMA_FIELD_NUMBER: _ClassVar[int]
+    REPLAYED_TOOL_SCHEMA_FIELD_NUMBER: _ClassVar[int]
+    TOOL_SCHEMA_DRIFT_FIELD_NUMBER: _ClassVar[int]
+    CAPABILITIES_FIELD_NUMBER: _ClassVar[int]
+    CASE_TRACE_ID_FIELD_NUMBER: _ClassVar[int]
+    SOURCE_DEFINITION_ID_FIELD_NUMBER: _ClassVar[int]
+    replay: ReplaySummaryV1
+    counts_as_task_failure: bool
+    redaction_applied: bool
+    steps: _containers.RepeatedCompositeFieldContainer[ReplayStepV1]
+    next_steps_page_token: str
+    steps_has_more: bool
+    recorded_request: ReplayPayloadV1
+    recorded_response: ReplayPayloadV1
+    observed_request: ReplayPayloadV1
+    recorded_tool_schema: ReplayToolSchemaV1
+    replayed_tool_schema: ReplayToolSchemaV1
+    tool_schema_drift: bool
+    capabilities: AgenticEvaluationCapabilitiesV1
+    case_trace_id: str
+    source_definition_id: str
+    def __init__(self, replay: _Optional[_Union[ReplaySummaryV1, _Mapping]] = ..., counts_as_task_failure: _Optional[bool] = ..., redaction_applied: _Optional[bool] = ..., steps: _Optional[_Iterable[_Union[ReplayStepV1, _Mapping]]] = ..., next_steps_page_token: _Optional[str] = ..., steps_has_more: _Optional[bool] = ..., recorded_request: _Optional[_Union[ReplayPayloadV1, _Mapping]] = ..., recorded_response: _Optional[_Union[ReplayPayloadV1, _Mapping]] = ..., observed_request: _Optional[_Union[ReplayPayloadV1, _Mapping]] = ..., recorded_tool_schema: _Optional[_Union[ReplayToolSchemaV1, _Mapping]] = ..., replayed_tool_schema: _Optional[_Union[ReplayToolSchemaV1, _Mapping]] = ..., tool_schema_drift: _Optional[bool] = ..., capabilities: _Optional[_Union[AgenticEvaluationCapabilitiesV1, _Mapping]] = ..., case_trace_id: _Optional[str] = ..., source_definition_id: _Optional[str] = ...) -> None: ...
+
+class OrganizationReplayV1(_message.Message):
+    __slots__ = ("evaluation_run_id", "definition_id", "definition_name", "candidate_display_label", "replay")
+    EVALUATION_RUN_ID_FIELD_NUMBER: _ClassVar[int]
+    DEFINITION_ID_FIELD_NUMBER: _ClassVar[int]
+    DEFINITION_NAME_FIELD_NUMBER: _ClassVar[int]
+    CANDIDATE_DISPLAY_LABEL_FIELD_NUMBER: _ClassVar[int]
+    REPLAY_FIELD_NUMBER: _ClassVar[int]
+    evaluation_run_id: str
+    definition_id: str
+    definition_name: str
+    candidate_display_label: str
+    replay: ReplaySummaryV1
+    def __init__(self, evaluation_run_id: _Optional[str] = ..., definition_id: _Optional[str] = ..., definition_name: _Optional[str] = ..., candidate_display_label: _Optional[str] = ..., replay: _Optional[_Union[ReplaySummaryV1, _Mapping]] = ...) -> None: ...
+
+class ListOrganizationReplaysRequest(_message.Message):
+    __slots__ = ("filter", "page_size", "page_token")
+    FILTER_FIELD_NUMBER: _ClassVar[int]
+    PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
+    PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    filter: ReplayListFilterV1
+    page_size: int
+    page_token: str
+    def __init__(self, filter: _Optional[_Union[ReplayListFilterV1, str]] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
+
+class ListOrganizationReplaysResponse(_message.Message):
+    __slots__ = ("replays", "next_page_token", "has_more", "totals", "totals_capped", "capabilities")
+    REPLAYS_FIELD_NUMBER: _ClassVar[int]
+    NEXT_PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    HAS_MORE_FIELD_NUMBER: _ClassVar[int]
+    TOTALS_FIELD_NUMBER: _ClassVar[int]
+    TOTALS_CAPPED_FIELD_NUMBER: _ClassVar[int]
+    CAPABILITIES_FIELD_NUMBER: _ClassVar[int]
+    replays: _containers.RepeatedCompositeFieldContainer[OrganizationReplayV1]
+    next_page_token: str
+    has_more: bool
+    totals: ReplayListTotalsV1
+    totals_capped: bool
+    capabilities: AgenticEvaluationCapabilitiesV1
+    def __init__(self, replays: _Optional[_Iterable[_Union[OrganizationReplayV1, _Mapping]]] = ..., next_page_token: _Optional[str] = ..., has_more: _Optional[bool] = ..., totals: _Optional[_Union[ReplayListTotalsV1, _Mapping]] = ..., totals_capped: _Optional[bool] = ..., capabilities: _Optional[_Union[AgenticEvaluationCapabilitiesV1, _Mapping]] = ...) -> None: ...
+
 class PlatformAnnotationLinkV1(_message.Message):
     __slots__ = ("kind", "ref")
     KIND_FIELD_NUMBER: _ClassVar[int]
@@ -12463,7 +13624,7 @@ class ListPlatformAnnotationsResponse(_message.Message):
     def __init__(self, annotations: _Optional[_Iterable[_Union[PlatformAnnotationV1, _Mapping]]] = ..., page: _Optional[_Union[_common_pb2.PageResponseV1, _Mapping]] = ..., capabilities: _Optional[_Union[AgenticEvaluationCapabilitiesV1, _Mapping]] = ..., resync: _Optional[_Union[EvaluationCursorResyncV1, _Mapping]] = ...) -> None: ...
 
 class EvaluationScorerConfigSummaryV1(_message.Message):
-    __slots__ = ("score_config_id", "config_key", "name", "description", "metric_name", "success_dimension", "kind", "version_discriminator", "version_count", "version_count_availability", "weight", "is_blocking_gate", "is_archived", "archived_at", "authored_on_this_surface", "created_at", "updated_at", "created_by")
+    __slots__ = ("score_config_id", "config_key", "name", "description", "metric_name", "success_dimension", "kind", "version_discriminator", "version_count", "version_count_availability", "weight", "is_blocking_gate", "is_archived", "archived_at", "authored_on_this_surface", "created_at", "updated_at", "created_by", "code")
     SCORE_CONFIG_ID_FIELD_NUMBER: _ClassVar[int]
     CONFIG_KEY_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
@@ -12482,6 +13643,7 @@ class EvaluationScorerConfigSummaryV1(_message.Message):
     CREATED_AT_FIELD_NUMBER: _ClassVar[int]
     UPDATED_AT_FIELD_NUMBER: _ClassVar[int]
     CREATED_BY_FIELD_NUMBER: _ClassVar[int]
+    CODE_FIELD_NUMBER: _ClassVar[int]
     score_config_id: str
     config_key: str
     name: str
@@ -12500,7 +13662,8 @@ class EvaluationScorerConfigSummaryV1(_message.Message):
     created_at: _timestamp_pb2.Timestamp
     updated_at: _timestamp_pb2.Timestamp
     created_by: PrincipalRefV1
-    def __init__(self, score_config_id: _Optional[str] = ..., config_key: _Optional[str] = ..., name: _Optional[str] = ..., description: _Optional[str] = ..., metric_name: _Optional[str] = ..., success_dimension: _Optional[str] = ..., kind: _Optional[_Union[EvaluationScorerKindV1, str]] = ..., version_discriminator: _Optional[str] = ..., version_count: _Optional[int] = ..., version_count_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., weight: _Optional[float] = ..., is_blocking_gate: _Optional[bool] = ..., is_archived: _Optional[bool] = ..., archived_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., authored_on_this_surface: _Optional[bool] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., updated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., created_by: _Optional[_Union[PrincipalRefV1, _Mapping]] = ...) -> None: ...
+    code: EvaluationScorerCodeSummaryV1
+    def __init__(self, score_config_id: _Optional[str] = ..., config_key: _Optional[str] = ..., name: _Optional[str] = ..., description: _Optional[str] = ..., metric_name: _Optional[str] = ..., success_dimension: _Optional[str] = ..., kind: _Optional[_Union[EvaluationScorerKindV1, str]] = ..., version_discriminator: _Optional[str] = ..., version_count: _Optional[int] = ..., version_count_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., weight: _Optional[float] = ..., is_blocking_gate: _Optional[bool] = ..., is_archived: _Optional[bool] = ..., archived_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., authored_on_this_surface: _Optional[bool] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., updated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., created_by: _Optional[_Union[PrincipalRefV1, _Mapping]] = ..., code: _Optional[_Union[EvaluationScorerCodeSummaryV1, _Mapping]] = ...) -> None: ...
 
 class ListEvaluationScorerConfigsRequest(_message.Message):
     __slots__ = ("page", "kind_filter", "archived_filter")
@@ -12565,7 +13728,7 @@ class EvaluationScorerJudgeDetailV1(_message.Message):
     def __init__(self, rubric_content: _Optional[_Union[EvaluationScorerJudgeRubricV1, _Mapping]] = ..., provider_execution: _Optional[_Union[EvaluationScorerJudgeResolvedExecutionV1, _Mapping]] = ..., pass_threshold: _Optional[float] = ...) -> None: ...
 
 class EvaluationScorerConfigDetailV1(_message.Message):
-    __slots__ = ("score_config_id", "config_key", "name", "description", "metric_name", "success_dimension", "kind", "version_discriminator", "weight", "is_blocking_gate", "is_archived", "archived_at", "deterministic", "review_policy", "judge", "pass_threshold", "authored_on_this_surface", "version_count", "version_count_availability", "evaluator_template_id", "created_at", "updated_at", "created_by", "pinned_run_count", "pinned_run_id")
+    __slots__ = ("score_config_id", "config_key", "name", "description", "metric_name", "success_dimension", "kind", "version_discriminator", "weight", "is_blocking_gate", "is_archived", "archived_at", "deterministic", "review_policy", "judge", "pass_threshold", "authored_on_this_surface", "version_count", "version_count_availability", "evaluator_template_id", "created_at", "updated_at", "created_by", "pinned_run_count", "pinned_run_id", "code")
     SCORE_CONFIG_ID_FIELD_NUMBER: _ClassVar[int]
     CONFIG_KEY_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
@@ -12591,6 +13754,7 @@ class EvaluationScorerConfigDetailV1(_message.Message):
     CREATED_BY_FIELD_NUMBER: _ClassVar[int]
     PINNED_RUN_COUNT_FIELD_NUMBER: _ClassVar[int]
     PINNED_RUN_ID_FIELD_NUMBER: _ClassVar[int]
+    CODE_FIELD_NUMBER: _ClassVar[int]
     score_config_id: str
     config_key: str
     name: str
@@ -12616,7 +13780,8 @@ class EvaluationScorerConfigDetailV1(_message.Message):
     created_by: PrincipalRefV1
     pinned_run_count: int
     pinned_run_id: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, score_config_id: _Optional[str] = ..., config_key: _Optional[str] = ..., name: _Optional[str] = ..., description: _Optional[str] = ..., metric_name: _Optional[str] = ..., success_dimension: _Optional[str] = ..., kind: _Optional[_Union[EvaluationScorerKindV1, str]] = ..., version_discriminator: _Optional[str] = ..., weight: _Optional[float] = ..., is_blocking_gate: _Optional[bool] = ..., is_archived: _Optional[bool] = ..., archived_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., deterministic: _Optional[_Union[EvaluationScorerDeterministicSpecV1, _Mapping]] = ..., review_policy: _Optional[_Union[EvaluationScorerReviewPolicySpecV1, _Mapping]] = ..., judge: _Optional[_Union[EvaluationScorerJudgeDetailV1, _Mapping]] = ..., pass_threshold: _Optional[float] = ..., authored_on_this_surface: _Optional[bool] = ..., version_count: _Optional[int] = ..., version_count_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., evaluator_template_id: _Optional[str] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., updated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., created_by: _Optional[_Union[PrincipalRefV1, _Mapping]] = ..., pinned_run_count: _Optional[int] = ..., pinned_run_id: _Optional[_Iterable[str]] = ...) -> None: ...
+    code: EvaluationScorerCodeConfigV1
+    def __init__(self, score_config_id: _Optional[str] = ..., config_key: _Optional[str] = ..., name: _Optional[str] = ..., description: _Optional[str] = ..., metric_name: _Optional[str] = ..., success_dimension: _Optional[str] = ..., kind: _Optional[_Union[EvaluationScorerKindV1, str]] = ..., version_discriminator: _Optional[str] = ..., weight: _Optional[float] = ..., is_blocking_gate: _Optional[bool] = ..., is_archived: _Optional[bool] = ..., archived_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., deterministic: _Optional[_Union[EvaluationScorerDeterministicSpecV1, _Mapping]] = ..., review_policy: _Optional[_Union[EvaluationScorerReviewPolicySpecV1, _Mapping]] = ..., judge: _Optional[_Union[EvaluationScorerJudgeDetailV1, _Mapping]] = ..., pass_threshold: _Optional[float] = ..., authored_on_this_surface: _Optional[bool] = ..., version_count: _Optional[int] = ..., version_count_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., evaluator_template_id: _Optional[str] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., updated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., created_by: _Optional[_Union[PrincipalRefV1, _Mapping]] = ..., pinned_run_count: _Optional[int] = ..., pinned_run_id: _Optional[_Iterable[str]] = ..., code: _Optional[_Union[EvaluationScorerCodeConfigV1, _Mapping]] = ...) -> None: ...
 
 class EvaluationScorerConfigUsageV1(_message.Message):
     __slots__ = ("suite", "suite_count", "suite_availability", "pinned_run_count", "pinned_run_id", "pinned_run_availability", "definition_count", "definition_availability", "production_rule_count", "production_rule_availability")
@@ -12679,7 +13844,7 @@ class GetEvaluationScorerConfigResponse(_message.Message):
     def __init__(self, scorer_config: _Optional[_Union[EvaluationScorerConfigDetailV1, _Mapping]] = ..., usage: _Optional[_Union[EvaluationScorerConfigUsageV1, _Mapping]] = ..., freshness: _Optional[_Union[EvaluationFreshnessV1, _Mapping]] = ..., capabilities: _Optional[_Union[AgenticEvaluationCapabilitiesV1, _Mapping]] = ...) -> None: ...
 
 class EvaluationScorerConfigVersionV1(_message.Message):
-    __slots__ = ("evaluator_template_id", "version_discriminator", "name", "evaluator_kind", "execution_mode", "is_current", "rubric_bytes", "verdict_mapping_count", "created_at", "created_by")
+    __slots__ = ("evaluator_template_id", "version_discriminator", "name", "evaluator_kind", "execution_mode", "is_current", "rubric_bytes", "verdict_mapping_count", "created_at", "created_by", "code_bundle_sha256")
     EVALUATOR_TEMPLATE_ID_FIELD_NUMBER: _ClassVar[int]
     VERSION_DISCRIMINATOR_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
@@ -12690,6 +13855,7 @@ class EvaluationScorerConfigVersionV1(_message.Message):
     VERDICT_MAPPING_COUNT_FIELD_NUMBER: _ClassVar[int]
     CREATED_AT_FIELD_NUMBER: _ClassVar[int]
     CREATED_BY_FIELD_NUMBER: _ClassVar[int]
+    CODE_BUNDLE_SHA256_FIELD_NUMBER: _ClassVar[int]
     evaluator_template_id: str
     version_discriminator: str
     name: str
@@ -12700,7 +13866,8 @@ class EvaluationScorerConfigVersionV1(_message.Message):
     verdict_mapping_count: int
     created_at: _timestamp_pb2.Timestamp
     created_by: PrincipalRefV1
-    def __init__(self, evaluator_template_id: _Optional[str] = ..., version_discriminator: _Optional[str] = ..., name: _Optional[str] = ..., evaluator_kind: _Optional[str] = ..., execution_mode: _Optional[str] = ..., is_current: _Optional[bool] = ..., rubric_bytes: _Optional[int] = ..., verdict_mapping_count: _Optional[int] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., created_by: _Optional[_Union[PrincipalRefV1, _Mapping]] = ...) -> None: ...
+    code_bundle_sha256: bytes
+    def __init__(self, evaluator_template_id: _Optional[str] = ..., version_discriminator: _Optional[str] = ..., name: _Optional[str] = ..., evaluator_kind: _Optional[str] = ..., execution_mode: _Optional[str] = ..., is_current: _Optional[bool] = ..., rubric_bytes: _Optional[int] = ..., verdict_mapping_count: _Optional[int] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., created_by: _Optional[_Union[PrincipalRefV1, _Mapping]] = ..., code_bundle_sha256: _Optional[bytes] = ...) -> None: ...
 
 class ListEvaluationScorerConfigVersionsRequest(_message.Message):
     __slots__ = ("score_config_id", "config_key", "page")
