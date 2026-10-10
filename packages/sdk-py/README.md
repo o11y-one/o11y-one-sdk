@@ -132,6 +132,40 @@ Each returns a `Refusal` for a typed rejection (`SANDBOX_UNAVAILABLE`,
 `CODE_SPEC_INVALID`, `CODE_INPUT_INVALID`, `CODE_VERSION_IMMUTABLE`, ...), whose
 `message` starts with the server's stable code.
 
+A TypeScript scorer runs where the deployment serves the `typescript-base`
+runtime. Its bundle is `.ts` files with the entry `score.ts`, and it imports
+only its own files (relative, naming the `.ts`) and Node's built-ins: no npm
+packages and no network. [`scorer-kit`](../sdk-ts/scorer-kit) holds its types,
+a seeded PRNG to copy into the bundle and an example `score.ts`. There,
+`context.seed` and `context.frozen_evaluation_time_unix_nanos` are `bigint`s.
+
+```python
+from pathlib import Path
+
+from o11y_one.agentic.v1.evaluation_pb2 import GetAgenticEvaluationCapabilitiesRequest
+
+service = o11y.service_sync(AgenticEvaluationServiceClientSync)
+served = service.get_agentic_evaluation_capabilities(
+    GetAgenticEvaluationCapabilitiesRequest(), headers=me
+).capabilities
+kit = Path("packages/sdk-ts/scorer-kit")
+draft = scorers.create_code_scorer(
+    config_key="sampled-lines",
+    name="Sampled lines",
+    metric_name="quality.sampled_lines",
+    language="typescript",
+    files={f: (kit / f).read_text() for f in ("score.ts", "o11y_scorer.ts", "o11y_prng.ts")},
+    capabilities=served,  # its served TypeScript runtime; without it, typescript-base v1
+    idempotency_key="sampled-lines-v1",
+    headers=me,
+)
+```
+
+A path that is not identifiers ending in the language's extension, or a
+TypeScript entry other than `score.ts`, raises `ValidationError` before the
+wire, and so does a language the capabilities serve no runtime for
+(`code_language_unsupported`).
+
 ## The distinction this package exists to preserve
 
 `UNAUTHENTICATED` and `PERMISSION_DENIED` are different problems:
