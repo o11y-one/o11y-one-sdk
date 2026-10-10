@@ -1,6 +1,6 @@
-"""Code scorers (o11y-api #611): a member authors a Python scorer as a draft,
-previews it on one input, and an admin publishes it; only a published version
-runs across a dataset.
+"""Code scorers (o11y-api #611, #764): a member authors a Python or TypeScript
+scorer as a draft, previews it on one input, and an admin publishes it; only a
+published version runs across a dataset.
 
 Three calls, on the same ``AgenticEvaluationServiceClient`` /
 ``...ClientSync`` the rest of :mod:`o11y_one.sdk.agentic` wraps:
@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import time
 from collections.abc import Mapping, Sequence
 from typing import Literal
@@ -39,6 +40,7 @@ from o11y_one.agentic.v1.evaluation_connect import (
     AgenticEvaluationServiceClientSync,
 )
 from o11y_one.agentic.v1.evaluation_pb2 import (
+    AgenticEvaluationCapabilitiesV1,
     CreateEvaluationScorerConfigRequest,
     EvaluationCodeScorerJobStateV1,
     EvaluationCodeScorerResultV1,
@@ -68,6 +70,7 @@ from .validation import ValidationError, require_non_empty, require_non_empty_se
 
 __all__ = ["CodeScorerClient", "CodeScorerClientSync"]
 
+Language = Literal["python", "typescript"]
 LimitProfile = Literal["small", "standard", "large"]
 Determinism = Literal["seeded_best_effort", "nondeterministic"]
 
@@ -76,6 +79,12 @@ def _named(enum_type: EnumTypeWrapper, prefix: str, *names: str) -> dict[str, in
     return {name: enum_type.Value(f"{prefix}_{name.upper()}") for name in names}
 
 
+_LANGUAGES = _named(
+    EvaluationScorerCodeLanguageV1, "EVALUATION_SCORER_CODE_LANGUAGE_V1", "python", "typescript"
+)
+# Each language's file extension, and its runtime when no capabilities read names one.
+_SOURCES = {"python": ("py", ("python-3.14", 1)), "typescript": ("ts", ("typescript-base", 1))}
+_SOURCE_PATH_MAX_BYTES = 256
 _LIMIT_PROFILES = _named(
     EvaluationScorerLimitProfileV1,
     "EVALUATION_SCORER_LIMIT_PROFILE_V1",
@@ -103,17 +112,52 @@ def _choice(table: Mapping[str, int], value: str, *, field: str) -> int:
     return table[value]
 
 
+def _served_runtime(
+    capabilities: AgenticEvaluationCapabilitiesV1, language: str, language_id: int
+) -> tuple[str, int]:
+    served = [r for r in capabilities.scorer_runtimes if r.language == language_id]
+    if not served:
+        raise ValidationError(
+            "language", f"code_language_unsupported: this deployment serves no {language} runtime"
+        )
+    # max() keeps the first of equals, so a language with no default takes its first runtime.
+    runtime = max(served, key=lambda r: r.is_default)
+    return runtime.profile.id, runtime.profile.version
+
+
+def _check_bundle(files: Mapping[str, str | bytes], entrypoint_path: str, extension: str) -> None:
+    """The sandbox's own bundle rules (o11y-sandbox-contracts ``validate_source_bundle``)."""
+    identifier = "[A-Za-z_][A-Za-z0-9_]*"
+    source_path = re.compile(rf"{identifier}(/{identifier})*\.{extension}")
+    for path in files:
+        if len(path.encode()) > _SOURCE_PATH_MAX_BYTES or not source_path.fullmatch(path):
+            raise ValidationError(
+                "files",
+                f"source_path_invalid: {path!r} is not a relative path of identifiers ending in "
+                f".{extension}, at most {_SOURCE_PATH_MAX_BYTES} bytes",
+            )
+    if extension == "ts" and entrypoint_path != "score.ts":
+        raise ValidationError(
+            "entrypoint_path",
+            "source_entrypoint_not_score_ts: a TypeScript scorer's entrypoint is score.ts",
+        )
+    if entrypoint_path not in files:
+        raise ValidationError("entrypoint_path", f"{entrypoint_path!r} is not one of the files")
+
+
 def _build_create(
     *,
     config_key: str,
     name: str,
     metric_name: str,
     files: Mapping[str, str | bytes],
-    entrypoint_path: str,
+    language: Language,
+    entrypoint_path: str | None,
     limit_profile: LimitProfile,
     determinism: Determinism,
     input_fields: Sequence[str],
-    runtime_profile: tuple[str, int],
+    runtime_profile: tuple[str, int] | None,
+    capabilities: AgenticEvaluationCapabilitiesV1 | None,
     success_dimension: str,
     description: str | None,
     idempotency_key: str,
@@ -121,8 +165,16 @@ def _build_create(
     for value, field in ((config_key, "config_key"), (name, "name"), (metric_name, "metric_name")):
         require_non_empty(value, field=field)
     require_non_empty(idempotency_key, field="idempotency_key")
-    if entrypoint_path not in files:
-        raise ValidationError("entrypoint_path", f"{entrypoint_path!r} is not one of the files")
+    language_id = _choice(_LANGUAGES, language, field="language")
+    extension, default_runtime = _SOURCES[language]
+    entrypoint_path = entrypoint_path or f"score.{extension}"
+    _check_bundle(files, entrypoint_path, extension)
+    if runtime_profile is None:
+        runtime_profile = (
+            default_runtime
+            if capabilities is None
+            else _served_runtime(capabilities, language, language_id)
+        )
     # The bundle's paths ascend, as the sandbox requires; the content is the bytes the author wrote.
     sources = [
         EvaluationScorerSourceFileV1(
@@ -140,7 +192,7 @@ def _build_create(
         kind=EvaluationScorerKindV1.EVALUATION_SCORER_KIND_V1_CODE,
         idempotency_key=idempotency_key,
         code=EvaluationScorerCodeSpecV1(
-            language=EvaluationScorerCodeLanguageV1.EVALUATION_SCORER_CODE_LANGUAGE_V1_PYTHON,
+            language=language_id,
             files=sources,
             entrypoint_path=entrypoint_path,
             runtime_profile=EvaluationScorerRuntimeProfileRefV1(
@@ -230,11 +282,13 @@ class CodeScorerClient:
         metric_name: str,
         files: Mapping[str, str | bytes],
         idempotency_key: str,
-        entrypoint_path: str = "score.py",
+        language: Language = "python",
+        entrypoint_path: str | None = None,
         limit_profile: LimitProfile = "standard",
         determinism: Determinism = "seeded_best_effort",
         input_fields: Sequence[str] = (),
-        runtime_profile: tuple[str, int] = ("python-3.14", 1),
+        runtime_profile: tuple[str, int] | None = None,
+        capabilities: AgenticEvaluationCapabilitiesV1 | None = None,
         success_dimension: str = "quality",
         description: str | None = None,
         headers: Headers | None = None,
@@ -242,17 +296,26 @@ class CodeScorerClient:
     ) -> EvaluationScorerConfigV1 | Refusal:
         """Upload ``files`` (bundle path to source) as a member draft. An empty
         ``input_fields`` reads the case input, the candidate output and the
-        reference output."""
+        reference output.
+
+        ``entrypoint_path`` defaults to ``score.py``, or ``score.ts``, the only
+        TypeScript entry. ``runtime_profile`` defaults to the language's default
+        in ``capabilities.scorer_runtimes`` when ``capabilities`` (from
+        ``GetAgenticEvaluationCapabilities``) is given, else to ``python-3.14``
+        or ``typescript-base`` version 1. The bundle's paths are checked here as
+        the sandbox checks them, so a bad one raises before the wire."""
         req = _build_create(
             config_key=config_key,
             name=name,
             metric_name=metric_name,
             files=files,
+            language=language,
             entrypoint_path=entrypoint_path,
             limit_profile=limit_profile,
             determinism=determinism,
             input_fields=input_fields,
             runtime_profile=runtime_profile,
+            capabilities=capabilities,
             success_dimension=success_dimension,
             description=description,
             idempotency_key=idempotency_key,
@@ -344,11 +407,13 @@ class CodeScorerClientSync:
         metric_name: str,
         files: Mapping[str, str | bytes],
         idempotency_key: str,
-        entrypoint_path: str = "score.py",
+        language: Language = "python",
+        entrypoint_path: str | None = None,
         limit_profile: LimitProfile = "standard",
         determinism: Determinism = "seeded_best_effort",
         input_fields: Sequence[str] = (),
-        runtime_profile: tuple[str, int] = ("python-3.14", 1),
+        runtime_profile: tuple[str, int] | None = None,
+        capabilities: AgenticEvaluationCapabilitiesV1 | None = None,
         success_dimension: str = "quality",
         description: str | None = None,
         headers: Headers | None = None,
@@ -359,11 +424,13 @@ class CodeScorerClientSync:
             name=name,
             metric_name=metric_name,
             files=files,
+            language=language,
             entrypoint_path=entrypoint_path,
             limit_profile=limit_profile,
             determinism=determinism,
             input_fields=input_fields,
             runtime_profile=runtime_profile,
+            capabilities=capabilities,
             success_dimension=success_dimension,
             description=description,
             idempotency_key=idempotency_key,

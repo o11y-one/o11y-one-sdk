@@ -15,6 +15,7 @@ import pytest
 from connectrpc.code import Code
 from connectrpc.errors import ConnectError
 from o11y_one.agentic.v1.evaluation_pb2 import (
+    AgenticEvaluationCapabilitiesV1,
     CreateEvaluationScorerConfigResponse,
     EvaluationCodeScorerJobStateV1,
     EvaluationCodeScorerResultV1,
@@ -27,6 +28,8 @@ from o11y_one.agentic.v1.evaluation_pb2 import (
     EvaluationScorerInputFieldV1,
     EvaluationScorerKindV1,
     EvaluationScorerLimitProfileV1,
+    EvaluationScorerRuntimeProfileRefV1,
+    EvaluationScorerRuntimeV1,
     EvaluationVerdictV1,
     GetEvaluationScorerPreviewResponse,
     PublishEvaluationScorerConfigResponse,
@@ -39,6 +42,7 @@ from o11y_one.sdk.validation import ValidationError
 from test_agentic import FakeAsyncClient, FakeSyncClient
 
 SOURCE = "def score(input, context):\n    return {'score': 0.75, 'verdict': 'pass'}\n"
+TS_SOURCE = 'export function score() {\n  return { score: 0.75, verdict: "pass" };\n}\n'
 QUEUED = EvaluationCodeScorerJobStateV1.EVALUATION_CODE_SCORER_JOB_STATE_V1_QUEUED
 RUNNING = EvaluationCodeScorerJobStateV1.EVALUATION_CODE_SCORER_JOB_STATE_V1_RUNNING
 FINISHED = EvaluationCodeScorerJobStateV1.EVALUATION_CODE_SCORER_JOB_STATE_V1_FINISHED
@@ -116,6 +120,94 @@ def test_create_sends_a_python_code_draft_with_its_sorted_bundle_profiles_and_fi
     ]
 
 
+def _runtime(runtime_id: str, version: int, language: str, *, default: bool = True):
+    return EvaluationScorerRuntimeV1(
+        profile=EvaluationScorerRuntimeProfileRefV1(id=runtime_id, version=version),
+        language=EvaluationScorerCodeLanguageV1.Value(
+            f"EVALUATION_SCORER_CODE_LANGUAGE_V1_{language.upper()}"
+        ),
+        is_default=default,
+    )
+
+
+def _create_typescript(client: str, **kwargs):
+    """Creates a TypeScript draft through the sync or the async client; answers (result, fake)."""
+    handlers = {
+        "create_evaluation_scorer_config": CreateEvaluationScorerConfigResponse(
+            scorer_config=EvaluationScorerConfigV1(score_config_id="sc-ts")
+        )
+    }
+    args = {
+        "config_key": "ts-exact",
+        "name": "Exact match",
+        "metric_name": "quality.exact",
+        "files": {"score.ts": TS_SOURCE, "lib/o11y_prng.ts": "export {};\n"},
+        "idempotency_key": "create-ts",
+        "language": "typescript",
+        **kwargs,
+    }
+    if client == "sync":
+        fake = FakeSyncClient(**handlers)
+        return CodeScorerClientSync(fake).create_code_scorer(**args), fake
+    fake = FakeAsyncClient(**handlers)
+    return asyncio.run(CodeScorerClient(fake).create_code_scorer(**args)), fake
+
+
+@pytest.mark.parametrize("client", ["sync", "async"])
+def test_create_sends_a_typescript_draft_with_score_ts_on_its_default_runtime(client) -> None:
+    created, fake = _create_typescript(client)
+
+    assert created.score_config_id == "sc-ts"
+    ((_, sent),) = fake.calls
+    code = sent.code
+    assert code.language == (
+        EvaluationScorerCodeLanguageV1.EVALUATION_SCORER_CODE_LANGUAGE_V1_TYPESCRIPT
+    )
+    assert code.entrypoint_path == "score.ts"
+    assert [f.path for f in code.files] == ["lib/o11y_prng.ts", "score.ts"]
+    assert (code.runtime_profile.id, code.runtime_profile.version) == ("typescript-base", 1)
+
+
+@pytest.mark.parametrize("client", ["sync", "async"])
+def test_the_runtime_profile_is_the_served_default_for_the_language(client) -> None:
+    capabilities = AgenticEvaluationCapabilitiesV1(
+        scorer_runtimes=[
+            _runtime("python-3.14", 1, "python"),
+            _runtime("typescript-base", 1, "typescript", default=False),
+            _runtime("typescript-base", 2, "typescript"),
+        ]
+    )
+    _, fake = _create_typescript(client, capabilities=capabilities)
+
+    ((_, sent),) = fake.calls
+    profile = sent.code.runtime_profile
+    assert (profile.id, profile.version) == ("typescript-base", 2)
+
+
+def test_a_language_the_deployment_serves_no_runtime_for_is_refused_locally() -> None:
+    capabilities = AgenticEvaluationCapabilitiesV1(
+        scorer_runtimes=[_runtime("python-3.14", 1, "python")]
+    )
+    with pytest.raises(ValidationError, match="code_language_unsupported"):
+        _create_typescript("sync", capabilities=capabilities)
+
+
+def test_a_runtime_profile_the_author_names_wins_over_the_served_default() -> None:
+    capabilities = AgenticEvaluationCapabilitiesV1(
+        scorer_runtimes=[_runtime("typescript-base", 2, "typescript")]
+    )
+    _, fake = _create_typescript(
+        "sync", capabilities=capabilities, runtime_profile=("typescript-base", 1)
+    )
+
+    ((_, sent),) = fake.calls
+    profile = sent.code.runtime_profile
+    assert (profile.id, profile.version) == ("typescript-base", 1)
+
+
+TS = {"language": "typescript"}
+
+
 @pytest.mark.parametrize(
     ("overrides", "field"),
     [
@@ -124,6 +216,16 @@ def test_create_sends_a_python_code_draft_with_its_sorted_bundle_profiles_and_fi
         ({"determinism": "deterministic"}, "determinism"),
         ({"input_fields": ["prompt"]}, "input_fields"),
         ({"idempotency_key": ""}, "idempotency_key"),
+        ({"language": "ruby"}, "language"),
+        ({"files": {"score.py": SOURCE, "notes.txt": "x"}}, "source_path_invalid"),
+        ({**TS, "files": {"main.ts": TS_SOURCE}, "entrypoint_path": "main.ts"}, "score_ts"),
+        ({**TS, "files": {"score.ts": TS_SOURCE, "util.js": "x"}}, "source_path_invalid"),
+        ({**TS, "files": {"score.ts": TS_SOURCE, "lib-x/util.ts": "x"}}, "source_path_invalid"),
+        ({**TS, "files": {"score.ts": TS_SOURCE, "../up.ts": "x"}}, "source_path_invalid"),
+        ({**TS, "files": {"score.ts": TS_SOURCE, "/abs.ts": "x"}}, "source_path_invalid"),
+        ({**TS, "files": {"score.ts": TS_SOURCE, "2nd.ts": "x"}}, "source_path_invalid"),
+        ({**TS, "files": {"score.ts": TS_SOURCE, "café.ts": "x"}}, "source_path_invalid"),
+        ({**TS, "files": {"score.ts": TS_SOURCE, "a/" * 127 + "b.ts": "x"}}, "source_path"),
     ],
 )
 def test_create_refuses_locally_what_the_server_would_refuse(overrides, field) -> None:
