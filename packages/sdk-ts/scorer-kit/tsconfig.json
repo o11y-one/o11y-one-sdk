@@ -1,0 +1,13 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  // Node strips these files' types as the sandbox loads them: erasable syntax only, and imports name their .ts file.
+  "compilerOptions": {
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true,
+    "types": [],
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
+  },
+  "include": ["*.ts"]
+}
