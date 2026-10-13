@@ -212,6 +212,16 @@ rewards = {reward.name: reward.value for reward in closed.rewards}
   better than an honest wrong answer. Only our failures (`INFRASTRUCTURE`)
   carry no reward and are never billed; reset again.
 
+### Trainer adapters
+
+`o11y_one.sdk.loop.<framework>` wires a trainer's own extension point to a run,
+behind that framework's extra:
+
+- **TRL**: `pip install 'o11y-one[trl]'`, then `GRPOTrainer(...,
+  environment_factory=LoopEnvironment, reward_funcs=[loop_reward],
+  callbacks=[LoopCallback()])`. See
+  [docs/loop/trl.md](https://github.com/o11y-one/o11y-one-sdk/blob/main/docs/loop/trl.md).
+
 ### OpenEnv
 
 `LoopEnvClient` is OpenEnv v0.8.0's own `GenericEnvClient`, sending the key on
