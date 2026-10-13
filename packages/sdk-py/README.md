@@ -166,6 +166,70 @@ TypeScript entry other than `score.ts`, raises `ValidationError` before the
 wire, and so does a language the capabilities serve no runtime for
 (`code_language_unsupported`).
 
+## Loop rollouts
+
+A person mints a Loop run in the web and hands the trainer two values: the run's
+id, `O11Y_RUN` (`trn_…`, not a secret), and an organization machine key with the
+`rollout:drive` scope, `O11Y_API_KEY`. `LoopClient` reads both from the
+environment when they aren't passed, and never logs or shows the key.
+
+```python
+from o11y_one.agentic.v1.rollout_pb2 import LoopToolCallV1, LoopToolExecV1
+from o11y_one.sdk.loop import LoopClient, RolloutRefused
+
+loop = LoopClient()  # run=O11Y_RUN, credential=O11Y_API_KEY
+try:
+    rollout = loop.reset(trainer_step=1, trainer_total_steps=300)
+except RolloutRefused as refused:
+    raise SystemExit(f"Loop refused the reset: {refused.code}") from refused
+step = loop.step(
+    [LoopToolCallV1(timeout_millis=60_000, exec=LoopToolExecV1(argv=["pytest", "-q"]))],
+    model_message='{"role": "assistant", "content": "run the tests"}',
+)
+print(step.results[0].exit_code, step.results[0].stdout.decode())
+closed = loop.close()  # waits for the verifier's rewards
+rewards = {reward.name: reward.value for reward in closed.rewards}
+```
+
+- **One open rollout per client.** `reset()` closes the open one first, as an
+  OpenEnv environment's reset abandons its episode, so a pooled trainer
+  instance that never calls `close()` leaves nothing open. Run a GRPO group as
+  one client per rollout, each reset with the same `group_id` (a UUID you pick),
+  its own `group_index` and the `group_size`.
+- **`fork(n)`** branches the open rollout into `n` copies of its current state
+  and answers a client per copy, this one first.
+- **Refusals** raise `RolloutRefused` with the server's stable `code` and, when
+  it named one, `retry_after_ms`. `run_paused` is retried after each
+  `retry_after_ms` for up to 30 minutes, then raised; every other code, such as
+  `plan_concurrency_reached`, raises at once. A revoked or unknown key is the
+  server's own `ConnectError`, which `classify()` reads as `REAUTHENTICATE`.
+- **Keep error rows with their value.** A rollout that failed on its task or its
+  verifier (`closed.failure.failure_class` `TASK` or `VERIFIER`) still has
+  `rewards`: each reward's declared minimum, or the environment's failure
+  reward. Train on those rows as they are. Dropping them makes a crash score
+  better than an honest wrong answer. Only our failures (`INFRASTRUCTURE`)
+  carry no reward and are never billed; reset again.
+
+### OpenEnv
+
+`LoopEnvClient` is OpenEnv v0.8.0's own `GenericEnvClient`, sending the key on
+its WebSocket upgrade; a stock OpenEnv client sends none, so Loop refuses it.
+It needs the `openenv` extra:
+
+```sh
+uv add 'o11y-one[openenv]'   # or: pip install 'o11y-one[openenv]'
+```
+
+```python
+from o11y_one.sdk.loop import LoopEnvClient
+
+with LoopEnvClient("https://api.o11y.one/loop/v1/openenv").sync() as env:
+    env.reset()
+    env.step({"type": "call_tool", "tool_name": "exec", "arguments": {"argv": ["pytest", "-q"]}})
+    result = env.step({"submit": {}})  # done, with the primary reward
+print(result.reward, result.metadata["rewards"])
+```
+
 ## The distinction this package exists to preserve
 
 `UNAUTHENTICATED` and `PERMISSION_DENIED` are different problems:
