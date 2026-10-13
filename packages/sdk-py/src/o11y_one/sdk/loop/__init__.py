@@ -81,10 +81,12 @@ class LoopClient:
     """One run's rollouts, one open at a time.
 
     ``run`` and ``credential`` default to ``O11Y_RUN`` and ``O11Y_API_KEY``.
-    The key is sent as ``x-o11y-key`` and is never logged or shown.
+    The key is sent as ``x-o11y-key`` and is never logged or shown. A trainer
+    adapter names itself and its framework's version, which every reset
+    reports.
     """
 
-    __slots__ = ("_open", "_run", "_service")
+    __slots__ = ("_identity", "_open", "_run", "_service")
 
     def __init__(
         self,
@@ -92,6 +94,9 @@ class LoopClient:
         run: str | None = None,
         credential: str | None = None,
         base_url: str = DEFAULT_BASE_URL,
+        adapter: str = "",
+        adapter_version: str = "",
+        framework_version: str = "",
     ) -> None:
         run = run or os.environ.get("O11Y_RUN")
         if not run:
@@ -101,6 +106,13 @@ class LoopClient:
         self._service = o11y.service_sync(LoopRolloutServiceClientSync)
         self._run = run
         self._open: str | None = None
+        self._identity = LoopClientV1(
+            sdk_version=_SDK_VERSION,
+            session_id=_SESSION_ID,
+            adapter=adapter,
+            adapter_version=adapter_version,
+            framework_version=framework_version,
+        )
 
     @property
     def rollout_id(self) -> str | None:
@@ -123,7 +135,7 @@ class LoopClient:
         request = ResetLoopRolloutRequest(
             run_id=self._run,
             request_id=str(uuid.uuid4()),
-            client=LoopClientV1(sdk_version=_SDK_VERSION, session_id=_SESSION_ID),
+            client=self._identity,
             **fields,
         )
         deadline = time.monotonic() + RUN_PAUSED_RETRY_S
