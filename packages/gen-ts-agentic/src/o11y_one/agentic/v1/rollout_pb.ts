@@ -2,8 +2,8 @@
 // @generated from file o11y_one/agentic/v1/rollout.proto (package o11y_one.agentic.v1, syntax proto3)
 /* eslint-disable */
 
-// Loop runs and rollouts (#722), the API a trainer drives Loop environments
-// through.
+// Loop P3.5 (#722): runs and rollouts, the API a trainer drives Loop
+// environments through.
 //
 // A person mints a run when they connect a trainer. It pins one published
 // environment version and, optionally, one task dataset version, and holds the
@@ -18,8 +18,8 @@
 // carries LoopRolloutRejectionV1 and a stable code. Failures on our side are
 // never billed.
 //
-// Same package as evaluation.proto, in its own FILE as environment.proto is. A
-// later change adds fields; it never renames one.
+// Same package as evaluation.proto (lock ruling L1-4), in its own FILE as
+// environment.proto is. A later change adds fields; it never renames one.
 
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
@@ -880,9 +880,7 @@ export type LoopRolloutV1 = Message<"o11y_one.agentic.v1.LoopRolloutV1"> & {
   /**
    * Set when REWARDED, and on a task's or a verifier's failure, as the
    * environment declares: a reward with a minimum is that minimum, one
-   * without is the failure reward. In the order the environment version
-   * declares them, so the primary reward is first; any it does not declare
-   * follow, by name.
+   * without is the failure reward.
    *
    * @generated from field: repeated o11y_one.agentic.v1.LoopRewardV1 rewards = 9;
    */
@@ -2944,7 +2942,7 @@ export enum LoopRewardDeterminismV1 {
   UNSPECIFIED = 0,
 
   /**
-   * Offline, every input pinned: the only class today.
+   * Offline, every input pinned: the only class in P3.
    *
    * @generated from enum value: LOOP_REWARD_DETERMINISM_V1_OFFLINE_PINNED = 1;
    */

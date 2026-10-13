@@ -2,19 +2,43 @@
 //
 // Source: o11y_one/agentic/v1/trace_view.proto
 
-// Trace viewer read models.
+// Agentic Reliability V2 trace-viewer read models — wave 32 (lane D).
 //
-// Same package as evaluation.proto, artifact.proto and agent_run.proto, in its
-// own FILE so its surface stays apart. It reuses evaluation.proto's typed
-// absence (`MetricAvailabilityV1`) and verbatim provider-usage record
-// (`ProviderUsageRecordV1`) rather than defining them again.
+// Same package as agentic.proto, evaluation.proto and artifact.proto by design
+// (lock ruling L1-4): prost emits one Rust module per package, so
+// `proto::agentic::*` stays one flat namespace and `proto/src/lib.rs` needs no
+// change. A separate FILE keeps `buf breaking` (FILE mode, `proto/buf.yaml`)
+// from letting this surface destabilise either neighbour's breaking surface —
+// which matters more than usual here, because a second lane is appending to
+// evaluation.proto in the same tree.
 //
-// Five levels: (1) a step-level summary, (2) operation groups per step, (3) raw
-// spans paged on demand, (4) per-span verbatim usage, with the same contract as
-// evaluation usage, and (5) a SERVER-computed critical path and needs-attention
-// set, so "Highlight errors" is a filter rather than a client scan. All five are
-// folded into two RPCs, so one screen costs two bounded span scans rather than
-// five.
+// WHY THIS FILE RATHER THAN agentic.proto
+//
+//	The trace viewer must speak two things it does not own: typed absence
+//	(`MetricAvailabilityV1`) and the verbatim provider-usage record
+//	(`ProviderUsageRecordV1`). Both are defined in evaluation.proto, and
+//	evaluation.proto already imports agentic.proto — so defining these messages
+//	in agentic.proto would need the reverse import and a package cycle. This
+//	file imports evaluation.proto, exactly as artifact.proto does, and reuses
+//	those value objects rather than twinning them (rule R5).
+//
+// WHY THIS SERVICE RATHER THAN AgenticEvaluationService
+//
+//	There is no span table in Postgres. Span rows live in `otel_traces` Parquet
+//	segments plus a realtime tier, reachable only through
+//	`UnifiedTelemetryQueryEngine` — which `AgenticEvaluationGrpcService` does
+//	not hold. A read model over spans is a query-engine read model or it is
+//	nothing, so the service that serves it is the one that holds the engine.
+//
+// THE CONTRACT THIS FILE IMPLEMENTS
+//
+//	Design handoff `backend-handoff-post-design-run.pdf` p.3, "Trace viewer
+//	(12 · P4B — THE LARGEST CONTRACT)", five levels: (1) a step-level summary,
+//	(2) operation groups per step, (3) raw spans paged on demand, (4) per-span
+//	verbatim usage reusing the eval side's contract, (5) a SERVER-computed
+//	critical path and needs-attention set so "Highlight errors" is a filter
+//	rather than a client scan. All five land here, folded into two RPCs so that
+//	one screen costs two bounded span scans rather than five.
 package agenticv1connect
 
 import (
@@ -86,31 +110,48 @@ const (
 type AgenticTraceViewServiceClient interface {
 	GetAgentTraceDetail(context.Context, *connect.Request[v1.GetAgentTraceDetailRequest]) (*connect.Response[v1.GetAgentTraceDetailResponse], error)
 	ListAgentTraceSpans(context.Context, *connect.Request[v1.ListAgentTraceSpansRequest]) (*connect.Response[v1.ListAgentTraceSpansResponse], error)
-	// The audited promotion of a provisional grouping. Addressed with a
-	// `_MERGED_AWAY` id it resolves to the canonical run and returns the redirect,
-	// never a `NOT_FOUND`.
 	ConfirmAgentRunGrouping(context.Context, *connect.Request[v1.ConfirmAgentRunGroupingRequest]) (*connect.Response[v1.ConfirmAgentRunGroupingResponse], error)
-	// The Production > Agent runs list and the run header, both served from a
-	// maintained index: neither scans spans.
+	// ---- wave 41 lane B: summary index ----
+	//
+	// The Production > Agent runs list and the run header (`PLAN:491`).
+	//
+	// Both are served from the MAINTAINED projection (`P7-14`, `PLAN:1687`) and
+	// neither touches the query engine: the index pass on the preparation worker
+	// does the scanning, and `agent_trace_span_scans_issued()` not moving across
+	// these two calls is how that is proved rather than asserted.
 	ListAgentRuns(context.Context, *connect.Request[v1.ListAgentRunsRequest]) (*connect.Response[v1.ListAgentRunsResponse], error)
-	// The traces list, in two reads. It sits beside
+	// W-V1-1 (D2). The `/traces` list, in two reads. It sits beside
 	// `ListAgentRuns` because the two are the same screen at two altitudes —
 	// every trace, and the runs those traces group into.
 	ListAgentTraces(context.Context, *connect.Request[v1.ListAgentTracesRequest]) (*connect.Response[v1.ListAgentTracesResponse], error)
-	// The trace sheet's and the agent-run screen's evidence graph.
+	// W-V1-1 (D3). The trace sheet's and the agent-run screen's evidence graph,
+	// built by the SAME builders the v1 verb now calls: the two arms moved here
+	// rather than being copied, so the two services cannot answer differently
+	// for the same scope while both exist.
 	GetAgentEvidenceGraph(context.Context, *connect.Request[v1.GetAgentEvidenceGraphRequest]) (*connect.Response[v1.GetAgentEvidenceGraphResponse], error)
 	GetAgentRun(context.Context, *connect.Request[v1.GetAgentRunRequest]) (*connect.Response[v1.GetAgentRunResponse], error)
-	// The conversation timeline, and the three external-artifact verbs beside it:
-	// the timeline is where an artifact link is READ.
+	// ---- wave 41 lane C: timeline ----
+	//
+	// The conversation timeline (`PLAN:492`) and the three external-artifact verbs
+	// (`PLAN:495`-`:498`).
+	//
+	// They live on this service for the reason the file header already gives: span
+	// rows are reachable only through `UnifiedTelemetryQueryEngine`, and a read
+	// model over spans is a query-engine read model or it is nothing. The three
+	// verbs join them because the timeline is where an artifact link is READ, and
+	// splitting the write of a link from the read of it across two services would
+	// make "the RPC fallback produces the identical typed read model"
+	// (exit `:1733`) a claim about two codebases instead of one.
 	ListAgentRunEvents(context.Context, *connect.Request[v1.ListAgentRunEventsRequest]) (*connect.Response[v1.ListAgentRunEventsResponse], error)
-	// For unavailable instrumentation, backfill, correction or revocation ONLY,
-	// never the normal instrumentation path. `MUTATION_ACK` class, authorized
-	// principal, one audit row per call, rate-limited as a write surface. Request
-	// and response are defined in `artifact.proto`.
+	// `AL-9`/`AL-10`: for unavailable instrumentation, backfill, correction or
+	// revocation ONLY — never the normal instrumentation path. `MUTATION_ACK`
+	// class, authorized principal, one audit row per call, rate-limited as a write
+	// surface. Request and response are `artifact.proto`'s, which minted them and
+	// left the surface to "the increment that wires it".
 	LinkExternalArtifact(context.Context, *connect.Request[v1.LinkExternalArtifactRequest]) (*connect.Response[v1.LinkExternalArtifactResponse], error)
 	RevokeExternalArtifactLink(context.Context, *connect.Request[v1.RevokeExternalArtifactLinkRequest]) (*connect.Response[v1.RevokeExternalArtifactLinkResponse], error)
-	// One authorized, explicitly selected artifact. There is no batch resolve,
-	// because a batch resolve is a fan-out with a nicer name.
+	// `AL-14`: one authorized, explicitly selected artifact. There is no batch
+	// resolve, because a batch resolve is a fan-out with a nicer name.
 	ResolveExternalArtifactLink(context.Context, *connect.Request[v1.ResolveExternalArtifactLinkRequest]) (*connect.Response[v1.ResolveExternalArtifactLinkResponse], error)
 }
 
@@ -273,31 +314,48 @@ func (c *agenticTraceViewServiceClient) ResolveExternalArtifactLink(ctx context.
 type AgenticTraceViewServiceHandler interface {
 	GetAgentTraceDetail(context.Context, *connect.Request[v1.GetAgentTraceDetailRequest]) (*connect.Response[v1.GetAgentTraceDetailResponse], error)
 	ListAgentTraceSpans(context.Context, *connect.Request[v1.ListAgentTraceSpansRequest]) (*connect.Response[v1.ListAgentTraceSpansResponse], error)
-	// The audited promotion of a provisional grouping. Addressed with a
-	// `_MERGED_AWAY` id it resolves to the canonical run and returns the redirect,
-	// never a `NOT_FOUND`.
 	ConfirmAgentRunGrouping(context.Context, *connect.Request[v1.ConfirmAgentRunGroupingRequest]) (*connect.Response[v1.ConfirmAgentRunGroupingResponse], error)
-	// The Production > Agent runs list and the run header, both served from a
-	// maintained index: neither scans spans.
+	// ---- wave 41 lane B: summary index ----
+	//
+	// The Production > Agent runs list and the run header (`PLAN:491`).
+	//
+	// Both are served from the MAINTAINED projection (`P7-14`, `PLAN:1687`) and
+	// neither touches the query engine: the index pass on the preparation worker
+	// does the scanning, and `agent_trace_span_scans_issued()` not moving across
+	// these two calls is how that is proved rather than asserted.
 	ListAgentRuns(context.Context, *connect.Request[v1.ListAgentRunsRequest]) (*connect.Response[v1.ListAgentRunsResponse], error)
-	// The traces list, in two reads. It sits beside
+	// W-V1-1 (D2). The `/traces` list, in two reads. It sits beside
 	// `ListAgentRuns` because the two are the same screen at two altitudes —
 	// every trace, and the runs those traces group into.
 	ListAgentTraces(context.Context, *connect.Request[v1.ListAgentTracesRequest]) (*connect.Response[v1.ListAgentTracesResponse], error)
-	// The trace sheet's and the agent-run screen's evidence graph.
+	// W-V1-1 (D3). The trace sheet's and the agent-run screen's evidence graph,
+	// built by the SAME builders the v1 verb now calls: the two arms moved here
+	// rather than being copied, so the two services cannot answer differently
+	// for the same scope while both exist.
 	GetAgentEvidenceGraph(context.Context, *connect.Request[v1.GetAgentEvidenceGraphRequest]) (*connect.Response[v1.GetAgentEvidenceGraphResponse], error)
 	GetAgentRun(context.Context, *connect.Request[v1.GetAgentRunRequest]) (*connect.Response[v1.GetAgentRunResponse], error)
-	// The conversation timeline, and the three external-artifact verbs beside it:
-	// the timeline is where an artifact link is READ.
+	// ---- wave 41 lane C: timeline ----
+	//
+	// The conversation timeline (`PLAN:492`) and the three external-artifact verbs
+	// (`PLAN:495`-`:498`).
+	//
+	// They live on this service for the reason the file header already gives: span
+	// rows are reachable only through `UnifiedTelemetryQueryEngine`, and a read
+	// model over spans is a query-engine read model or it is nothing. The three
+	// verbs join them because the timeline is where an artifact link is READ, and
+	// splitting the write of a link from the read of it across two services would
+	// make "the RPC fallback produces the identical typed read model"
+	// (exit `:1733`) a claim about two codebases instead of one.
 	ListAgentRunEvents(context.Context, *connect.Request[v1.ListAgentRunEventsRequest]) (*connect.Response[v1.ListAgentRunEventsResponse], error)
-	// For unavailable instrumentation, backfill, correction or revocation ONLY,
-	// never the normal instrumentation path. `MUTATION_ACK` class, authorized
-	// principal, one audit row per call, rate-limited as a write surface. Request
-	// and response are defined in `artifact.proto`.
+	// `AL-9`/`AL-10`: for unavailable instrumentation, backfill, correction or
+	// revocation ONLY — never the normal instrumentation path. `MUTATION_ACK`
+	// class, authorized principal, one audit row per call, rate-limited as a write
+	// surface. Request and response are `artifact.proto`'s, which minted them and
+	// left the surface to "the increment that wires it".
 	LinkExternalArtifact(context.Context, *connect.Request[v1.LinkExternalArtifactRequest]) (*connect.Response[v1.LinkExternalArtifactResponse], error)
 	RevokeExternalArtifactLink(context.Context, *connect.Request[v1.RevokeExternalArtifactLinkRequest]) (*connect.Response[v1.RevokeExternalArtifactLinkResponse], error)
-	// One authorized, explicitly selected artifact. There is no batch resolve,
-	// because a batch resolve is a fan-out with a nicer name.
+	// `AL-14`: one authorized, explicitly selected artifact. There is no batch
+	// resolve, because a batch resolve is a fan-out with a nicer name.
 	ResolveExternalArtifactLink(context.Context, *connect.Request[v1.ResolveExternalArtifactLinkRequest]) (*connect.Response[v1.ResolveExternalArtifactLinkResponse], error)
 }
 

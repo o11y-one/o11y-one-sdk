@@ -4,14 +4,15 @@
 // 	protoc        (unknown)
 // source: o11y_one/agentic/v1/environment.proto
 
-// Loop environments (#718): the images RL episodes run in. A version is an
-// image, a verifier, a size and setup steps, all given when it is created;
+// Loop P3.1 (#718): environments, the images RL episodes run in. A version is
+// an image, a verifier, a size and setup steps, all given when it is created;
 // none of them ever changes, so a change is a new version. The task
-// instruction is not part of a version: a task dataset's rows carry it.
+// instruction is not part of a version: P3.9's dataset rows carry it.
 //
-// Same package as evaluation.proto, in its own FILE so its surface stays apart
-// (artifact.proto). Every name carries "Loop" because "environment" already
-// means a deploy target.
+// Same package as evaluation.proto (lock ruling L1-4), in its own FILE so its
+// surface stays apart (artifact.proto). The signed, internal form is
+// sandbox/v1/environment.proto and the server converts. Every name carries
+// "Loop" because "environment" already means a deploy target.
 
 package agenticv1
 
@@ -91,7 +92,7 @@ type LoopEnvironmentNetworkModeV1 int32
 
 const (
 	LoopEnvironmentNetworkModeV1_LOOP_ENVIRONMENT_NETWORK_MODE_V1_UNSPECIFIED LoopEnvironmentNetworkModeV1 = 0
-	// The only mode today.
+	// The only mode in P3.
 	LoopEnvironmentNetworkModeV1_LOOP_ENVIRONMENT_NETWORK_MODE_V1_OFFLINE LoopEnvironmentNetworkModeV1 = 1
 )
 
@@ -436,10 +437,10 @@ func (x *LoopOciImageSourceV1) GetCredential() *LoopRegistryCredentialV1 {
 }
 
 // A Dockerfile, built by BuildKit in a single-use builder VM over a context
-// uploaded with CreateLoopEnvironmentUpload (#718). Every base image is pinned
-// by its digest, e.g. `FROM python:3.12-slim@sha256:…`, or the build fails with
-// `base_image_not_pinned`; a `# syntax=` line is ignored. The build has
-// internet access; the environment it makes never does.
+// uploaded with CreateLoopEnvironmentUpload (#718 PR-7). Every base image is
+// pinned by its digest, e.g. `FROM python:3.12-slim@sha256:…`, or the build
+// fails with `base_image_not_pinned`; a `# syntax=` line is ignored. The build
+// has internet access; the environment it makes never does.
 type LoopDockerfileSourceV1 struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// SHA-256 of the uploaded context, 32 bytes.
@@ -768,7 +769,7 @@ type LoopEnvironmentVerifierV1 struct {
 	// the new version seals again, so its files are not sent twice (#988);
 	// `verifier_bundle_not_found` when none did. Ignored with `files`.
 	BundleSha256 []byte `protobuf:"bytes,3,opt,name=bundle_sha256,json=bundleSha256,proto3" json:"bundle_sha256,omitempty"`
-	// ---- the reward contract (#721) ----
+	// ---- wave p3.4 v1: the reward contract (#721) ----
 	// Required: the only paths of the episode's final disk the verifier sees,
 	// 1 to 64, each absolute, never `/` and with no empty, `.` or `..`
 	// component. A version without one is refused.
@@ -788,7 +789,7 @@ type LoopEnvironmentVerifierV1 struct {
 	// Absent means 0. The error value of a reward that declares no minimum:
 	// when the episode or the verifier fails, each declared reward is its `min`,
 	// or this. Finite, and inside every declared range.
-	FailureReward float64 `protobuf:"fixed64,10,opt,name=failure_reward,json=failureReward,proto3" json:"failure_reward,omitempty"` // ---- end of the reward contract ----
+	FailureReward float64 `protobuf:"fixed64,10,opt,name=failure_reward,json=failureReward,proto3" json:"failure_reward,omitempty"` // ---- end wave p3.4 v1 ----
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1053,15 +1054,15 @@ type LoopEnvironmentVersionV1 struct {
 	High            uint32                 `protobuf:"varint,10,opt,name=high,proto3" json:"high,omitempty"`
 	CreatedAt       *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	FinishedAt      *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
-	// Set when the version is withdrawn: no new rollout starts on it.
+	// Set when the version is withdrawn from every host.
 	RevokedAt *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=revoked_at,json=revokedAt,proto3" json:"revoked_at,omitempty"`
 	// Imported report-only: a fixable Critical did not block its publication.
 	ScanReportOnly bool `protobuf:"varint,14,opt,name=scan_report_only,json=scanReportOnly,proto3" json:"scan_report_only,omitempty"`
 	// Set with `reason_code`, from it.
 	FailureCause LoopEnvironmentFailureCauseV1 `protobuf:"varint,15,opt,name=failure_cause,json=failureCause,proto3,enum=o11y_one.agentic.v1.LoopEnvironmentFailureCauseV1" json:"failure_cause,omitempty"`
-	// The organization's Loop storage is full (the trial's cap), so this
-	// version's base snapshot is not stored: nothing is billed for it, and its
-	// rollouts may start more slowly or wait for capacity.
+	// Its base is kept on the one host that built it: the snapshot store
+	// refused it at the organization's Loop storage cap (the trial's). Nothing
+	// is billed for it, and its rollouts run on that host alone.
 	StorageFull   bool `protobuf:"varint,17,opt,name=storage_full,json=storageFull,proto3" json:"storage_full,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1991,113 +1992,6 @@ func (x *CreateLoopEnvironmentUploadResponse) GetAlreadyUploaded() bool {
 	return false
 }
 
-type GetLoopEnvironmentBuildLogRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	EnvironmentId string                 `protobuf:"bytes,1,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
-	Version       uint32                 `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetLoopEnvironmentBuildLogRequest) Reset() {
-	*x = GetLoopEnvironmentBuildLogRequest{}
-	mi := &file_o11y_one_agentic_v1_environment_proto_msgTypes[25]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetLoopEnvironmentBuildLogRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetLoopEnvironmentBuildLogRequest) ProtoMessage() {}
-
-func (x *GetLoopEnvironmentBuildLogRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_environment_proto_msgTypes[25]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetLoopEnvironmentBuildLogRequest.ProtoReflect.Descriptor instead.
-func (*GetLoopEnvironmentBuildLogRequest) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_environment_proto_rawDescGZIP(), []int{25}
-}
-
-func (x *GetLoopEnvironmentBuildLogRequest) GetEnvironmentId() string {
-	if x != nil {
-		return x.EnvironmentId
-	}
-	return ""
-}
-
-func (x *GetLoopEnvironmentBuildLogRequest) GetVersion() uint32 {
-	if x != nil {
-		return x.Version
-	}
-	return 0
-}
-
-type GetLoopEnvironmentBuildLogResponse struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// BuildKit's progress and the build's own output, at most its last 1 MiB:
-	// the tenant's bytes, to show as text, never as markup.
-	Log []byte `protobuf:"bytes,1,opt,name=log,proto3" json:"log,omitempty"`
-	// The build printed more than the 1 MiB kept, so its start is missing.
-	Truncated     bool `protobuf:"varint,2,opt,name=truncated,proto3" json:"truncated,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetLoopEnvironmentBuildLogResponse) Reset() {
-	*x = GetLoopEnvironmentBuildLogResponse{}
-	mi := &file_o11y_one_agentic_v1_environment_proto_msgTypes[26]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetLoopEnvironmentBuildLogResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetLoopEnvironmentBuildLogResponse) ProtoMessage() {}
-
-func (x *GetLoopEnvironmentBuildLogResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_environment_proto_msgTypes[26]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetLoopEnvironmentBuildLogResponse.ProtoReflect.Descriptor instead.
-func (*GetLoopEnvironmentBuildLogResponse) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_environment_proto_rawDescGZIP(), []int{26}
-}
-
-func (x *GetLoopEnvironmentBuildLogResponse) GetLog() []byte {
-	if x != nil {
-		return x.Log
-	}
-	return nil
-}
-
-func (x *GetLoopEnvironmentBuildLogResponse) GetTruncated() bool {
-	if x != nil {
-		return x.Truncated
-	}
-	return false
-}
-
 // The detail every LoopEnvironmentService refusal carries.
 type LoopEnvironmentRejectionV1 struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -2118,7 +2012,7 @@ type LoopEnvironmentRejectionV1 struct {
 
 func (x *LoopEnvironmentRejectionV1) Reset() {
 	*x = LoopEnvironmentRejectionV1{}
-	mi := &file_o11y_one_agentic_v1_environment_proto_msgTypes[27]
+	mi := &file_o11y_one_agentic_v1_environment_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2130,7 +2024,7 @@ func (x *LoopEnvironmentRejectionV1) String() string {
 func (*LoopEnvironmentRejectionV1) ProtoMessage() {}
 
 func (x *LoopEnvironmentRejectionV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_environment_proto_msgTypes[27]
+	mi := &file_o11y_one_agentic_v1_environment_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2143,7 +2037,7 @@ func (x *LoopEnvironmentRejectionV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoopEnvironmentRejectionV1.ProtoReflect.Descriptor instead.
 func (*LoopEnvironmentRejectionV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_environment_proto_rawDescGZIP(), []int{27}
+	return file_o11y_one_agentic_v1_environment_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *LoopEnvironmentRejectionV1) GetReasonCode() string {
@@ -2305,13 +2199,7 @@ const file_o11y_one_agentic_v1_environment_proto_rawDesc = "" +
 	"upload_url\x18\x01 \x01(\tR\tuploadUrl\x129\n" +
 	"\n" +
 	"expires_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12)\n" +
-	"\x10already_uploaded\x18\x03 \x01(\bR\x0falreadyUploaded\"d\n" +
-	"!GetLoopEnvironmentBuildLogRequest\x12%\n" +
-	"\x0eenvironment_id\x18\x01 \x01(\tR\renvironmentId\x12\x18\n" +
-	"\aversion\x18\x02 \x01(\rR\aversion\"T\n" +
-	"\"GetLoopEnvironmentBuildLogResponse\x12\x10\n" +
-	"\x03log\x18\x01 \x01(\fR\x03log\x12\x1c\n" +
-	"\ttruncated\x18\x02 \x01(\bR\ttruncated\"b\n" +
+	"\x10already_uploaded\x18\x03 \x01(\bR\x0falreadyUploaded\"b\n" +
 	"\x1aLoopEnvironmentRejectionV1\x12\x1f\n" +
 	"\vreason_code\x18\x01 \x01(\tR\n" +
 	"reasonCode\x12\x19\n" +
@@ -2334,15 +2222,14 @@ const file_o11y_one_agentic_v1_environment_proto_rawDesc = "" +
 	"\x1dLoopEnvironmentFailureCauseV1\x121\n" +
 	"-LOOP_ENVIRONMENT_FAILURE_CAUSE_V1_UNSPECIFIED\x10\x00\x12*\n" +
 	"&LOOP_ENVIRONMENT_FAILURE_CAUSE_V1_TASK\x10\x01\x124\n" +
-	"0LOOP_ENVIRONMENT_FAILURE_CAUSE_V1_INFRASTRUCTURE\x10\x022\xee\a\n" +
+	"0LOOP_ENVIRONMENT_FAILURE_CAUSE_V1_INFRASTRUCTURE\x10\x022\xde\x06\n" +
 	"\x16LoopEnvironmentService\x12~\n" +
 	"\x15CreateLoopEnvironment\x121.o11y_one.agentic.v1.CreateLoopEnvironmentRequest\x1a2.o11y_one.agentic.v1.CreateLoopEnvironmentResponse\x12\x93\x01\n" +
 	"\x1cCreateLoopEnvironmentVersion\x128.o11y_one.agentic.v1.CreateLoopEnvironmentVersionRequest\x1a9.o11y_one.agentic.v1.CreateLoopEnvironmentVersionResponse\x12\x8a\x01\n" +
 	"\x19GetLoopEnvironmentVersion\x125.o11y_one.agentic.v1.GetLoopEnvironmentVersionRequest\x1a6.o11y_one.agentic.v1.GetLoopEnvironmentVersionResponse\x12\x90\x01\n" +
 	"\x1bListLoopEnvironmentVersions\x127.o11y_one.agentic.v1.ListLoopEnvironmentVersionsRequest\x1a8.o11y_one.agentic.v1.ListLoopEnvironmentVersionsResponse\x12{\n" +
 	"\x14ListLoopEnvironments\x120.o11y_one.agentic.v1.ListLoopEnvironmentsRequest\x1a1.o11y_one.agentic.v1.ListLoopEnvironmentsResponse\x12\x90\x01\n" +
-	"\x1bCreateLoopEnvironmentUpload\x127.o11y_one.agentic.v1.CreateLoopEnvironmentUploadRequest\x1a8.o11y_one.agentic.v1.CreateLoopEnvironmentUploadResponse\x12\x8d\x01\n" +
-	"\x1aGetLoopEnvironmentBuildLog\x126.o11y_one.agentic.v1.GetLoopEnvironmentBuildLogRequest\x1a7.o11y_one.agentic.v1.GetLoopEnvironmentBuildLogResponseB\xdc\x01\n" +
+	"\x1bCreateLoopEnvironmentUpload\x127.o11y_one.agentic.v1.CreateLoopEnvironmentUploadRequest\x1a8.o11y_one.agentic.v1.CreateLoopEnvironmentUploadResponseB\xdc\x01\n" +
 	"\x17com.o11y_one.agentic.v1B\x10EnvironmentProtoP\x01ZEgithub.com/o11y-one/o11y-one-sdk/gen/go/o11y_one/agentic/v1;agenticv1\xa2\x02\x03OAX\xaa\x02\x12O11yOne.Agentic.V1\xca\x02\x12O11yOne\\Agentic\\V1\xe2\x02\x1eO11yOne\\Agentic\\V1\\GPBMetadata\xea\x02\x14O11yOne::Agentic::V1b\x06proto3"
 
 var (
@@ -2358,7 +2245,7 @@ func file_o11y_one_agentic_v1_environment_proto_rawDescGZIP() []byte {
 }
 
 var file_o11y_one_agentic_v1_environment_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_o11y_one_agentic_v1_environment_proto_msgTypes = make([]protoimpl.MessageInfo, 28)
+var file_o11y_one_agentic_v1_environment_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
 var file_o11y_one_agentic_v1_environment_proto_goTypes = []any{
 	(LoopEnvironmentProfileV1)(0),                // 0: o11y_one.agentic.v1.LoopEnvironmentProfileV1
 	(LoopEnvironmentNetworkModeV1)(0),            // 1: o11y_one.agentic.v1.LoopEnvironmentNetworkModeV1
@@ -2389,15 +2276,13 @@ var file_o11y_one_agentic_v1_environment_proto_goTypes = []any{
 	(*ListLoopEnvironmentsResponse)(nil),         // 26: o11y_one.agentic.v1.ListLoopEnvironmentsResponse
 	(*CreateLoopEnvironmentUploadRequest)(nil),   // 27: o11y_one.agentic.v1.CreateLoopEnvironmentUploadRequest
 	(*CreateLoopEnvironmentUploadResponse)(nil),  // 28: o11y_one.agentic.v1.CreateLoopEnvironmentUploadResponse
-	(*GetLoopEnvironmentBuildLogRequest)(nil),    // 29: o11y_one.agentic.v1.GetLoopEnvironmentBuildLogRequest
-	(*GetLoopEnvironmentBuildLogResponse)(nil),   // 30: o11y_one.agentic.v1.GetLoopEnvironmentBuildLogResponse
-	(*LoopEnvironmentRejectionV1)(nil),           // 31: o11y_one.agentic.v1.LoopEnvironmentRejectionV1
-	(*timestamppb.Timestamp)(nil),                // 32: google.protobuf.Timestamp
-	(*v1.PageRequestV1)(nil),                     // 33: o11y_one.common.v1.PageRequestV1
-	(*v1.PageResponseV1)(nil),                    // 34: o11y_one.common.v1.PageResponseV1
+	(*LoopEnvironmentRejectionV1)(nil),           // 29: o11y_one.agentic.v1.LoopEnvironmentRejectionV1
+	(*timestamppb.Timestamp)(nil),                // 30: google.protobuf.Timestamp
+	(*v1.PageRequestV1)(nil),                     // 31: o11y_one.common.v1.PageRequestV1
+	(*v1.PageResponseV1)(nil),                    // 32: o11y_one.common.v1.PageResponseV1
 }
 var file_o11y_one_agentic_v1_environment_proto_depIdxs = []int32{
-	32, // 0: o11y_one.agentic.v1.LoopEnvironmentV1.created_at:type_name -> google.protobuf.Timestamp
+	30, // 0: o11y_one.agentic.v1.LoopEnvironmentV1.created_at:type_name -> google.protobuf.Timestamp
 	5,  // 1: o11y_one.agentic.v1.LoopOciImageSourceV1.credential:type_name -> o11y_one.agentic.v1.LoopRegistryCredentialV1
 	8,  // 2: o11y_one.agentic.v1.LoopDockerfileSourceV1.build_args:type_name -> o11y_one.agentic.v1.LoopBuildArgV1
 	5,  // 3: o11y_one.agentic.v1.LoopDockerfileSourceV1.credential:type_name -> o11y_one.agentic.v1.LoopRegistryCredentialV1
@@ -2413,9 +2298,9 @@ var file_o11y_one_agentic_v1_environment_proto_depIdxs = []int32{
 	7,  // 13: o11y_one.agentic.v1.LoopEnvironmentVersionV1.dockerfile:type_name -> o11y_one.agentic.v1.LoopDockerfileSourceV1
 	14, // 14: o11y_one.agentic.v1.LoopEnvironmentVersionV1.spec:type_name -> o11y_one.agentic.v1.LoopEnvironmentSpecV1
 	2,  // 15: o11y_one.agentic.v1.LoopEnvironmentVersionV1.state:type_name -> o11y_one.agentic.v1.LoopEnvironmentVersionStateV1
-	32, // 16: o11y_one.agentic.v1.LoopEnvironmentVersionV1.created_at:type_name -> google.protobuf.Timestamp
-	32, // 17: o11y_one.agentic.v1.LoopEnvironmentVersionV1.finished_at:type_name -> google.protobuf.Timestamp
-	32, // 18: o11y_one.agentic.v1.LoopEnvironmentVersionV1.revoked_at:type_name -> google.protobuf.Timestamp
+	30, // 16: o11y_one.agentic.v1.LoopEnvironmentVersionV1.created_at:type_name -> google.protobuf.Timestamp
+	30, // 17: o11y_one.agentic.v1.LoopEnvironmentVersionV1.finished_at:type_name -> google.protobuf.Timestamp
+	30, // 18: o11y_one.agentic.v1.LoopEnvironmentVersionV1.revoked_at:type_name -> google.protobuf.Timestamp
 	3,  // 19: o11y_one.agentic.v1.LoopEnvironmentVersionV1.failure_cause:type_name -> o11y_one.agentic.v1.LoopEnvironmentFailureCauseV1
 	4,  // 20: o11y_one.agentic.v1.CreateLoopEnvironmentResponse.environment:type_name -> o11y_one.agentic.v1.LoopEnvironmentV1
 	6,  // 21: o11y_one.agentic.v1.CreateLoopEnvironmentVersionRequest.oci_image:type_name -> o11y_one.agentic.v1.LoopOciImageSourceV1
@@ -2423,33 +2308,31 @@ var file_o11y_one_agentic_v1_environment_proto_depIdxs = []int32{
 	14, // 23: o11y_one.agentic.v1.CreateLoopEnvironmentVersionRequest.spec:type_name -> o11y_one.agentic.v1.LoopEnvironmentSpecV1
 	15, // 24: o11y_one.agentic.v1.CreateLoopEnvironmentVersionResponse.version:type_name -> o11y_one.agentic.v1.LoopEnvironmentVersionV1
 	15, // 25: o11y_one.agentic.v1.GetLoopEnvironmentVersionResponse.version:type_name -> o11y_one.agentic.v1.LoopEnvironmentVersionV1
-	33, // 26: o11y_one.agentic.v1.ListLoopEnvironmentVersionsRequest.page:type_name -> o11y_one.common.v1.PageRequestV1
+	31, // 26: o11y_one.agentic.v1.ListLoopEnvironmentVersionsRequest.page:type_name -> o11y_one.common.v1.PageRequestV1
 	15, // 27: o11y_one.agentic.v1.ListLoopEnvironmentVersionsResponse.versions:type_name -> o11y_one.agentic.v1.LoopEnvironmentVersionV1
-	34, // 28: o11y_one.agentic.v1.ListLoopEnvironmentVersionsResponse.page:type_name -> o11y_one.common.v1.PageResponseV1
+	32, // 28: o11y_one.agentic.v1.ListLoopEnvironmentVersionsResponse.page:type_name -> o11y_one.common.v1.PageResponseV1
 	4,  // 29: o11y_one.agentic.v1.ListLoopEnvironmentVersionsResponse.environment:type_name -> o11y_one.agentic.v1.LoopEnvironmentV1
-	33, // 30: o11y_one.agentic.v1.ListLoopEnvironmentsRequest.page:type_name -> o11y_one.common.v1.PageRequestV1
+	31, // 30: o11y_one.agentic.v1.ListLoopEnvironmentsRequest.page:type_name -> o11y_one.common.v1.PageRequestV1
 	4,  // 31: o11y_one.agentic.v1.LoopEnvironmentSummaryV1.environment:type_name -> o11y_one.agentic.v1.LoopEnvironmentV1
 	15, // 32: o11y_one.agentic.v1.LoopEnvironmentSummaryV1.newest:type_name -> o11y_one.agentic.v1.LoopEnvironmentVersionV1
 	15, // 33: o11y_one.agentic.v1.LoopEnvironmentSummaryV1.latest_published:type_name -> o11y_one.agentic.v1.LoopEnvironmentVersionV1
 	25, // 34: o11y_one.agentic.v1.ListLoopEnvironmentsResponse.environments:type_name -> o11y_one.agentic.v1.LoopEnvironmentSummaryV1
-	34, // 35: o11y_one.agentic.v1.ListLoopEnvironmentsResponse.page:type_name -> o11y_one.common.v1.PageResponseV1
-	32, // 36: o11y_one.agentic.v1.CreateLoopEnvironmentUploadResponse.expires_at:type_name -> google.protobuf.Timestamp
+	32, // 35: o11y_one.agentic.v1.ListLoopEnvironmentsResponse.page:type_name -> o11y_one.common.v1.PageResponseV1
+	30, // 36: o11y_one.agentic.v1.CreateLoopEnvironmentUploadResponse.expires_at:type_name -> google.protobuf.Timestamp
 	16, // 37: o11y_one.agentic.v1.LoopEnvironmentService.CreateLoopEnvironment:input_type -> o11y_one.agentic.v1.CreateLoopEnvironmentRequest
 	18, // 38: o11y_one.agentic.v1.LoopEnvironmentService.CreateLoopEnvironmentVersion:input_type -> o11y_one.agentic.v1.CreateLoopEnvironmentVersionRequest
 	20, // 39: o11y_one.agentic.v1.LoopEnvironmentService.GetLoopEnvironmentVersion:input_type -> o11y_one.agentic.v1.GetLoopEnvironmentVersionRequest
 	22, // 40: o11y_one.agentic.v1.LoopEnvironmentService.ListLoopEnvironmentVersions:input_type -> o11y_one.agentic.v1.ListLoopEnvironmentVersionsRequest
 	24, // 41: o11y_one.agentic.v1.LoopEnvironmentService.ListLoopEnvironments:input_type -> o11y_one.agentic.v1.ListLoopEnvironmentsRequest
 	27, // 42: o11y_one.agentic.v1.LoopEnvironmentService.CreateLoopEnvironmentUpload:input_type -> o11y_one.agentic.v1.CreateLoopEnvironmentUploadRequest
-	29, // 43: o11y_one.agentic.v1.LoopEnvironmentService.GetLoopEnvironmentBuildLog:input_type -> o11y_one.agentic.v1.GetLoopEnvironmentBuildLogRequest
-	17, // 44: o11y_one.agentic.v1.LoopEnvironmentService.CreateLoopEnvironment:output_type -> o11y_one.agentic.v1.CreateLoopEnvironmentResponse
-	19, // 45: o11y_one.agentic.v1.LoopEnvironmentService.CreateLoopEnvironmentVersion:output_type -> o11y_one.agentic.v1.CreateLoopEnvironmentVersionResponse
-	21, // 46: o11y_one.agentic.v1.LoopEnvironmentService.GetLoopEnvironmentVersion:output_type -> o11y_one.agentic.v1.GetLoopEnvironmentVersionResponse
-	23, // 47: o11y_one.agentic.v1.LoopEnvironmentService.ListLoopEnvironmentVersions:output_type -> o11y_one.agentic.v1.ListLoopEnvironmentVersionsResponse
-	26, // 48: o11y_one.agentic.v1.LoopEnvironmentService.ListLoopEnvironments:output_type -> o11y_one.agentic.v1.ListLoopEnvironmentsResponse
-	28, // 49: o11y_one.agentic.v1.LoopEnvironmentService.CreateLoopEnvironmentUpload:output_type -> o11y_one.agentic.v1.CreateLoopEnvironmentUploadResponse
-	30, // 50: o11y_one.agentic.v1.LoopEnvironmentService.GetLoopEnvironmentBuildLog:output_type -> o11y_one.agentic.v1.GetLoopEnvironmentBuildLogResponse
-	44, // [44:51] is the sub-list for method output_type
-	37, // [37:44] is the sub-list for method input_type
+	17, // 43: o11y_one.agentic.v1.LoopEnvironmentService.CreateLoopEnvironment:output_type -> o11y_one.agentic.v1.CreateLoopEnvironmentResponse
+	19, // 44: o11y_one.agentic.v1.LoopEnvironmentService.CreateLoopEnvironmentVersion:output_type -> o11y_one.agentic.v1.CreateLoopEnvironmentVersionResponse
+	21, // 45: o11y_one.agentic.v1.LoopEnvironmentService.GetLoopEnvironmentVersion:output_type -> o11y_one.agentic.v1.GetLoopEnvironmentVersionResponse
+	23, // 46: o11y_one.agentic.v1.LoopEnvironmentService.ListLoopEnvironmentVersions:output_type -> o11y_one.agentic.v1.ListLoopEnvironmentVersionsResponse
+	26, // 47: o11y_one.agentic.v1.LoopEnvironmentService.ListLoopEnvironments:output_type -> o11y_one.agentic.v1.ListLoopEnvironmentsResponse
+	28, // 48: o11y_one.agentic.v1.LoopEnvironmentService.CreateLoopEnvironmentUpload:output_type -> o11y_one.agentic.v1.CreateLoopEnvironmentUploadResponse
+	43, // [43:49] is the sub-list for method output_type
+	37, // [37:43] is the sub-list for method input_type
 	37, // [37:37] is the sub-list for extension type_name
 	37, // [37:37] is the sub-list for extension extendee
 	0,  // [0:37] is the sub-list for field type_name
@@ -2469,14 +2352,14 @@ func file_o11y_one_agentic_v1_environment_proto_init() {
 		(*CreateLoopEnvironmentVersionRequest_OciImage)(nil),
 		(*CreateLoopEnvironmentVersionRequest_Dockerfile)(nil),
 	}
-	file_o11y_one_agentic_v1_environment_proto_msgTypes[27].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_environment_proto_msgTypes[25].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_o11y_one_agentic_v1_environment_proto_rawDesc), len(file_o11y_one_agentic_v1_environment_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   28,
+			NumMessages:   26,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
