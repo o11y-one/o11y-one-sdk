@@ -196,6 +196,8 @@ rewards = {reward.name: reward.value for reward in closed.rewards}
   instance that never calls `close()` leaves nothing open. Run a GRPO group as
   one client per rollout, each reset with the same `group_id` (a UUID you pick),
   its own `group_index` and the `group_size`.
+- **A trainer adapter names itself:** `LoopClient(adapter=, adapter_version=,
+  framework_version=)`, which every reset reports and the run's boards show.
 - **`fork(n)`** branches the open rollout into `n` copies of its current state
   and answers a client per copy, this one first.
 - **Refusals** raise `RolloutRefused` with the server's stable `code` and, when
