@@ -33,8 +33,8 @@ from o11y_one.agentic.v1.rollout_pb2 import (
     StepLoopRolloutResponse,
 )
 
-from .client import O11yClient
-from .recovery import find_error_detail
+from ..client import O11yClient
+from ..recovery import find_error_detail
 
 __all__ = ["DEFAULT_BASE_URL", "LoopClient", "RolloutRefused"]
 
@@ -190,7 +190,7 @@ def __getattr__(name: str) -> Any:
     if name != "LoopEnvClient":
         raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
     try:
-        from ._openenv import LoopEnvClient
+        from .._openenv import LoopEnvClient
     except ModuleNotFoundError as error:
         raise ImportError(
             "LoopEnvClient needs the openenv extra: pip install 'o11y-one[openenv]'"
