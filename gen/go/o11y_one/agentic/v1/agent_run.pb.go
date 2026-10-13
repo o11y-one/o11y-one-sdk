@@ -4,16 +4,38 @@
 // 	protoc        (unknown)
 // source: o11y_one/agentic/v1/agent_run.proto
 
-// Agent runs: the identity of a conversation across traces.
+// Agentic Reliability V2 — the agent-run identity plane (wave 41).
 //
-// Same package as evaluation.proto, artifact.proto and trace_view.proto. A
-// separate FILE keeps this surface's compatibility checks apart from its
-// neighbours'.
+// Same package as agentic.proto, evaluation.proto, artifact.proto and
+// trace_view.proto by design (lock ruling L1-4): prost emits one Rust module per
+// package, so `proto::agentic::*` stays one flat namespace and `proto/src/lib.rs`
+// needs no change. A separate FILE keeps `buf breaking` (FILE mode,
+// `proto/buf.yaml`) from letting this surface destabilise its neighbours —
+// which matters more than usual here, because three lanes are appending to this
+// one file in the same tree.
+//
+// WHY THIS FILE RATHER THAN trace_view.proto
 //
 //   `trace_view.proto` is a TRACE surface: one trace, bounded, five levels. This
 //   file is a CONVERSATION surface: many traces, one identity, and a confidence
-// about whether that identity is real. The agent-run RPCs are served on the
-// trace viewer's service, which imports this file.
+//   about whether that identity is real. Folding them into one file would have
+//   put the agent-run contract inside the breaking surface of the trace viewer,
+//   and the two move on different schedules. `trace_view.proto` imports this
+//   file and hangs the RPCs on the service it already declares — the service
+//   that holds `UnifiedTelemetryQueryEngine`, because span rows are reachable
+//   through nothing else (w32 `0.1`).
+//
+// FILE LAYOUT — THREE LANES, THREE BLOCKS, ONE FILE
+//
+//   Lane A (identity and grouping) owns this header, the import block, and the
+//   first block. Lane B (summary index) appends after lane A's end marker; lane
+//   C (timeline and external artifacts) appends after lane B's. No lane edits
+//   above its own start marker.
+//
+//   Lane A owns the imports wholesale (coordinator ruling A-3) so that no
+//   sibling has to touch this header: `artifact.proto` is imported here for
+//   lane C's `ArtifactLinkV1` / `EvidenceAnchorV1` / `LinkExternalArtifact*`
+//   family even though lane A's own block does not reference it.
 
 package agenticv1
 
@@ -33,6 +55,8 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// SM-9 (`0b:P7-1`), verbatim.
+//
 // Grouping resolves in strict precedence order and the FIRST rung that produces
 // a group wins; the rung that produced it is recorded on the run and returned as
 // `GroupingConfidenceInputV1.contributed_rung`.
@@ -54,17 +78,17 @@ const (
 	// `AGENT_RUN_GROUPING_SIGNAL_KIND_V1_SPAN_LINK`, whose availability says what
 	// a link can and cannot tell this build.
 	AgentRunGroupingConfidenceV1_AGENT_RUN_GROUPING_CONFIDENCE_V1_EXPLICIT_PARTIAL AgentRunGroupingConfidenceV1 = 2
-	// Rung 3: compatible SECONDARY identity only: the `conversation_id` recorded
-	// against a trace by a score, feedback, outcome or content manifest whose spans
-	// never carried the attribute. Authoritative.
+	// Rung 3: compatible SECONDARY identity only — the control plane's own
+	// `conversation_id`, recorded against a trace by a score, feedback, outcome or
+	// content manifest whose spans never carried the attribute. Authoritative.
 	AgentRunGroupingConfidenceV1_AGENT_RUN_GROUPING_CONFIDENCE_V1_DERIVED AgentRunGroupingConfidenceV1 = 3
 	// Rung 4: bounded heuristic — same service AND deployment AND customer
 	// identity AND within the published bounds. NOT authoritative: see
 	// `AgentRunAuthorityCapabilityV1`.
 	AgentRunGroupingConfidenceV1_AGENT_RUN_GROUPING_CONFIDENCE_V1_PROVISIONAL AgentRunGroupingConfidenceV1 = 4
 	// Rung 5: no identity at all. One trace, one run — and VISIBLE in the agent-run
-	// index, unlike `ListSessions`, which excludes identity-less traces. Not
-	// authoritative for CROSS-TRACE claims; a single-trace
+	// index, unlike `ListSessions`, which excludes identity-less traces (0b docket
+	// B1-4, adopted). Not authoritative for CROSS-TRACE claims; a single-trace
 	// claim about a single-trace run is a claim about that trace.
 	AgentRunGroupingConfidenceV1_AGENT_RUN_GROUPING_CONFIDENCE_V1_UNGROUPED AgentRunGroupingConfidenceV1 = 5
 	// A `_PROVISIONAL` group an authorized user confirmed through
@@ -121,6 +145,8 @@ func (AgentRunGroupingConfidenceV1) EnumDescriptor() ([]byte, []int) {
 	return file_o11y_one_agentic_v1_agent_run_proto_rawDescGZIP(), []int{0}
 }
 
+// SM-10 (`0b:P7-5`), verbatim.
+//
 // Three of the five are terminal, and ALL THREE REDIRECT. None of them is a
 // `NOT_FOUND`: a read by a stale id returns the canonical run plus a
 // `GroupingRedirectV1`, because an operator who followed a link from an incident
@@ -185,11 +211,15 @@ func (AgentRunGroupingStateV1) EnumDescriptor() ([]byte, []int) {
 	return file_o11y_one_agentic_v1_agent_run_proto_rawDescGZIP(), []int{1}
 }
 
+// SM-11 (`0b:P7-11`..`P7-13`), verbatim.
+//
 // NO terminal: `_COMPLETE` is reopenable by construction, because a late span is
 // a fact about the customer's system and not a violation of ours.
 //
-// Every transition is decided by one server clock, when the state is stored, so
-// "is this conversation over?" never gets two different answers.
+// Every transition is decided by POSTGRES'S clock, inside the statement that
+// stores it (wave 39 `DEV-3`). There is no Rust twin of this comparison, because
+// two clocks answering "is this conversation over?" is how a conversation gets
+// scored twice with two different answers.
 type ConversationCompletenessStateV1 int32
 
 const (
@@ -197,15 +227,15 @@ const (
 	// Within the configured inactivity window; more spans expected.
 	ConversationCompletenessStateV1_CONVERSATION_COMPLETENESS_STATE_V1_OPEN ConversationCompletenessStateV1 = 1
 	// Inactivity window elapsed; provisionally final. THIS is where
-	// conversation-subject scoring and conversation-scoped rules fire — firing at
-	// `_COMPLETE` makes the learning loop unusably slow, and firing at `_OPEN`
-	// scores a truncated conversation.
+	// conversation-subject scoring and conversation-scoped rules fire (`P7-11`) —
+	// firing at `_COMPLETE` makes the learning loop unusably slow, and firing at
+	// `_OPEN` scores a truncated conversation.
 	ConversationCompletenessStateV1_CONVERSATION_COMPLETENESS_STATE_V1_INACTIVE ConversationCompletenessStateV1 = 2
 	// Inactivity window plus late-arrival grace elapsed; finality claimed.
 	ConversationCompletenessStateV1_CONVERSATION_COMPLETENESS_STATE_V1_COMPLETE ConversationCompletenessStateV1 = 3
 	// A late span arrived after `_COMPLETE`. `completeness_epoch` increments;
 	// evidence produced against epoch n stays valid and readable, marked
-	// superseded-eligible. Nothing is retroactively deleted.
+	// superseded-eligible. Nothing is retroactively deleted (NN13).
 	ConversationCompletenessStateV1_CONVERSATION_COMPLETENESS_STATE_V1_REOPENED ConversationCompletenessStateV1 = 4
 )
 
@@ -254,6 +284,8 @@ func (ConversationCompletenessStateV1) EnumDescriptor() ([]byte, []int) {
 	return file_o11y_one_agentic_v1_agent_run_proto_rawDescGZIP(), []int{2}
 }
 
+// Minted by wave 41 lane A: `P7-3`'s `signal_kind`.
+//
 // One value per source of identity this build can actually read. There is no
 // value for a signal nothing produces — an enum arm for an unreadable signal is
 // a promise a client would render an empty row for.
@@ -261,21 +293,23 @@ type AgentRunGroupingSignalKindV1 int32
 
 const (
 	AgentRunGroupingSignalKindV1_AGENT_RUN_GROUPING_SIGNAL_KIND_V1_UNSPECIFIED AgentRunGroupingSignalKindV1 = 0
-	// `gen_ai.conversation.id` on the span.
+	// `gen_ai.conversation.id` on the span. The only declaration is
+	// `transformation/src/trace_registry.rs:587`; it is a typed Arrow column.
 	AgentRunGroupingSignalKindV1_AGENT_RUN_GROUPING_SIGNAL_KIND_V1_OFFICIAL_CONVERSATION_ID AgentRunGroupingSignalKindV1 = 1
 	// An OTel span link from a span in one trace to a span in another.
 	//
 	// ADJACENCY ONLY, and the availability field on the input says so per run:
-	// span links are stored without their ATTRIBUTES (trace id, span id, trace
-	// state, dropped-attributes count and flags only). So a link can say THAT it
-	// links and can never say WHY. "Continuation", "batch member" and
+	// span links reach this lake with their ATTRIBUTES DROPPED
+	// (`transformation/src/otel_trace.rs:461-499` writes trace id, span id, trace
+	// state, dropped-attributes count and flags — and nothing else). So a link can
+	// say THAT it links and can never say WHY. "Continuation", "batch member" and
 	// "retry of" are indistinguishable here, and this build does not guess between
 	// them.
 	AgentRunGroupingSignalKindV1_AGENT_RUN_GROUPING_SIGNAL_KIND_V1_SPAN_LINK AgentRunGroupingSignalKindV1 = 2
-	// The `conversation_id` recorded beside a `trace_id` on a score, feedback
-	// event, outcome event, content manifest or dataset item. A genuinely second
-	// source: a customer can name the conversation on the SCORE for a trace whose
-	// spans never carried it.
+	// The control plane's own `conversation_id`, recorded beside a `trace_id` on a
+	// score, feedback event, outcome event, content manifest or dataset item
+	// (migration `20260416100000`). A genuinely second source: a customer can name
+	// the conversation on the SCORE for a trace whose spans never carried it.
 	AgentRunGroupingSignalKindV1_AGENT_RUN_GROUPING_SIGNAL_KIND_V1_CONTROL_PLANE_CONVERSATION_ID AgentRunGroupingSignalKindV1 = 3
 	// Same service AND deployment AND customer identity AND inside the three
 	// published bounds. Rung 4, and never authoritative.
@@ -333,7 +367,7 @@ func (AgentRunGroupingSignalKindV1) EnumDescriptor() ([]byte, []int) {
 	return file_o11y_one_agentic_v1_agent_run_proto_rawDescGZIP(), []int{3}
 }
 
-// Why a stale id redirects.
+// Minted by wave 41 lane A: why a stale id redirects.
 type AgentRunGroupingRedirectReasonV1 int32
 
 const (
@@ -343,7 +377,7 @@ const (
 	// Late explicit identity arrived and proved one run was two conversations.
 	AgentRunGroupingRedirectReasonV1_AGENT_RUN_GROUPING_REDIRECT_REASON_V1_LATE_EXPLICIT_IDENTITY_SPLIT AgentRunGroupingRedirectReasonV1 = 2
 	// A heuristic group grew past one of its three bounds and was split rather
-	// than enlarged (split, never merge).
+	// than enlarged (`P7-2`, split-not-merge).
 	AgentRunGroupingRedirectReasonV1_AGENT_RUN_GROUPING_REDIRECT_REASON_V1_BOUND_BREACH_SPLIT AgentRunGroupingRedirectReasonV1 = 3
 	// The bounded heuristic folded runs that previously stood alone, or pulled
 	// them apart again. Distinct from the two `LATE_EXPLICIT_IDENTITY_*` reasons
@@ -399,7 +433,8 @@ func (AgentRunGroupingRedirectReasonV1) EnumDescriptor() ([]byte, []int) {
 	return file_o11y_one_agentic_v1_agent_run_proto_rawDescGZIP(), []int{4}
 }
 
-// The audited reason a promotion records. Typed rather than free text, because "why did somebody confirm
+// Minted by wave 41 lane A: the audited reason `PLAN:1675` requires on a
+// promotion. Typed rather than free text, because "why did somebody confirm
 // this?" is a question the audit chain must answer without a human reading prose.
 type AgentRunGroupingConfirmationReasonV1 int32
 
@@ -457,8 +492,12 @@ func (AgentRunGroupingConfirmationReasonV1) EnumDescriptor() ([]byte, []int) {
 	return file_o11y_one_agentic_v1_agent_run_proto_rawDescGZIP(), []int{5}
 }
 
-// What a grouping's confidence allows. "Provisional groups cannot drive
-// automation" is one enum here, and every refusal names the row it came from.
+// Minted by wave 41 lane A: `P7-10`'s six rows, addressable.
+//
+// The matrix is a table in the contract and prose everywhere else, which is how
+// "provisional groups cannot drive automation" becomes five different guesses at
+// five call sites. Here it is one enum and one function
+// (`assert_grouping_authority`), and every refusal names the row it came from.
 type AgentRunAuthorityCapabilityV1 int32
 
 const (
@@ -529,7 +568,7 @@ func (AgentRunAuthorityCapabilityV1) EnumDescriptor() ([]byte, []int) {
 	return file_o11y_one_agentic_v1_agent_run_proto_rawDescGZIP(), []int{6}
 }
 
-// Confidence carries its INPUTS,
+// `P7-3`, verbatim in its four required fields: confidence carries its INPUTS,
 // not just its verdict, so "explain confidence" is a rendering of returned data
 // and never a frontend heuristic.
 type GroupingConfidenceInputV1 struct {
@@ -618,7 +657,7 @@ func (x *GroupingConfidenceInputV1) GetAvailability() *MetricAvailabilityV1 {
 	return nil
 }
 
-// Returned by ANY read addressed with a non-`_CURRENT` id, alongside the
+// `P7-6`. Returned by ANY read addressed with a non-`_CURRENT` id, alongside the
 // canonical run's content. Never instead of it, and never a `NOT_FOUND`.
 type GroupingRedirectV1 struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -703,9 +742,9 @@ func (x *GroupingRedirectV1) GetOccurredAt() *timestamppb.Timestamp {
 // The bounds, published as numbers on every run rather than described in prose
 // on a capability nobody fetched.
 //
-// Three bounds exist and a breach splits a group rather than merging it; the
-// numbers are here so a client rendering "this group was split" can say what it
-// was split by.
+// `P7-2` locks the RULE that three bounds exist and that breach means
+// split-not-merge; the numbers are this lane's, and they are here so a client
+// rendering "this group was split" can say what it was split by.
 type AgentRunGroupingBoundsV1 struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Rung-4 bound 1: the most member traces a heuristic group may hold.
@@ -717,7 +756,8 @@ type AgentRunGroupingBoundsV1 struct {
 	// conversation went quiet" and "these are not the same conversation" cannot
 	// disagree about the same silence.
 	MaxInactivityGapSeconds uint64 `protobuf:"varint,3,opt,name=max_inactivity_gap_seconds,json=maxInactivityGapSeconds,proto3" json:"max_inactivity_gap_seconds,omitempty"`
-	// Every trace query is clamped to fourteen days.
+	// The plane's own edge, not this surface's choice:
+	// `trace_partition_pruning_range` clamps every trace query to fourteen days.
 	MaxLookbackHours uint32 `protobuf:"varint,4,opt,name=max_lookback_hours,json=maxLookbackHours,proto3" json:"max_lookback_hours,omitempty"`
 	// The trace viewer's whole refusal, per MEMBER trace.
 	MaxSpansPerMemberTrace uint32 `protobuf:"varint,5,opt,name=max_spans_per_member_trace,json=maxSpansPerMemberTrace,proto3" json:"max_spans_per_member_trace,omitempty"`
@@ -880,15 +920,15 @@ func (x *AgentRunGroupingConfirmationV1) GetRevision() uint64 {
 	return 0
 }
 
-// What happened to the evidence anchored to this run.
+// `P7-7` on the wire: what happened to the evidence anchored to this run.
 //
 // "Confirmed links survive a merge or a split" is a promise that is unfalsifiable
 // unless the move is visible. An operator who linked a dataset draft to a run and
 // then watched that run merge has exactly one question — *did my link follow?* —
 // and this is the answer, as data rather than as documentation.
 //
-// `anchor` is the SAME `EvidenceAnchorV1` every other surface addresses evidence
-// with (its `agent_run` arm).
+// `anchor` is the SAME `EvidenceAnchorV1` every other plane addresses evidence
+// with (A1 §4.5, twelve arms, arm 7 `agent_run`), reused rather than twinned.
 // `original_agent_run_id` is written once and never overwritten: the audit chain
 // is the point, and a chain whose first link is editable is not a chain.
 type AgentRunAnchorRebindV1 struct {
@@ -978,9 +1018,8 @@ func (x *AgentRunAnchorRebindV1) GetOccurredAt() *timestamppb.Timestamp {
 	return nil
 }
 
-// The identity block. The summary and the timeline embed this rather than
-// re-deriving any part of it, so there is exactly one answer to "how sure are we
-// about this run?".
+// The identity block. Lanes B and C embed this rather than re-deriving any part
+// of it, so there is exactly one answer to "how sure are we about this run?".
 type AgentRunGroupingV1 struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The CANONICAL id. When `redirect` is set, this is NOT the id the caller
@@ -991,7 +1030,7 @@ type AgentRunGroupingV1 struct {
 	// The rung that produced this grouping, 1..5. Zero means unspecified.
 	AttachedRung uint32 `protobuf:"varint,4,opt,name=attached_rung,json=attachedRung,proto3" json:"attached_rung,omitempty"`
 	// Monotone. A grouping change advances it, so a cursor bound to it resyncs
-	// rather than reordering invisibly.
+	// rather than reordering invisibly (`P7-9`, NN20).
 	Revision         uint64                       `protobuf:"varint,5,opt,name=revision,proto3" json:"revision,omitempty"`
 	ConfidenceInputs []*GroupingConfidenceInputV1 `protobuf:"bytes,6,rep,name=confidence_inputs,json=confidenceInputs,proto3" json:"confidence_inputs,omitempty"`
 	// The official conversation identity, when there is one. Absent for a rung-4
@@ -1003,8 +1042,8 @@ type AgentRunGroupingV1 struct {
 	Redirect *GroupingRedirectV1 `protobuf:"bytes,10,opt,name=redirect,proto3,oneof" json:"redirect,omitempty"`
 	// Set when this run reached `_CONFIRMED` through `ConfirmAgentRunGrouping`.
 	Confirmation *AgentRunGroupingConfirmationV1 `protobuf:"bytes,11,opt,name=confirmation,proto3,oneof" json:"confirmation,omitempty"`
-	// Monotone, and it advances on a grouping change AND on late data. The
-	// timeline's cursor binds to it.
+	// Monotone, and it advances on a grouping change AND on late data. Lane C's
+	// timeline cursor binds to this; lane B's index pass joins against it.
 	ProjectionVersion uint64 `protobuf:"varint,12,opt,name=projection_version,json=projectionVersion,proto3" json:"projection_version,omitempty"`
 	// Evidence that moved with this run, newest first, capped at
 	// `anchor_rebind_cap` on the `agent_run_grouping` posture. Empty means no
@@ -1136,17 +1175,17 @@ func (x *AgentRunGroupingV1) GetAnchorRebinds() []*AgentRunAnchorRebindV1 {
 	return nil
 }
 
-// The conversation's completeness state, with the configuration that produced it.
+// SM-11's state, with the configuration that produced it.
 //
-// The timeline's "this conversation is done" affordance READS this and computes
-// no idle heuristic of its own. The window and grace ride along so a client can
-// say "quiet for 15 minutes" without a second fetch.
+// `P7-13`: the timeline's "this conversation is done" affordance READS this and
+// computes no idle heuristic of its own. The window and grace ride along so a
+// client can say "quiet for 15 minutes" without a second fetch.
 type ConversationCompletenessV1 struct {
 	state protoimpl.MessageState          `protogen:"open.v1"`
 	State ConversationCompletenessStateV1 `protobuf:"varint,1,opt,name=state,proto3,enum=o11y_one.agentic.v1.ConversationCompletenessStateV1" json:"state,omitempty"`
 	// Increments on every `_REOPENED`. Evidence produced against a previous epoch
 	// stays valid and readable and is marked superseded-eligible; nothing is
-	// deleted.
+	// deleted (`P7-12`, NN13).
 	Epoch                   uint32                 `protobuf:"varint,2,opt,name=epoch,proto3" json:"epoch,omitempty"`
 	LastSeenAt              *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=last_seen_at,json=lastSeenAt,proto3" json:"last_seen_at,omitempty"`
 	InactivityWindowSeconds uint64                 `protobuf:"varint,4,opt,name=inactivity_window_seconds,json=inactivityWindowSeconds,proto3" json:"inactivity_window_seconds,omitempty"`
@@ -1155,8 +1194,9 @@ type ConversationCompletenessV1 struct {
 	// earlier epoch is superseded-eligible. False on epoch 1, where there is
 	// nothing to supersede.
 	SupersededEligible bool `protobuf:"varint,6,opt,name=superseded_eligible,json=supersededEligible,proto3" json:"superseded_eligible,omitempty"`
-	// WHEN the server decided the state. On the wire so a reader can tell a stale
-	// projection from a quiet conversation.
+	// WHEN the state was decided, by Postgres's clock, inside the statement that
+	// stored it. On the wire so a reader can tell a stale projection from a quiet
+	// conversation.
 	EvaluatedAt   *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=evaluated_at,json=evaluatedAt,proto3" json:"evaluated_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1241,8 +1281,8 @@ func (x *ConversationCompletenessV1) GetEvaluatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
-// The audited promotion of a provisional grouping when explicit telemetry
-// identity is unavailable.
+// `PLAN:1675` / `PLAN:494`: the audited promotion of a provisional grouping when
+// explicit telemetry identity is unavailable.
 type ConfirmAgentRunGroupingRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// May be a stale id. It resolves to the canonical run and the response carries

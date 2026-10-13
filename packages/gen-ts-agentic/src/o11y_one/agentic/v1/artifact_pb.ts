@@ -2,20 +2,42 @@
 // @generated from file o11y_one/agentic/v1/artifact.proto (package o11y_one.agentic.v1, syntax proto3)
 /* eslint-disable */
 
-// External artifacts: typed references to artifacts outside o11y, and the
-// links that tie them to runs, cells, attempts, traces and other evidence.
+// Agentic Reliability V2 artifact-link surface — increment 1C-7.
 //
-// Same package as evaluation.proto, in its own FILE so its surface stays apart.
+// Same package as agentic.proto and evaluation.proto by design (lock ruling
+// L1-4): prost emits one Rust module per package, so `proto::agentic::*` stays
+// one flat namespace and no import churn reaches the existing services. A
+// separate FILE keeps `buf breaking` (FILE mode, `proto/buf.yaml`) from letting
+// this surface destabilise either neighbour's breaking-change surface.
 //
-// Conventions:
-//   - shared value objects are defined once: `MetadataEntryV1`,
-//    `SemanticConventionProvenanceV1` and `PrincipalRefV1` come from
-//    evaluation.proto;
-//   - no `google.protobuf.Struct`, no `Value`, no untyped map: every opaque
-//    reference here is typed throughout;
-//   - every stored link carries both `tenant_id` and `org_id`;
-//   - `V1` suffix, `SCREAMING_ENUM_NAME_VALUE` members, zero value
+// WHY THIS FILE EXISTS
+//
+//   `2026-08-13-0a-canonical-type-contract.md` §4.5 locked three shapes —
+//   `ExternalArtifactRefV1`, `ArtifactLinkV1`, `EvidenceAnchorV1` — in Phase 0a
+//   and said the wire-side application "rides the increment that first needs
+//   the message" (amendment `B2-6` note 4). This is that increment. Until today
+//   none of them existed in any proto file, which is why
+//   `evaluation.proto:3061-3065` carries a comment declining to mint
+//   `ExternalArtifactRefV1` on a surface that does not own it (docket `F-3`).
+//
+// RULES THIS FILE IS WRITTEN AGAINST
+//
+//   R5    — shared value objects are defined once. `MetadataEntryV1`,
+//           `SemanticConventionProvenanceV1` and `PrincipalRefV1` live in
+//           evaluation.proto and are IMPORTED, never twinned.
+//   R6/R7 — no `google.protobuf.Struct`, no `Value`, no untyped map. This file
+//           IS R7's sanctioned escape hatch and it is typed throughout.
+//   R10   — every persisted row carries both `tenant_id` and `org_id`.
+//   §1.1  — `V1` suffix, `SCREAMING_ENUM_NAME_VALUE` members, zero value
 //           `..._UNSPECIFIED`, `optional` only where absence is meaningful.
+//
+// `COINED HERE` MARKS EVERY VALUE NO APPROVED ARTIFACT FIXES
+//
+//   0b freezes `ArtifactLinkFallbackReasonV1` and `ArtifactResolverPostureV1`
+//   member-for-member, and A1 names the members of four more enums inline. The
+//   rest are closed sets this increment coins; each carries a `COINED HERE`
+//   marker so a lock review finds them by grep rather than by diff. Increment
+//   record 2026-08-17-1c7-artifact-link-writer.md §2.1, deviation `D-4`.
 
 import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
@@ -35,8 +57,8 @@ export const file_o11y_one_agentic_v1_artifact: GenFile = /*@__PURE__*/
  * A content digest, algorithm named rather than assumed.
  *
  * Distinct from the emitter's supply-chain `artifact.hash` (registry entry 32):
- * that is what the customer's convention says, this is what o11y computed. Both
- * are kept, and neither absorbs the other.
+ * that is what the customer's convention says, this is what this plane
+ * computed. A3 §2.3 keeps both, and neither absorbs the other.
  *
  * @generated from message o11y_one.agentic.v1.ContentDigestV1
  */
@@ -60,8 +82,9 @@ export const ContentDigestV1Schema: GenMessage<ContentDigestV1> = /*@__PURE__*/
   messageDesc(file_o11y_one_agentic_v1_artifact, 0);
 
 /**
- * A narrow telemetry reference: trace, span, observation, conversation and
- * session ids, and nothing else.
+ * A1 `OQ-7` answer (b): the narrow telemetry reference, added rather than
+ * reusing `CorrelationContextV1` (`agentic.proto:9`), whose 14 optional strings
+ * mix telemetry ids with product identity and lack `session_id`.
  *
  * @generated from message o11y_one.agentic.v1.TelemetryRefV1
  */
@@ -100,12 +123,22 @@ export const TelemetryRefV1Schema: GenMessage<TelemetryRefV1> = /*@__PURE__*/
   messageDesc(file_o11y_one_agentic_v1_artifact, 1);
 
 /**
- * A bounded range of a subject's content, an `EvidenceAnchorV1` arm.
+ * The bounded content range `A1:492` names as an `EvidenceAnchorV1` arm and
+ * which is defined in no document and no proto — routed by registry §13.8 to
+ * "whichever lane defines the message", which is this one.
  *
- *   1. UNIT: bytes, not UTF-8 code points (UCUM `By` on the wire). A code point
- *     offset and a byte offset are the same number only in ASCII.
- *   2. INTERVAL: HALF-OPEN, `[start_byte, end_byte)`, so an empty range is
- *     representable (`start == end`) and the length is `end - start`.
+ * TWO THINGS THIS MESSAGE FIXES, BOTH RECORDED AS DECISIONS
+ *
+ *   1. UNIT: bytes. Registry amendment `Q-6` ruled bytes AGAINST the draft's
+ *      UTF-8-codepoint recommendation, carried as UCUM `By` on wire entries 24
+ *      and 25. A codepoint offset and a byte offset are the same number only in
+ *      ASCII, so this is not cosmetic.
+ *   2. INTERVAL: HALF-OPEN, `[start_byte, end_byte)`. Registry `U-3` records
+ *      that inclusivity "is fixed by no artifact" and routes it here. Half-open
+ *      is chosen because it makes an empty range representable
+ *      (`start == end`), makes length `end - start` without an off-by-one, and
+ *      matches every range type this repo already carries. Increment record
+ *      deviation `D-3`.
  *
  * @generated from message o11y_one.agentic.v1.ContentRangeRefV1
  */
@@ -126,8 +159,9 @@ export type ContentRangeRefV1 = Message<"o11y_one.agentic.v1.ContentRangeRefV1">
   startByte: bigint;
 
   /**
-   * EXCLUSIVE upper bound, in BYTES. A range with `end_byte < start_byte`, or
-   * a content-range anchor missing either bound, is rejected.
+   * EXCLUSIVE upper bound, in BYTES. A range with `end_byte < start_byte` is
+   * rejected at `AL-12` rung V3; a content-range anchor missing either bound is
+   * rejected by `0b:849` outright.
    *
    * @generated from field: uint64 end_byte = 3;
    */
@@ -159,7 +193,7 @@ export const EvaluationRunRefV1Schema: GenMessage<EvaluationRunRefV1> = /*@__PUR
   messageDesc(file_o11y_one_agentic_v1_artifact, 3);
 
 /**
- * The 5-tuple IS the execution identity. Carried whole rather
+ * NN2 (`A1:167`): the 5-tuple IS the execution identity. Carried whole rather
  * than as a run id plus "some coordinates", because a partial coordinate
  * identifies a set, not a cell.
  *
@@ -192,15 +226,21 @@ export type EvaluationCellCoordinateV1 = Message<"o11y_one.agentic.v1.Evaluation
   trial: number;
 
   /**
-   * Which attempt of this cell, when the link is about ONE attempt rather than
-   * about the cell. `optional` is load-bearing: ABSENT means "this link is
-   * about the cell", and a bare int32 would make 0 mean both "attempt zero" and
-   * "nobody said". The spelling is `AttemptRefV1`'s own, so the file has one
-   * word for one concept.
+   * ADDED BY INCREMENT `AL-6-ENC` (2026-08-20), additively, as the extension
+   * A1 §2.1's no-twin rule sanctions — see this file's header comment on the
+   * eleven ref messages: "a later lane that needs a richer shape EXTENDS the
+   * message here."
    *
-   * It is also an INPUT TO IDENTITY: the `evaluation_cell` anchor id appends
-   * this field when it is present, so two attempts of one cell are two
-   * `link_id`s.
+   * Which attempt of this cell, when the link is about ONE attempt rather than
+   * about the cell. `optional` is load-bearing (NN5): ABSENT means "this link
+   * is about the cell", and a bare int32 would make 0 mean both "attempt zero"
+   * and "nobody said". The spelling is `AttemptRefV1`'s own, so the file has
+   * one word for one concept.
+   *
+   * It is also an INPUT TO IDENTITY: `AL-6`'s canonical `anchor_id` encoding
+   * for anchor type `evaluation_cell` appends this field when it is present
+   * (`artifact_link/identity.rs`), so two attempts of one cell are two
+   * `link_id`s and two derived object keys. Increment record `AL-6-ENC` §0.6.
    *
    * @generated from field: optional int32 attempt_generation = 6;
    */
@@ -216,8 +256,8 @@ export const EvaluationCellCoordinateV1Schema: GenMessage<EvaluationCellCoordina
 
 /**
  * One attempt, of either kind. `EvidenceAnchorV1` uses it twice — once for the
- * candidate attempt and once for the scorer attempt: the two are the same
- * identity in different roles.
+ * candidate attempt and once for the scorer attempt — which is A1's shape, not
+ * an accident: the two are the same identity in different roles.
  *
  * @generated from message o11y_one.agentic.v1.AttemptRefV1
  */
@@ -378,14 +418,28 @@ export const ReleaseEvidenceRefV1Schema: GenMessage<ReleaseEvidenceRefV1> = /*@_
   messageDesc(file_o11y_one_agentic_v1_artifact, 11);
 
 /**
- * What a link is attached to: twelve arms.
+ * A1:479-494, twelve arms, in A1's order.
  *
- * The `oneof` is REQUIRED: a link with no anchor names no subject and is
- * rejected. proto3 cannot express "oneof required", so the server validates it
- * and its absence has a named reason code rather than a silent default.
+ * The `oneof` is REQUIRED (plan `:592`): a link with no anchor names no subject
+ * and is rejected at `AL-12` rung V3. proto3 cannot express "oneof required", so
+ * the requirement lives in the validator and its absence has a named reason
+ * code rather than a silent default.
  *
- * "One attempt of one cell" is `evaluation_cell.attempt_generation`, not a
- * thirteenth arm; its absence means the link is about the cell as a whole.
+ * STILL TWELVE ARMS, DELIBERATELY. Increment `D-5b` §9 `D-1` routed "one
+ * attempt of one cell" here as EITHER a thirteenth arm OR a field on
+ * `EvaluationCellCoordinateV1`, and increment `AL-6-ENC` §0.5 took the field:
+ * A1 §4.5 locks this union at twelve, so a thirteenth arm is a lock amendment
+ * rather than an additive edit — and it would put two arms in this oneof that
+ * both mean "a cell", which is exactly the twin A1 §2.1 forbids. A reader
+ * asking "which attempt?" reads
+ * `evaluation_cell.attempt_generation`, and its absence means the link is
+ * about the cell as a whole.
+ *
+ * The per-arm `artifact.anchor.id` ENCODING — which of an arm's fields the
+ * identity string carries, in what order — is fixed by
+ * `artifact_link/identity.rs`'s registry, whose match over these arms is
+ * exhaustive. A thirteenth arm added here fails that build until its encoding
+ * is written, which is the property `AL-6-ENC` §0.2 exists to install.
  *
  * @generated from message o11y_one.agentic.v1.EvidenceAnchorV1
  */
@@ -476,14 +530,18 @@ export const EvidenceAnchorV1Schema: GenMessage<EvidenceAnchorV1> = /*@__PURE__*
   messageDesc(file_o11y_one_agentic_v1_artifact, 12);
 
 /**
- * The ONLY opaque reference on this surface, and it is typed end to end: media
- * type, digest, size, sensitivity, redaction, retention.
+ * A1 §4.5 / §4.7's R7 escape hatch — the ONLY sanctioned opaque reference on
+ * the v2 surface, and it is typed end to end: media type, digest, size,
+ * sensitivity, redaction, retention. Docket `F-3`'s first definition.
  *
- * The four supply-chain fields are the OpenTelemetry attributes
- * `artifact.filename` / `.version` / `.hash` / `.purl`, used only with their
- * registered meaning. All four are stored; `version` in particular is an input
- * to the link id's digest, so the digest can always be explained and
- * reproduced.
+ * `A1:445-448`'s four supply-chain fields are the OFFICIAL OpenTelemetry
+ * attributes `artifact.filename` / `.version` / `.hash` / `.purl`, used only
+ * with their registered meaning (registry entries 30-33, `maturity:
+ * provisional-pending` pending 1C-8). A3 §2.3 amendment `R-1` added their four
+ * physical columns on 2026-08-17 — note 1 of that amendment records why
+ * `version` in particular is not optional-in-effect: it is an input to `AL-6`'s
+ * link-id digest tuple, so a value that determines `link_id` and is never stored
+ * cannot be used to explain or reproduce a digest after the fact.
  *
  * @generated from message o11y_one.agentic.v1.ExternalArtifactRefV1
  */
@@ -501,7 +559,7 @@ export type ExternalArtifactRefV1 = Message<"o11y_one.agentic.v1.ExternalArtifac
   type: ArtifactTypeV1;
 
   /**
-   * OpenTelemetry supply-chain attributes.
+   * Official OpenTelemetry supply-chain attributes (registry entries 30-33).
    *
    * @generated from field: optional string filename = 3;
    */
@@ -523,7 +581,8 @@ export type ExternalArtifactRefV1 = Message<"o11y_one.agentic.v1.ExternalArtifac
   purl?: string | undefined;
 
   /**
-   * Storage coordinates, PREFERRED over any URL.
+   * Provisional storage coordinates, PREFERRED over any URL (plan `:603`,
+   * registry `N-11`).
    *
    * @generated from field: optional string storage_system = 7;
    */
@@ -540,9 +599,11 @@ export type ExternalArtifactRefV1 = Message<"o11y_one.agentic.v1.ExternalArtifac
   resolverKey?: string | undefined;
 
   /**
-   * `url.full`. Accepted ONLY when policy permits AND it carries no credentials
-   * and no long-lived signed query parameters; a URL failing that check
-   * produces `REJECTED` and IS NOT STORED. o11y never proxies it.
+   * `url.full` — registry entry 34, the registry's first `official-stable` /
+   * `verified` entry. Accepted ONLY when policy permits AND it carries no
+   * credentials and no long-lived signed query parameters; a URL failing that
+   * check produces `REJECTED` and IS NOT PERSISTED (`AL-12` rung V6,
+   * `conflict_behavior: reject_link`). The backend never proxies it.
    *
    * @generated from field: optional string policy_safe_url = 10;
    */
@@ -559,7 +620,7 @@ export type ExternalArtifactRefV1 = Message<"o11y_one.agentic.v1.ExternalArtifac
   sizeBytes?: bigint | undefined;
 
   /**
-   * o11y's own digest, distinct from the emitter's `hash` above.
+   * This plane's own digest, distinct from the emitter's `hash` above.
    *
    * @generated from field: optional o11y_one.agentic.v1.ContentDigestV1 digest = 13;
    */
@@ -581,7 +642,7 @@ export type ExternalArtifactRefV1 = Message<"o11y_one.agentic.v1.ExternalArtifac
   retention: RetentionClassV1;
 
   /**
-   * Bounded typed metadata. No nesting: a `MetadataValueV1` can never
+   * Bounded typed metadata (R6). No nesting: a `MetadataValueV1` can never
    * contain a `MetadataEntryV1`, which is the affordance that would turn typed
    * metadata back into `Struct`.
    *
@@ -603,20 +664,20 @@ export const ExternalArtifactRefV1Schema: GenMessage<ExternalArtifactRefV1> = /*
   messageDesc(file_o11y_one_agentic_v1_artifact, 13);
 
 /**
- * One artifact relationship, normalized. Span events, correlated logs, span
- * attributes and the fallback RPC all produce this same message and the same
- * immutable fact.
+ * One artifact relationship, normalized. `AL-1` FROZEN: there is exactly ONE
+ * normalizer, and span events, correlated logs, span attributes and the
+ * fallback RPC all produce this same message and the same immutable fact row.
  *
- * One event = exactly one relationship. A JSON blob carrying several links in
- * one attribute is rejected, and so are numbered attribute sequences
- * (`artifact.0.*`).
+ * One event = exactly one relationship (`AL-3`, `PLAN:1114`). A JSON blob
+ * carrying several links in one attribute is rejected, and so are numbered
+ * attribute sequences (`artifact.0.*`) — `AL-4`.
  *
  * @generated from message o11y_one.agentic.v1.ArtifactLinkV1
  */
 export type ArtifactLinkV1 = Message<"o11y_one.agentic.v1.ArtifactLinkV1"> & {
   /**
-   * Both, always, and equal: a link whose tenant and org disagree is DROPPED,
-   * and no link is stored at all.
+   * R10 / NN21: both, always, and equal — a link whose tenant and org disagree
+   * is DROPPED at rung V1, the one rung that produces no link row at all.
    *
    * @generated from field: string tenant_id = 1;
    */
@@ -628,15 +689,16 @@ export type ArtifactLinkV1 = Message<"o11y_one.agentic.v1.ArtifactLinkV1"> & {
   orgId: string;
 
   /**
-   * The emitter-provided `artifact.link.id` when present,
+   * `AL-6` FROZEN: the emitter-provided `artifact.link.id` when present,
    * otherwise a deterministic semantic-link digest over
    * `(tenant_id, org_id, artifact_id, artifact_version, anchor_type, anchor_id,
    * role, relation)` truncated to 16 bytes. The tuple is frozen because
    * exporter replay, correlated logs and fallback RPCs must land on the same
    * value; changing it silently re-keys every historical link.
    *
-   * 16 raw bytes on the wire, even when the emitter sent `artifact.link.id` as
-   * a string.
+   * 16 raw bytes on the wire, matching A3 §2.3's `FixedSizeBinary(16)` column.
+   * Recorded because registry entry 17 maps a bounded STRING wire attribute onto
+   * this column, and nobody should read the column as the emitter's string.
    *
    * @generated from field: bytes link_id = 3;
    */
@@ -660,12 +722,19 @@ export type ArtifactLinkV1 = Message<"o11y_one.agentic.v1.ArtifactLinkV1"> & {
   /**
    * Where the signal came from.
    *
-   * PRESENT ON THE FIVE TELEMETRY AND RPC KINDS, ABSENT ON `PLATFORM_EXECUTOR`,
-   * the mirror of `fallback_reason`'s rule below. A platform-emitted link is
-   * produced inside a provider call o11y made itself; there is no customer
-   * trace, span, observation, conversation or session to name. A
-   * `PLATFORM_EXECUTOR` link carrying a source, or a telemetry-path link
-   * carrying none, is rejected with `source_kind_contradicts_source`.
+   * PRESENT ON THE FIVE TELEMETRY AND RPC KINDS, ABSENT ON `PLATFORM_EXECUTOR`
+   * (increment `D-5b` §0.2) — the mirror of `fallback_reason`'s rule below,
+   * and for the same reason `B2-6` note 2 gives: a field whose presence is a
+   * function of `source_kind` beats forcing a meaningless value onto a path
+   * that has none. A platform-emitted link is produced inside a provider call
+   * this backend made itself; there is no customer trace, span, observation,
+   * conversation or session to name, and a synthesized one would be a
+   * fabricated identity (non-negotiable 5). The rule is enforced, not
+   * described: `artifact_link::normalize::validate_constructed_link` rejects a
+   * `PLATFORM_EXECUTOR` link carrying a source, and a telemetry-path link
+   * carrying none, with `source_kind_contradicts_source`.
+   *
+   * No label, number or type changed when this comment landed.
    *
    * @generated from field: o11y_one.agentic.v1.TelemetryRefV1 source = 7;
    */
@@ -694,7 +763,7 @@ export type ArtifactLinkV1 = Message<"o11y_one.agentic.v1.ArtifactLinkV1"> & {
   status: ArtifactLinkStatusV1;
 
   /**
-   * Corrections are APPEND-ONLY. A correction is a new row with
+   * `AL-8`: corrections are APPEND-ONLY. A correction is a new row with
    * `supersedes_link_id` set and `correction_sequence` incremented; a revocation
    * is a tombstone status, never a delete of source telemetry.
    *
@@ -718,24 +787,28 @@ export type ArtifactLinkV1 = Message<"o11y_one.agentic.v1.ArtifactLinkV1"> & {
   factsWatermark: string;
 
   /**
-   * A collision surfaces, it never overwrites.
+   * `AL-7`: a collision surfaces, it never overwrites.
    *
    * @generated from field: o11y_one.agentic.v1.ArtifactLinkConflictPostureV1 conflict_posture = 16;
    */
   conflictPosture: ArtifactLinkConflictPostureV1;
 
   /**
-   * OPTIONAL here and REQUIRED on the request, deliberately: a link whose `source_kind` is SPAN_EVENT,
-   * CORRELATED_LOG or SPAN_ATTRIBUTE has no fallback reason to carry, and
-   * collapsing them would force a meaningless value onto every telemetry-path
-   * link. Set it only for FALLBACK_RPC and BACKFILL.
+   * Amendment `B2-6` (A1, 2026-08-15). OPTIONAL here and REQUIRED on the
+   * request (`B1-3`) — deliberately different fields: a link whose `source_kind`
+   * is SPAN_EVENT, CORRELATED_LOG or SPAN_ATTRIBUTE has no fallback reason to
+   * carry, and collapsing them would force a meaningless value onto every
+   * telemetry-path link. Set it only for FALLBACK_RPC and BACKFILL.
+   *
+   * This is the message's FIRST definition, so the field lands with it rather
+   * than as a later widening: `buf breaking` never sees a change here.
    *
    * @generated from field: optional o11y_one.agentic.v1.ArtifactLinkFallbackReasonV1 fallback_reason = 17;
    */
   fallbackReason?: ArtifactLinkFallbackReasonV1 | undefined;
 
   /**
-   * Reads return POSTURE, not resolution. A timeline shows
+   * `AL-14` rule 2: reads return POSTURE, not resolution. A timeline shows
    * "resolvable" without having resolved.
    *
    * @generated from field: o11y_one.agentic.v1.ArtifactResolverPostureV1 resolver_posture = 18;
@@ -751,25 +824,27 @@ export const ArtifactLinkV1Schema: GenMessage<ArtifactLinkV1> = /*@__PURE__*/
   messageDesc(file_o11y_one_agentic_v1_artifact, 14);
 
 /**
- * `MUTATION_ACK` class, requires an authorized principal, writes one audit row
- * per call, and is RATE-LIMITED AS A WRITE SURFACE.
+ * `AL-10`: `MUTATION_ACK` class, requires an authorized principal, writes one
+ * audit row per call, and is RATE-LIMITED AS A WRITE SURFACE.
  *
- * The RPC is served on the trace viewer's service (trace_view.proto).
+ * NO `service` BLOCK IS DEFINED IN THIS FILE. The messages land with the
+ * increment that owns the shapes; the surface lands with the increment that
+ * wires it. Recorded in increment record §0.3.
  *
  * @generated from message o11y_one.agentic.v1.LinkExternalArtifactRequest
  */
 export type LinkExternalArtifactRequest = Message<"o11y_one.agentic.v1.LinkExternalArtifactRequest"> & {
   /**
-   * REQUIRED. A request whose reason is `..._UNSPECIFIED` is refused with
-   * `INVALID_ARGUMENT` before anything is written: the four reasons are the
-   * only reasons this surface exists.
+   * `B1-3`: REQUIRED. A request whose reason is `..._UNSPECIFIED` is refused
+   * with `INVALID_ARGUMENT` before any row is written — the four reasons in
+   * `AL-9` are the only reasons this surface exists.
    *
    * @generated from field: o11y_one.agentic.v1.ArtifactLinkFallbackReasonV1 fallback_reason = 1;
    */
   fallbackReason: ArtifactLinkFallbackReasonV1;
 
   /**
-   * The authorized principal, recorded on the audit row.
+   * `AL-10`: the authorized principal, recorded on the audit row.
    *
    * @generated from field: o11y_one.agentic.v1.PrincipalRefV1 principal = 2;
    */
@@ -827,6 +902,9 @@ export const LinkExternalArtifactResponseSchema: GenMessage<LinkExternalArtifact
   messageDesc(file_o11y_one_agentic_v1_artifact, 16);
 
 /**
+ * COINED HERE (`D-4`). A1:455 names `ContentDigestV1` and fixes no algorithm
+ * vocabulary.
+ *
  * @generated from enum o11y_one.agentic.v1.ContentDigestAlgorithmV1
  */
 export enum ContentDigestAlgorithmV1 {
@@ -858,7 +936,8 @@ export const ContentDigestAlgorithmV1Schema: GenEnum<ContentDigestAlgorithmV1> =
   enumDesc(file_o11y_one_agentic_v1_artifact, 0);
 
 /**
- * An enum, deliberately: there is no free-text sensitivity anywhere.
+ * COINED HERE (`D-4`). A1:416 requires the class to be an enum and states there
+ * is "deliberately no string field anywhere"; it fixes no member list.
  *
  * @generated from enum o11y_one.agentic.v1.ContentSensitivityClassV1
  */
@@ -896,6 +975,8 @@ export const ContentSensitivityClassV1Schema: GenEnum<ContentSensitivityClassV1>
   enumDesc(file_o11y_one_agentic_v1_artifact, 1);
 
 /**
+ * COINED HERE (`D-4`).
+ *
  * @generated from enum o11y_one.agentic.v1.RedactionClassV1
  */
 export enum RedactionClassV1 {
@@ -927,8 +1008,8 @@ export enum RedactionClassV1 {
 
   /**
    * The value has not been through the content policy. Never treated as safe:
-   * "unclassified" and "safe" are different values, as they are for content
-   * bodies.
+   * "unclassified" and "safe" are different values, the discipline
+   * `artifact_content.rs`'s `ContentSanitization` already applies to bodies.
    *
    * @generated from enum value: REDACTION_CLASS_V1_UNCLASSIFIED = 4;
    */
@@ -942,7 +1023,8 @@ export const RedactionClassV1Schema: GenEnum<RedactionClassV1> = /*@__PURE__*/
   enumDesc(file_o11y_one_agentic_v1_artifact, 2);
 
 /**
- * Link facts have their own retention class, independent of evaluation facts.
+ * COINED HERE (`D-4`). A3 §2.3 gives the link fact its own retention class
+ * `artifact_link_facts`, independent of eval facts.
  *
  * @generated from enum o11y_one.agentic.v1.RetentionClassV1
  */
@@ -980,9 +1062,9 @@ export const RetentionClassV1Schema: GenEnum<RetentionClassV1> = /*@__PURE__*/
   enumDesc(file_o11y_one_agentic_v1_artifact, 3);
 
 /**
- * An unknown wire value becomes the typed unknown member, `..._OTHER`, plus a
- * diagnostic, never a rejection; that is why this enum may be extended without
- * a break.
+ * COINED HERE (`D-4`). `0b:846` requires an unknown wire value to become "the
+ * typed unknown member plus a diagnostic, not a rejection" — that member is
+ * `..._OTHER`, and it is why this enum may be extended without a break.
  *
  * @generated from enum o11y_one.agentic.v1.ArtifactTypeV1
  */
@@ -1059,7 +1141,7 @@ export enum ArtifactTypeV1 {
 
   /**
    * The emitter named a type this build does not know. A link carrying it is
-   * ACCEPTED with a convention diagnostic, never REJECTED.
+   * ACCEPTED with a convention diagnostic, never REJECTED (`0b:846`).
    *
    * @generated from enum value: ARTIFACT_TYPE_V1_OTHER = 14;
    */
@@ -1073,8 +1155,9 @@ export const ArtifactTypeV1Schema: GenEnum<ArtifactTypeV1> = /*@__PURE__*/
   enumDesc(file_o11y_one_agentic_v1_artifact, 4);
 
 /**
- * `EVIDENCE` means the artifact was used as evidence; `REFERENCED` means it was
- * merely named.
+ * A1:467 names `CONSUMED|PRODUCED|EVIDENCE|...` and elides the rest;
+ * `REFERENCED` is COINED HERE (`D-4`) for the relationship plan `:599`
+ * describes as "used the artifact as evidence" versus merely naming it.
  *
  * @generated from enum o11y_one.agentic.v1.ArtifactRoleV1
  */
@@ -1112,8 +1195,9 @@ export const ArtifactRoleV1Schema: GenEnum<ArtifactRoleV1> = /*@__PURE__*/
   enumDesc(file_o11y_one_agentic_v1_artifact, 5);
 
 /**
- * A relation expressed as an unconstrained free string reaches raw provenance
- * but does not populate the typed `relation` field.
+ * COINED HERE (`D-4`). `AL-4` is the constraint that matters more than the
+ * member list: "a relation expressed as an unconstrained free string reaches
+ * raw provenance but does not populate the typed `relation` field" (`0b:860`).
  *
  * @generated from enum o11y_one.agentic.v1.ArtifactRelationV1
  */
@@ -1155,7 +1239,7 @@ export enum ArtifactRelationV1 {
 
   /**
    * The emitter named a relation this build does not know. It reaches raw
-   * provenance and leaves the typed field UNSPECIFIED.
+   * provenance and leaves the typed field UNSPECIFIED, per `AL-4`.
    *
    * @generated from enum value: ARTIFACT_RELATION_V1_OTHER = 7;
    */
@@ -1169,6 +1253,8 @@ export const ArtifactRelationV1Schema: GenEnum<ArtifactRelationV1> = /*@__PURE__
   enumDesc(file_o11y_one_agentic_v1_artifact, 6);
 
 /**
+ * A1:458, verbatim.
+ *
  * @generated from enum o11y_one.agentic.v1.ArtifactAvailabilityV1
  */
 export enum ArtifactAvailabilityV1 {
@@ -1210,8 +1296,9 @@ export const ArtifactAvailabilityV1Schema: GenEnum<ArtifactAvailabilityV1> = /*@
   enumDesc(file_o11y_one_agentic_v1_artifact, 7);
 
 /**
- * Where a link came from. Every path produces the same `ArtifactLinkV1` and the
- * same immutable fact; they differ ONLY here.
+ * A1:471 for members 1-5, verbatim. `AL-1` FROZEN: every path produces the same
+ * in-memory `ArtifactLinkV1` and the same immutable fact row; they differ ONLY
+ * here.
  *
  * @generated from enum o11y_one.agentic.v1.ArtifactLinkSourceKindV1
  */
@@ -1247,16 +1334,27 @@ export enum ArtifactLinkSourceKindV1 {
   BACKFILL = 5,
 
   /**
-   * An artifact o11y's own evaluation executor emitted about a provider call it
-   * made itself, such as the verbatim provider-usage object. The other five
-   * kinds are customer instrumentation or an authenticated principal.
+   * COINED HERE (increment `D-5b`, 2026-08-18). A SIXTH PATH, not a re-spelling
+   * of one of the five.
    *
-   * A LINK OF THIS KIND CARRIES NO `source`, AND THAT IS WHAT THE MEMBER MEANS. See
-   * `ArtifactLinkV1.source`. Filling it would fabricate a telemetry identity a timeline
-   * would later join on.
+   * `AL-1`'s table (`0b:610`) enumerates five paths whose authority is either
+   * customer instrumentation or an authenticated principal. It has no row for
+   * an artifact the PLATFORM'S OWN evaluation executor emitted about a call it
+   * made itself — which is what the verbatim provider-usage object is
+   * (increment `D-5`, non-negotiable 49). None of the five fits: the three
+   * telemetry kinds name carriers this artifact never rode, `FALLBACK_RPC`
+   * names an RPC nobody called, and `BACKFILL` names historical artifacts
+   * predating instrumentation, whereas this one is written milliseconds after
+   * the provider answered.
    *
-   * A reader that has never seen `6` meets it as the typed unknown value plus a
-   * diagnostic, never a rejection.
+   * A LINK OF THIS KIND CARRIES NO `source`, AND THAT IS WHAT THE MEMBER MEANS.
+   * See `ArtifactLinkV1.source`. Filling it would fabricate a telemetry
+   * identity a timeline would later join on (non-negotiable 5).
+   *
+   * Additive: appending a member changes no existing number or name, so `buf
+   * breaking` (FILE mode) sees no change, and a reader that has never seen `6`
+   * meets it as the typed unknown value plus a diagnostic, never a rejection
+   * (`0b:846`). Increment record 2026-08-18-d5b-artifact-link-surfacing-and-sweep.md §0.1.
    *
    * @generated from enum value: ARTIFACT_LINK_SOURCE_KIND_V1_PLATFORM_EXECUTOR = 6;
    */
@@ -1270,6 +1368,9 @@ export const ArtifactLinkSourceKindV1Schema: GenEnum<ArtifactLinkSourceKindV1> =
   enumDesc(file_o11y_one_agentic_v1_artifact, 8);
 
 /**
+ * A1:473, verbatim. SM-12's transitions are `0b:939-943`; this enum carries the
+ * names and adds none.
+ *
  * @generated from enum o11y_one.agentic.v1.ArtifactLinkStatusV1
  */
 export enum ArtifactLinkStatusV1 {
@@ -1311,7 +1412,8 @@ export const ArtifactLinkStatusV1Schema: GenEnum<ArtifactLinkStatusV1> = /*@__PU
   enumDesc(file_o11y_one_agentic_v1_artifact, 9);
 
 /**
- * How a link relates to others with its `link_id`.
+ * A3 §2.3 carries a `conflict_posture` column; this is its enum.
+ * COINED HERE (`D-4`) — `AL-7` fixes the behaviour, not the spelling.
  *
  * @generated from enum o11y_one.agentic.v1.ArtifactLinkConflictPostureV1
  */
@@ -1329,7 +1431,7 @@ export enum ArtifactLinkConflictPostureV1 {
   NONE = 1,
 
   /**
-   * Same `link_id`, equal normalized payload — deduplicated silently.
+   * Same `link_id`, equal normalized payload — deduplicated silently (`AL-7`).
    *
    * @generated from enum value: ARTIFACT_LINK_CONFLICT_POSTURE_V1_DUPLICATE = 2;
    */
@@ -1338,7 +1440,7 @@ export enum ArtifactLinkConflictPostureV1 {
   /**
    * Same `link_id`, DIFFERENT normalized payload. Both rows are retained, the
    * newer carries this posture, and the read model reports the conflict rather
-   * than picking a winner. Nothing is ever overwritten.
+   * than picking a winner. Nothing is ever overwritten (`AL-7`, `0b:883-887`).
    *
    * @generated from enum value: ARTIFACT_LINK_CONFLICT_POSTURE_V1_CONFLICTING = 3;
    */
@@ -1352,6 +1454,8 @@ export const ArtifactLinkConflictPostureV1Schema: GenEnum<ArtifactLinkConflictPo
   enumDesc(file_o11y_one_agentic_v1_artifact, 10);
 
 /**
+ * `0b:952-965` (`AL-14`), FROZEN-PROPOSAL, member-for-member.
+ *
  * @generated from enum o11y_one.agentic.v1.ArtifactResolverPostureV1
  */
 export enum ArtifactResolverPostureV1 {
@@ -1410,8 +1514,9 @@ export const ArtifactResolverPostureV1Schema: GenEnum<ArtifactResolverPostureV1>
   enumDesc(file_o11y_one_agentic_v1_artifact, 11);
 
 /**
- * The four reasons are the ONLY reasons the fallback RPC exists; anything else
- * belongs in instrumentation, not an RPC.
+ * `0b:900-906` (`AL-9`), FROZEN-PROPOSAL, member-for-member. The four reasons
+ * are the ONLY reasons the fallback RPC exists; anything else is instrumentation
+ * routed through an RPC, which NN35 (`PLAN:187`) forbids.
  *
  * @generated from enum o11y_one.agentic.v1.ArtifactLinkFallbackReasonV1
  */

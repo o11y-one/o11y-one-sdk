@@ -2,16 +2,38 @@
 // @generated from file o11y_one/agentic/v1/agent_run.proto (package o11y_one.agentic.v1, syntax proto3)
 /* eslint-disable */
 
-// Agent runs: the identity of a conversation across traces.
+// Agentic Reliability V2 — the agent-run identity plane (wave 41).
 //
-// Same package as evaluation.proto, artifact.proto and trace_view.proto. A
-// separate FILE keeps this surface's compatibility checks apart from its
-// neighbours'.
+// Same package as agentic.proto, evaluation.proto, artifact.proto and
+// trace_view.proto by design (lock ruling L1-4): prost emits one Rust module per
+// package, so `proto::agentic::*` stays one flat namespace and `proto/src/lib.rs`
+// needs no change. A separate FILE keeps `buf breaking` (FILE mode,
+// `proto/buf.yaml`) from letting this surface destabilise its neighbours —
+// which matters more than usual here, because three lanes are appending to this
+// one file in the same tree.
+//
+// WHY THIS FILE RATHER THAN trace_view.proto
 //
 //   `trace_view.proto` is a TRACE surface: one trace, bounded, five levels. This
 //   file is a CONVERSATION surface: many traces, one identity, and a confidence
-// about whether that identity is real. The agent-run RPCs are served on the
-// trace viewer's service, which imports this file.
+//   about whether that identity is real. Folding them into one file would have
+//   put the agent-run contract inside the breaking surface of the trace viewer,
+//   and the two move on different schedules. `trace_view.proto` imports this
+//   file and hangs the RPCs on the service it already declares — the service
+//   that holds `UnifiedTelemetryQueryEngine`, because span rows are reachable
+//   through nothing else (w32 `0.1`).
+//
+// FILE LAYOUT — THREE LANES, THREE BLOCKS, ONE FILE
+//
+//   Lane A (identity and grouping) owns this header, the import block, and the
+//   first block. Lane B (summary index) appends after lane A's end marker; lane
+//   C (timeline and external artifacts) appends after lane B's. No lane edits
+//   above its own start marker.
+//
+//   Lane A owns the imports wholesale (coordinator ruling A-3) so that no
+//   sibling has to touch this header: `artifact.proto` is imported here for
+//   lane C's `ArtifactLinkV1` / `EvidenceAnchorV1` / `LinkExternalArtifact*`
+//   family even though lane A's own block does not reference it.
 
 import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
@@ -30,7 +52,7 @@ export const file_o11y_one_agentic_v1_agent_run: GenFile = /*@__PURE__*/
   fileDesc("CiNvMTF5X29uZS9hZ2VudGljL3YxL2FnZW50X3J1bi5wcm90bxITbzExeV9vbmUuYWdlbnRpYy52MSKvAgoZR3JvdXBpbmdDb25maWRlbmNlSW5wdXRWMRJGCgtzaWduYWxfa2luZBgBIAEoDjIxLm8xMXlfb25lLmFnZW50aWMudjEuQWdlbnRSdW5Hcm91cGluZ1NpZ25hbEtpbmRWMRIgChhvYnNlcnZlZF9vbl9tZW1iZXJfY291bnQYAiABKA0SGgoSdG90YWxfbWVtYmVyX2NvdW50GAMgASgNEksKEGNvbnRyaWJ1dGVkX3J1bmcYBCABKA4yMS5vMTF5X29uZS5hZ2VudGljLnYxLkFnZW50UnVuR3JvdXBpbmdDb25maWRlbmNlVjESPwoMYXZhaWxhYmlsaXR5GAUgASgLMikubzExeV9vbmUuYWdlbnRpYy52MS5NZXRyaWNBdmFpbGFiaWxpdHlWMSK/AQoSR3JvdXBpbmdSZWRpcmVjdFYxEg8KB2Zyb21faWQYASABKAkSDgoGdG9faWRzGAIgAygJEkUKBnJlYXNvbhgDIAEoDjI1Lm8xMXlfb25lLmFnZW50aWMudjEuQWdlbnRSdW5Hcm91cGluZ1JlZGlyZWN0UmVhc29uVjESEAoIcmV2aXNpb24YBCABKAQSLwoLb2NjdXJyZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wItoBChhBZ2VudFJ1bkdyb3VwaW5nQm91bmRzVjESGQoRbWF4X21lbWJlcl90cmFjZXMYASABKA0SHgoWbWF4X3dhbGxfY2xvY2tfc2Vjb25kcxgCIAEoBBIiChptYXhfaW5hY3Rpdml0eV9nYXBfc2Vjb25kcxgDIAEoBBIaChJtYXhfbG9va2JhY2tfaG91cnMYBCABKA0SIgoabWF4X3NwYW5zX3Blcl9tZW1iZXJfdHJhY2UYBSABKA0SHwoXbWF4X21lbWJlcl9zcGFuX2NlaWxpbmcYBiABKAQilAIKHkFnZW50UnVuR3JvdXBpbmdDb25maXJtYXRpb25WMRI5Cgxjb25maXJtZWRfYnkYASABKAsyIy5vMTF5X29uZS5hZ2VudGljLnYxLlByaW5jaXBhbFJlZlYxEkkKBnJlYXNvbhgCIAEoDjI5Lm8xMXlfb25lLmFnZW50aWMudjEuQWdlbnRSdW5Hcm91cGluZ0NvbmZpcm1hdGlvblJlYXNvblYxEhgKC3JlYXNvbl9ub3RlGAMgASgJSACIAQESMAoMY29uZmlybWVkX2F0GAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIQCghyZXZpc2lvbhgFIAEoBEIOCgxfcmVhc29uX25vdGUijgIKFkFnZW50UnVuQW5jaG9yUmViaW5kVjESNQoGYW5jaG9yGAEgASgLMiUubzExeV9vbmUuYWdlbnRpYy52MS5FdmlkZW5jZUFuY2hvclYxEh0KFW9yaWdpbmFsX2FnZW50X3J1bl9pZBgCIAEoCRIUCgxhZ2VudF9ydW5faWQYAyABKAkSEAoIcmV2aXNpb24YBCABKAQSRQoGcmVhc29uGAUgASgOMjUubzExeV9vbmUuYWdlbnRpYy52MS5BZ2VudFJ1bkdyb3VwaW5nUmVkaXJlY3RSZWFzb25WMRIvCgtvY2N1cnJlZF9hdBgGIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAivgUKEkFnZW50UnVuR3JvdXBpbmdWMRIUCgxhZ2VudF9ydW5faWQYASABKAkSOwoFc3RhdGUYAiABKA4yLC5vMTF5X29uZS5hZ2VudGljLnYxLkFnZW50UnVuR3JvdXBpbmdTdGF0ZVYxEkUKCmNvbmZpZGVuY2UYAyABKA4yMS5vMTF5X29uZS5hZ2VudGljLnYxLkFnZW50UnVuR3JvdXBpbmdDb25maWRlbmNlVjESFQoNYXR0YWNoZWRfcnVuZxgEIAEoDRIQCghyZXZpc2lvbhgFIAEoBBJJChFjb25maWRlbmNlX2lucHV0cxgGIAMoCzIuLm8xMXlfb25lLmFnZW50aWMudjEuR3JvdXBpbmdDb25maWRlbmNlSW5wdXRWMRIcCg9jb252ZXJzYXRpb25faWQYByABKAlIAIgBARIaChJtZW1iZXJfdHJhY2VfY291bnQYCCABKA0SPQoGYm91bmRzGAkgASgLMi0ubzExeV9vbmUuYWdlbnRpYy52MS5BZ2VudFJ1bkdyb3VwaW5nQm91bmRzVjESPgoIcmVkaXJlY3QYCiABKAsyJy5vMTF5X29uZS5hZ2VudGljLnYxLkdyb3VwaW5nUmVkaXJlY3RWMUgBiAEBEk4KDGNvbmZpcm1hdGlvbhgLIAEoCzIzLm8xMXlfb25lLmFnZW50aWMudjEuQWdlbnRSdW5Hcm91cGluZ0NvbmZpcm1hdGlvblYxSAKIAQESGgoScHJvamVjdGlvbl92ZXJzaW9uGAwgASgEEkMKDmFuY2hvcl9yZWJpbmRzGA0gAygLMisubzExeV9vbmUuYWdlbnRpYy52MS5BZ2VudFJ1bkFuY2hvclJlYmluZFYxQhIKEF9jb252ZXJzYXRpb25faWRCCwoJX3JlZGlyZWN0Qg8KDV9jb25maXJtYXRpb24iuAIKGkNvbnZlcnNhdGlvbkNvbXBsZXRlbmVzc1YxEkMKBXN0YXRlGAEgASgOMjQubzExeV9vbmUuYWdlbnRpYy52MS5Db252ZXJzYXRpb25Db21wbGV0ZW5lc3NTdGF0ZVYxEg0KBWVwb2NoGAIgASgNEjAKDGxhc3Rfc2Vlbl9hdBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASIQoZaW5hY3Rpdml0eV93aW5kb3dfc2Vjb25kcxgEIAEoBBIiChpsYXRlX2Fycml2YWxfZ3JhY2Vfc2Vjb25kcxgFIAEoBBIbChNzdXBlcnNlZGVkX2VsaWdpYmxlGAYgASgIEjAKDGV2YWx1YXRlZF9hdBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAixAEKHkNvbmZpcm1BZ2VudFJ1bkdyb3VwaW5nUmVxdWVzdBIUCgxhZ2VudF9ydW5faWQYASABKAkSSQoGcmVhc29uGAIgASgOMjkubzExeV9vbmUuYWdlbnRpYy52MS5BZ2VudFJ1bkdyb3VwaW5nQ29uZmlybWF0aW9uUmVhc29uVjESGAoLcmVhc29uX25vdGUYAyABKAlIAIgBARIXCg9pZGVtcG90ZW5jeV9rZXkYBCABKAlCDgoMX3JlYXNvbl9ub3RlIskCCh9Db25maXJtQWdlbnRSdW5Hcm91cGluZ1Jlc3BvbnNlEjkKCGdyb3VwaW5nGAEgASgLMicubzExeV9vbmUuYWdlbnRpYy52MS5BZ2VudFJ1bkdyb3VwaW5nVjESGQoRaWRlbXBvdGVudF9yZXBsYXkYAiABKAgSRQoMY29tcGxldGVuZXNzGAMgASgLMi8ubzExeV9vbmUuYWdlbnRpYy52MS5Db252ZXJzYXRpb25Db21wbGV0ZW5lc3NWMRI9CglmcmVzaG5lc3MYBCABKAsyKi5vMTF5X29uZS5hZ2VudGljLnYxLkV2YWx1YXRpb25GcmVzaG5lc3NWMRJKCgxjYXBhYmlsaXRpZXMYBSABKAsyNC5vMTF5X29uZS5hZ2VudGljLnYxLkFnZW50aWNFdmFsdWF0aW9uQ2FwYWJpbGl0aWVzVjEq9gIKHEFnZW50UnVuR3JvdXBpbmdDb25maWRlbmNlVjESMAosQUdFTlRfUlVOX0dST1VQSU5HX0NPTkZJREVOQ0VfVjFfVU5TUEVDSUZJRUQQABItCilBR0VOVF9SVU5fR1JPVVBJTkdfQ09ORklERU5DRV9WMV9FWFBMSUNJVBABEjUKMUFHRU5UX1JVTl9HUk9VUElOR19DT05GSURFTkNFX1YxX0VYUExJQ0lUX1BBUlRJQUwQAhIsCihBR0VOVF9SVU5fR1JPVVBJTkdfQ09ORklERU5DRV9WMV9ERVJJVkVEEAMSMAosQUdFTlRfUlVOX0dST1VQSU5HX0NPTkZJREVOQ0VfVjFfUFJPVklTSU9OQUwQBBIuCipBR0VOVF9SVU5fR1JPVVBJTkdfQ09ORklERU5DRV9WMV9VTkdST1VQRUQQBRIuCipBR0VOVF9SVU5fR1JPVVBJTkdfQ09ORklERU5DRV9WMV9DT05GSVJNRUQQBir0AQoXQWdlbnRSdW5Hcm91cGluZ1N0YXRlVjESKwonQUdFTlRfUlVOX0dST1VQSU5HX1NUQVRFX1YxX1VOU1BFQ0lGSUVEEAASJwojQUdFTlRfUlVOX0dST1VQSU5HX1NUQVRFX1YxX0NVUlJFTlQQARIrCidBR0VOVF9SVU5fR1JPVVBJTkdfU1RBVEVfVjFfTUVSR0VEX0FXQVkQAhIqCiZBR0VOVF9SVU5fR1JPVVBJTkdfU1RBVEVfVjFfU1BMSVRfQVdBWRADEioKJkFHRU5UX1JVTl9HUk9VUElOR19TVEFURV9WMV9SRURJUkVDVEVEEAQqlQIKH0NvbnZlcnNhdGlvbkNvbXBsZXRlbmVzc1N0YXRlVjESMgouQ09OVkVSU0FUSU9OX0NPTVBMRVRFTkVTU19TVEFURV9WMV9VTlNQRUNJRklFRBAAEisKJ0NPTlZFUlNBVElPTl9DT01QTEVURU5FU1NfU1RBVEVfVjFfT1BFThABEi8KK0NPTlZFUlNBVElPTl9DT01QTEVURU5FU1NfU1RBVEVfVjFfSU5BQ1RJVkUQAhIvCitDT05WRVJTQVRJT05fQ09NUExFVEVORVNTX1NUQVRFX1YxX0NPTVBMRVRFEAMSLworQ09OVkVSU0FUSU9OX0NPTVBMRVRFTkVTU19TVEFURV9WMV9SRU9QRU5FRBAEKvMCChxBZ2VudFJ1bkdyb3VwaW5nU2lnbmFsS2luZFYxEjEKLUFHRU5UX1JVTl9HUk9VUElOR19TSUdOQUxfS0lORF9WMV9VTlNQRUNJRklFRBAAEj4KOkFHRU5UX1JVTl9HUk9VUElOR19TSUdOQUxfS0lORF9WMV9PRkZJQ0lBTF9DT05WRVJTQVRJT05fSUQQARIvCitBR0VOVF9SVU5fR1JPVVBJTkdfU0lHTkFMX0tJTkRfVjFfU1BBTl9MSU5LEAISQwo/QUdFTlRfUlVOX0dST1VQSU5HX1NJR05BTF9LSU5EX1YxX0NPTlRST0xfUExBTkVfQ09OVkVSU0FUSU9OX0lEEAMSNwozQUdFTlRfUlVOX0dST1VQSU5HX1NJR05BTF9LSU5EX1YxX0JPVU5ERURfSEVVUklTVElDEAQSMQotQUdFTlRfUlVOX0dST1VQSU5HX1NJR05BTF9LSU5EX1YxX05PX0lERU5USVRZEAUq5gIKIEFnZW50UnVuR3JvdXBpbmdSZWRpcmVjdFJlYXNvblYxEjUKMUFHRU5UX1JVTl9HUk9VUElOR19SRURJUkVDVF9SRUFTT05fVjFfVU5TUEVDSUZJRUQQABJGCkJBR0VOVF9SVU5fR1JPVVBJTkdfUkVESVJFQ1RfUkVBU09OX1YxX0xBVEVfRVhQTElDSVRfSURFTlRJVFlfTUVSR0UQARJGCkJBR0VOVF9SVU5fR1JPVVBJTkdfUkVESVJFQ1RfUkVBU09OX1YxX0xBVEVfRVhQTElDSVRfSURFTlRJVFlfU1BMSVQQAhI8CjhBR0VOVF9SVU5fR1JPVVBJTkdfUkVESVJFQ1RfUkVBU09OX1YxX0JPVU5EX0JSRUFDSF9TUExJVBADEj0KOUFHRU5UX1JVTl9HUk9VUElOR19SRURJUkVDVF9SRUFTT05fVjFfSEVVUklTVElDX1JFR1JPVVBFRBAEKsoCCiRBZ2VudFJ1bkdyb3VwaW5nQ29uZmlybWF0aW9uUmVhc29uVjESOQo1QUdFTlRfUlVOX0dST1VQSU5HX0NPTkZJUk1BVElPTl9SRUFTT05fVjFfVU5TUEVDSUZJRUQQABJRCk1BR0VOVF9SVU5fR1JPVVBJTkdfQ09ORklSTUFUSU9OX1JFQVNPTl9WMV9PUEVSQVRPUl9WRVJJRklFRF9TQU1FX0NPTlZFUlNBVElPThABEk4KSkFHRU5UX1JVTl9HUk9VUElOR19DT05GSVJNQVRJT05fUkVBU09OX1YxX0lOU1RSVU1FTlRBVElPTl9HQVBfQUNLTk9XTEVER0VEEAISRApAQUdFTlRfUlVOX0dST1VQSU5HX0NPTkZJUk1BVElPTl9SRUFTT05fVjFfSU5DSURFTlRfSU5WRVNUSUdBVElPThADKrIDCh1BZ2VudFJ1bkF1dGhvcml0eUNhcGFiaWxpdHlWMRIxCi1BR0VOVF9SVU5fQVVUSE9SSVRZX0NBUEFCSUxJVFlfVjFfVU5TUEVDSUZJRUQQABIsCihBR0VOVF9SVU5fQVVUSE9SSVRZX0NBUEFCSUxJVFlfVjFfUkVOREVSEAESPAo4QUdFTlRfUlVOX0FVVEhPUklUWV9DQVBBQklMSVRZX1YxX01BTlVBTF9EUkFGVF9TRUxFQ1RJT04QAhI3CjNBR0VOVF9SVU5fQVVUSE9SSVRZX0NBUEFCSUxJVFlfVjFfQVVUT01BVElDX0xJTkVBR0UQAxI9CjlBR0VOVF9SVU5fQVVUSE9SSVRZX0NBUEFCSUxJVFlfVjFfUFJPRFVDVElPTl9SVUxFX1RSSUdHRVIQBBJCCj5BR0VOVF9SVU5fQVVUSE9SSVRZX0NBUEFCSUxJVFlfVjFfQ09OVkVSU0FUSU9OX1NVQkpFQ1RfU0NPUklORxAFEjYKMkFHRU5UX1JVTl9BVVRIT1JJVFlfQ0FQQUJJTElUWV9WMV9SRUxFQVNFX0VWSURFTkNFEAZC2QEKF2NvbS5vMTF5X29uZS5hZ2VudGljLnYxQg1BZ2VudFJ1blByb3RvUAFaRWdpdGh1Yi5jb20vbzExeS1vbmUvbzExeS1vbmUtc2RrL2dlbi9nby9vMTF5X29uZS9hZ2VudGljL3YxO2FnZW50aWN2MaICA09BWKoCEk8xMXlPbmUuQWdlbnRpYy5WMcoCEk8xMXlPbmVcQWdlbnRpY1xWMeICHk8xMXlPbmVcQWdlbnRpY1xWMVxHUEJNZXRhZGF0YeoCFE8xMXlPbmU6OkFnZW50aWM6OlYxYgZwcm90bzM", [file_google_protobuf_timestamp, file_o11y_one_agentic_v1_evaluation, file_o11y_one_agentic_v1_artifact]);
 
 /**
- * Confidence carries its INPUTS,
+ * `P7-3`, verbatim in its four required fields: confidence carries its INPUTS,
  * not just its verdict, so "explain confidence" is a rendering of returned data
  * and never a frontend heuristic.
  *
@@ -85,7 +107,7 @@ export const GroupingConfidenceInputV1Schema: GenMessage<GroupingConfidenceInput
   messageDesc(file_o11y_one_agentic_v1_agent_run, 0);
 
 /**
- * Returned by ANY read addressed with a non-`_CURRENT` id, alongside the
+ * `P7-6`. Returned by ANY read addressed with a non-`_CURRENT` id, alongside the
  * canonical run's content. Never instead of it, and never a `NOT_FOUND`.
  *
  * @generated from message o11y_one.agentic.v1.GroupingRedirectV1
@@ -135,9 +157,9 @@ export const GroupingRedirectV1Schema: GenMessage<GroupingRedirectV1> = /*@__PUR
  * The bounds, published as numbers on every run rather than described in prose
  * on a capability nobody fetched.
  *
- * Three bounds exist and a breach splits a group rather than merging it; the
- * numbers are here so a client rendering "this group was split" can say what it
- * was split by.
+ * `P7-2` locks the RULE that three bounds exist and that breach means
+ * split-not-merge; the numbers are this lane's, and they are here so a client
+ * rendering "this group was split" can say what it was split by.
  *
  * @generated from message o11y_one.agentic.v1.AgentRunGroupingBoundsV1
  */
@@ -167,7 +189,8 @@ export type AgentRunGroupingBoundsV1 = Message<"o11y_one.agentic.v1.AgentRunGrou
   maxInactivityGapSeconds: bigint;
 
   /**
-   * Every trace query is clamped to fourteen days.
+   * The plane's own edge, not this surface's choice:
+   * `trace_partition_pruning_range` clamps every trace query to fourteen days.
    *
    * @generated from field: uint32 max_lookback_hours = 4;
    */
@@ -240,15 +263,15 @@ export const AgentRunGroupingConfirmationV1Schema: GenMessage<AgentRunGroupingCo
   messageDesc(file_o11y_one_agentic_v1_agent_run, 3);
 
 /**
- * What happened to the evidence anchored to this run.
+ * `P7-7` on the wire: what happened to the evidence anchored to this run.
  *
  * "Confirmed links survive a merge or a split" is a promise that is unfalsifiable
  * unless the move is visible. An operator who linked a dataset draft to a run and
  * then watched that run merge has exactly one question — *did my link follow?* —
  * and this is the answer, as data rather than as documentation.
  *
- * `anchor` is the SAME `EvidenceAnchorV1` every other surface addresses evidence
- * with (its `agent_run` arm).
+ * `anchor` is the SAME `EvidenceAnchorV1` every other plane addresses evidence
+ * with (A1 §4.5, twelve arms, arm 7 `agent_run`), reused rather than twinned.
  * `original_agent_run_id` is written once and never overwritten: the audit chain
  * is the point, and a chain whose first link is editable is not a chain.
  *
@@ -300,9 +323,8 @@ export const AgentRunAnchorRebindV1Schema: GenMessage<AgentRunAnchorRebindV1> = 
   messageDesc(file_o11y_one_agentic_v1_agent_run, 4);
 
 /**
- * The identity block. The summary and the timeline embed this rather than
- * re-deriving any part of it, so there is exactly one answer to "how sure are we
- * about this run?".
+ * The identity block. Lanes B and C embed this rather than re-deriving any part
+ * of it, so there is exactly one answer to "how sure are we about this run?".
  *
  * @generated from message o11y_one.agentic.v1.AgentRunGroupingV1
  */
@@ -334,7 +356,7 @@ export type AgentRunGroupingV1 = Message<"o11y_one.agentic.v1.AgentRunGroupingV1
 
   /**
    * Monotone. A grouping change advances it, so a cursor bound to it resyncs
-   * rather than reordering invisibly.
+   * rather than reordering invisibly (`P7-9`, NN20).
    *
    * @generated from field: uint64 revision = 5;
    */
@@ -378,8 +400,8 @@ export type AgentRunGroupingV1 = Message<"o11y_one.agentic.v1.AgentRunGroupingV1
   confirmation?: AgentRunGroupingConfirmationV1 | undefined;
 
   /**
-   * Monotone, and it advances on a grouping change AND on late data. The
-   * timeline's cursor binds to it.
+   * Monotone, and it advances on a grouping change AND on late data. Lane C's
+   * timeline cursor binds to this; lane B's index pass joins against it.
    *
    * @generated from field: uint64 projection_version = 12;
    */
@@ -404,11 +426,11 @@ export const AgentRunGroupingV1Schema: GenMessage<AgentRunGroupingV1> = /*@__PUR
   messageDesc(file_o11y_one_agentic_v1_agent_run, 5);
 
 /**
- * The conversation's completeness state, with the configuration that produced it.
+ * SM-11's state, with the configuration that produced it.
  *
- * The timeline's "this conversation is done" affordance READS this and computes
- * no idle heuristic of its own. The window and grace ride along so a client can
- * say "quiet for 15 minutes" without a second fetch.
+ * `P7-13`: the timeline's "this conversation is done" affordance READS this and
+ * computes no idle heuristic of its own. The window and grace ride along so a
+ * client can say "quiet for 15 minutes" without a second fetch.
  *
  * @generated from message o11y_one.agentic.v1.ConversationCompletenessV1
  */
@@ -421,7 +443,7 @@ export type ConversationCompletenessV1 = Message<"o11y_one.agentic.v1.Conversati
   /**
    * Increments on every `_REOPENED`. Evidence produced against a previous epoch
    * stays valid and readable and is marked superseded-eligible; nothing is
-   * deleted.
+   * deleted (`P7-12`, NN13).
    *
    * @generated from field: uint32 epoch = 2;
    */
@@ -452,8 +474,9 @@ export type ConversationCompletenessV1 = Message<"o11y_one.agentic.v1.Conversati
   supersededEligible: boolean;
 
   /**
-   * WHEN the server decided the state. On the wire so a reader can tell a stale
-   * projection from a quiet conversation.
+   * WHEN the state was decided, by Postgres's clock, inside the statement that
+   * stored it. On the wire so a reader can tell a stale projection from a quiet
+   * conversation.
    *
    * @generated from field: google.protobuf.Timestamp evaluated_at = 7;
    */
@@ -468,8 +491,8 @@ export const ConversationCompletenessV1Schema: GenMessage<ConversationCompletene
   messageDesc(file_o11y_one_agentic_v1_agent_run, 6);
 
 /**
- * The audited promotion of a provisional grouping when explicit telemetry
- * identity is unavailable.
+ * `PLAN:1675` / `PLAN:494`: the audited promotion of a provisional grouping when
+ * explicit telemetry identity is unavailable.
  *
  * @generated from message o11y_one.agentic.v1.ConfirmAgentRunGroupingRequest
  */
@@ -546,6 +569,8 @@ export const ConfirmAgentRunGroupingResponseSchema: GenMessage<ConfirmAgentRunGr
   messageDesc(file_o11y_one_agentic_v1_agent_run, 8);
 
 /**
+ * SM-9 (`0b:P7-1`), verbatim.
+ *
  * Grouping resolves in strict precedence order and the FIRST rung that produces
  * a group wins; the rung that produced it is recorded on the run and returned as
  * `GroupingConfidenceInputV1.contributed_rung`.
@@ -583,9 +608,9 @@ export enum AgentRunGroupingConfidenceV1 {
   EXPLICIT_PARTIAL = 2,
 
   /**
-   * Rung 3: compatible SECONDARY identity only: the `conversation_id` recorded
-   * against a trace by a score, feedback, outcome or content manifest whose spans
-   * never carried the attribute. Authoritative.
+   * Rung 3: compatible SECONDARY identity only — the control plane's own
+   * `conversation_id`, recorded against a trace by a score, feedback, outcome or
+   * content manifest whose spans never carried the attribute. Authoritative.
    *
    * @generated from enum value: AGENT_RUN_GROUPING_CONFIDENCE_V1_DERIVED = 3;
    */
@@ -602,8 +627,8 @@ export enum AgentRunGroupingConfidenceV1 {
 
   /**
    * Rung 5: no identity at all. One trace, one run — and VISIBLE in the agent-run
-   * index, unlike `ListSessions`, which excludes identity-less traces. Not
-   * authoritative for CROSS-TRACE claims; a single-trace
+   * index, unlike `ListSessions`, which excludes identity-less traces (0b docket
+   * B1-4, adopted). Not authoritative for CROSS-TRACE claims; a single-trace
    * claim about a single-trace run is a claim about that trace.
    *
    * @generated from enum value: AGENT_RUN_GROUPING_CONFIDENCE_V1_UNGROUPED = 5;
@@ -626,6 +651,8 @@ export const AgentRunGroupingConfidenceV1Schema: GenEnum<AgentRunGroupingConfide
   enumDesc(file_o11y_one_agentic_v1_agent_run, 0);
 
 /**
+ * SM-10 (`0b:P7-5`), verbatim.
+ *
  * Three of the five are terminal, and ALL THREE REDIRECT. None of them is a
  * `NOT_FOUND`: a read by a stale id returns the canonical run plus a
  * `GroupingRedirectV1`, because an operator who followed a link from an incident
@@ -676,11 +703,15 @@ export const AgentRunGroupingStateV1Schema: GenEnum<AgentRunGroupingStateV1> = /
   enumDesc(file_o11y_one_agentic_v1_agent_run, 1);
 
 /**
+ * SM-11 (`0b:P7-11`..`P7-13`), verbatim.
+ *
  * NO terminal: `_COMPLETE` is reopenable by construction, because a late span is
  * a fact about the customer's system and not a violation of ours.
  *
- * Every transition is decided by one server clock, when the state is stored, so
- * "is this conversation over?" never gets two different answers.
+ * Every transition is decided by POSTGRES'S clock, inside the statement that
+ * stores it (wave 39 `DEV-3`). There is no Rust twin of this comparison, because
+ * two clocks answering "is this conversation over?" is how a conversation gets
+ * scored twice with two different answers.
  *
  * @generated from enum o11y_one.agentic.v1.ConversationCompletenessStateV1
  */
@@ -699,9 +730,9 @@ export enum ConversationCompletenessStateV1 {
 
   /**
    * Inactivity window elapsed; provisionally final. THIS is where
-   * conversation-subject scoring and conversation-scoped rules fire — firing at
-   * `_COMPLETE` makes the learning loop unusably slow, and firing at `_OPEN`
-   * scores a truncated conversation.
+   * conversation-subject scoring and conversation-scoped rules fire (`P7-11`) —
+   * firing at `_COMPLETE` makes the learning loop unusably slow, and firing at
+   * `_OPEN` scores a truncated conversation.
    *
    * @generated from enum value: CONVERSATION_COMPLETENESS_STATE_V1_INACTIVE = 2;
    */
@@ -717,7 +748,7 @@ export enum ConversationCompletenessStateV1 {
   /**
    * A late span arrived after `_COMPLETE`. `completeness_epoch` increments;
    * evidence produced against epoch n stays valid and readable, marked
-   * superseded-eligible. Nothing is retroactively deleted.
+   * superseded-eligible. Nothing is retroactively deleted (NN13).
    *
    * @generated from enum value: CONVERSATION_COMPLETENESS_STATE_V1_REOPENED = 4;
    */
@@ -731,6 +762,8 @@ export const ConversationCompletenessStateV1Schema: GenEnum<ConversationComplete
   enumDesc(file_o11y_one_agentic_v1_agent_run, 2);
 
 /**
+ * Minted by wave 41 lane A: `P7-3`'s `signal_kind`.
+ *
  * One value per source of identity this build can actually read. There is no
  * value for a signal nothing produces — an enum arm for an unreadable signal is
  * a promise a client would render an empty row for.
@@ -744,7 +777,8 @@ export enum AgentRunGroupingSignalKindV1 {
   UNSPECIFIED = 0,
 
   /**
-   * `gen_ai.conversation.id` on the span.
+   * `gen_ai.conversation.id` on the span. The only declaration is
+   * `transformation/src/trace_registry.rs:587`; it is a typed Arrow column.
    *
    * @generated from enum value: AGENT_RUN_GROUPING_SIGNAL_KIND_V1_OFFICIAL_CONVERSATION_ID = 1;
    */
@@ -754,9 +788,10 @@ export enum AgentRunGroupingSignalKindV1 {
    * An OTel span link from a span in one trace to a span in another.
    *
    * ADJACENCY ONLY, and the availability field on the input says so per run:
-   * span links are stored without their ATTRIBUTES (trace id, span id, trace
-   * state, dropped-attributes count and flags only). So a link can say THAT it
-   * links and can never say WHY. "Continuation", "batch member" and
+   * span links reach this lake with their ATTRIBUTES DROPPED
+   * (`transformation/src/otel_trace.rs:461-499` writes trace id, span id, trace
+   * state, dropped-attributes count and flags — and nothing else). So a link can
+   * say THAT it links and can never say WHY. "Continuation", "batch member" and
    * "retry of" are indistinguishable here, and this build does not guess between
    * them.
    *
@@ -765,10 +800,10 @@ export enum AgentRunGroupingSignalKindV1 {
   SPAN_LINK = 2,
 
   /**
-   * The `conversation_id` recorded beside a `trace_id` on a score, feedback
-   * event, outcome event, content manifest or dataset item. A genuinely second
-   * source: a customer can name the conversation on the SCORE for a trace whose
-   * spans never carried it.
+   * The control plane's own `conversation_id`, recorded beside a `trace_id` on a
+   * score, feedback event, outcome event, content manifest or dataset item
+   * (migration `20260416100000`). A genuinely second source: a customer can name
+   * the conversation on the SCORE for a trace whose spans never carried it.
    *
    * @generated from enum value: AGENT_RUN_GROUPING_SIGNAL_KIND_V1_CONTROL_PLANE_CONVERSATION_ID = 3;
    */
@@ -799,7 +834,7 @@ export const AgentRunGroupingSignalKindV1Schema: GenEnum<AgentRunGroupingSignalK
   enumDesc(file_o11y_one_agentic_v1_agent_run, 3);
 
 /**
- * Why a stale id redirects.
+ * Minted by wave 41 lane A: why a stale id redirects.
  *
  * @generated from enum o11y_one.agentic.v1.AgentRunGroupingRedirectReasonV1
  */
@@ -825,7 +860,7 @@ export enum AgentRunGroupingRedirectReasonV1 {
 
   /**
    * A heuristic group grew past one of its three bounds and was split rather
-   * than enlarged (split, never merge).
+   * than enlarged (`P7-2`, split-not-merge).
    *
    * @generated from enum value: AGENT_RUN_GROUPING_REDIRECT_REASON_V1_BOUND_BREACH_SPLIT = 3;
    */
@@ -851,7 +886,8 @@ export const AgentRunGroupingRedirectReasonV1Schema: GenEnum<AgentRunGroupingRed
   enumDesc(file_o11y_one_agentic_v1_agent_run, 4);
 
 /**
- * The audited reason a promotion records. Typed rather than free text, because "why did somebody confirm
+ * Minted by wave 41 lane A: the audited reason `PLAN:1675` requires on a
+ * promotion. Typed rather than free text, because "why did somebody confirm
  * this?" is a question the audit chain must answer without a human reading prose.
  *
  * @generated from enum o11y_one.agentic.v1.AgentRunGroupingConfirmationReasonV1
@@ -892,8 +928,12 @@ export const AgentRunGroupingConfirmationReasonV1Schema: GenEnum<AgentRunGroupin
   enumDesc(file_o11y_one_agentic_v1_agent_run, 5);
 
 /**
- * What a grouping's confidence allows. "Provisional groups cannot drive
- * automation" is one enum here, and every refusal names the row it came from.
+ * Minted by wave 41 lane A: `P7-10`'s six rows, addressable.
+ *
+ * The matrix is a table in the contract and prose everywhere else, which is how
+ * "provisional groups cannot drive automation" becomes five different guesses at
+ * five call sites. Here it is one enum and one function
+ * (`assert_grouping_authority`), and every refusal names the row it came from.
  *
  * @generated from enum o11y_one.agentic.v1.AgentRunAuthorityCapabilityV1
  */

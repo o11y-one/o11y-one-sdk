@@ -4,19 +4,43 @@
 // 	protoc        (unknown)
 // source: o11y_one/agentic/v1/trace_view.proto
 
-// Trace viewer read models.
+// Agentic Reliability V2 trace-viewer read models — wave 32 (lane D).
 //
-// Same package as evaluation.proto, artifact.proto and agent_run.proto, in its
-// own FILE so its surface stays apart. It reuses evaluation.proto's typed
-// absence (`MetricAvailabilityV1`) and verbatim provider-usage record
-// (`ProviderUsageRecordV1`) rather than defining them again.
+// Same package as agentic.proto, evaluation.proto and artifact.proto by design
+// (lock ruling L1-4): prost emits one Rust module per package, so
+// `proto::agentic::*` stays one flat namespace and `proto/src/lib.rs` needs no
+// change. A separate FILE keeps `buf breaking` (FILE mode, `proto/buf.yaml`)
+// from letting this surface destabilise either neighbour's breaking surface —
+// which matters more than usual here, because a second lane is appending to
+// evaluation.proto in the same tree.
 //
-// Five levels: (1) a step-level summary, (2) operation groups per step, (3) raw
-// spans paged on demand, (4) per-span verbatim usage, with the same contract as
-// evaluation usage, and (5) a SERVER-computed critical path and needs-attention
-// set, so "Highlight errors" is a filter rather than a client scan. All five are
-// folded into two RPCs, so one screen costs two bounded span scans rather than
-// five.
+// WHY THIS FILE RATHER THAN agentic.proto
+//
+//   The trace viewer must speak two things it does not own: typed absence
+//   (`MetricAvailabilityV1`) and the verbatim provider-usage record
+//   (`ProviderUsageRecordV1`). Both are defined in evaluation.proto, and
+//   evaluation.proto already imports agentic.proto — so defining these messages
+//   in agentic.proto would need the reverse import and a package cycle. This
+//   file imports evaluation.proto, exactly as artifact.proto does, and reuses
+//   those value objects rather than twinning them (rule R5).
+//
+// WHY THIS SERVICE RATHER THAN AgenticEvaluationService
+//
+//   There is no span table in Postgres. Span rows live in `otel_traces` Parquet
+//   segments plus a realtime tier, reachable only through
+//   `UnifiedTelemetryQueryEngine` — which `AgenticEvaluationGrpcService` does
+//   not hold. A read model over spans is a query-engine read model or it is
+//   nothing, so the service that serves it is the one that holds the engine.
+//
+// THE CONTRACT THIS FILE IMPLEMENTS
+//
+//   Design handoff `backend-handoff-post-design-run.pdf` p.3, "Trace viewer
+//   (12 · P4B — THE LARGEST CONTRACT)", five levels: (1) a step-level summary,
+//   (2) operation groups per step, (3) raw spans paged on demand, (4) per-span
+//   verbatim usage reusing the eval side's contract, (5) a SERVER-computed
+//   critical path and needs-attention set so "Highlight errors" is a filter
+//   rather than a client scan. All five land here, folded into two RPCs so that
+//   one screen costs two bounded span scans rather than five.
 
 package agenticv1
 
@@ -41,7 +65,7 @@ const (
 // OTHER is not a parse failure and not a sentinel: it means this build
 // classified the span and it is none of the five. A closed enum of exactly the
 // five would force every queue, worker and internal span into a category it
-// does not belong to.
+// does not belong to, which is the conflation this track exists to prevent.
 //
 // Precedence is FIRST MATCH WINS in the order TOOL, RETRIEVAL, LLM, DB, HTTP,
 // OTHER, and it is stated because a span can satisfy two rules at once: an
@@ -219,10 +243,14 @@ func (TraceAttentionKindV1) EnumDescriptor() ([]byte, []int) {
 	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{2}
 }
 
-// How a span failed, in ingest's own vocabulary.
+// How a span failed, in the lake's own vocabulary (wave 35, lane B).
 //
-// The thirteen fault categories ingest assigns every span. An enum rather than
-// a string, so a client switches on a fault kind instead of matching prose.
+// These are not new names. They are `transformation`'s `ErrorCategory` — the
+// thirteen arms of `transformation/src/classifier/error.rs`, written into the
+// `error_category` column at ingest by the classifier every span already goes
+// through. Restating them here as an enum rather than passing the column's
+// string through is what lets a client switch on a fault kind instead of
+// matching prose, and the ordering below is that file's own.
 //
 // The column is NULL for a span that did not fail, so a value here is always a
 // statement about a failure — with one exception, which is
@@ -318,8 +346,9 @@ func (TraceFaultCategoryV1) EnumDescriptor() ([]byte, []int) {
 
 // Where a span's money came from. Two provenances, and neither is a bill.
 //
-// If the client instrumented a cost, that is used; otherwise the provider's
-// published rate. Both halves are on the wire as their own value, because a number a customer's own code stated and a number this build
+// The operator's ruling of 2026-08-28: *"If client instrumented cost, use that,
+// else, use the stock provider rate"*. Both halves are on the wire as their own
+// value, because a number a customer's own code stated and a number this build
 // computed off a published list price are different evidence, and a client that
 // cannot tell them apart cannot say which one it is rendering.
 type TraceSpanCostProvenanceV1 int32
@@ -465,9 +494,11 @@ func (TraceReadRefusalKindV1) EnumDescriptor() ([]byte, []int) {
 	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{5}
 }
 
-// The first word on the agent-run header.
+// The first word on the agent-run header (`BP:755`).
 //
-// The outcome's derivation is published as `agent_run_outcome_v1` in the capability set so
+// `PLAN:1683` asks for an "outcome" and neither the plan nor `0b` §4 defines the
+// vocabulary — handoff doc 11 §9 Q1 raises exactly that. This is the answer, and
+// its derivation is published as `agent_run_outcome_v1` in the capability set so
 // a reader can argue with the rule rather than only with the word.
 //
 // `_UNKNOWN` IS A VERDICT, NOT A NULL. It is what this build says when the
@@ -486,10 +517,10 @@ const (
 	AgentRunOutcomeV1_AGENT_RUN_OUTCOME_V1_DEGRADED AgentRunOutcomeV1 = 3
 	// A member span reported an error status.
 	AgentRunOutcomeV1_AGENT_RUN_OUTCOME_V1_FAILED AgentRunOutcomeV1 = 4
-	// A production rule returned a failing verdict over this run's work. It
-	// OUTRANKS `_FAILED`, deliberately: the span plane knows whether the
+	// A production rule (§6, wave 39) returned a failing verdict over this run's
+	// work. It OUTRANKS `_FAILED`, deliberately: the span plane knows whether the
 	// machinery worked and the rule plane knows whether the work was acceptable,
-	// and an operator triaging a failure arrives holding the second question.
+	// and J2's operator arrived holding the second question.
 	AgentRunOutcomeV1_AGENT_RUN_OUTCOME_V1_POLICY_FAILED AgentRunOutcomeV1 = 5
 )
 
@@ -541,7 +572,8 @@ func (AgentRunOutcomeV1) EnumDescriptor() ([]byte, []int) {
 }
 
 // Which input the derivation consulted, so "why does it say Failed" is returned
-// data rather than a frontend heuristic, as grouping confidence is.
+// data rather than a frontend heuristic — `0b P7-3`'s rule for grouping
+// confidence, applied to the field beside it.
 type AgentRunOutcomeInputKindV1 int32
 
 const (
@@ -600,10 +632,10 @@ func (AgentRunOutcomeInputKindV1) EnumDescriptor() ([]byte, []int) {
 	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{7}
 }
 
-// "Is this failure already covered?"
+// J2 step 7 — "is this failure already covered?" (`BP:482`, A2 gap `G21`).
 //
-// `_UNKNOWN` IS A REAL VERDICT AND NEVER MEANS "NOT COVERED", and the
-// distinction is the whole value of the block: telling
+// `_UNKNOWN` IS A REAL VERDICT AND NEVER MEANS "NOT COVERED". `0b` §4.5 says so
+// in as many words, and the distinction is the whole value of the block: telling
 // an operator "not covered" about a run whose lineage this build cannot resolve
 // would send them to write a duplicate dataset case.
 type AgentRunCoverageVerdictV1 int32
@@ -665,20 +697,20 @@ func (AgentRunCoverageVerdictV1) EnumDescriptor() ([]byte, []int) {
 	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{8}
 }
 
-// Three modes, and raw trace is not one of them.
+// `0b P7-15`, FROZEN. Three modes, and raw trace is not one of them.
 type AgentRunTimelineModeV1 int32
 
 const (
 	AgentRunTimelineModeV1_AGENT_RUN_TIMELINE_MODE_V1_UNSPECIFIED AgentRunTimelineModeV1 = 0
-	// Semantic operations grouped by agent and task. The unfiltered
+	// Semantic operations grouped by agent and task (`BP:772`). The unfiltered
 	// timeline: this mode never filters server-side and says so.
 	AgentRunTimelineModeV1_AGENT_RUN_TIMELINE_MODE_V1_SUMMARY AgentRunTimelineModeV1 = 1
-	// Failed/degraded work PLUS causal parents. A failed tool call
+	// Failed/degraded work PLUS causal parents (`BP:773`). A failed tool call
 	// without the model turn that issued it is a leaf with no story.
 	AgentRunTimelineModeV1_AGENT_RUN_TIMELINE_MODE_V1_FAILURES_ONLY AgentRunTimelineModeV1 = 2
-	// The work determining end-to-end latency, computed by the trace viewer's own
-	// `latest_finishing_child_chain_v1` so "critical" means one thing across this
-	// product.
+	// The work determining end-to-end latency (`BP:774`), computed by the trace
+	// viewer's own `latest_finishing_child_chain_v1` so "critical" means one
+	// thing across this product.
 	AgentRunTimelineModeV1_AGENT_RUN_TIMELINE_MODE_V1_CRITICAL_PATH AgentRunTimelineModeV1 = 3
 )
 
@@ -792,7 +824,7 @@ func (AgentRunEventKindV1) EnumDescriptor() ([]byte, []int) {
 	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{10}
 }
 
-// How a client applies an event it just received.
+// `0b P7-16`. How a client applies an event it just received.
 type AgentRunEventDeliveryV1 int32
 
 const (
@@ -845,15 +877,15 @@ func (AgentRunEventDeliveryV1) EnumDescriptor() ([]byte, []int) {
 	return file_o11y_one_agentic_v1_trace_view_proto_rawDescGZIP(), []int{11}
 }
 
-// Which spelling produced a normalized attribute. A verdict a client groups by,
-// not a hint.
+// Which spelling produced a normalized attribute (`PLAN:1720`, semconv registry
+// §6.8). A verdict a client groups by, not a hint.
 type AgentRunAttributeSourceV1 int32
 
 const (
 	AgentRunAttributeSourceV1_AGENT_RUN_ATTRIBUTE_SOURCE_V1_UNSPECIFIED AgentRunAttributeSourceV1 = 0
 	AgentRunAttributeSourceV1_AGENT_RUN_ATTRIBUTE_SOURCE_V1_CANONICAL   AgentRunAttributeSourceV1 = 1
 	// The deprecated `o11y.*` spelling. Every span in this build, until the
-	// canonical names land.
+	// registry's `1C-5` rename lands the canonical columns.
 	AgentRunAttributeSourceV1_AGENT_RUN_ATTRIBUTE_SOURCE_V1_LEGACY_ALIAS AgentRunAttributeSourceV1 = 2
 	AgentRunAttributeSourceV1_AGENT_RUN_ATTRIBUTE_SOURCE_V1_BOTH_EQUAL   AgentRunAttributeSourceV1 = 3
 	// Both spellings, different values. Canonical wins and both are recorded.
@@ -980,7 +1012,8 @@ func (x *TraceSpanPopulationBoundaryV1) GetMaxSpans() uint32 {
 
 // The window actually read, and whether it is the window that was asked for.
 //
-// Clamped windows say so in-band. `ListSessions` clamps to 720h silently; this
+// The §4 invariant is "clamped windows say so in-band". `ListSessions` clamps
+// to 720h silently and the only record of it is a fixture case name; this
 // surface publishes the clamp, because a client rendering "no spans" must be
 // able to tell "your window was narrowed" from "there is nothing there".
 type TraceWindowV1 struct {
@@ -1248,7 +1281,7 @@ func (x *TraceFaultStatusCountV1) GetSpanCount() uint32 {
 	return 0
 }
 
-// The composition of a failure count.
+// The composition of a failure count (wave 35, lane B).
 //
 // Rides both `TraceStepSummaryV1` and `TraceOperationGroupV1`: a fault
 // breakdown per turn and per operation group is the same arithmetic over a
@@ -1490,12 +1523,12 @@ func (x *TraceFirstFailureV1) GetErrorMessage() string {
 // cost with no rate identity beside it is a number nobody can check.
 //
 // What it deliberately does NOT carry is a provider. `ProviderUsageRecordV1` on
-// the span beside it sets `provider = UNSPECIFIED` on purpose: a span names its
-// provider, when it names one at all, in free text, and mapping that onto this
-// build's closed enum would put a provider-attributed fact on the wire the
-// provider never stated. The estimate does not need one — the SPAN states its
-// own model id, and that string is matched to a registry row by EXACT model id.
-// The rate identity is a row, not an attribution.
+// the span beside it sets `provider = UNSPECIFIED` on purpose (NN5): a span
+// names its provider, when it names one at all, in free text, and mapping that
+// onto this build's closed enum would put a provider-attributed fact on the
+// wire the provider never stated. The estimate does not need one — the SPAN
+// states its own model id, and that string is matched to a registry row by
+// EXACT model id. The rate identity is a row, not an attribution.
 type TraceSpanRateBasisV1 struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The model id the span itself stated (response model first — the model that
@@ -1505,14 +1538,18 @@ type TraceSpanRateBasisV1 struct {
 	RegistryVersion       string `protobuf:"bytes,2,opt,name=registry_version,json=registryVersion,proto3" json:"registry_version,omitempty"`
 	RegistryEffectiveDate string `protobuf:"bytes,3,opt,name=registry_effective_date,json=registryEffectiveDate,proto3" json:"registry_effective_date,omitempty"`
 	// THIS ROW's own as-of date — when these numbers were last read off the
-	// provider's page. Per-row rather than table-wide: a table-wide date claims
-	// every row was reviewed on one day. THIS is the date the tooltip renders.
+	// provider's page. Per-row rather than table-wide, which is the whole point
+	// of increment E1-5: a table-wide date claims every row was reviewed on one
+	// day. THIS is the date the tooltip renders.
 	RateCheckedAt string `protobuf:"bytes,4,opt,name=rate_checked_at,json=rateCheckedAt,proto3" json:"rate_checked_at,omitempty"`
 	// The age at which the registry calls itself stale, in days.
 	//
-	// The THRESHOLD and no verdict, as for the rate-freshness posture: a staleness
-	// state is `observed_at - effective_date`, which changes every midnight, so
-	// a client computes it. This publishes the compiled-in facts — which
+	// The THRESHOLD and no verdict, and that is the same ruling `capability.rs`
+	// made for the rate-freshness posture (increment E1-6, narrowed by wave 25):
+	// a staleness state is `observed_at - effective_date`, which changes every
+	// midnight, and this message rides responses the fixture corpus asserts byte
+	// for byte. A verdict here would turn the corpus red on one future calendar
+	// day with no code change. So this publishes the compiled-in facts — which
 	// table, which row, when a human last re-read it, and the rule's threshold —
 	// and lets the client, which has its own clock, apply the rule. The eval
 	// side's frozen verdict still lives where a verdict belongs: on
@@ -1631,7 +1668,7 @@ func (x *TraceSpanRateBasisV1) GetDimensionNotes() []*EvaluationRateDimensionNot
 	return nil
 }
 
-// Level 4b. One span's cost, with its provenance stated.
+// Level 4b. One span's cost, with its provenance stated (wave 35, lane B).
 //
 // HARD BOUNDARY, stated on the wire because it is the property that makes this
 // message safe to ship: this number is DISPLAY PLANE ONLY. It enters no
@@ -1940,10 +1977,10 @@ type TraceOperationGroupV1 struct {
 	// How many further outliers the cap dropped. A full outlier list is never
 	// read as a complete one.
 	OmittedOutlierCount uint32 `protobuf:"varint,9,opt,name=omitted_outlier_count,json=omittedOutlierCount,proto3" json:"omitted_outlier_count,omitempty"`
-	// The composition of `failure_count` above: which categories, which statuses,
-	// how many exceptions.
+	// Wave 35. The composition of `failure_count` above: which categories, which
+	// statuses, how many exceptions.
 	Faults *TraceFaultBreakdownV1 `protobuf:"bytes,10,opt,name=faults,proto3" json:"faults,omitempty"`
-	// What these ×N calls cost, and how that number was arrived at.
+	// Wave 35. What these ×N calls cost, and how that number was arrived at.
 	Cost          *TraceSpanCostRollupV1 `protobuf:"bytes,11,opt,name=cost,proto3" json:"cost,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -2085,14 +2122,14 @@ type TraceStepSummaryV1 struct {
 	FailureCount               uint32                   `protobuf:"varint,11,opt,name=failure_count,json=failureCount,proto3" json:"failure_count,omitempty"`
 	OperationGroups            []*TraceOperationGroupV1 `protobuf:"bytes,12,rep,name=operation_groups,json=operationGroups,proto3" json:"operation_groups,omitempty"`
 	OmittedOperationGroupCount uint32                   `protobuf:"varint,13,opt,name=omitted_operation_group_count,json=omittedOperationGroupCount,proto3" json:"omitted_operation_group_count,omitempty"`
-	// The composition of `failure_count` above, over this turn's spans INCLUDING
-	// the turn's own span — the same member set the count uses, for the same
-	// reason: a turn that failed is a failure of that turn.
+	// Wave 35. The composition of `failure_count` above, over this turn's spans
+	// INCLUDING the turn's own span — the same member set the count uses, for the
+	// same reason: a turn that failed is a failure of that turn.
 	Faults *TraceFaultBreakdownV1 `protobuf:"bytes,14,opt,name=faults,proto3" json:"faults,omitempty"`
-	// The earliest failure in this turn. Absent when the turn had none — absent,
-	// not a zero-valued pointer at a span that did not fail.
+	// Wave 35. The earliest failure in this turn. Absent when the turn had none —
+	// absent, not a zero-valued pointer at a span that did not fail.
 	FirstFailure *TraceFirstFailureV1 `protobuf:"bytes,15,opt,name=first_failure,json=firstFailure,proto3,oneof" json:"first_failure,omitempty"`
-	// What this turn cost, over the SAME member set `failure_count` and
+	// S2. What this turn cost, over the SAME member set `failure_count` and
 	// `faults` use — the turn's spans INCLUDING the turn's own span, because a
 	// turn's money is the money of that turn. It is therefore NOT the sum of
 	// `operation_groups`' rollups whenever the turn's own span carries a cost:
@@ -2352,8 +2389,8 @@ type TraceCriticalPathV1 struct {
 	TotalDurationMicros int64                 `protobuf:"varint,2,opt,name=total_duration_micros,json=totalDurationMicros,proto3" json:"total_duration_micros,omitempty"`
 	Availability        *MetricAvailabilityV1 `protobuf:"bytes,3,opt,name=availability,proto3" json:"availability,omitempty"`
 	// Which definition produced this path. A client that renders "the critical
-	// path" without knowing the definition cannot compare two builds, and a
-	// change of definition comes with a new name.
+	// path" without knowing the definition cannot compare two builds, and a later
+	// change of definition should be a fixture diff a reviewer sees.
 	//
 	// `latest_finishing_child_chain_v1`: from the root, repeatedly descend to the
 	// child whose end time is latest; ties by longer duration, then by span id
@@ -2613,7 +2650,7 @@ type AgentTraceHeaderV1 struct {
 	// `gen_ai.agent.name` at all, which is a different fact from a trace whose
 	// turns did nothing.
 	StepAvailability *MetricAvailabilityV1 `protobuf:"bytes,8,opt,name=step_availability,json=stepAvailability,proto3" json:"step_availability,omitempty"`
-	// What the whole trace cost, over EVERY span in the population — the
+	// S2. What the whole trace cost, over EVERY span in the population — the
 	// turns, their operations, and the spans that attribute to no turn. Over the
 	// whole population rather than over the steps because a trace whose LLM calls
 	// carry no `gen_ai.agent.name` has no steps at all, and a money total that
@@ -2624,7 +2661,7 @@ type AgentTraceHeaderV1 struct {
 	// `mixes_stated_and_estimated` flag and the unstated-currency reason ride the
 	// trace total too. A partial-provenance total is labelled, not hidden.
 	Cost *TraceSpanCostRollupV1 `protobuf:"bytes,9,opt,name=cost,proto3" json:"cost,omitempty"`
-	// Spans that exist only because an earlier attempt failed: members of an
+	// S3. Spans that exist only because an earlier attempt failed: members of an
 	// inferred retry chain whose `attempt_index` is greater than one. An honest
 	// zero — the population was read and no chain was found — which is why it is
 	// a count here and an absence on the span.
@@ -2737,9 +2774,9 @@ func (x *AgentTraceHeaderV1) GetRetriedSpanCount() uint32 {
 // references, not bodies.
 //
 // Present so the absence is legible rather than implied. Turning one of these
-// into a payload is the extraction preview's job (redaction before preview,
-// dedupe fingerprints, leakage signals), and the capability
-// `trace_span_content_hydration` says it is UNAVAILABLE here.
+// into a payload is the Phase 5 "Extraction Preview" plane — redaction before
+// preview, dedupe fingerprints, leakage signals — and the capability
+// `trace_span_content_hydration` says it is UNAVAILABLE.
 type TraceSpanContentRefV1 struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// `input`, `output`, `tool_arguments`, `tool_result`, `retrieval_documents`,
@@ -2794,12 +2831,12 @@ func (x *TraceSpanContentRefV1) GetStorageUri() string {
 	return ""
 }
 
-// One span's place in a retry chain.
+// S3. One span's place in a retry chain.
 //
 // INFERRED, and the capability says so. Nothing in this build marks a span as a
-// retry of another: no `retry`, `resend` or `attempt` key is ingested as a
-// typed field, and span links are stored without their ATTRIBUTES, so a link
-// cannot say WHY it links. What is left is the
+// retry of another: no `retry`, `resend` or `attempt` key reaches a typed
+// column, and span links arrive at the lake with their ATTRIBUTES DROPPED, so
+// OTel's own relational mechanism cannot say WHY it links. What is left is the
 // shape — one parent, one name, one kind, one target, non-overlapping in time,
 // every attempt but the last in error — and `trace_view_retry_chain` publishes
 // `retry_chain_inference = 1` so a client renders this as a reading of the
@@ -2812,7 +2849,7 @@ type TraceSpanRetryV1 struct {
 	// The parent span id, the operation kind, the span name and the target,
 	// joined. It is the grouping key itself, so two spans carry one id exactly
 	// when they are in one chain. Deterministic, so two reads of one trace name
-	// the chain identically. The kind and the target
+	// the chain identically and a fixture is byte-stable. The kind and the target
 	// are in it because two sibling groups can share a name and differ only in
 	// the kind, or only in the model or tool they called. Key by it; it is not
 	// meant to be parsed.
@@ -2917,11 +2954,12 @@ type TraceSpanV1 struct {
 	// availability, never a zero.
 	TimeToFirstTokenAvailability *MetricAvailabilityV1    `protobuf:"bytes,17,opt,name=time_to_first_token_availability,json=timeToFirstTokenAvailability,proto3" json:"time_to_first_token_availability,omitempty"`
 	ContentRefs                  []*TraceSpanContentRefV1 `protobuf:"bytes,18,rep,name=content_refs,json=contentRefs,proto3" json:"content_refs,omitempty"`
-	// Level 4b. What this span cost, and where that number came from: the
-	// client's own instrumented figure, an estimate off the provider's published
-	// list price, or a typed absence. Display plane only — see `TraceSpanCostV1`.
+	// Level 4b (wave 35). What this span cost, and where that number came from:
+	// the client's own instrumented figure, an estimate off the provider's
+	// published list price, or a typed absence. Display plane only — see
+	// `TraceSpanCostV1`.
 	Cost *TraceSpanCostV1 `protobuf:"bytes,19,opt,name=cost,proto3" json:"cost,omitempty"`
-	// Where this span sits in an inferred retry chain, or absent when it sits
+	// S3. Where this span sits in an inferred retry chain, or absent when it sits
 	// in none. See `TraceSpanRetryV1` for what "inferred" buys and costs.
 	Retry         *TraceSpanRetryV1 `protobuf:"bytes,20,opt,name=retry,proto3,oneof" json:"retry,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -3538,7 +3576,8 @@ type AgentRunOutcomeAssessmentV1 struct {
 	Inputs []*AgentRunOutcomeInputV1 `protobuf:"bytes,2,rep,name=inputs,proto3" json:"inputs,omitempty"`
 	// `agent_run_outcome_v1`. The same discipline `TraceCriticalPathV1.method_code`
 	// applies: a header word computed by an unnamed rule is a word nobody can
-	// argue with, and a change of rule is visible as a new name.
+	// argue with, and a later change of rule should be a fixture diff a reviewer
+	// sees.
 	MethodCode string `protobuf:"bytes,3,opt,name=method_code,json=methodCode,proto3" json:"method_code,omitempty"`
 	// Set only for `_UNKNOWN`: `conversation_still_open` or
 	// `no_member_span_reports_a_status`. Absent on every other verdict, because a
@@ -3611,7 +3650,7 @@ func (x *AgentRunOutcomeAssessmentV1) GetOutcomeUnknownReasonCode() string {
 // THERE IS NO RUN-LEVEL MONEY TOTAL ANYWHERE ON THIS SURFACE, and its absence is
 // the design. A run-wide figure is a bill-shaped object, and a bill-shaped object
 // on a telemetry read model is how a display-plane estimate ends up quoted at
-// somebody. These are line ITEMS; a client that wants a total adds
+// somebody. `PLAN:1683` says "cost line ITEMS"; a client that wants a total adds
 // these in front of the reader, where the reader can see what is being added and
 // that some of it is estimated.
 type AgentRunCostLineItemV1 struct {
@@ -3809,14 +3848,14 @@ func (x *AgentRunUsageTotalsV1) GetTokenAccounting() *EvaluationTokenAccountingV
 //
 // Counts and a worst verdict, never rows: the rows live on the eval and workflow
 // planes and are reached by a pivot. A summary that embedded them would be a
-// page in a `SUMMARY`'s clothing.
+// page in a `SUMMARY`'s clothing (`A2` §2.1 rule 1).
 type AgentRunScorePostureV1 struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// `eval_scores` rows anchored to a member trace.
 	ScoreCount             uint32   `protobuf:"varint,1,opt,name=score_count,json=scoreCount,proto3" json:"score_count,omitempty"`
 	ScoredMemberTraceCount uint32   `protobuf:"varint,2,opt,name=scored_member_trace_count,json=scoredMemberTraceCount,proto3" json:"scored_member_trace_count,omitempty"`
 	WorstScoreValue        *float64 `protobuf:"fixed64,3,opt,name=worst_score_value,json=worstScoreValue,proto3,oneof" json:"worst_score_value,omitempty"`
-	// Production-rule verdicts over this run's member traces.
+	// Production-rule verdicts over this run's member traces (wave 39).
 	FailingRuleVerdictCount uint32 `protobuf:"varint,4,opt,name=failing_rule_verdict_count,json=failingRuleVerdictCount,proto3" json:"failing_rule_verdict_count,omitempty"`
 	PassingRuleVerdictCount uint32 `protobuf:"varint,5,opt,name=passing_rule_verdict_count,json=passingRuleVerdictCount,proto3" json:"passing_rule_verdict_count,omitempty"`
 	// A scorer that could not produce a verdict. NEVER counted as a failing
@@ -3908,7 +3947,7 @@ func (x *AgentRunScorePostureV1) GetAvailability() *MetricAvailabilityV1 {
 	return nil
 }
 
-// The run's dimensions, which the agent-run list filters on.
+// The dimensions `PLAN:1683` names and `PLAN:1685` filters on.
 //
 // `distinct_count > 1` is not an error — a conversation can legitimately cross
 // deployments — but it is a fact the reader must be able to see, so the count
@@ -3976,7 +4015,7 @@ func (x *AgentRunDimensionV1) GetAvailability() *MetricAvailabilityV1 {
 	return nil
 }
 
-// The run's prompt, model, tool and retrieval versions.
+// `PLAN:1683`'s "prompt/model/tool/retrieval versions".
 type AgentRunVersionContextV1 struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	PromptVersion *AgentRunDimensionV1   `protobuf:"bytes,1,opt,name=prompt_version,json=promptVersion,proto3" json:"prompt_version,omitempty"`
@@ -4049,7 +4088,7 @@ func (x *AgentRunVersionContextV1) GetRetrievalVersionAvailability() *MetricAvai
 	return nil
 }
 
-// The run's release context.
+// `PLAN:1683`'s "release context".
 //
 // The link is transitive and the response says so rather than implying a
 // relation the planes do not carry: a release names a `release_key`, a release
@@ -4191,13 +4230,13 @@ func (x *AgentRunCoverageReferenceV1) GetMemberTraceId() string {
 type AgentRunEvaluationCoverageV1 struct {
 	state   protoimpl.MessageState    `protogen:"open.v1"`
 	Verdict AgentRunCoverageVerdictV1 `protobuf:"varint,1,opt,name=verdict,proto3,enum=o11y_one.agentic.v1.AgentRunCoverageVerdictV1" json:"verdict,omitempty"`
-	// At most `max_coverage_references` (ten). The count is over the
+	// At most `max_coverage_references` (A2 J2.4 states ten). The count is over the
 	// whole population; the list is capped, and `omitted_reference_count` says so.
 	References             []*AgentRunCoverageReferenceV1 `protobuf:"bytes,2,rep,name=references,proto3" json:"references,omitempty"`
 	CoveringReferenceCount uint32                         `protobuf:"varint,3,opt,name=covering_reference_count,json=coveringReferenceCount,proto3" json:"covering_reference_count,omitempty"`
 	OmittedReferenceCount  uint32                         `protobuf:"varint,4,opt,name=omitted_reference_count,json=omittedReferenceCount,proto3" json:"omitted_reference_count,omitempty"`
 	// Set for `_UNKNOWN` only. `provisional_grouping_cannot_claim_lineage` is the
-	// common one: a group of unknown
+	// common one and is the `0b P7-10` matrix speaking: a group of unknown
 	// membership has no lineage claim to make, so this build declines to make one
 	// rather than making a weak one.
 	UnknownReasonCode *string               `protobuf:"bytes,5,opt,name=unknown_reason_code,json=unknownReasonCode,proto3,oneof" json:"unknown_reason_code,omitempty"`
@@ -4278,7 +4317,7 @@ func (x *AgentRunEvaluationCoverageV1) GetAvailability() *MetricAvailabilityV1 {
 	return nil
 }
 
-// The run's instrumentation completeness, as facts rather than a grade.
+// `PLAN:1684`'s instrumentation completeness, as facts rather than a grade.
 type AgentRunInstrumentationCompletenessV1 struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	State CompletenessStateV1    `protobuf:"varint,1,opt,name=state,proto3,enum=o11y_one.agentic.v1.CompletenessStateV1" json:"state,omitempty"`
@@ -4300,8 +4339,8 @@ type AgentRunInstrumentationCompletenessV1 struct {
 	HandoffCountAvailability         *MetricAvailabilityV1 `protobuf:"bytes,7,opt,name=handoff_count_availability,json=handoffCountAvailability,proto3" json:"handoff_count_availability,omitempty"`
 	GuardrailCountAvailability       *MetricAvailabilityV1 `protobuf:"bytes,8,opt,name=guardrail_count_availability,json=guardrailCountAvailability,proto3" json:"guardrail_count_availability,omitempty"`
 	MemoryOperationCountAvailability *MetricAvailabilityV1 `protobuf:"bytes,9,opt,name=memory_operation_count_availability,json=memoryOperationCountAvailability,proto3" json:"memory_operation_count_availability,omitempty"`
-	// Always NOT_SUPPORTED / `non_streaming_provider_client`, the trace
-	// viewer's code.
+	// Always NOT_SUPPORTED / `non_streaming_provider_client` — wave 32's code,
+	// reused rather than re-minted.
 	TimeToFirstTokenAvailability *MetricAvailabilityV1 `protobuf:"bytes,10,opt,name=time_to_first_token_availability,json=timeToFirstTokenAvailability,proto3" json:"time_to_first_token_availability,omitempty"`
 	// Whether every count on the row is a total rather than a lower bound.
 	// AVAILABLE, or NOT_OBSERVED naming the refusal or the ceiling.
@@ -4417,24 +4456,26 @@ func (x *AgentRunInstrumentationCompletenessV1) GetCountsAvailability() *MetricA
 	return nil
 }
 
-// The agent-run summary, served from a maintained index.
+// The `PLAN:1683` field set, served from the maintained projection (`P7-14`).
 //
-// EVERY FIELD HERE IS STORED, not joined while the page is built: listing runs
-// scans no spans and hydrates no models, tools, scores, releases or evidence per
-// row. The `agent_run_index` capability's `list_span_scans` limit is zero.
+// EVERY FIELD HERE IS A COLUMN, not a join performed while the page is built.
+// `PLAN:1687` forbids scanning and hydrating models, tools, scores, releases and
+// evidence per row, and the way this build keeps that promise is that the read
+// path holds no query engine and issues no per-row statement — see the
+// `agent_run_index` capability's `list_span_scans` limit, which is zero.
 type AgentRunSummaryV1 struct {
 	state      protoimpl.MessageState `protogen:"open.v1"`
 	AgentRunId string                 `protobuf:"bytes,1,opt,name=agent_run_id,json=agentRunId,proto3" json:"agent_run_id,omitempty"`
-	// The identity block, carried verbatim: state, confidence, the confidence INPUTS,
-	// revision, bounds, and the redirect when the id was stale.
+	// Lane A's spine, carried verbatim: state, confidence, the confidence INPUTS
+	// (`P7-3`), revision, bounds, and the redirect when the id was stale.
 	Grouping     *AgentRunGroupingV1          `protobuf:"bytes,2,opt,name=grouping,proto3" json:"grouping,omitempty"`
 	Completeness *ConversationCompletenessV1  `protobuf:"bytes,3,opt,name=completeness,proto3" json:"completeness,omitempty"`
 	Outcome      *AgentRunOutcomeAssessmentV1 `protobuf:"bytes,4,opt,name=outcome,proto3" json:"outcome,omitempty"`
 	StartedAt    *timestamppb.Timestamp       `protobuf:"bytes,5,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
 	EndedAt      *timestamppb.Timestamp       `protobuf:"bytes,6,opt,name=ended_at,json=endedAt,proto3" json:"ended_at,omitempty"`
 	// The keyset's sort key. A late span advances it and the run RE-SURFACES at the
-	// head of the list; the watermark is what makes that legible rather than a
-	// reshuffle.
+	// head of the list; `P7-16`'s watermark rule is what makes that legible rather
+	// than a reshuffle.
 	LastSeenAt       *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=last_seen_at,json=lastSeenAt,proto3" json:"last_seen_at,omitempty"`
 	TraceCount       uint32                 `protobuf:"varint,8,opt,name=trace_count,json=traceCount,proto3" json:"trace_count,omitempty"`
 	FoldedTraceCount uint32                 `protobuf:"varint,9,opt,name=folded_trace_count,json=foldedTraceCount,proto3" json:"folded_trace_count,omitempty"`
@@ -4449,9 +4490,10 @@ type AgentRunSummaryV1 struct {
 	RetrievalSpanCount         uint32                `protobuf:"varint,16,opt,name=retrieval_span_count,json=retrievalSpanCount,proto3" json:"retrieval_span_count,omitempty"`
 	McpSpanCount               uint32                `protobuf:"varint,17,opt,name=mcp_span_count,json=mcpSpanCount,proto3" json:"mcp_span_count,omitempty"`
 	HardFailureCount           uint32                `protobuf:"varint,18,opt,name=hard_failure_count,json=hardFailureCount,proto3" json:"hard_failure_count,omitempty"`
-	// Spans that recorded a fault WITHOUT failing. Today's ingest counts a span
-	// with an exception as failed, so this is zero for now; it is kept, as
-	// `warned_span_count` is.
+	// Spans that recorded a fault WITHOUT failing. Wave 35 found this is zero by
+	// construction in today's ingest (`classify_error` ORs the exception into
+	// `is_error`); the field is computed correctly and kept, on the same argument
+	// wave 35 gave for keeping `warned_span_count`.
 	DegradedFailureCount uint32                 `protobuf:"varint,19,opt,name=degraded_failure_count,json=degradedFailureCount,proto3" json:"degraded_failure_count,omitempty"`
 	Faults               *TraceFaultBreakdownV1 `protobuf:"bytes,20,opt,name=faults,proto3" json:"faults,omitempty"`
 	FirstFailure         *TraceFirstFailureV1   `protobuf:"bytes,21,opt,name=first_failure,json=firstFailure,proto3,oneof" json:"first_failure,omitempty"`
@@ -4777,7 +4819,7 @@ func (x *AgentRunSummaryV1) GetFreshness() *EvaluationFreshnessV1 {
 	return nil
 }
 
-// The filters the Production > Agent runs list needs.
+// `PLAN:1685` — the filters Production > Agent runs needs.
 type AgentRunListFilterV1 struct {
 	state                 protoimpl.MessageState            `protogen:"open.v1"`
 	CustomerId            *string                           `protobuf:"bytes,1,opt,name=customer_id,json=customerId,proto3,oneof" json:"customer_id,omitempty"`
@@ -4789,9 +4831,10 @@ type AgentRunListFilterV1 struct {
 	PromptVersion         *string                           `protobuf:"bytes,7,opt,name=prompt_version,json=promptVersion,proto3,oneof" json:"prompt_version,omitempty"`
 	ModelVersion          *string                           `protobuf:"bytes,8,opt,name=model_version,json=modelVersion,proto3,oneof" json:"model_version,omitempty"`
 	ToolVersion           *string                           `protobuf:"bytes,9,opt,name=tool_version,json=toolVersion,proto3,oneof" json:"tool_version,omitempty"`
-	// Identity-less traces appear as single-trace runs and are INCLUDED by
-	// default. Setting this hides them and the response then reports
-	// `hidden_ungrouped_run_count`.
+	// `P7-4`/`B1-4`: identity-less traces appear as single-trace runs and are
+	// INCLUDED by default. Setting this hides them and the response then reports
+	// `hidden_ungrouped_run_count` — R8's rule, satisfied by construction rather
+	// than by a default the caller has to discover.
 	ExcludeUngrouped bool `protobuf:"varint,10,opt,name=exclude_ungrouped,json=excludeUngrouped,proto3" json:"exclude_ungrouped,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
@@ -4982,7 +5025,7 @@ type ListAgentRunsResponse struct {
 	HasMore       bool                   `protobuf:"varint,3,opt,name=has_more,json=hasMore,proto3" json:"has_more,omitempty"`
 	// How many `_UNGROUPED` runs the filter removed. Present whenever
 	// `exclude_ungrouped` was set, INCLUDING when it is zero: an empty list is
-	// never evidence of none.
+	// never evidence of none (R8).
 	HiddenUngroupedRunCount *uint32 `protobuf:"varint,4,opt,name=hidden_ungrouped_run_count,json=hiddenUngroupedRunCount,proto3,oneof" json:"hidden_ungrouped_run_count,omitempty"`
 	// Clamped IN BAND, with the reason. The `ListSessions` silent clamp is the
 	// defect this field exists not to repeat.
@@ -5103,9 +5146,9 @@ func (x *ListAgentRunsResponse) GetRefusal() *TraceReadRefusalV1 {
 type GetAgentRunRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// A stale (`_MERGED_AWAY` / `_SPLIT_AWAY` / `_REDIRECTED`) id is answered with
-	// the canonical run plus `summary.grouping.redirect`, never `NOT_FOUND`. A run
-	// in another tenant IS `NOT_FOUND`, and the two are different answers on
-	// purpose.
+	// the canonical run plus `summary.grouping.redirect`, never `NOT_FOUND`
+	// (`P7-6`). A run in another tenant IS `NOT_FOUND`, and the two are different
+	// answers on purpose.
 	AgentRunId    string `protobuf:"bytes,1,opt,name=agent_run_id,json=agentRunId,proto3" json:"agent_run_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -5151,8 +5194,9 @@ func (x *GetAgentRunRequest) GetAgentRunId() string {
 type GetAgentRunResponse struct {
 	state   protoimpl.MessageState `protogen:"open.v1"`
 	Summary *AgentRunSummaryV1     `protobuf:"bytes,1,opt,name=summary,proto3" json:"summary,omitempty"`
-	// On the DETAIL only: on every list row the payload would grow with the
-	// page.
+	// J2 step 7. On the DETAIL only — putting it on every list row would be the
+	// per-row hydration `PLAN:1687` forbids, even though the value is a stored
+	// column, because the payload would then grow with the page.
 	EvaluationCoverage *AgentRunEvaluationCoverageV1    `protobuf:"bytes,2,opt,name=evaluation_coverage,json=evaluationCoverage,proto3" json:"evaluation_coverage,omitempty"`
 	Window             *TraceWindowV1                   `protobuf:"bytes,3,opt,name=window,proto3" json:"window,omitempty"`
 	Boundary           *TraceSpanPopulationBoundaryV1   `protobuf:"bytes,4,opt,name=boundary,proto3" json:"boundary,omitempty"`
@@ -5242,12 +5286,12 @@ func (x *GetAgentRunResponse) GetRefusal() *TraceReadRefusalV1 {
 	return nil
 }
 
-// Which event families this build can actually produce.
+// Which of `PLAN:1691`'s event families this build can actually produce.
 //
 // `kind` is a slug rather than `AgentRunEventKindV1` deliberately: the four
 // families with no ingest source have no enum arm, and giving them one so they
-// could be reported absent would be minting the very kinds this surface refuses
-// to invent.
+// could be reported absent would be minting the very kinds this lane refuses to
+// invent.
 type AgentRunEventKindCoverageV1 struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// `model` | `tool` | `retrieval` | `downstream` | `error` | `generic` |
@@ -5305,11 +5349,12 @@ func (x *AgentRunEventKindCoverageV1) GetAvailability() *MetricAvailabilityV1 {
 	return nil
 }
 
-// Which of the five link source kinds this build can actually receive a link
+// Which of `AL-1`'s five source kinds this build can actually receive a link
 // from.
 //
 // This is how a client tells "this run has no artifacts" from "this build could
-// not have seen one".
+// not have seen one" — NN11's rule that a refusal is observable, applied to an
+// absence.
 type AgentRunArtifactSourceCoverageV1 struct {
 	state      protoimpl.MessageState   `protogen:"open.v1"`
 	SourceKind ArtifactLinkSourceKindV1 `protobuf:"varint,1,opt,name=source_kind,json=sourceKind,proto3,enum=o11y_one.agentic.v1.ArtifactLinkSourceKindV1" json:"source_kind,omitempty"`
@@ -5366,10 +5411,11 @@ func (x *AgentRunArtifactSourceCoverageV1) GetAvailability() *MetricAvailability
 	return nil
 }
 
-// The deprecated-alias provenance channel.
+// The deprecated-alias provenance channel (`PLAN:1695`).
 //
 // This is the ONLY place a legacy `o11y.*` string reaches a response. The public
-// typed field is the neutral one.
+// typed field is the neutral one — semconv registry §4.4 establishes that the
+// response surface is already neutral, and this lane does not breach it.
 type AgentRunEventAttributeProvenanceV1 struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The public, neutral field this resolves to.
@@ -5541,7 +5587,7 @@ func (x *AgentRunEventUsageV1) GetAvailability() *MetricAvailabilityV1 {
 	return nil
 }
 
-// Generation settings and response identity, "where applicable".
+// Generation settings and response identity, "where applicable" (`PLAN:1694`).
 //
 // Every field optional, because most spans are not model calls and a zero would
 // claim a temperature nobody set.
@@ -5597,10 +5643,11 @@ func (x *AgentRunEventGenerationV1) GetResponseModel() string {
 	return ""
 }
 
-// One lane of the timeline.
+// One lane of the timeline (`PLAN:1694`, `BP:756-766`).
 //
 // Discovered from `gen_ai.agent.id` / `gen_ai.agent.name` / `service.name` at
-// render time, never a fixed vocabulary. Work with no agent
+// render time, never a fixed vocabulary: handoff doc 11 §8.1 records the
+// prototype's four-value lane TYPE as the specific trap here. Work with no agent
 // identity gets the `unattributed` lane rather than being dropped, so the lane
 // counts and the event count agree.
 type AgentRunLaneV1 struct {
@@ -5740,10 +5787,11 @@ func (x *AgentRunChildSummaryV1) GetIsError() bool {
 	return false
 }
 
-// An artifact linked to this event, SUMMARISED.
+// An artifact linked to this event, SUMMARISED (`PLAN:1703`).
 //
-// A summary, never content: large payloads stay behind the artifact content
-// APIs, and nothing is resolved while building a page. `resolver_posture` is what the timeline shows instead — a
+// A summary, never content: `PLAN:1700` keeps large payloads behind the existing
+// artifact content APIs, and `AL-14` rule 1 forbids resolving anything while
+// building a page. `resolver_posture` is what the timeline shows instead — a
 // client can render "resolvable" without a single byte having been fetched.
 type AgentRunArtifactSummaryV1 struct {
 	state        protoimpl.MessageState `protogen:"open.v1"`
@@ -5754,12 +5802,12 @@ type AgentRunArtifactSummaryV1 struct {
 	Relation     ArtifactRelationV1     `protobuf:"varint,5,opt,name=relation,proto3,enum=o11y_one.agentic.v1.ArtifactRelationV1" json:"relation,omitempty"`
 	// The CURRENT status: the row's write-time status overlaid with the
 	// append-only correction ledger. A revoked link is projected identically to an
-	// accepted one apart from this field and its audit.
+	// accepted one apart from this field and its audit — `PLAN:1693`.
 	Status          ArtifactLinkStatusV1          `protobuf:"varint,6,opt,name=status,proto3,enum=o11y_one.agentic.v1.ArtifactLinkStatusV1" json:"status,omitempty"`
 	ConflictPosture ArtifactLinkConflictPostureV1 `protobuf:"varint,7,opt,name=conflict_posture,json=conflictPosture,proto3,enum=o11y_one.agentic.v1.ArtifactLinkConflictPostureV1" json:"conflict_posture,omitempty"`
-	// Posture, never resolution.
+	// `SM-13`. Posture, never resolution.
 	ResolverPosture ArtifactResolverPostureV1 `protobuf:"varint,8,opt,name=resolver_posture,json=resolverPosture,proto3,enum=o11y_one.agentic.v1.ArtifactResolverPostureV1" json:"resolver_posture,omitempty"`
-	// The ONLY thing that distinguishes the paths. The typed read model is
+	// `AL-1`: the ONLY thing that distinguishes the paths. The typed read model is
 	// otherwise identical, which is exit `:1733`'s whole claim.
 	SourceKind         ArtifactLinkSourceKindV1      `protobuf:"varint,9,opt,name=source_kind,json=sourceKind,proto3,enum=o11y_one.agentic.v1.ArtifactLinkSourceKindV1" json:"source_kind,omitempty"`
 	FallbackReason     *ArtifactLinkFallbackReasonV1 `protobuf:"varint,10,opt,name=fallback_reason,json=fallbackReason,proto3,enum=o11y_one.agentic.v1.ArtifactLinkFallbackReasonV1,oneof" json:"fallback_reason,omitempty"`
@@ -5768,8 +5816,9 @@ type AgentRunArtifactSummaryV1 struct {
 	StorageSystem      *string                       `protobuf:"bytes,13,opt,name=storage_system,json=storageSystem,proto3,oneof" json:"storage_system,omitempty"`
 	ResolverKey        *string                       `protobuf:"bytes,14,opt,name=resolver_key,json=resolverKey,proto3,oneof" json:"resolver_key,omitempty"`
 	CorrectionSequence uint32                        `protobuf:"varint,15,opt,name=correction_sequence,json=correctionSequence,proto3" json:"correction_sequence,omitempty"`
-	// Machine-groupable, never prose: a rejected or unresolved link's reason is
-	// read without parsing raw keys.
+	// `normalize::ArtifactLinkRejectionReason::as_str()`. Machine-groupable,
+	// never prose — `PLAN:1692` requires rejected/unresolved diagnostics to be
+	// preserved "without requiring raw-key parsing in the timeline".
 	RejectionReasonCode *string                `protobuf:"bytes,16,opt,name=rejection_reason_code,json=rejectionReasonCode,proto3,oneof" json:"rejection_reason_code,omitempty"`
 	ObservedAt          *timestamppb.Timestamp `protobuf:"bytes,17,opt,name=observed_at,json=observedAt,proto3" json:"observed_at,omitempty"`
 	// The anchor the link was made against, reusing the locked twelve-arm shape.
@@ -5990,7 +6039,7 @@ func (x *AgentRunArtifactDiagnosticV1) GetOccurrenceCount() uint32 {
 	return 0
 }
 
-// What each nested family lost to its own cap.
+// What each nested family lost to its own cap (`PLAN:1698`).
 //
 // Per family, because the caps are INDEPENDENT: an event with six artifacts and
 // one child loses one artifact and no child. A single shared cap would make one
@@ -6063,11 +6112,11 @@ func (x *AgentRunNestedCapsV1) GetAttributeProvenanceOmitted() uint32 {
 	return 0
 }
 
-// One timeline event.
+// One timeline event (`PLAN:1694`).
 type AgentRunEventV1 struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// `trace_id:span_id`. Stable across re-reads, unique across the run's member
-	// traces, and the key upserts are applied by.
+	// traces, and the key `P7-16`'s upserts are applied by.
 	EventId   string                  `protobuf:"bytes,1,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
 	Delivery  AgentRunEventDeliveryV1 `protobuf:"varint,2,opt,name=delivery,proto3,enum=o11y_one.agentic.v1.AgentRunEventDeliveryV1" json:"delivery,omitempty"`
 	LaneId    string                  `protobuf:"bytes,3,opt,name=lane_id,json=laneId,proto3" json:"lane_id,omitempty"`
@@ -6109,10 +6158,11 @@ type AgentRunEventV1 struct {
 	OnCriticalPath            bool                       `protobuf:"varint,27,opt,name=on_critical_path,json=onCriticalPath,proto3" json:"on_critical_path,omitempty"`
 	Generation                *AgentRunEventGenerationV1 `protobuf:"bytes,28,opt,name=generation,proto3" json:"generation,omitempty"`
 	Usage                     *AgentRunEventUsageV1      `protobuf:"bytes,29,opt,name=usage,proto3" json:"usage,omitempty"`
-	// A list-rate estimate with its provenance attached, never a bill.
+	// `span_cost::span_cost`, by import. A list-rate estimate with its provenance
+	// attached, never a bill.
 	Cost *TraceSpanCostV1 `protobuf:"bytes,30,opt,name=cost,proto3" json:"cost,omitempty"`
-	// References, never bodies. The `reasoning` class is a provider-exposed
-	// SUMMARY reference and nothing else.
+	// References, never bodies (`PLAN:1700`). The `reasoning` class is a
+	// provider-exposed SUMMARY reference and nothing else (NN27).
 	ContentRefs         []*TraceSpanContentRefV1              `protobuf:"bytes,31,rep,name=content_refs,json=contentRefs,proto3" json:"content_refs,omitempty"`
 	AttributeProvenance []*AgentRunEventAttributeProvenanceV1 `protobuf:"bytes,32,rep,name=attribute_provenance,json=attributeProvenance,proto3" json:"attribute_provenance,omitempty"`
 	Children            []*AgentRunChildSummaryV1             `protobuf:"bytes,33,rep,name=children,proto3" json:"children,omitempty"`
@@ -6397,10 +6447,10 @@ func (x *AgentRunEventV1) GetNestedCaps() *AgentRunNestedCapsV1 {
 	return nil
 }
 
-// Whether the server actually filtered, and by how much.
+// Whether the server actually filtered, and by how much (`PLAN:1696`).
 //
-// Server-side filters exist only where they materially reduce the payload: a
-// filter that returns 195 of 200 events is a client concern. The
+// `0b P7-15`: server-side filters exist "only where they materially reduce
+// payload — a filter that returns 195 of 200 events is a client concern". The
 // rule is published as a number (`filter_materiality_retained_percent`) and the
 // verdict is on the wire, because a client that had to GUESS whether the server
 // filtered would filter defensively every time and the server's filter would buy
@@ -6485,7 +6535,7 @@ func (x *AgentRunTimelineModeEffectV1) GetRetainedCount() uint32 {
 	return 0
 }
 
-// The timeline's cursor.
+// `0b P7-16`'s cursor.
 type AgentRunTimelineCursorV1 struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Absent when the page exhausted the population.
@@ -6493,7 +6543,7 @@ type AgentRunTimelineCursorV1 struct {
 	// The prefix to re-emit was larger than this build re-emits, so the client
 	// restarts from page 1. A typed escape, never a silent truncation.
 	ResyncRequired bool `protobuf:"varint,2,opt,name=resync_required,json=resyncRequired,proto3" json:"resync_required,omitempty"`
-	// The monotone projection version this page was built at.
+	// Lane A's monotone projection version this page was built at.
 	ProjectionVersion int64 `protobuf:"varint,3,opt,name=projection_version,json=projectionVersion,proto3" json:"projection_version,omitempty"`
 	// Set when the BYTE ceiling ended the page rather than the event count.
 	// "200 events" and "as many as fit" are different answers and an operator
@@ -6572,10 +6622,10 @@ func (x *AgentRunTimelineCursorV1) GetTotalEventCount() uint32 {
 	return 0
 }
 
-// The cost-driving event of the run.
+// The cost-driving event of the run (J2 step 4).
 //
-// The single largest AVAILABLE per-event cost, not a sum: this surface
-// publishes no run-level money total.
+// The single largest AVAILABLE per-event cost — not a sum. A sum would be the
+// run-level money total handoff doc 11 §8 refuses to publish.
 type AgentRunTimelineCostDriverV1 struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	EventId       *string                `protobuf:"bytes,1,opt,name=event_id,json=eventId,proto3,oneof" json:"event_id,omitempty"`
@@ -6639,7 +6689,7 @@ func (x *AgentRunTimelineCostDriverV1) GetAvailability() *MetricAvailabilityV1 {
 type ListAgentRunEventsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// A non-`_CURRENT` id is not an error: it resolves to the canonical run and
-	// the response carries the redirect.
+	// the response carries the redirect (`P7-6`).
 	AgentRunId string                 `protobuf:"bytes,1,opt,name=agent_run_id,json=agentRunId,proto3" json:"agent_run_id,omitempty"`
 	Mode       AgentRunTimelineModeV1 `protobuf:"varint,2,opt,name=mode,proto3,enum=o11y_one.agentic.v1.AgentRunTimelineModeV1" json:"mode,omitempty"`
 	// From a previous response. Bound to the run, the mode and the projection
@@ -6715,15 +6765,15 @@ type ListAgentRunEventsResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The CANONICAL run id, which may differ from the one requested.
 	AgentRunId string `protobuf:"bytes,1,opt,name=agent_run_id,json=agentRunId,proto3" json:"agent_run_id,omitempty"`
-	// Present when the requested id was not `_CURRENT`.
+	// Present when the requested id was not `_CURRENT` (`P7-6`).
 	Redirect   *GroupingRedirectV1           `protobuf:"bytes,2,opt,name=redirect,proto3,oneof" json:"redirect,omitempty"`
 	Events     []*AgentRunEventV1            `protobuf:"bytes,3,rep,name=events,proto3" json:"events,omitempty"`
 	Lanes      []*AgentRunLaneV1             `protobuf:"bytes,4,rep,name=lanes,proto3" json:"lanes,omitempty"`
 	ModeEffect *AgentRunTimelineModeEffectV1 `protobuf:"bytes,5,opt,name=mode_effect,json=modeEffect,proto3" json:"mode_effect,omitempty"`
 	Cursor     *AgentRunTimelineCursorV1     `protobuf:"bytes,6,opt,name=cursor,proto3" json:"cursor,omitempty"`
-	// The timeline's "this conversation is done" affordance READS this state. It
-	// computes no idle heuristic of its own, and there is no field here that
-	// would let it.
+	// `P7-13`: the timeline's "this conversation is done" affordance READS this
+	// state. It computes no idle heuristic of its own, and there is no field here
+	// that would let it.
 	Completeness           *ConversationCompletenessV1         `protobuf:"bytes,7,opt,name=completeness,proto3" json:"completeness,omitempty"`
 	EventKindCoverage      []*AgentRunEventKindCoverageV1      `protobuf:"bytes,8,rep,name=event_kind_coverage,json=eventKindCoverage,proto3" json:"event_kind_coverage,omitempty"`
 	ArtifactSourceCoverage []*AgentRunArtifactSourceCoverageV1 `protobuf:"bytes,9,rep,name=artifact_source_coverage,json=artifactSourceCoverage,proto3" json:"artifact_source_coverage,omitempty"`
@@ -6732,12 +6782,12 @@ type ListAgentRunEventsResponse struct {
 	// score to a single span today. An absence with a reason, not an empty list a
 	// client would read as "unscored".
 	EventScoreAvailability *MetricAvailabilityV1 `protobuf:"bytes,11,opt,name=event_score_availability,json=eventScoreAvailability,proto3" json:"event_score_availability,omitempty"`
-	// "Downstream trace unavailable", typed. NOT_SUPPORTED with
-	// `span_links_reach_the_lake_without_attributes`: span links are stored
-	// without their attributes, so a span link cannot
+	// J2's "downstream trace unavailable", typed. NOT_SUPPORTED with
+	// `span_links_reach_the_lake_without_attributes` — OTel's own relational
+	// mechanism survives ingest with its attributes dropped, so a span link cannot
 	// say WHY it links and a downstream reference cannot be built from it.
 	DownstreamReferenceAvailability *MetricAvailabilityV1 `protobuf:"bytes,12,opt,name=downstream_reference_availability,json=downstreamReferenceAvailability,proto3" json:"downstream_reference_availability,omitempty"`
-	// The earliest failure across the run's member traces, reusing the
+	// The earliest failure across the run's member traces (J2 step 4), reusing the
 	// trace viewer's own shape and fold.
 	FirstFailure *TraceFirstFailureV1             `protobuf:"bytes,13,opt,name=first_failure,json=firstFailure,proto3,oneof" json:"first_failure,omitempty"`
 	CostDriver   *AgentRunTimelineCostDriverV1    `protobuf:"bytes,14,opt,name=cost_driver,json=costDriver,proto3" json:"cost_driver,omitempty"`
@@ -6929,7 +6979,7 @@ func (x *ListAgentRunEventsResponse) GetRunArtifacts() []*AgentRunArtifactSummar
 	return nil
 }
 
-// An audited logical revocation: a tombstone in
+// `PLAN:497` / `AL-8` / `SM-12`. An audited logical revocation: a tombstone in
 // the append-only correction ledger, never a delete of the immutable telemetry
 // that carried the link.
 type RevokeExternalArtifactLinkRequest struct {
@@ -7063,7 +7113,7 @@ func (x *RevokeExternalArtifactLinkResponse) GetRejectionReasonCode() string {
 	return ""
 }
 
-// One resolve, one artifact, only after an explicit
+// `PLAN:498` / `AL-14`. One resolve, one artifact, only after an explicit
 // selection. List and timeline reads return POSTURE and never invoke a resolver.
 type ResolveExternalArtifactLinkRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -7119,13 +7169,13 @@ func (x *ResolveExternalArtifactLinkRequest) GetLinkId() []byte {
 
 type ResolveExternalArtifactLinkResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The outcome posture.
+	// The outcome posture. `SM-13`'s six values.
 	Posture ArtifactResolverPostureV1 `protobuf:"varint,1,opt,name=posture,proto3,enum=o11y_one.agentic.v1.ArtifactResolverPostureV1" json:"posture,omitempty"`
 	// `resolver_not_configured` | `resolver_executor_not_shipped` |
 	// `resolver_denied_by_policy` | `link_not_found` | `link_revoked`.
 	ReasonCode string `protobuf:"bytes,2,opt,name=reason_code,json=reasonCode,proto3" json:"reason_code,omitempty"`
-	// Deliberately NOT a URL and NOT a credential: neither is stored, and neither
-	// is returned. When a resolver executor ships, the
+	// Deliberately NOT a URL and NOT a credential. `AL-14` rule 3 and NN8: neither
+	// is stored, and neither is returned. When a resolver executor ships, the
 	// authorized content reference is what this grows — never a signed URL on a
 	// read model.
 	AttemptedAt   *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=attempted_at,json=attemptedAt,proto3" json:"attempted_at,omitempty"`
@@ -7186,8 +7236,10 @@ func (x *ResolveExternalArtifactLinkResponse) GetAttemptedAt() *timestamppb.Time
 
 // One trace, as the list renders it.
 //
-// The trace's own aggregates and nothing derived from scores.
-// `AgentRunScorePostureV1` is DELIBERATELY ABSENT from the list. `GetAgentRun` carries the posture
+// The aggregate's own columns and nothing derived from a second plane.
+// `AgentRunScorePostureV1` is DELIBERATELY ABSENT: it is a read of `eval_scores`
+// and of the production-rule verdicts per trace, which is a third statement for
+// a column a list sorts by but cannot act on. `GetAgentRun` carries the posture
 // for the run a reader pivots to, which is where it is worth a read.
 type AgentTraceRowV1 struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -7204,8 +7256,9 @@ type AgentTraceRowV1 struct {
 	// Spans the ingest classifier marked failed. A trace with one is a trace the
 	// `errors_only` filter keeps.
 	ErrorCount uint32 `protobuf:"varint,6,opt,name=error_count,json=errorCount,proto3" json:"error_count,omitempty"`
-	// Distinct agent, model and tool names, by the same rules a run's counts
-	// use, so the two surfaces cannot disagree about what a tool is.
+	// Distinct agent, model and tool names — the same column rules
+	// `agent_run/fold.rs` folds a RUN's counts from, so the two surfaces cannot
+	// drift into disagreeing about what a tool is.
 	AgentCount uint32 `protobuf:"varint,7,opt,name=agent_count,json=agentCount,proto3" json:"agent_count,omitempty"`
 	ModelCount uint32 `protobuf:"varint,8,opt,name=model_count,json=modelCount,proto3" json:"model_count,omitempty"`
 	ToolCount  uint32 `protobuf:"varint,9,opt,name=tool_count,json=toolCount,proto3" json:"tool_count,omitempty"`
@@ -7687,7 +7740,7 @@ type AgenticEvidenceGraphNodeV1 struct {
 	// Display-only facts about the node (a score's value, a run's grouping
 	// state), serialised JSON. A string rather than `google.protobuf.Struct`
 	// because the v2 contract carries no untyped document a service could branch
-	// on; this one is rendered, never read back.
+	// on (`PLAN:1895`); this one is rendered, never read back.
 	MetadataJson  string                              `protobuf:"bytes,7,opt,name=metadata_json,json=metadataJson,proto3" json:"metadata_json,omitempty"`
 	EvidenceLinks []*TraceInvestigationEvidenceLinkV1 `protobuf:"bytes,6,rep,name=evidence_links,json=evidenceLinks,proto3" json:"evidence_links,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -7894,7 +7947,9 @@ func (x *AgenticEvidenceGraphV1) GetUnavailableReasons() []*TraceInvestigationUn
 	return nil
 }
 
-// A trace or an agent run.
+// The two arms that survive v1. Six die with it — session, dataset item, eval
+// job, experiment run item, release gate evaluation, annotation task — and
+// every one of them names a v1-only concept.
 type GetAgentEvidenceGraphRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Scope:
@@ -7902,8 +7957,9 @@ type GetAgentEvidenceGraphRequest struct {
 	//	*GetAgentEvidenceGraphRequest_TraceId
 	//	*GetAgentEvidenceGraphRequest_AgentRunId
 	Scope isGetAgentEvidenceGraphRequest_Scope `protobuf_oneof:"scope"`
-	// Default 64, clamped to 8..=512. The clamp is silent: a client that asked
-	// for 4,000 nodes gets 512 and no field says so.
+	// Default 64, clamped to 8..=512. The clamp is silent, exactly as the v1 verb
+	// clamps it: a client that asked for 4,000 nodes gets 512 and no field says
+	// so, and changing that is a contract change rather than a move.
 	NodeLimit     *uint32 `protobuf:"varint,3,opt,name=node_limit,json=nodeLimit,proto3,oneof" json:"node_limit,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -7982,7 +8038,7 @@ type GetAgentEvidenceGraphRequest_TraceId struct {
 
 type GetAgentEvidenceGraphRequest_AgentRunId struct {
 	// A stale (`_MERGED_AWAY` / `_SPLIT_AWAY`) id resolves through the grouping
-	// redirect and answers with the CANONICAL run, never `NOT_FOUND`.
+	// redirect and answers with the CANONICAL run, never `NOT_FOUND` (`P7-6`).
 	AgentRunId string `protobuf:"bytes,2,opt,name=agent_run_id,json=agentRunId,proto3,oneof"`
 }
 

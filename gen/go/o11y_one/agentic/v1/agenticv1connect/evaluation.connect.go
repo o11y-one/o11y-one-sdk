@@ -2,15 +2,26 @@
 //
 // Source: o11y_one/agentic/v1/evaluation.proto
 
-// The agentic evaluation surface.
+// Agentic Reliability V2 evaluation surface.
 //
-// Conventions:
-//   - no google.protobuf.Struct, no Value, no untyped map anywhere;
-//   - shared enums and value objects are defined once here and reused;
-//   - every request carries its scope implicitly, and every stored row carries
-//     both tenant_id and org_id;
-//   - no optional metric group without an availability state;
-//   - money is int64 micros plus a currency code, never a float.
+// Same package as agentic.proto by design (lock ruling L1-4): prost emits one
+// Rust module per package, so `proto::agentic::*` stays one flat namespace and
+// no import churn reaches the existing service. A separate FILE keeps
+// `buf breaking` (FILE mode) from letting v2 churn destabilise the legacy
+// file's breaking-change surface, and a separate service gives the machine
+// principal interceptor an attachment point that does not re-authorise the 164
+// legacy RPCs.
+//
+// Rules this file is written against
+// (docs/specs/agentic-reliability-v2/2026-08-13-0a-canonical-type-contract.md):
+//
+//	R6/R7 — no google.protobuf.Struct, no Value, no untyped map anywhere.
+//	        `struct.proto` is deliberately NOT imported.
+//	R5    — shared enums and value objects are defined once here and reused.
+//	R10   — every request carries scope implicitly and every row carries both
+//	        tenant_id and org_id.
+//	R11   — no optional metric group without an availability state.
+//	L1-5  — money is int64 micros plus a currency code, never a float.
 package agenticv1connect
 
 import (
@@ -488,8 +499,8 @@ type AgenticEvaluationServiceClient interface {
 	RetryEvaluationCells(context.Context, *connect.Request[v1.RetryEvaluationCellsRequest]) (*connect.Response[v1.RetryEvaluationCellsResponse], error)
 	PreviewEvaluationDecision(context.Context, *connect.Request[v1.PreviewEvaluationDecisionRequest]) (*connect.Response[v1.PreviewEvaluationDecisionResponse], error)
 	AdoptEvaluationDecisionRevision(context.Context, *connect.Request[v1.AdoptEvaluationDecisionRevisionRequest]) (*connect.Response[v1.AdoptEvaluationDecisionRevisionResponse], error)
-	// #710. Each aligned case's collapsed outcome against the reference,
-	// regressions first.
+	// #710. Each aligned case's collapsed outcome against the reference, from the
+	// pair statement's own CTE, regressions first.
 	ListEvaluationCaseMovements(context.Context, *connect.Request[v1.ListEvaluationCaseMovementsRequest]) (*connect.Response[v1.ListEvaluationCaseMovementsResponse], error)
 	ListEvaluationMatrixRows(context.Context, *connect.Request[v1.ListEvaluationMatrixRowsRequest]) (*connect.Response[v1.ListEvaluationMatrixRowsResponse], error)
 	BatchGetEvaluationCellDetails(context.Context, *connect.Request[v1.BatchGetEvaluationCellDetailsRequest]) (*connect.Response[v1.BatchGetEvaluationCellDetailsResponse], error)
@@ -526,15 +537,16 @@ type AgenticEvaluationServiceClient interface {
 	ListEvaluationOrgNegotiatedRates(context.Context, *connect.Request[v1.ListEvaluationOrgNegotiatedRatesRequest]) (*connect.Response[v1.ListEvaluationOrgNegotiatedRatesResponse], error)
 	EndEvaluationOrgNegotiatedRate(context.Context, *connect.Request[v1.EndEvaluationOrgNegotiatedRateRequest]) (*connect.Response[v1.EndEvaluationOrgNegotiatedRateResponse], error)
 	VoidEvaluationOrgNegotiatedRate(context.Context, *connect.Request[v1.VoidEvaluationOrgNegotiatedRateRequest]) (*connect.Response[v1.VoidEvaluationOrgNegotiatedRateResponse], error)
-	// One series, read by this RPC and by dashboard panels and alerts.
+	// Track T2. One series contract, two callers: this RPC and the query-engine
+	// control-plane table a dashboard panel and an alert fact family read through.
 	ListEvaluationScoreSeries(context.Context, *connect.Request[v1.ListEvaluationScoreSeriesRequest]) (*connect.Response[v1.ListEvaluationScoreSeriesResponse], error)
-	// A trace span or a matrix cell becomes a proposed case revision in a
-	// dataset-version draft, stamped with where it came from.
+	// Wave 31 lane C. A trace span or a matrix cell becomes a proposed case
+	// revision in a dataset-version draft, stamped with where it came from.
 	CaptureEvaluationCase(context.Context, *connect.Request[v1.CaptureEvaluationCaseRequest]) (*connect.Response[v1.CaptureEvaluationCaseResponse], error)
-	// The three authoring verbs behind the builder's three readiness findings: a
-	// credential an org can register, a scorer it can author over the retained
-	// comparators, and a dataset version it can upload or finalize from a capture
-	// draft.
+	// Wave 31 lane A. The three authoring verbs behind the builder's three
+	// readiness findings: a credential an org can register, a scorer it can
+	// author over the retained comparators, and a dataset version it can upload
+	// or finalize from a capture draft.
 	RegisterEvaluationProviderCredential(context.Context, *connect.Request[v1.RegisterEvaluationProviderCredentialRequest]) (*connect.Response[v1.RegisterEvaluationProviderCredentialResponse], error)
 	CreateEvaluationScorerConfig(context.Context, *connect.Request[v1.CreateEvaluationScorerConfigRequest]) (*connect.Response[v1.CreateEvaluationScorerConfigResponse], error)
 	// #618. A deterministic scorer spec run on one sample through the real
@@ -544,152 +556,216 @@ type AgenticEvaluationServiceClient interface {
 	// candidate outputs, a page at a time. Stores nothing.
 	CheckEvaluationScorerAgainstRun(context.Context, *connect.Request[v1.CheckEvaluationScorerAgainstRunRequest]) (*connect.Response[v1.CheckEvaluationScorerAgainstRunResponse], error)
 	CreateEvaluationDatasetVersion(context.Context, *connect.Request[v1.CreateEvaluationDatasetVersionRequest]) (*connect.Response[v1.CreateEvaluationDatasetVersionResponse], error)
-	// The per-credential kill switch, enforced at execution planning: a
-	// switched-off key is refused by the preview, by the launch and by a cell
-	// retry, through the EXISTING `no_provider_credential` code and a posture
-	// that says which of the two situations it is.
+	// Wave 31 lane B. The per-credential kill switch, enforced at execution
+	// planning: a switched-off key is refused by the preview, by the launch and
+	// by a cell retry, through the EXISTING `no_provider_credential` code and a
+	// posture that says which of the two situations it is.
 	SetEvaluationProviderCredentialEnabled(context.Context, *connect.Request[v1.SetEvaluationProviderCredentialEnabledRequest]) (*connect.Response[v1.SetEvaluationProviderCredentialEnabledResponse], error)
-	// A scorer suite: members by score config id, one declarative combine rule,
-	// frozen into the run manifest like any scorer.
+	// Wave 31 lane B. A scorer suite: members by score config id, one declarative
+	// combine rule, frozen into the run manifest like any scorer.
 	CreateEvaluationScorerSuite(context.Context, *connect.Request[v1.CreateEvaluationScorerSuiteRequest]) (*connect.Response[v1.CreateEvaluationScorerSuiteResponse], error)
-	// The async judge-regrade pair: one verb that ACCEPTS a regrade (writing
-	// rows, calling nothing) and one that reads the job's progress. The provider
-	// calls happen on a worker loop, metered through the same path an in-run
-	// judge is, and added to the run's evaluator totals.
+	// Wave 33 lane B (`PLAN:1242`). The async judge-regrade pair: one verb that
+	// ACCEPTS a regrade (writing rows, calling nothing) and one that reads the
+	// job's progress. The provider calls happen on a worker loop, metered through
+	// the same path an in-run judge is, and added to the run's evaluator totals.
 	RequestEvaluationJudgeRegrade(context.Context, *connect.Request[v1.RequestEvaluationJudgeRegradeRequest]) (*connect.Response[v1.RequestEvaluationJudgeRegradeResponse], error)
 	GetEvaluationJudgeRegradeJob(context.Context, *connect.Request[v1.GetEvaluationJudgeRegradeJobRequest]) (*connect.Response[v1.GetEvaluationJudgeRegradeJobResponse], error)
-	// What a regrade WOULD do and cost before any of it happens, quoted under the
-	// judge the job would freeze; and a stop button with a run's cancel-vs-claim
-	// semantics: a cell in flight finishes and is billed, the rest are stamped
-	// `CANCELLED`, and the spend already incurred stays on the ledger.
+	// Wave 34 lane A. The two halves lane B left open: what a regrade WOULD do
+	// and cost before any of it happens, quoted under the judge the job would
+	// freeze; and a stop button whose semantics are wave 20's cancel-vs-claim —
+	// a cell in flight finishes and is billed, the rest are stamped `CANCELLED`,
+	// and the spend already incurred stays on the ledger.
 	PreviewEvaluationJudgeRegrade(context.Context, *connect.Request[v1.PreviewEvaluationJudgeRegradeRequest]) (*connect.Response[v1.PreviewEvaluationJudgeRegradeResponse], error)
 	CancelEvaluationJudgeRegradeJob(context.Context, *connect.Request[v1.CancelEvaluationJudgeRegradeJobRequest]) (*connect.Response[v1.CancelEvaluationJudgeRegradeJobResponse], error)
-	// Run history for one definition, keyset-paged on `(created_at DESC, id
-	// DESC)` — the id half is not decoration: run creation is not serialized by a
-	// per-definition counter, so a cursor carrying only a timestamp would skip or
-	// repeat two runs that shared a microsecond.
+	// Wave 37 lane A (`PLAN:1135`, `PLAN:1348`). Run history for one definition,
+	// keyset-paged on `(created_at DESC, id DESC)` — the id half is not
+	// decoration: run creation is not serialized by a per-definition counter, so
+	// a cursor carrying only a timestamp would skip or repeat two runs that
+	// shared a microsecond.
 	ListEvaluationRuns(context.Context, *connect.Request[v1.ListEvaluationRunsRequest]) (*connect.Response[v1.ListEvaluationRunsResponse], error)
 	// #616. Every run in the caller's organisation, newest first, with the
 	// summary the Loop overview's recent-runs table renders. Same keyset and
 	// resync discipline as `ListEvaluationRuns`.
 	ListRecentEvaluationRuns(context.Context, *connect.Request[v1.ListRecentEvaluationRunsRequest]) (*connect.Response[v1.ListRecentEvaluationRunsResponse], error)
-	// Release is a reviewer giving a task back; requeue is an operator returning one
-	// to the pool WITH a typed reason. Both are bounded by the claim's own cap, and
-	// both refuse whole.
+	// Wave 37 lane A (`PLAN:1387`). The two verbs the row names and the tree did
+	// not have. Release is a reviewer giving a task back; requeue is an operator
+	// returning one to the pool WITH a typed reason. Both bounded by the claim's
+	// own cap, both refuse whole.
 	ReleaseEvaluationReviewTasks(context.Context, *connect.Request[v1.ReleaseEvaluationReviewTasksRequest]) (*connect.Response[v1.ReleaseEvaluationReviewTasksResponse], error)
 	RequeueEvaluationReviewTasks(context.Context, *connect.Request[v1.RequeueEvaluationReviewTasksRequest]) (*connect.Response[v1.RequeueEvaluationReviewTasksResponse], error)
-	// What a capture WOULD produce, before it produces it: the mapped fields as they
-	// would land, the span-content references as they hydrated, and the digest that
-	// binds this answer to the capture that follows. The preview and the capture
-	// cannot disagree, and the preview writes nothing.
+	// Wave 38 lane A (`PLAN:1507`). What a capture WOULD produce, before it
+	// produces it: the mapped fields as they would land, the span-content
+	// references as they hydrated, and the digest that binds this answer to the
+	// capture that follows. One kernel with CaptureEvaluationCase — the two
+	// cannot disagree — and zero writes, which is the whole difference between
+	// this verb and the capture-look-void workaround it replaces.
 	PreviewEvaluationCaseCapture(context.Context, *connect.Request[v1.PreviewEvaluationCaseCaptureRequest]) (*connect.Response[v1.PreviewEvaluationCaseCaptureResponse], error)
 	// ==========================================================================
-	// Production rules
+	// Phase 6 — production rules (wave 38 lane B)
 	// ==========================================================================
+	//
+	// READS: the plan's own names, verbatim (`PLAN:478-479`).
+	// `ListProductionEvaluationRules` is the approved Class-A name recorded at
+	// `0a-slo-budgets-and-gates.md:101-105`; renaming it here would be drift
+	// under 0b §0.4's freeze convention, not refinement.
+	//
+	// `PLAN:480-481`'s two workflow read verbs land in wave 39 with the plane
+	// they read — see the workflow block below.
 	ListProductionEvaluationRules(context.Context, *connect.Request[v1.ListProductionEvaluationRulesRequest]) (*connect.Response[v1.ListProductionEvaluationRulesResponse], error)
 	GetProductionEvaluationRule(context.Context, *connect.Request[v1.GetProductionEvaluationRuleRequest]) (*connect.Response[v1.GetProductionEvaluationRuleResponse], error)
-	// Rule versions are immutable: a change is a new version.
+	// WRITES: minted here under `PLAN:484`'s conditional — the legacy
+	// `Create/Update/PreviewScorerAutomationRule` may remain the write surface
+	// "if extended typed actions and health semantics remain coherent", and they
+	// do not: `ScorerAutomationRuleV1` carries `google.protobuf.Struct metadata`
+	// (NN17 prohibits it on v2), attributes to `created_by_user_id` (A1 §6.2
+	// replaces it with `PrincipalRefV1`), and is edited by a destructive in-place
+	// UPDATE that an immutable-version contract has no reading for. Named on the
+	// same `ProductionEvaluationRule` stem as the approved reads rather than
+	// starting a second vocabulary beside them.
 	CreateProductionEvaluationRule(context.Context, *connect.Request[v1.CreateProductionEvaluationRuleRequest]) (*connect.Response[v1.CreateProductionEvaluationRuleResponse], error)
 	CreateProductionEvaluationRuleVersion(context.Context, *connect.Request[v1.CreateProductionEvaluationRuleVersionRequest]) (*connect.Response[v1.CreateProductionEvaluationRuleVersionResponse], error)
 	SetProductionEvaluationRuleVersionState(context.Context, *connect.Request[v1.SetProductionEvaluationRuleVersionStateRequest]) (*connect.Response[v1.SetProductionEvaluationRuleVersionStateResponse], error)
-	// A READ: a preview persists nothing.
+	// PREVIEW (wave 48): 0b `P6-16`'s return contract on a v2 verb, as an
+	// AMENDMENT to that row's surface clause. `P6-16` prescribes extending the
+	// v1 `PreviewScorerAutomationRule`; that prescription predates this plane by
+	// seventeen days and two waves, and the two planes now disagree on rule
+	// shape, admission algorithm, action model and — through NN17 and NN24 — on
+	// what a response may carry. `PLAN:485`'s conditional is the clause that
+	// governs, and wave 38 lane B already found it unmet for the other two verbs
+	// in the same sentence. The argument is recorded in full in
+	// `increments/2026-09-03-w48-production-rule-preview.md` §0.0, and the
+	// message block at the tail of this file restates it.
+	//
+	// A READ. `PLAN:1633`: preview does not persist — asserted by row counts
+	// over fifteen tables, health counters included, not by inspection.
 	PreviewProductionEvaluationRule(context.Context, *connect.Request[v1.PreviewProductionEvaluationRuleRequest]) (*connect.Response[v1.PreviewProductionEvaluationRuleResponse], error)
 	// -------------------------------------------------------------------------
-	// Production workflows
+	// Phase 6B — the workflow plane (wave 39; `PLAN:1605`-`:1612`, `:1621`,
+	// `:1622`, `:1626`-`:1628`).
 	// -------------------------------------------------------------------------
+	//
+	// READS: `PLAN:480-481`'s two names, verbatim.
 	ListProductionEvaluationWorkflowExecutions(context.Context, *connect.Request[v1.ListProductionEvaluationWorkflowExecutionsRequest]) (*connect.Response[v1.ListProductionEvaluationWorkflowExecutionsResponse], error)
 	GetProductionEvaluationWorkflowExecution(context.Context, *connect.Request[v1.GetProductionEvaluationWorkflowExecutionRequest]) (*connect.Response[v1.GetProductionEvaluationWorkflowExecutionResponse], error)
 	// The trigger. Called by whatever scored a production trace, carrying the
-	// outcome it produced.
+	// outcome it produced — `PLAN:1575`'s "extend production scoring into a
+	// durable, visible action chain" read literally. No plan row in `:1573-1654`
+	// asks for a trace matcher, and building one would duplicate the legacy
+	// `scorer_automation_trace_claims` plane `PLAN:1585` forbids touching.
 	//
 	// Idempotent on `(tenant, org, rule_version_id, match_key)`: a re-delivered
 	// production match is ONE execution, not two.
 	StartProductionEvaluationWorkflow(context.Context, *connect.Request[v1.StartProductionEvaluationWorkflowRequest]) (*connect.Response[v1.StartProductionEvaluationWorkflowResponse], error)
-	// One step, a NEW attempt, and no re-dispatch of a delivery that already
-	// landed.
+	// `PLAN:1609` / 0b `P6-11`. One step, a NEW attempt row, and no re-dispatch
+	// of a delivery that already landed.
 	RetryProductionEvaluationWorkflowStep(context.Context, *connect.Request[v1.RetryProductionEvaluationWorkflowStepRequest]) (*connect.Response[v1.RetryProductionEvaluationWorkflowStepResponse], error)
-	// A block ledger the RELEASE GATE can read: durable policy evidence that
-	// something other than the workflow that produced it can read.
+	// 0b SM-8. A block ledger the RELEASE GATE can read: the party that needs it
+	// knows a release, not a workflow, and `PLAN:1626`'s "durable policy
+	// evidence, not a transient frontend flag" is only true if something other
+	// than the workflow that produced it can read it.
 	ListProductionEvaluationReleaseBlocks(context.Context, *connect.Request[v1.ListProductionEvaluationReleaseBlocksRequest]) (*connect.Response[v1.ListProductionEvaluationReleaseBlocksResponse], error)
 	OverrideProductionEvaluationReleaseBlock(context.Context, *connect.Request[v1.OverrideProductionEvaluationReleaseBlockRequest]) (*connect.Response[v1.OverrideProductionEvaluationReleaseBlockResponse], error)
-	// Integration configuration. A release integration is NOT a
-	// `ReleaseDestinationV1`: that is a notification channel. Responses never carry
-	// secret material: a signing secret appears only as a key id and a reference.
+	// Integration configuration (`PLAN:1754`-`:1755`, 0b `P8-5`). A release
+	// integration is NOT a `ReleaseDestinationV1`: that is a notification
+	// channel, and `PLAN:515` forbids overloading it as a deployment
+	// integration. Responses never carry secret material (NN8) — a signing
+	// secret appears only as a key id and a reference.
 	CreateReleaseIntegration(context.Context, *connect.Request[v1.CreateReleaseIntegrationRequest]) (*connect.Response[v1.CreateReleaseIntegrationResponse], error)
 	GetReleaseIntegration(context.Context, *connect.Request[v1.GetReleaseIntegrationRequest]) (*connect.Response[v1.GetReleaseIntegrationResponse], error)
 	ListReleaseIntegrations(context.Context, *connect.Request[v1.ListReleaseIntegrationsRequest]) (*connect.Response[v1.ListReleaseIntegrationsResponse], error)
 	UpdateReleaseIntegration(context.Context, *connect.Request[v1.UpdateReleaseIntegrationRequest]) (*connect.Response[v1.UpdateReleaseIntegrationResponse], error)
 	ArchiveReleaseIntegration(context.Context, *connect.Request[v1.ArchiveReleaseIntegrationRequest]) (*connect.Response[v1.ArchiveReleaseIntegrationResponse], error)
-	// Release creation and the reads. Both reads make ZERO external calls.
+	// Release creation and the projection-backed reads (`PLAN:1774`-`:1778`,
+	// `:1759`-`:1760`). Both reads are served from the posture projection and
+	// make ZERO external calls (`PLAN:1807`, 0b `P8-17e`).
 	CreateRelease(context.Context, *connect.Request[v1.CreateReleaseRequest]) (*connect.Response[v1.CreateReleaseResponse], error)
 	GetRelease(context.Context, *connect.Request[v1.GetReleaseRequest]) (*connect.Response[v1.GetReleaseResponse], error)
 	ListReleases(context.Context, *connect.Request[v1.ListReleasesRequest]) (*connect.Response[v1.ListReleasesResponse], error)
-	// Zero adapter calls and zero external mutation, asserted rather than
-	// promised: the response carries the count it made.
+	// `PLAN:1776` / 0b `P8-8`. Zero adapter calls and zero external mutation,
+	// asserted rather than promised: the response carries the count it made.
 	PreviewRelease(context.Context, *connect.Request[v1.PreviewReleaseRequest]) (*connect.Response[v1.PreviewReleaseResponse], error)
-	// The five action verbs. Each records a durable `_REQUESTED` action and
-	// returns; nothing leaves the process inside the caller's timeout. Hold, abort
-	// and rollback require a typed reason and an actor.
+	// The five action verbs (`PLAN:1782`-`:1789`, A2 row J6.4). Each records a
+	// durable `_REQUESTED` action and returns; nothing leaves the process inside
+	// the caller's timeout. Hold, abort and rollback require a typed reason and
+	// an actor (0b `P8-16`).
 	StartReleaseCanary(context.Context, *connect.Request[v1.StartReleaseCanaryRequest]) (*connect.Response[v1.StartReleaseCanaryResponse], error)
 	PromoteRelease(context.Context, *connect.Request[v1.PromoteReleaseRequest]) (*connect.Response[v1.PromoteReleaseResponse], error)
 	HoldRelease(context.Context, *connect.Request[v1.HoldReleaseRequest]) (*connect.Response[v1.HoldReleaseResponse], error)
 	AbortRelease(context.Context, *connect.Request[v1.AbortReleaseRequest]) (*connect.Response[v1.AbortReleaseResponse], error)
 	RollbackRelease(context.Context, *connect.Request[v1.RollbackReleaseRequest]) (*connect.Response[v1.RollbackReleaseResponse], error)
-	// The action ledger. Four states and four timestamps are readable separately,
-	// because collapsing accepted into observed would hide a canary's progress.
+	// The action ledger (`PLAN:1757`, `:1785`). Four states and four timestamps
+	// are readable separately, because collapsing accepted into observed is
+	// exactly the distinction J6's canary stage depends on (`BP:552`).
 	GetReleaseAction(context.Context, *connect.Request[v1.GetReleaseActionRequest]) (*connect.Response[v1.GetReleaseActionResponse], error)
 	ListReleaseActions(context.Context, *connect.Request[v1.ListReleaseActionsRequest]) (*connect.Response[v1.ListReleaseActionsResponse], error)
-	// ---- datasets: schema, projections, reads ----
+	// ---- wave 42 lane C: schema, projections, reads ----
 	//
-	// `ListDatasetVersions` shares a name with a verb on the legacy
-	// `AgenticObservabilityService`: a different service with different message
-	// types. This one carries freshness, an availability posture and the draft
-	// state.
+	// Six verbs, every one of them from an approved list, verified name by name
+	// before it was declared: `GetDatasetSchemaRevision`, `ListDatasetCases` and
+	// `GetDatasetCase` at `PLAN:462`-`:463`; `GetDatasetOverview`,
+	// `ListDatasetVersions` and `ListDatasetUsage` at `0b :213`-`:214`, which is
+	// A2 gap `G23`'s own fix. Nothing here is minted.
+	//
+	// `ListDatasetVersions` shares a name with a verb on the LEGACY
+	// `AgenticObservabilityService`. Different service, different message types,
+	// different plane — and the difference is the whole reason `G23` was a gap
+	// rather than a duplicate: the legacy verb carries no freshness, no
+	// availability posture and no knowledge of the draft plane.
 	GetDatasetSchemaRevision(context.Context, *connect.Request[v1.GetDatasetSchemaRevisionRequest]) (*connect.Response[v1.GetDatasetSchemaRevisionResponse], error)
-	// `INITIAL_PAGE`/`PAGE`: at most 512 KiB and 50 rows, with no external call.
-	// The recent-performance posture comes with the page, so the cost is constant
-	// in page size.
+	// `INITIAL_PAGE`/`PAGE` under A4 `S8`: 3 request-scoped SQL, 0 DataFusion,
+	// 0 object reads, 0 external calls, 512 KiB, 50 rows. The recent-performance
+	// posture is joined from the maintained projection in the SAME statement that
+	// reads the page, so the cost is constant in page size — there is no per-row
+	// hydration to remove because there never was one.
 	ListDatasetCases(context.Context, *connect.Request[v1.ListDatasetCasesRequest]) (*connect.Response[v1.ListDatasetCasesResponse], error)
 	// `SELECTED_DETAIL`. Carries the immutable revision, the retained lineage with
-	// its anchor availability, the external-artifact posture, and the bounded
-	// recent performance.
+	// its anchor availability, the external-artifact posture consumed from the
+	// link plane, and the bounded recent-performance projection (`PLAN:463`).
 	GetDatasetCase(context.Context, *connect.Request[v1.GetDatasetCaseRequest]) (*connect.Response[v1.GetDatasetCaseResponse], error)
-	// `SUMMARY`, backed by the quality projection.
+	// `SUMMARY`, backed by the quality projection (`0b :213`).
 	GetDatasetOverview(context.Context, *connect.Request[v1.GetDatasetOverviewRequest]) (*connect.Response[v1.GetDatasetOverviewResponse], error)
 	ListDatasetVersions(context.Context, *connect.Request[v1.ListEvaluationDatasetVersionsRequest]) (*connect.Response[v1.ListEvaluationDatasetVersionsResponse], error)
-	// `PAGE`, bounded. Never a lineage scan.
+	// `PAGE`, bounded by A4's `S8` budget. Never a lineage scan.
 	ListDatasetUsage(context.Context, *connect.Request[v1.ListDatasetUsageRequest]) (*connect.Response[v1.ListDatasetUsageResponse], error)
-	// A draft in another organisation is `NOT_FOUND`, never `PERMISSION_DENIED`,
-	// which would confirm it exists, and no source artifact crosses: the lineage
-	// carries references and postures, never a body and never a storage
-	// coordinate.
+	// `PLAN:1541`'s reversal trigger. Wave 37 lane A recorded "unauthorized users
+	// cannot retrieve source artifacts through draft APIs" as VACUOUS *because no
+	// draft read verb existed*, with an explicit trigger: the first one reopens
+	// the row in the same change and its authorization test is a launch blocker.
+	// These two verbs are that pair. A draft in another organisation is
+	// `NOT_FOUND` — never `PERMISSION_DENIED`, which would confirm it exists —
+	// and no source artifact crosses: the lineage carries references and
+	// postures, never a body and never a storage coordinate.
 	GetDatasetCaseDraft(context.Context, *connect.Request[v1.GetDatasetCaseDraftRequest]) (*connect.Response[v1.GetDatasetCaseDraftResponse], error)
 	ListDatasetCaseDrafts(context.Context, *connect.Request[v1.ListDatasetCaseDraftsRequest]) (*connect.Response[v1.ListDatasetCaseDraftsResponse], error)
-	// A reviewer's outcomes, acting WITHOUT a review task.
+	// `PLAN:1526`'s outcomes, for a reviewer acting WITHOUT a task.
 	//
-	// The review plane is the other entry point (`SubmitEvaluationReview` takes a
-	// typed `dataset_case_outcome`). Both bind against `draft_version`, so they
-	// cannot both win.
+	// The review plane is the other entry point and is preserved
+	// (`SubmitEvaluationReview` gains a typed `dataset_case_outcome`). These
+	// exist because a draft queue has no review unit, no reviewer slot, no blind
+	// posture and no adjudication policy — minting one just so a human can press
+	// Approve would be the task plane doing bookkeeping for a decision that has
+	// none. Both entry points bind against `draft_version`, so they cannot both
+	// win.
 	UpdateDatasetCaseDraft(context.Context, *connect.Request[v1.UpdateDatasetCaseDraftRequest]) (*connect.Response[v1.UpdateDatasetCaseDraftResponse], error)
 	ApproveDatasetCaseDraft(context.Context, *connect.Request[v1.ApproveDatasetCaseDraftRequest]) (*connect.Response[v1.ApproveDatasetCaseDraftResponse], error)
 	RejectDatasetCaseDraft(context.Context, *connect.Request[v1.RejectDatasetCaseDraftRequest]) (*connect.Response[v1.RejectDatasetCaseDraftResponse], error)
 	MergeDatasetCaseDraft(context.Context, *connect.Request[v1.MergeDatasetCaseDraftRequest]) (*connect.Response[v1.MergeDatasetCaseDraftResponse], error)
-	// Preview-then-commit is TWO round trips by design. The preview issues a
-	// digest; the publish echoes it and the server recomputes it from what it is
-	// about to commit. A mismatch is `FAILED_PRECONDITION` and never a silent
-	// rebase.
+	// `P5-16`. Preview-then-commit is TWO round trips by design (A2 row J3.5).
+	// The preview issues a digest; the publish echoes it and the server
+	// recomputes it from what it is about to commit. A mismatch is
+	// `FAILED_PRECONDITION` and never a silent rebase (`PLAN:1529`).
 	PreviewPublishDatasetChangeset(context.Context, *connect.Request[v1.PreviewPublishDatasetChangesetRequest]) (*connect.Response[v1.PreviewPublishDatasetChangesetResponse], error)
-	// The new immutable version, the case identities, the new or reused case
-	// revisions, the `_PUBLISHED` transitions and the outbox rows commit
+	// `P5-17`. The new immutable version, the case identities, the new or reused
+	// case revisions, the `_PUBLISHED` transitions and the outbox rows commit
 	// TOGETHER; the linked evaluations dispatch from the outbox AFTER the commit,
 	// through the one launch path. A downstream failure leaves the version
-	// intact.
+	// intact (`P5-18`).
 	PublishDatasetCaseDrafts(context.Context, *connect.Request[v1.PublishDatasetCaseDraftsRequest]) (*connect.Response[v1.PublishDatasetCaseDraftsResponse], error)
 	// Mint an org-scoped machine principal carrying a typed `ScopeSet`. An
-	// unknown scope discriminant is `INVALID_ARGUMENT`, never a silently dropped
-	// element — a principal that was created with fewer powers than the caller
-	// asked for is a security surprise in the safe direction and a debugging
-	// nightmare in every other one.
+	// unknown scope discriminant is `INVALID_ARGUMENT` (0a §6.4), never a
+	// silently dropped element — a principal that was created with fewer powers
+	// than the caller asked for is a security surprise in the safe direction and
+	// a debugging nightmare in every other one.
 	CreateMachinePrincipal(context.Context, *connect.Request[v1.CreateMachinePrincipalRequest]) (*connect.Response[v1.CreateMachinePrincipalResponse], error)
 	// Management list. Carries no secret material and no credential secrets: the
 	// credential summaries it embeds are the same `MachineCredentialV1` the rest
@@ -697,17 +773,19 @@ type AgenticEvaluationServiceClient interface {
 	ListMachinePrincipals(context.Context, *connect.Request[v1.ListMachinePrincipalsRequest]) (*connect.Response[v1.ListMachinePrincipalsResponse], error)
 	// The ONLY message in this contract that carries plaintext credential
 	// material, in the field `plaintext_token_once`, exactly once, with no
-	// read-back path anywhere. Losing it means rotating, which is why a principal
-	// may hold several ACTIVE credentials at a time.
+	// read-back path anywhere (0a §6.3, NN8 `:160`). Losing it means rotating,
+	// which is why a principal may hold several ACTIVE credentials at a time.
 	CreateMachineCredential(context.Context, *connect.Request[v1.CreateMachineCredentialRequest]) (*connect.Response[v1.CreateMachineCredentialResponse], error)
-	// Revocation takes effect on the NEXT request, not on a cache-TTL boundary.
+	// Revocation takes effect on the NEXT request, not on a cache-TTL boundary:
+	// the token cache is invalidated in the same call, following the precedent at
+	// `server/src/services/api_tokens/handlers.rs:199-217`.
 	RevokeMachineCredential(context.Context, *connect.Request[v1.RevokeMachineCredentialRequest]) (*connect.Response[v1.RevokeMachineCredentialResponse], error)
 	// Revokes the principal AND every credential it holds, each with its own
 	// cache invalidation. A principal whose credentials outlived it would be a
 	// revocation that did not revoke.
 	RevokeMachinePrincipal(context.Context, *connect.Request[v1.RevokeMachinePrincipalRequest]) (*connect.Response[v1.RevokeMachinePrincipalResponse], error)
-	// "Is my token valid and what can it do?" — the first call an SDK makes.
-	// Reachable by any valid machine credential with NO scope requirement,
+	// J8.1: "Is my token valid and what can it do?" — the first call an SDK
+	// makes. Reachable by any valid machine credential with NO scope requirement,
 	// because requiring a scope to ask which scopes you hold makes the question
 	// unanswerable for exactly the token that needs to ask it. It introspects the
 	// caller and only the caller; there is no principal id in the request.
@@ -723,10 +801,11 @@ type AgenticEvaluationServiceClient interface {
 	// could also claim would let a heartbeat silently grow its own batch.
 	RenewEvaluationCaseLease(context.Context, *connect.Request[v1.RenewEvaluationCaseLeaseRequest]) (*connect.Response[v1.RenewEvaluationCaseLeaseResponse], error)
 	// The fenced submit. Idempotent by coordinate and generation, so a resubmitted
-	// batch converges with no duplicate facts and no double-counted economics;
-	// partial by construction, so one malformed case never fails its batch.
-	// Scoring is NOT done here: the submission moves the cell to `QUEUED` and the
-	// server's own executor scores it.
+	// batch converges with no duplicate facts and no double-counted economics
+	// (`PLAN:1937`); partial by construction, so one malformed case never fails
+	// its batch (`PLAN:1928`). Scoring is NOT done here — the submission moves the
+	// cell to the frozen `QUEUED` and the server's own executor scores it, which
+	// is `PLAN:1969`'s "server-side scorer fan-out unchanged" taken literally.
 	SubmitEvaluationCaseOutputs(context.Context, *connect.Request[v1.SubmitEvaluationCaseOutputsRequest]) (*connect.Response[v1.SubmitEvaluationCaseOutputsResponse], error)
 	// The good citizen's exit. Without it, a runtime that fails cleanly must wait
 	// out its whole TTL before anyone can retake its cases, and typed abandonment
@@ -755,7 +834,8 @@ type AgenticEvaluationServiceClient interface {
 	// first. Empty for a tenant fenced for offboarding.
 	ListOrganizationReplays(context.Context, *connect.Request[v1.ListOrganizationReplaysRequest]) (*connect.Response[v1.ListOrganizationReplaysResponse], error)
 	// `MUTATION_ACK`. Idempotency-keyed, machine-principal attributable, and
-	// required-scope `PLATFORM_ANNOTATION_WRITE`.
+	// required-scope `PLATFORM_ANNOTATION_WRITE` (wave 50 lane A's fifth
+	// discriminant, minted on this lane's ask).
 	//
 	// A deploy marker whose kind this build does not know is REFUSED, and the
 	// refusal carries the capability envelope — so a newer runner learns which
@@ -765,113 +845,189 @@ type AgenticEvaluationServiceClient interface {
 	// `INITIAL_PAGE`. A time window, an optional kind filter, keyset-paged,
 	// newest-first. Constant in the page size and in the filter's cardinality.
 	ListPlatformAnnotations(context.Context, *connect.Request[v1.ListPlatformAnnotationsRequest]) (*connect.Response[v1.ListPlatformAnnotationsResponse], error)
-	// ---- capture (O11Y-366) ----
+	// ---- O11Y-366: the capture plane ----
 	//
-	// Machine callers are refused.
+	// The same rows the legacy `Submit*` verbs write, through this service's
+	// scope and rollout path. Machine callers are refused: these attribute
+	// through an unkinded `actor_user_id` column, the same reason
+	// `CaptureEvaluationCase` holds no `REQUIRED_SCOPES` row.
 	CaptureScore(context.Context, *connect.Request[v1.CaptureScoreRequest]) (*connect.Response[v1.CaptureScoreResponse], error)
 	CaptureFeedback(context.Context, *connect.Request[v1.CaptureFeedbackRequest]) (*connect.Response[v1.CaptureFeedbackResponse], error)
 	CaptureOutcome(context.Context, *connect.Request[v1.CaptureOutcomeRequest]) (*connect.Response[v1.CaptureOutcomeResponse], error)
 	CaptureContentManifest(context.Context, *connect.Request[v1.CaptureContentManifestRequest]) (*connect.Response[v1.CaptureContentManifestResponse], error)
-	// ---- prompt templates (O11Y-367) ----
+	// ---- O11Y-367: prompt templates ----
 	//
-	// `MUTATION_ACK` and `INITIAL_PAGE`.
+	// `MUTATION_ACK` and `INITIAL_PAGE`. The store is the v1 `prompt_templates` /
+	// `prompt_versions` pair, which moves to the shared, v2-owned list; the v1
+	// verbs are untouched until W-V1-2.
 	UpsertEvaluationPromptTemplate(context.Context, *connect.Request[v1.UpsertEvaluationPromptTemplateRequest]) (*connect.Response[v1.UpsertEvaluationPromptTemplateResponse], error)
 	ListEvaluationPromptTemplates(context.Context, *connect.Request[v1.ListEvaluationPromptTemplatesRequest]) (*connect.Response[v1.ListEvaluationPromptTemplatesResponse], error)
 	// `INITIAL_PAGE`. The library page, keyset-paged on `config_key`.
 	//
-	// EVERY score configuration in the organisation, including archived ones, and
-	// with no picker ceiling. `authored_on_this_surface` says how a row was
-	// authored; `kind = UNSPECIFIED` is a real answer and means a scorer authored
-	// outside `CreateEvaluationScorerConfig`.
+	// EVERY score configuration in the organisation, not only the v2-authored
+	// ones — the same set `GetEvaluationBuilderContext.scorer_choices[]` serves,
+	// PLUS the archived rows its `is_archived = FALSE` predicate hides, and
+	// WITHOUT that picker's `max_scorers = 50` ceiling, which is a picker bound
+	// and not an inventory bound. `authored_on_this_surface` says which half a
+	// row is in; `kind = UNSPECIFIED` is a real answer and means a scorer
+	// authored outside `CreateEvaluationScorerConfig`.
 	ListEvaluationScorerConfigs(context.Context, *connect.Request[v1.ListEvaluationScorerConfigsRequest]) (*connect.Response[v1.ListEvaluationScorerConfigsResponse], error)
-	// `SELECTED_DETAIL`. The WHOLE authored spec: a judge's `instructions`,
-	// `verdict_mappings` and `subject_path`, plus the resolved provider execution,
-	// plus the deterministic spec and the review policy for the other two kinds.
-	// Optional `version_discriminator` addresses a superseded version.
-	GetEvaluationScorerConfig(context.Context, *connect.Request[v1.GetEvaluationScorerConfigRequest]) (*connect.Response[v1.GetEvaluationScorerConfigResponse], error)
-	// `PAGE`. The version history. A revision makes a new version rather than
-	// mutating the old one, and those versions ARE the history.
-	ListEvaluationScorerConfigVersions(context.Context, *connect.Request[v1.ListEvaluationScorerConfigVersionsRequest]) (*connect.Response[v1.ListEvaluationScorerConfigVersionsResponse], error)
-	// `INITIAL_PAGE` / `SELECTED_DETAIL`. The suite reads.
+	// `SELECTED_DETAIL`. The read `17` §8.1 calls "the largest gap on this page"
+	// and `17` §9 question 1 puts to the backend by name.
 	//
-	// The detail's members carry their OWN posture (archived, kind, version), so a
-	// suite page can say "this member is archived" before the customer meets it
-	// at launch as a `MISSING_DEPENDENCY` / `scorer_archived` blocker.
+	// The WHOLE authored spec: a judge's `instructions`, `verdict_mappings` and
+	// `subject_path` — written to `evaluator_templates.config` since wave 45 and
+	// read by nothing until now — plus the resolved provider execution, plus the
+	// deterministic spec and the review policy for the other two kinds. Optional
+	// `version_discriminator` addresses a superseded version.
+	GetEvaluationScorerConfig(context.Context, *connect.Request[v1.GetEvaluationScorerConfigRequest]) (*connect.Response[v1.GetEvaluationScorerConfigResponse], error)
+	// `PAGE`. The version history `05` §8 says is "not derivable".
+	//
+	// It is derivable and always has been: the v2 create has minted one
+	// `evaluator_templates` row per version since wave 31 lane A, keyed
+	// `scorer:{config_key}:{version}` and UNIQUE per tenant, and a revision mints
+	// a fresh row rather than mutating the old one. Those rows ARE the history.
+	ListEvaluationScorerConfigVersions(context.Context, *connect.Request[v1.ListEvaluationScorerConfigVersionsRequest]) (*connect.Response[v1.ListEvaluationScorerConfigVersionsResponse], error)
+	// `INITIAL_PAGE` / `SELECTED_DETAIL`. The suite reads `05` §2 records as
+	// ABSENT on the v2 plane.
+	//
+	// The detail's members carry their OWN posture — archived, kind, version —
+	// which `EvaluationScorerSuiteMemberV1` cannot: that message is embedded in
+	// `EvaluationScorerSuiteSnapshotV1`, which "must never gain a field that
+	// moves". Without the posture a suite page cannot say "this member is
+	// archived", and the customer meets it at launch instead, as a
+	// `MISSING_DEPENDENCY` / `scorer_archived` blocker.
 	ListEvaluationScorerSuites(context.Context, *connect.Request[v1.ListEvaluationScorerSuitesRequest]) (*connect.Response[v1.ListEvaluationScorerSuitesResponse], error)
 	GetEvaluationScorerSuite(context.Context, *connect.Request[v1.GetEvaluationScorerSuiteRequest]) (*connect.Response[v1.GetEvaluationScorerSuiteResponse], error)
 	// `MUTATION_ACK`. Retirement, and it is UNCONDITIONAL.
 	//
-	// Launch already refuses an archived scorer by name (`scorer_archived`), for
-	// an explicit selection and for a suite member alike, and a production rule
-	// version that depends on one is disabled with `dependency_archived`. So
-	// archiving is never refused for a suite membership, a definition reference, a
-	// production rule or a run pin: it mutates no template and no manifest.
-	// Instead the response returns the STANDING REFERENCES, so an operator sees
-	// the blast radius at the one moment it changes a decision.
+	// Three shipped facts settle the semantics and the increment argues them in
+	// full (§0.5). (1) `score_configs.is_archived` has existed since
+	// `20260515123000` and the v2 picker already filters on it, so this verb
+	// introduces no lifecycle — it writes a flag the surface already honours.
+	// (2) The launch path ALREADY refuses an archived scorer by name
+	// (`run_handlers.rs`, blocker `scorer_archived`), for an explicit selection
+	// and for a suite member alike. (3) The production-rule plane ALREADY
+	// disables a dependent rule version with `dependency_archived`.
+	//
+	// So archiving is never refused for a suite membership, a definition
+	// reference, a production rule or a run pin. A pin makes REVISION unsafe
+	// because the executor reads the template live; archiving mutates no template
+	// and no manifest, and pins never expire, so that refusal would mean "you may
+	// never retire a scorer that was ever used". Instead the response returns the
+	// STANDING REFERENCES, so an operator sees the blast radius at the one moment
+	// it changes a decision — the shape `ArchiveReleaseIntegrationResponse`
+	// already uses.
 	//
 	// There is no unarchive verb and no idempotency key: a monotone state flip is
 	// replayable by construction, and `already_archived` rides back on the
 	// response rather than being an error.
 	ArchiveEvaluationScorerConfig(context.Context, *connect.Request[v1.ArchiveEvaluationScorerConfigRequest]) (*connect.Response[v1.ArchiveEvaluationScorerConfigResponse], error)
-	// `MUTATION_ACK`. Same semantics, and NO launched-run refusal: a launched run
-	// froze its suite, so archiving cannot change it.
+	// `MUTATION_ACK`. Same semantics, and NO launched-run refusal — the suite
+	// migration's own header is the argument: "Nothing reads THIS table at
+	// execution or at read time … launched runs are immune by construction. A
+	// revision is therefore always permitted." Archiving is weaker than the
+	// revision that is already unconditional.
 	ArchiveEvaluationScorerSuite(context.Context, *connect.Request[v1.ArchiveEvaluationScorerSuiteRequest]) (*connect.Response[v1.ArchiveEvaluationScorerSuiteResponse], error)
-	// ---- datasets: collections and changesets ----
+	// ---- wave 52 lane A: the dataset read plane's entry points ----
 	//
-	// `ListDatasetCollections`, like `ListDatasetVersions`, shares its verb name
-	// with the legacy `AgenticObservabilityService`; its messages carry the
-	// `Evaluation` infix. This one carries an availability posture, freshness and
-	// the changeset state.
+	// Wave 42 built every dataset screen GIVEN AN ID and shipped nothing that
+	// hands a client its first id. These three verbs are that residue of A2 gap
+	// `G23`, and all three are RECORDED AMENDMENTS: `PLAN:462`-`:477` is the
+	// dataset plane's whole approved inventory and reserves no collection-list
+	// and no changeset-read name, and `0b :213`-`:214` reserves exactly the three
+	// tab verbs wave 42 built. Every name here was checked against both lists
+	// before it was declared, and none of them was on either — which is why they
+	// are amendments and say so, rather than being quietly minted as if approved.
 	//
-	// `PAGE`. The per-collection counts come with the page, so the cost is
-	// constant in the page size.
+	// `A-52A-1` `ListDatasetCollections`. The verb collides with the LEGACY
+	// `AgenticObservabilityService.ListDatasetCollections`
+	// (`agentic.proto:4533-4550`) exactly as `ListDatasetVersions` already does,
+	// and it is resolved the same way, for the reason recorded on
+	// `ListEvaluationDatasetVersionsRequest`: the verb name is the plane's, the
+	// MESSAGE name carries the `Evaluation` infix to disambiguate inside one
+	// protobuf package. Different service, different messages, different plane —
+	// the legacy verb carries no availability posture, no freshness, and no
+	// knowledge of the changeset plane.
+	//
+	// `PAGE`. Three request-scoped SQL statements — scope, the page, the total —
+	// and the per-collection sub-counts are LATERAL sub-selects INSIDE the page
+	// statement, on `GetEvaluationBuilderContext`'s own precedent and for the
+	// reason `PLAN:1520` exists: a count issued per row is the cost this plane
+	// was built not to pay. The count is therefore constant in the page size.
 	ListDatasetCollections(context.Context, *connect.Request[v1.ListEvaluationDatasetCollectionsRequest]) (*connect.Response[v1.ListEvaluationDatasetCollectionsResponse], error)
-	// The changeset reads.
+	// `A-52A-2` / `A-52A-3`. The CONTAINER reads.
 	//
-	// A changeset is written by capture, moved by `PreviewPublishDatasetChangeset`
-	// and committed by `PublishDatasetCaseDrafts`. These reads tell a reviewer
-	// coming back later whether a changeset is open on a collection, what state it
-	// is in, and whether its base version has moved under it.
+	// `evaluation_dataset_version_drafts` — the row this wire models as
+	// `DatasetChangesetV1` — is written by capture, moved by
+	// `PreviewPublishDatasetChangeset` and committed by
+	// `PublishDatasetCaseDrafts`, and until this wave was reachable through no
+	// read verb at all. Every mutation on it takes a `changeset_id` a client
+	// could only have obtained from a capture response IN THE SAME SESSION: a
+	// reviewer who came back tomorrow had no verb that would tell them a
+	// changeset was open on this collection, what state it was in, or whether its
+	// base version had moved under it. This is the half of doc `08` §8's fourth
+	// row that wave 42 did not close — that section named TWO absent verbs, and
+	// wave 42 shipped `ListEvaluationProposedCases` as `ListDatasetCaseDrafts`
+	// and left the container.
 	//
-	// `SELECTED_DETAIL`: the changeset and the collection's ACTIVE version, because
-	// "has my base moved?" is a question the server answers.
+	// NAMED `Changeset` AND NOT `Draft`, deliberately. Doc `08` §8 wrote the name
+	// `GetEvaluationDatasetDraft` in 2026-08-31 for a thing that did not exist,
+	// and the wave-42 wire since settled on a different word for it:
+	// `DatasetChangesetV1`, `DatasetChangesetStateV1`,
+	// `PreviewPublishDatasetChangeset`. A `GetDatasetDraft` sitting beside the
+	// shipped `GetDatasetCaseDraft` would ask a client to learn which of the two
+	// is a case and which is the container from the ABSENCE of an infix. One
+	// plane, one word.
+	//
+	// `SELECTED_DETAIL`, three statements: scope, the changeset, and the
+	// collection's ACTIVE version — because "has my base moved?" is a question
+	// the server answers, not one the client reassembles from two reads and a
+	// rule it reimplemented.
 	GetDatasetChangeset(context.Context, *connect.Request[v1.GetDatasetChangesetRequest]) (*connect.Response[v1.GetDatasetChangesetResponse], error)
-	// `PAGE`. Offset-paged and state-filtered, matching `ListDatasetCaseDrafts`. An
-	// EMPTY `states` means the LIVE set and never "all": a queue whose default
-	// included committed and abandoned changesets would bury the work under its
-	// own history.
+	// `PAGE`. Offset-paged and state-filtered, matching `ListDatasetCaseDrafts` —
+	// its sibling queue over the very same rows one level down — rather than
+	// inventing a second paging shape for one plane. An EMPTY `states` means the
+	// LIVE set and never "all", for the reason that request records: a queue
+	// whose default included committed and abandoned changesets would bury the
+	// work under its own history.
 	ListDatasetChangesets(context.Context, *connect.Request[v1.ListDatasetChangesetsRequest]) (*connect.Response[v1.ListDatasetChangesetsResponse], error)
-	// The Production Attention inbox. One read over what is already computed;
-	// every item kind has a typed source, and the kinds that have none are
-	// reported as typed absences rather than omitted. See the block at the end of
-	// this file.
+	// A2 `G22`, the Production Attention inbox (`BP:723-742`). One read over the
+	// projections that ALREADY exist, never an inbox-specific computation: 0b
+	// §3.6's coverage note is that every item kind has a typed source, and the
+	// two kinds that have none are reported as typed absences rather than
+	// omitted. See the block at the end of this file.
 	ListProductionAttentionItems(context.Context, *connect.Request[v1.ListProductionAttentionItemsRequest]) (*connect.Response[v1.ListProductionAttentionItemsResponse], error)
-	// The capability set, served once instead of ridden on every response.
+	// The capability set, served once instead of ridden 88 times.
 	//
 	// Every response on this surface and on `AgenticTraceViewService` embeds an
 	// `AgenticEvaluationCapabilitiesV1`; from version 51 that embedded copy is a
-	// STAMP (version and instant, no postures), and this is where the postures
-	// live. One RPC serves both services.
+	// STAMP — version and instant, no postures — and this is where the postures
+	// live. One RPC serves both services: the set is a property of the build, and
+	// a second verb on the trace-view service would be a second answer to a
+	// question that has one.
 	//
-	// `SUMMARY`. Scope-free for a machine principal: a machine that must discover
-	// what it may do before it plans cannot be asked for a scope in order to ask.
+	// `SUMMARY`, no statement of its own beyond the scope resolution every verb
+	// here pays. Scope-free for a machine principal, on `GetCallerPrincipal`'s
+	// reasoning: a machine that must discover what it may do before it plans
+	// cannot be asked for a scope in order to ask.
 	GetAgenticEvaluationCapabilities(context.Context, *connect.Request[v1.GetAgenticEvaluationCapabilitiesRequest]) (*connect.Response[v1.GetAgenticEvaluationCapabilitiesResponse], error)
-	// (#611) A member runs a code scorer on one input it supplies, as one PREVIEW
-	// sandbox job: no score and no dataset row is written, and it bills. The
-	// start returns at once; the read answers the job's status and result.
+	// P2.9b (#611). A member runs a code scorer on one input it supplies, as one
+	// PREVIEW sandbox job: no score and no dataset row is written, and it bills.
+	// The start returns at once; the read answers the job's status and result.
 	StartEvaluationScorerPreview(context.Context, *connect.Request[v1.StartEvaluationScorerPreviewRequest]) (*connect.Response[v1.StartEvaluationScorerPreviewResponse], error)
 	GetEvaluationScorerPreview(context.Context, *connect.Request[v1.GetEvaluationScorerPreviewRequest]) (*connect.Response[v1.GetEvaluationScorerPreviewResponse], error)
-	// (#611) An admin publishes a code scorer's draft: a conformance run on each
-	// declared smoke input, then the repeatability trials its determinism class
-	// asks for, all asynchronous. `GetEvaluationScorerConfig` reads the
+	// P2.9b (#611). An admin publishes a code scorer's draft: a conformance run on
+	// each declared smoke input, then the repeatability trials its determinism
+	// class asks for, all asynchronous. `GetEvaluationScorerConfig` reads the
 	// publication's state.
 	PublishEvaluationScorerConfig(context.Context, *connect.Request[v1.PublishEvaluationScorerConfigRequest]) (*connect.Response[v1.PublishEvaluationScorerConfigResponse], error)
-	// (#611) An owner or admin sets or clears the organization's own Loop spend
-	// cap, audited; any member reads the cap in force.
+	// P2.9c (#611). An owner or admin sets or clears the organization's own Loop
+	// spend cap, audited; any member reads the cap in force.
 	SetLoopOverageCap(context.Context, *connect.Request[v1.SetLoopOverageCapRequest]) (*connect.Response[v1.SetLoopOverageCapResponse], error)
 	GetLoopOverageCap(context.Context, *connect.Request[v1.GetLoopOverageCapRequest]) (*connect.Response[v1.GetLoopOverageCapResponse], error)
-	// (#611) A saved version's source, unsealed for this read, for members and
-	// admins; a viewer is refused PERMISSION_DENIED.
+	// P2.9d (#611). A saved version's source, unsealed for this read, for
+	// members and admins; a viewer is refused PERMISSION_DENIED.
 	GetEvaluationScorerSourceSnapshot(context.Context, *connect.Request[v1.GetEvaluationScorerSourceSnapshotRequest]) (*connect.Response[v1.GetEvaluationScorerSourceSnapshotResponse], error)
 }
 
@@ -2703,8 +2859,8 @@ type AgenticEvaluationServiceHandler interface {
 	RetryEvaluationCells(context.Context, *connect.Request[v1.RetryEvaluationCellsRequest]) (*connect.Response[v1.RetryEvaluationCellsResponse], error)
 	PreviewEvaluationDecision(context.Context, *connect.Request[v1.PreviewEvaluationDecisionRequest]) (*connect.Response[v1.PreviewEvaluationDecisionResponse], error)
 	AdoptEvaluationDecisionRevision(context.Context, *connect.Request[v1.AdoptEvaluationDecisionRevisionRequest]) (*connect.Response[v1.AdoptEvaluationDecisionRevisionResponse], error)
-	// #710. Each aligned case's collapsed outcome against the reference,
-	// regressions first.
+	// #710. Each aligned case's collapsed outcome against the reference, from the
+	// pair statement's own CTE, regressions first.
 	ListEvaluationCaseMovements(context.Context, *connect.Request[v1.ListEvaluationCaseMovementsRequest]) (*connect.Response[v1.ListEvaluationCaseMovementsResponse], error)
 	ListEvaluationMatrixRows(context.Context, *connect.Request[v1.ListEvaluationMatrixRowsRequest]) (*connect.Response[v1.ListEvaluationMatrixRowsResponse], error)
 	BatchGetEvaluationCellDetails(context.Context, *connect.Request[v1.BatchGetEvaluationCellDetailsRequest]) (*connect.Response[v1.BatchGetEvaluationCellDetailsResponse], error)
@@ -2741,15 +2897,16 @@ type AgenticEvaluationServiceHandler interface {
 	ListEvaluationOrgNegotiatedRates(context.Context, *connect.Request[v1.ListEvaluationOrgNegotiatedRatesRequest]) (*connect.Response[v1.ListEvaluationOrgNegotiatedRatesResponse], error)
 	EndEvaluationOrgNegotiatedRate(context.Context, *connect.Request[v1.EndEvaluationOrgNegotiatedRateRequest]) (*connect.Response[v1.EndEvaluationOrgNegotiatedRateResponse], error)
 	VoidEvaluationOrgNegotiatedRate(context.Context, *connect.Request[v1.VoidEvaluationOrgNegotiatedRateRequest]) (*connect.Response[v1.VoidEvaluationOrgNegotiatedRateResponse], error)
-	// One series, read by this RPC and by dashboard panels and alerts.
+	// Track T2. One series contract, two callers: this RPC and the query-engine
+	// control-plane table a dashboard panel and an alert fact family read through.
 	ListEvaluationScoreSeries(context.Context, *connect.Request[v1.ListEvaluationScoreSeriesRequest]) (*connect.Response[v1.ListEvaluationScoreSeriesResponse], error)
-	// A trace span or a matrix cell becomes a proposed case revision in a
-	// dataset-version draft, stamped with where it came from.
+	// Wave 31 lane C. A trace span or a matrix cell becomes a proposed case
+	// revision in a dataset-version draft, stamped with where it came from.
 	CaptureEvaluationCase(context.Context, *connect.Request[v1.CaptureEvaluationCaseRequest]) (*connect.Response[v1.CaptureEvaluationCaseResponse], error)
-	// The three authoring verbs behind the builder's three readiness findings: a
-	// credential an org can register, a scorer it can author over the retained
-	// comparators, and a dataset version it can upload or finalize from a capture
-	// draft.
+	// Wave 31 lane A. The three authoring verbs behind the builder's three
+	// readiness findings: a credential an org can register, a scorer it can
+	// author over the retained comparators, and a dataset version it can upload
+	// or finalize from a capture draft.
 	RegisterEvaluationProviderCredential(context.Context, *connect.Request[v1.RegisterEvaluationProviderCredentialRequest]) (*connect.Response[v1.RegisterEvaluationProviderCredentialResponse], error)
 	CreateEvaluationScorerConfig(context.Context, *connect.Request[v1.CreateEvaluationScorerConfigRequest]) (*connect.Response[v1.CreateEvaluationScorerConfigResponse], error)
 	// #618. A deterministic scorer spec run on one sample through the real
@@ -2759,152 +2916,216 @@ type AgenticEvaluationServiceHandler interface {
 	// candidate outputs, a page at a time. Stores nothing.
 	CheckEvaluationScorerAgainstRun(context.Context, *connect.Request[v1.CheckEvaluationScorerAgainstRunRequest]) (*connect.Response[v1.CheckEvaluationScorerAgainstRunResponse], error)
 	CreateEvaluationDatasetVersion(context.Context, *connect.Request[v1.CreateEvaluationDatasetVersionRequest]) (*connect.Response[v1.CreateEvaluationDatasetVersionResponse], error)
-	// The per-credential kill switch, enforced at execution planning: a
-	// switched-off key is refused by the preview, by the launch and by a cell
-	// retry, through the EXISTING `no_provider_credential` code and a posture
-	// that says which of the two situations it is.
+	// Wave 31 lane B. The per-credential kill switch, enforced at execution
+	// planning: a switched-off key is refused by the preview, by the launch and
+	// by a cell retry, through the EXISTING `no_provider_credential` code and a
+	// posture that says which of the two situations it is.
 	SetEvaluationProviderCredentialEnabled(context.Context, *connect.Request[v1.SetEvaluationProviderCredentialEnabledRequest]) (*connect.Response[v1.SetEvaluationProviderCredentialEnabledResponse], error)
-	// A scorer suite: members by score config id, one declarative combine rule,
-	// frozen into the run manifest like any scorer.
+	// Wave 31 lane B. A scorer suite: members by score config id, one declarative
+	// combine rule, frozen into the run manifest like any scorer.
 	CreateEvaluationScorerSuite(context.Context, *connect.Request[v1.CreateEvaluationScorerSuiteRequest]) (*connect.Response[v1.CreateEvaluationScorerSuiteResponse], error)
-	// The async judge-regrade pair: one verb that ACCEPTS a regrade (writing
-	// rows, calling nothing) and one that reads the job's progress. The provider
-	// calls happen on a worker loop, metered through the same path an in-run
-	// judge is, and added to the run's evaluator totals.
+	// Wave 33 lane B (`PLAN:1242`). The async judge-regrade pair: one verb that
+	// ACCEPTS a regrade (writing rows, calling nothing) and one that reads the
+	// job's progress. The provider calls happen on a worker loop, metered through
+	// the same path an in-run judge is, and added to the run's evaluator totals.
 	RequestEvaluationJudgeRegrade(context.Context, *connect.Request[v1.RequestEvaluationJudgeRegradeRequest]) (*connect.Response[v1.RequestEvaluationJudgeRegradeResponse], error)
 	GetEvaluationJudgeRegradeJob(context.Context, *connect.Request[v1.GetEvaluationJudgeRegradeJobRequest]) (*connect.Response[v1.GetEvaluationJudgeRegradeJobResponse], error)
-	// What a regrade WOULD do and cost before any of it happens, quoted under the
-	// judge the job would freeze; and a stop button with a run's cancel-vs-claim
-	// semantics: a cell in flight finishes and is billed, the rest are stamped
-	// `CANCELLED`, and the spend already incurred stays on the ledger.
+	// Wave 34 lane A. The two halves lane B left open: what a regrade WOULD do
+	// and cost before any of it happens, quoted under the judge the job would
+	// freeze; and a stop button whose semantics are wave 20's cancel-vs-claim —
+	// a cell in flight finishes and is billed, the rest are stamped `CANCELLED`,
+	// and the spend already incurred stays on the ledger.
 	PreviewEvaluationJudgeRegrade(context.Context, *connect.Request[v1.PreviewEvaluationJudgeRegradeRequest]) (*connect.Response[v1.PreviewEvaluationJudgeRegradeResponse], error)
 	CancelEvaluationJudgeRegradeJob(context.Context, *connect.Request[v1.CancelEvaluationJudgeRegradeJobRequest]) (*connect.Response[v1.CancelEvaluationJudgeRegradeJobResponse], error)
-	// Run history for one definition, keyset-paged on `(created_at DESC, id
-	// DESC)` — the id half is not decoration: run creation is not serialized by a
-	// per-definition counter, so a cursor carrying only a timestamp would skip or
-	// repeat two runs that shared a microsecond.
+	// Wave 37 lane A (`PLAN:1135`, `PLAN:1348`). Run history for one definition,
+	// keyset-paged on `(created_at DESC, id DESC)` — the id half is not
+	// decoration: run creation is not serialized by a per-definition counter, so
+	// a cursor carrying only a timestamp would skip or repeat two runs that
+	// shared a microsecond.
 	ListEvaluationRuns(context.Context, *connect.Request[v1.ListEvaluationRunsRequest]) (*connect.Response[v1.ListEvaluationRunsResponse], error)
 	// #616. Every run in the caller's organisation, newest first, with the
 	// summary the Loop overview's recent-runs table renders. Same keyset and
 	// resync discipline as `ListEvaluationRuns`.
 	ListRecentEvaluationRuns(context.Context, *connect.Request[v1.ListRecentEvaluationRunsRequest]) (*connect.Response[v1.ListRecentEvaluationRunsResponse], error)
-	// Release is a reviewer giving a task back; requeue is an operator returning one
-	// to the pool WITH a typed reason. Both are bounded by the claim's own cap, and
-	// both refuse whole.
+	// Wave 37 lane A (`PLAN:1387`). The two verbs the row names and the tree did
+	// not have. Release is a reviewer giving a task back; requeue is an operator
+	// returning one to the pool WITH a typed reason. Both bounded by the claim's
+	// own cap, both refuse whole.
 	ReleaseEvaluationReviewTasks(context.Context, *connect.Request[v1.ReleaseEvaluationReviewTasksRequest]) (*connect.Response[v1.ReleaseEvaluationReviewTasksResponse], error)
 	RequeueEvaluationReviewTasks(context.Context, *connect.Request[v1.RequeueEvaluationReviewTasksRequest]) (*connect.Response[v1.RequeueEvaluationReviewTasksResponse], error)
-	// What a capture WOULD produce, before it produces it: the mapped fields as they
-	// would land, the span-content references as they hydrated, and the digest that
-	// binds this answer to the capture that follows. The preview and the capture
-	// cannot disagree, and the preview writes nothing.
+	// Wave 38 lane A (`PLAN:1507`). What a capture WOULD produce, before it
+	// produces it: the mapped fields as they would land, the span-content
+	// references as they hydrated, and the digest that binds this answer to the
+	// capture that follows. One kernel with CaptureEvaluationCase — the two
+	// cannot disagree — and zero writes, which is the whole difference between
+	// this verb and the capture-look-void workaround it replaces.
 	PreviewEvaluationCaseCapture(context.Context, *connect.Request[v1.PreviewEvaluationCaseCaptureRequest]) (*connect.Response[v1.PreviewEvaluationCaseCaptureResponse], error)
 	// ==========================================================================
-	// Production rules
+	// Phase 6 — production rules (wave 38 lane B)
 	// ==========================================================================
+	//
+	// READS: the plan's own names, verbatim (`PLAN:478-479`).
+	// `ListProductionEvaluationRules` is the approved Class-A name recorded at
+	// `0a-slo-budgets-and-gates.md:101-105`; renaming it here would be drift
+	// under 0b §0.4's freeze convention, not refinement.
+	//
+	// `PLAN:480-481`'s two workflow read verbs land in wave 39 with the plane
+	// they read — see the workflow block below.
 	ListProductionEvaluationRules(context.Context, *connect.Request[v1.ListProductionEvaluationRulesRequest]) (*connect.Response[v1.ListProductionEvaluationRulesResponse], error)
 	GetProductionEvaluationRule(context.Context, *connect.Request[v1.GetProductionEvaluationRuleRequest]) (*connect.Response[v1.GetProductionEvaluationRuleResponse], error)
-	// Rule versions are immutable: a change is a new version.
+	// WRITES: minted here under `PLAN:484`'s conditional — the legacy
+	// `Create/Update/PreviewScorerAutomationRule` may remain the write surface
+	// "if extended typed actions and health semantics remain coherent", and they
+	// do not: `ScorerAutomationRuleV1` carries `google.protobuf.Struct metadata`
+	// (NN17 prohibits it on v2), attributes to `created_by_user_id` (A1 §6.2
+	// replaces it with `PrincipalRefV1`), and is edited by a destructive in-place
+	// UPDATE that an immutable-version contract has no reading for. Named on the
+	// same `ProductionEvaluationRule` stem as the approved reads rather than
+	// starting a second vocabulary beside them.
 	CreateProductionEvaluationRule(context.Context, *connect.Request[v1.CreateProductionEvaluationRuleRequest]) (*connect.Response[v1.CreateProductionEvaluationRuleResponse], error)
 	CreateProductionEvaluationRuleVersion(context.Context, *connect.Request[v1.CreateProductionEvaluationRuleVersionRequest]) (*connect.Response[v1.CreateProductionEvaluationRuleVersionResponse], error)
 	SetProductionEvaluationRuleVersionState(context.Context, *connect.Request[v1.SetProductionEvaluationRuleVersionStateRequest]) (*connect.Response[v1.SetProductionEvaluationRuleVersionStateResponse], error)
-	// A READ: a preview persists nothing.
+	// PREVIEW (wave 48): 0b `P6-16`'s return contract on a v2 verb, as an
+	// AMENDMENT to that row's surface clause. `P6-16` prescribes extending the
+	// v1 `PreviewScorerAutomationRule`; that prescription predates this plane by
+	// seventeen days and two waves, and the two planes now disagree on rule
+	// shape, admission algorithm, action model and — through NN17 and NN24 — on
+	// what a response may carry. `PLAN:485`'s conditional is the clause that
+	// governs, and wave 38 lane B already found it unmet for the other two verbs
+	// in the same sentence. The argument is recorded in full in
+	// `increments/2026-09-03-w48-production-rule-preview.md` §0.0, and the
+	// message block at the tail of this file restates it.
+	//
+	// A READ. `PLAN:1633`: preview does not persist — asserted by row counts
+	// over fifteen tables, health counters included, not by inspection.
 	PreviewProductionEvaluationRule(context.Context, *connect.Request[v1.PreviewProductionEvaluationRuleRequest]) (*connect.Response[v1.PreviewProductionEvaluationRuleResponse], error)
 	// -------------------------------------------------------------------------
-	// Production workflows
+	// Phase 6B — the workflow plane (wave 39; `PLAN:1605`-`:1612`, `:1621`,
+	// `:1622`, `:1626`-`:1628`).
 	// -------------------------------------------------------------------------
+	//
+	// READS: `PLAN:480-481`'s two names, verbatim.
 	ListProductionEvaluationWorkflowExecutions(context.Context, *connect.Request[v1.ListProductionEvaluationWorkflowExecutionsRequest]) (*connect.Response[v1.ListProductionEvaluationWorkflowExecutionsResponse], error)
 	GetProductionEvaluationWorkflowExecution(context.Context, *connect.Request[v1.GetProductionEvaluationWorkflowExecutionRequest]) (*connect.Response[v1.GetProductionEvaluationWorkflowExecutionResponse], error)
 	// The trigger. Called by whatever scored a production trace, carrying the
-	// outcome it produced.
+	// outcome it produced — `PLAN:1575`'s "extend production scoring into a
+	// durable, visible action chain" read literally. No plan row in `:1573-1654`
+	// asks for a trace matcher, and building one would duplicate the legacy
+	// `scorer_automation_trace_claims` plane `PLAN:1585` forbids touching.
 	//
 	// Idempotent on `(tenant, org, rule_version_id, match_key)`: a re-delivered
 	// production match is ONE execution, not two.
 	StartProductionEvaluationWorkflow(context.Context, *connect.Request[v1.StartProductionEvaluationWorkflowRequest]) (*connect.Response[v1.StartProductionEvaluationWorkflowResponse], error)
-	// One step, a NEW attempt, and no re-dispatch of a delivery that already
-	// landed.
+	// `PLAN:1609` / 0b `P6-11`. One step, a NEW attempt row, and no re-dispatch
+	// of a delivery that already landed.
 	RetryProductionEvaluationWorkflowStep(context.Context, *connect.Request[v1.RetryProductionEvaluationWorkflowStepRequest]) (*connect.Response[v1.RetryProductionEvaluationWorkflowStepResponse], error)
-	// A block ledger the RELEASE GATE can read: durable policy evidence that
-	// something other than the workflow that produced it can read.
+	// 0b SM-8. A block ledger the RELEASE GATE can read: the party that needs it
+	// knows a release, not a workflow, and `PLAN:1626`'s "durable policy
+	// evidence, not a transient frontend flag" is only true if something other
+	// than the workflow that produced it can read it.
 	ListProductionEvaluationReleaseBlocks(context.Context, *connect.Request[v1.ListProductionEvaluationReleaseBlocksRequest]) (*connect.Response[v1.ListProductionEvaluationReleaseBlocksResponse], error)
 	OverrideProductionEvaluationReleaseBlock(context.Context, *connect.Request[v1.OverrideProductionEvaluationReleaseBlockRequest]) (*connect.Response[v1.OverrideProductionEvaluationReleaseBlockResponse], error)
-	// Integration configuration. A release integration is NOT a
-	// `ReleaseDestinationV1`: that is a notification channel. Responses never carry
-	// secret material: a signing secret appears only as a key id and a reference.
+	// Integration configuration (`PLAN:1754`-`:1755`, 0b `P8-5`). A release
+	// integration is NOT a `ReleaseDestinationV1`: that is a notification
+	// channel, and `PLAN:515` forbids overloading it as a deployment
+	// integration. Responses never carry secret material (NN8) — a signing
+	// secret appears only as a key id and a reference.
 	CreateReleaseIntegration(context.Context, *connect.Request[v1.CreateReleaseIntegrationRequest]) (*connect.Response[v1.CreateReleaseIntegrationResponse], error)
 	GetReleaseIntegration(context.Context, *connect.Request[v1.GetReleaseIntegrationRequest]) (*connect.Response[v1.GetReleaseIntegrationResponse], error)
 	ListReleaseIntegrations(context.Context, *connect.Request[v1.ListReleaseIntegrationsRequest]) (*connect.Response[v1.ListReleaseIntegrationsResponse], error)
 	UpdateReleaseIntegration(context.Context, *connect.Request[v1.UpdateReleaseIntegrationRequest]) (*connect.Response[v1.UpdateReleaseIntegrationResponse], error)
 	ArchiveReleaseIntegration(context.Context, *connect.Request[v1.ArchiveReleaseIntegrationRequest]) (*connect.Response[v1.ArchiveReleaseIntegrationResponse], error)
-	// Release creation and the reads. Both reads make ZERO external calls.
+	// Release creation and the projection-backed reads (`PLAN:1774`-`:1778`,
+	// `:1759`-`:1760`). Both reads are served from the posture projection and
+	// make ZERO external calls (`PLAN:1807`, 0b `P8-17e`).
 	CreateRelease(context.Context, *connect.Request[v1.CreateReleaseRequest]) (*connect.Response[v1.CreateReleaseResponse], error)
 	GetRelease(context.Context, *connect.Request[v1.GetReleaseRequest]) (*connect.Response[v1.GetReleaseResponse], error)
 	ListReleases(context.Context, *connect.Request[v1.ListReleasesRequest]) (*connect.Response[v1.ListReleasesResponse], error)
-	// Zero adapter calls and zero external mutation, asserted rather than
-	// promised: the response carries the count it made.
+	// `PLAN:1776` / 0b `P8-8`. Zero adapter calls and zero external mutation,
+	// asserted rather than promised: the response carries the count it made.
 	PreviewRelease(context.Context, *connect.Request[v1.PreviewReleaseRequest]) (*connect.Response[v1.PreviewReleaseResponse], error)
-	// The five action verbs. Each records a durable `_REQUESTED` action and
-	// returns; nothing leaves the process inside the caller's timeout. Hold, abort
-	// and rollback require a typed reason and an actor.
+	// The five action verbs (`PLAN:1782`-`:1789`, A2 row J6.4). Each records a
+	// durable `_REQUESTED` action and returns; nothing leaves the process inside
+	// the caller's timeout. Hold, abort and rollback require a typed reason and
+	// an actor (0b `P8-16`).
 	StartReleaseCanary(context.Context, *connect.Request[v1.StartReleaseCanaryRequest]) (*connect.Response[v1.StartReleaseCanaryResponse], error)
 	PromoteRelease(context.Context, *connect.Request[v1.PromoteReleaseRequest]) (*connect.Response[v1.PromoteReleaseResponse], error)
 	HoldRelease(context.Context, *connect.Request[v1.HoldReleaseRequest]) (*connect.Response[v1.HoldReleaseResponse], error)
 	AbortRelease(context.Context, *connect.Request[v1.AbortReleaseRequest]) (*connect.Response[v1.AbortReleaseResponse], error)
 	RollbackRelease(context.Context, *connect.Request[v1.RollbackReleaseRequest]) (*connect.Response[v1.RollbackReleaseResponse], error)
-	// The action ledger. Four states and four timestamps are readable separately,
-	// because collapsing accepted into observed would hide a canary's progress.
+	// The action ledger (`PLAN:1757`, `:1785`). Four states and four timestamps
+	// are readable separately, because collapsing accepted into observed is
+	// exactly the distinction J6's canary stage depends on (`BP:552`).
 	GetReleaseAction(context.Context, *connect.Request[v1.GetReleaseActionRequest]) (*connect.Response[v1.GetReleaseActionResponse], error)
 	ListReleaseActions(context.Context, *connect.Request[v1.ListReleaseActionsRequest]) (*connect.Response[v1.ListReleaseActionsResponse], error)
-	// ---- datasets: schema, projections, reads ----
+	// ---- wave 42 lane C: schema, projections, reads ----
 	//
-	// `ListDatasetVersions` shares a name with a verb on the legacy
-	// `AgenticObservabilityService`: a different service with different message
-	// types. This one carries freshness, an availability posture and the draft
-	// state.
+	// Six verbs, every one of them from an approved list, verified name by name
+	// before it was declared: `GetDatasetSchemaRevision`, `ListDatasetCases` and
+	// `GetDatasetCase` at `PLAN:462`-`:463`; `GetDatasetOverview`,
+	// `ListDatasetVersions` and `ListDatasetUsage` at `0b :213`-`:214`, which is
+	// A2 gap `G23`'s own fix. Nothing here is minted.
+	//
+	// `ListDatasetVersions` shares a name with a verb on the LEGACY
+	// `AgenticObservabilityService`. Different service, different message types,
+	// different plane — and the difference is the whole reason `G23` was a gap
+	// rather than a duplicate: the legacy verb carries no freshness, no
+	// availability posture and no knowledge of the draft plane.
 	GetDatasetSchemaRevision(context.Context, *connect.Request[v1.GetDatasetSchemaRevisionRequest]) (*connect.Response[v1.GetDatasetSchemaRevisionResponse], error)
-	// `INITIAL_PAGE`/`PAGE`: at most 512 KiB and 50 rows, with no external call.
-	// The recent-performance posture comes with the page, so the cost is constant
-	// in page size.
+	// `INITIAL_PAGE`/`PAGE` under A4 `S8`: 3 request-scoped SQL, 0 DataFusion,
+	// 0 object reads, 0 external calls, 512 KiB, 50 rows. The recent-performance
+	// posture is joined from the maintained projection in the SAME statement that
+	// reads the page, so the cost is constant in page size — there is no per-row
+	// hydration to remove because there never was one.
 	ListDatasetCases(context.Context, *connect.Request[v1.ListDatasetCasesRequest]) (*connect.Response[v1.ListDatasetCasesResponse], error)
 	// `SELECTED_DETAIL`. Carries the immutable revision, the retained lineage with
-	// its anchor availability, the external-artifact posture, and the bounded
-	// recent performance.
+	// its anchor availability, the external-artifact posture consumed from the
+	// link plane, and the bounded recent-performance projection (`PLAN:463`).
 	GetDatasetCase(context.Context, *connect.Request[v1.GetDatasetCaseRequest]) (*connect.Response[v1.GetDatasetCaseResponse], error)
-	// `SUMMARY`, backed by the quality projection.
+	// `SUMMARY`, backed by the quality projection (`0b :213`).
 	GetDatasetOverview(context.Context, *connect.Request[v1.GetDatasetOverviewRequest]) (*connect.Response[v1.GetDatasetOverviewResponse], error)
 	ListDatasetVersions(context.Context, *connect.Request[v1.ListEvaluationDatasetVersionsRequest]) (*connect.Response[v1.ListEvaluationDatasetVersionsResponse], error)
-	// `PAGE`, bounded. Never a lineage scan.
+	// `PAGE`, bounded by A4's `S8` budget. Never a lineage scan.
 	ListDatasetUsage(context.Context, *connect.Request[v1.ListDatasetUsageRequest]) (*connect.Response[v1.ListDatasetUsageResponse], error)
-	// A draft in another organisation is `NOT_FOUND`, never `PERMISSION_DENIED`,
-	// which would confirm it exists, and no source artifact crosses: the lineage
-	// carries references and postures, never a body and never a storage
-	// coordinate.
+	// `PLAN:1541`'s reversal trigger. Wave 37 lane A recorded "unauthorized users
+	// cannot retrieve source artifacts through draft APIs" as VACUOUS *because no
+	// draft read verb existed*, with an explicit trigger: the first one reopens
+	// the row in the same change and its authorization test is a launch blocker.
+	// These two verbs are that pair. A draft in another organisation is
+	// `NOT_FOUND` — never `PERMISSION_DENIED`, which would confirm it exists —
+	// and no source artifact crosses: the lineage carries references and
+	// postures, never a body and never a storage coordinate.
 	GetDatasetCaseDraft(context.Context, *connect.Request[v1.GetDatasetCaseDraftRequest]) (*connect.Response[v1.GetDatasetCaseDraftResponse], error)
 	ListDatasetCaseDrafts(context.Context, *connect.Request[v1.ListDatasetCaseDraftsRequest]) (*connect.Response[v1.ListDatasetCaseDraftsResponse], error)
-	// A reviewer's outcomes, acting WITHOUT a review task.
+	// `PLAN:1526`'s outcomes, for a reviewer acting WITHOUT a task.
 	//
-	// The review plane is the other entry point (`SubmitEvaluationReview` takes a
-	// typed `dataset_case_outcome`). Both bind against `draft_version`, so they
-	// cannot both win.
+	// The review plane is the other entry point and is preserved
+	// (`SubmitEvaluationReview` gains a typed `dataset_case_outcome`). These
+	// exist because a draft queue has no review unit, no reviewer slot, no blind
+	// posture and no adjudication policy — minting one just so a human can press
+	// Approve would be the task plane doing bookkeeping for a decision that has
+	// none. Both entry points bind against `draft_version`, so they cannot both
+	// win.
 	UpdateDatasetCaseDraft(context.Context, *connect.Request[v1.UpdateDatasetCaseDraftRequest]) (*connect.Response[v1.UpdateDatasetCaseDraftResponse], error)
 	ApproveDatasetCaseDraft(context.Context, *connect.Request[v1.ApproveDatasetCaseDraftRequest]) (*connect.Response[v1.ApproveDatasetCaseDraftResponse], error)
 	RejectDatasetCaseDraft(context.Context, *connect.Request[v1.RejectDatasetCaseDraftRequest]) (*connect.Response[v1.RejectDatasetCaseDraftResponse], error)
 	MergeDatasetCaseDraft(context.Context, *connect.Request[v1.MergeDatasetCaseDraftRequest]) (*connect.Response[v1.MergeDatasetCaseDraftResponse], error)
-	// Preview-then-commit is TWO round trips by design. The preview issues a
-	// digest; the publish echoes it and the server recomputes it from what it is
-	// about to commit. A mismatch is `FAILED_PRECONDITION` and never a silent
-	// rebase.
+	// `P5-16`. Preview-then-commit is TWO round trips by design (A2 row J3.5).
+	// The preview issues a digest; the publish echoes it and the server
+	// recomputes it from what it is about to commit. A mismatch is
+	// `FAILED_PRECONDITION` and never a silent rebase (`PLAN:1529`).
 	PreviewPublishDatasetChangeset(context.Context, *connect.Request[v1.PreviewPublishDatasetChangesetRequest]) (*connect.Response[v1.PreviewPublishDatasetChangesetResponse], error)
-	// The new immutable version, the case identities, the new or reused case
-	// revisions, the `_PUBLISHED` transitions and the outbox rows commit
+	// `P5-17`. The new immutable version, the case identities, the new or reused
+	// case revisions, the `_PUBLISHED` transitions and the outbox rows commit
 	// TOGETHER; the linked evaluations dispatch from the outbox AFTER the commit,
 	// through the one launch path. A downstream failure leaves the version
-	// intact.
+	// intact (`P5-18`).
 	PublishDatasetCaseDrafts(context.Context, *connect.Request[v1.PublishDatasetCaseDraftsRequest]) (*connect.Response[v1.PublishDatasetCaseDraftsResponse], error)
 	// Mint an org-scoped machine principal carrying a typed `ScopeSet`. An
-	// unknown scope discriminant is `INVALID_ARGUMENT`, never a silently dropped
-	// element — a principal that was created with fewer powers than the caller
-	// asked for is a security surprise in the safe direction and a debugging
-	// nightmare in every other one.
+	// unknown scope discriminant is `INVALID_ARGUMENT` (0a §6.4), never a
+	// silently dropped element — a principal that was created with fewer powers
+	// than the caller asked for is a security surprise in the safe direction and
+	// a debugging nightmare in every other one.
 	CreateMachinePrincipal(context.Context, *connect.Request[v1.CreateMachinePrincipalRequest]) (*connect.Response[v1.CreateMachinePrincipalResponse], error)
 	// Management list. Carries no secret material and no credential secrets: the
 	// credential summaries it embeds are the same `MachineCredentialV1` the rest
@@ -2912,17 +3133,19 @@ type AgenticEvaluationServiceHandler interface {
 	ListMachinePrincipals(context.Context, *connect.Request[v1.ListMachinePrincipalsRequest]) (*connect.Response[v1.ListMachinePrincipalsResponse], error)
 	// The ONLY message in this contract that carries plaintext credential
 	// material, in the field `plaintext_token_once`, exactly once, with no
-	// read-back path anywhere. Losing it means rotating, which is why a principal
-	// may hold several ACTIVE credentials at a time.
+	// read-back path anywhere (0a §6.3, NN8 `:160`). Losing it means rotating,
+	// which is why a principal may hold several ACTIVE credentials at a time.
 	CreateMachineCredential(context.Context, *connect.Request[v1.CreateMachineCredentialRequest]) (*connect.Response[v1.CreateMachineCredentialResponse], error)
-	// Revocation takes effect on the NEXT request, not on a cache-TTL boundary.
+	// Revocation takes effect on the NEXT request, not on a cache-TTL boundary:
+	// the token cache is invalidated in the same call, following the precedent at
+	// `server/src/services/api_tokens/handlers.rs:199-217`.
 	RevokeMachineCredential(context.Context, *connect.Request[v1.RevokeMachineCredentialRequest]) (*connect.Response[v1.RevokeMachineCredentialResponse], error)
 	// Revokes the principal AND every credential it holds, each with its own
 	// cache invalidation. A principal whose credentials outlived it would be a
 	// revocation that did not revoke.
 	RevokeMachinePrincipal(context.Context, *connect.Request[v1.RevokeMachinePrincipalRequest]) (*connect.Response[v1.RevokeMachinePrincipalResponse], error)
-	// "Is my token valid and what can it do?" — the first call an SDK makes.
-	// Reachable by any valid machine credential with NO scope requirement,
+	// J8.1: "Is my token valid and what can it do?" — the first call an SDK
+	// makes. Reachable by any valid machine credential with NO scope requirement,
 	// because requiring a scope to ask which scopes you hold makes the question
 	// unanswerable for exactly the token that needs to ask it. It introspects the
 	// caller and only the caller; there is no principal id in the request.
@@ -2938,10 +3161,11 @@ type AgenticEvaluationServiceHandler interface {
 	// could also claim would let a heartbeat silently grow its own batch.
 	RenewEvaluationCaseLease(context.Context, *connect.Request[v1.RenewEvaluationCaseLeaseRequest]) (*connect.Response[v1.RenewEvaluationCaseLeaseResponse], error)
 	// The fenced submit. Idempotent by coordinate and generation, so a resubmitted
-	// batch converges with no duplicate facts and no double-counted economics;
-	// partial by construction, so one malformed case never fails its batch.
-	// Scoring is NOT done here: the submission moves the cell to `QUEUED` and the
-	// server's own executor scores it.
+	// batch converges with no duplicate facts and no double-counted economics
+	// (`PLAN:1937`); partial by construction, so one malformed case never fails
+	// its batch (`PLAN:1928`). Scoring is NOT done here — the submission moves the
+	// cell to the frozen `QUEUED` and the server's own executor scores it, which
+	// is `PLAN:1969`'s "server-side scorer fan-out unchanged" taken literally.
 	SubmitEvaluationCaseOutputs(context.Context, *connect.Request[v1.SubmitEvaluationCaseOutputsRequest]) (*connect.Response[v1.SubmitEvaluationCaseOutputsResponse], error)
 	// The good citizen's exit. Without it, a runtime that fails cleanly must wait
 	// out its whole TTL before anyone can retake its cases, and typed abandonment
@@ -2970,7 +3194,8 @@ type AgenticEvaluationServiceHandler interface {
 	// first. Empty for a tenant fenced for offboarding.
 	ListOrganizationReplays(context.Context, *connect.Request[v1.ListOrganizationReplaysRequest]) (*connect.Response[v1.ListOrganizationReplaysResponse], error)
 	// `MUTATION_ACK`. Idempotency-keyed, machine-principal attributable, and
-	// required-scope `PLATFORM_ANNOTATION_WRITE`.
+	// required-scope `PLATFORM_ANNOTATION_WRITE` (wave 50 lane A's fifth
+	// discriminant, minted on this lane's ask).
 	//
 	// A deploy marker whose kind this build does not know is REFUSED, and the
 	// refusal carries the capability envelope — so a newer runner learns which
@@ -2980,113 +3205,189 @@ type AgenticEvaluationServiceHandler interface {
 	// `INITIAL_PAGE`. A time window, an optional kind filter, keyset-paged,
 	// newest-first. Constant in the page size and in the filter's cardinality.
 	ListPlatformAnnotations(context.Context, *connect.Request[v1.ListPlatformAnnotationsRequest]) (*connect.Response[v1.ListPlatformAnnotationsResponse], error)
-	// ---- capture (O11Y-366) ----
+	// ---- O11Y-366: the capture plane ----
 	//
-	// Machine callers are refused.
+	// The same rows the legacy `Submit*` verbs write, through this service's
+	// scope and rollout path. Machine callers are refused: these attribute
+	// through an unkinded `actor_user_id` column, the same reason
+	// `CaptureEvaluationCase` holds no `REQUIRED_SCOPES` row.
 	CaptureScore(context.Context, *connect.Request[v1.CaptureScoreRequest]) (*connect.Response[v1.CaptureScoreResponse], error)
 	CaptureFeedback(context.Context, *connect.Request[v1.CaptureFeedbackRequest]) (*connect.Response[v1.CaptureFeedbackResponse], error)
 	CaptureOutcome(context.Context, *connect.Request[v1.CaptureOutcomeRequest]) (*connect.Response[v1.CaptureOutcomeResponse], error)
 	CaptureContentManifest(context.Context, *connect.Request[v1.CaptureContentManifestRequest]) (*connect.Response[v1.CaptureContentManifestResponse], error)
-	// ---- prompt templates (O11Y-367) ----
+	// ---- O11Y-367: prompt templates ----
 	//
-	// `MUTATION_ACK` and `INITIAL_PAGE`.
+	// `MUTATION_ACK` and `INITIAL_PAGE`. The store is the v1 `prompt_templates` /
+	// `prompt_versions` pair, which moves to the shared, v2-owned list; the v1
+	// verbs are untouched until W-V1-2.
 	UpsertEvaluationPromptTemplate(context.Context, *connect.Request[v1.UpsertEvaluationPromptTemplateRequest]) (*connect.Response[v1.UpsertEvaluationPromptTemplateResponse], error)
 	ListEvaluationPromptTemplates(context.Context, *connect.Request[v1.ListEvaluationPromptTemplatesRequest]) (*connect.Response[v1.ListEvaluationPromptTemplatesResponse], error)
 	// `INITIAL_PAGE`. The library page, keyset-paged on `config_key`.
 	//
-	// EVERY score configuration in the organisation, including archived ones, and
-	// with no picker ceiling. `authored_on_this_surface` says how a row was
-	// authored; `kind = UNSPECIFIED` is a real answer and means a scorer authored
-	// outside `CreateEvaluationScorerConfig`.
+	// EVERY score configuration in the organisation, not only the v2-authored
+	// ones — the same set `GetEvaluationBuilderContext.scorer_choices[]` serves,
+	// PLUS the archived rows its `is_archived = FALSE` predicate hides, and
+	// WITHOUT that picker's `max_scorers = 50` ceiling, which is a picker bound
+	// and not an inventory bound. `authored_on_this_surface` says which half a
+	// row is in; `kind = UNSPECIFIED` is a real answer and means a scorer
+	// authored outside `CreateEvaluationScorerConfig`.
 	ListEvaluationScorerConfigs(context.Context, *connect.Request[v1.ListEvaluationScorerConfigsRequest]) (*connect.Response[v1.ListEvaluationScorerConfigsResponse], error)
-	// `SELECTED_DETAIL`. The WHOLE authored spec: a judge's `instructions`,
-	// `verdict_mappings` and `subject_path`, plus the resolved provider execution,
-	// plus the deterministic spec and the review policy for the other two kinds.
-	// Optional `version_discriminator` addresses a superseded version.
-	GetEvaluationScorerConfig(context.Context, *connect.Request[v1.GetEvaluationScorerConfigRequest]) (*connect.Response[v1.GetEvaluationScorerConfigResponse], error)
-	// `PAGE`. The version history. A revision makes a new version rather than
-	// mutating the old one, and those versions ARE the history.
-	ListEvaluationScorerConfigVersions(context.Context, *connect.Request[v1.ListEvaluationScorerConfigVersionsRequest]) (*connect.Response[v1.ListEvaluationScorerConfigVersionsResponse], error)
-	// `INITIAL_PAGE` / `SELECTED_DETAIL`. The suite reads.
+	// `SELECTED_DETAIL`. The read `17` §8.1 calls "the largest gap on this page"
+	// and `17` §9 question 1 puts to the backend by name.
 	//
-	// The detail's members carry their OWN posture (archived, kind, version), so a
-	// suite page can say "this member is archived" before the customer meets it
-	// at launch as a `MISSING_DEPENDENCY` / `scorer_archived` blocker.
+	// The WHOLE authored spec: a judge's `instructions`, `verdict_mappings` and
+	// `subject_path` — written to `evaluator_templates.config` since wave 45 and
+	// read by nothing until now — plus the resolved provider execution, plus the
+	// deterministic spec and the review policy for the other two kinds. Optional
+	// `version_discriminator` addresses a superseded version.
+	GetEvaluationScorerConfig(context.Context, *connect.Request[v1.GetEvaluationScorerConfigRequest]) (*connect.Response[v1.GetEvaluationScorerConfigResponse], error)
+	// `PAGE`. The version history `05` §8 says is "not derivable".
+	//
+	// It is derivable and always has been: the v2 create has minted one
+	// `evaluator_templates` row per version since wave 31 lane A, keyed
+	// `scorer:{config_key}:{version}` and UNIQUE per tenant, and a revision mints
+	// a fresh row rather than mutating the old one. Those rows ARE the history.
+	ListEvaluationScorerConfigVersions(context.Context, *connect.Request[v1.ListEvaluationScorerConfigVersionsRequest]) (*connect.Response[v1.ListEvaluationScorerConfigVersionsResponse], error)
+	// `INITIAL_PAGE` / `SELECTED_DETAIL`. The suite reads `05` §2 records as
+	// ABSENT on the v2 plane.
+	//
+	// The detail's members carry their OWN posture — archived, kind, version —
+	// which `EvaluationScorerSuiteMemberV1` cannot: that message is embedded in
+	// `EvaluationScorerSuiteSnapshotV1`, which "must never gain a field that
+	// moves". Without the posture a suite page cannot say "this member is
+	// archived", and the customer meets it at launch instead, as a
+	// `MISSING_DEPENDENCY` / `scorer_archived` blocker.
 	ListEvaluationScorerSuites(context.Context, *connect.Request[v1.ListEvaluationScorerSuitesRequest]) (*connect.Response[v1.ListEvaluationScorerSuitesResponse], error)
 	GetEvaluationScorerSuite(context.Context, *connect.Request[v1.GetEvaluationScorerSuiteRequest]) (*connect.Response[v1.GetEvaluationScorerSuiteResponse], error)
 	// `MUTATION_ACK`. Retirement, and it is UNCONDITIONAL.
 	//
-	// Launch already refuses an archived scorer by name (`scorer_archived`), for
-	// an explicit selection and for a suite member alike, and a production rule
-	// version that depends on one is disabled with `dependency_archived`. So
-	// archiving is never refused for a suite membership, a definition reference, a
-	// production rule or a run pin: it mutates no template and no manifest.
-	// Instead the response returns the STANDING REFERENCES, so an operator sees
-	// the blast radius at the one moment it changes a decision.
+	// Three shipped facts settle the semantics and the increment argues them in
+	// full (§0.5). (1) `score_configs.is_archived` has existed since
+	// `20260515123000` and the v2 picker already filters on it, so this verb
+	// introduces no lifecycle — it writes a flag the surface already honours.
+	// (2) The launch path ALREADY refuses an archived scorer by name
+	// (`run_handlers.rs`, blocker `scorer_archived`), for an explicit selection
+	// and for a suite member alike. (3) The production-rule plane ALREADY
+	// disables a dependent rule version with `dependency_archived`.
+	//
+	// So archiving is never refused for a suite membership, a definition
+	// reference, a production rule or a run pin. A pin makes REVISION unsafe
+	// because the executor reads the template live; archiving mutates no template
+	// and no manifest, and pins never expire, so that refusal would mean "you may
+	// never retire a scorer that was ever used". Instead the response returns the
+	// STANDING REFERENCES, so an operator sees the blast radius at the one moment
+	// it changes a decision — the shape `ArchiveReleaseIntegrationResponse`
+	// already uses.
 	//
 	// There is no unarchive verb and no idempotency key: a monotone state flip is
 	// replayable by construction, and `already_archived` rides back on the
 	// response rather than being an error.
 	ArchiveEvaluationScorerConfig(context.Context, *connect.Request[v1.ArchiveEvaluationScorerConfigRequest]) (*connect.Response[v1.ArchiveEvaluationScorerConfigResponse], error)
-	// `MUTATION_ACK`. Same semantics, and NO launched-run refusal: a launched run
-	// froze its suite, so archiving cannot change it.
+	// `MUTATION_ACK`. Same semantics, and NO launched-run refusal — the suite
+	// migration's own header is the argument: "Nothing reads THIS table at
+	// execution or at read time … launched runs are immune by construction. A
+	// revision is therefore always permitted." Archiving is weaker than the
+	// revision that is already unconditional.
 	ArchiveEvaluationScorerSuite(context.Context, *connect.Request[v1.ArchiveEvaluationScorerSuiteRequest]) (*connect.Response[v1.ArchiveEvaluationScorerSuiteResponse], error)
-	// ---- datasets: collections and changesets ----
+	// ---- wave 52 lane A: the dataset read plane's entry points ----
 	//
-	// `ListDatasetCollections`, like `ListDatasetVersions`, shares its verb name
-	// with the legacy `AgenticObservabilityService`; its messages carry the
-	// `Evaluation` infix. This one carries an availability posture, freshness and
-	// the changeset state.
+	// Wave 42 built every dataset screen GIVEN AN ID and shipped nothing that
+	// hands a client its first id. These three verbs are that residue of A2 gap
+	// `G23`, and all three are RECORDED AMENDMENTS: `PLAN:462`-`:477` is the
+	// dataset plane's whole approved inventory and reserves no collection-list
+	// and no changeset-read name, and `0b :213`-`:214` reserves exactly the three
+	// tab verbs wave 42 built. Every name here was checked against both lists
+	// before it was declared, and none of them was on either — which is why they
+	// are amendments and say so, rather than being quietly minted as if approved.
 	//
-	// `PAGE`. The per-collection counts come with the page, so the cost is
-	// constant in the page size.
+	// `A-52A-1` `ListDatasetCollections`. The verb collides with the LEGACY
+	// `AgenticObservabilityService.ListDatasetCollections`
+	// (`agentic.proto:4533-4550`) exactly as `ListDatasetVersions` already does,
+	// and it is resolved the same way, for the reason recorded on
+	// `ListEvaluationDatasetVersionsRequest`: the verb name is the plane's, the
+	// MESSAGE name carries the `Evaluation` infix to disambiguate inside one
+	// protobuf package. Different service, different messages, different plane —
+	// the legacy verb carries no availability posture, no freshness, and no
+	// knowledge of the changeset plane.
+	//
+	// `PAGE`. Three request-scoped SQL statements — scope, the page, the total —
+	// and the per-collection sub-counts are LATERAL sub-selects INSIDE the page
+	// statement, on `GetEvaluationBuilderContext`'s own precedent and for the
+	// reason `PLAN:1520` exists: a count issued per row is the cost this plane
+	// was built not to pay. The count is therefore constant in the page size.
 	ListDatasetCollections(context.Context, *connect.Request[v1.ListEvaluationDatasetCollectionsRequest]) (*connect.Response[v1.ListEvaluationDatasetCollectionsResponse], error)
-	// The changeset reads.
+	// `A-52A-2` / `A-52A-3`. The CONTAINER reads.
 	//
-	// A changeset is written by capture, moved by `PreviewPublishDatasetChangeset`
-	// and committed by `PublishDatasetCaseDrafts`. These reads tell a reviewer
-	// coming back later whether a changeset is open on a collection, what state it
-	// is in, and whether its base version has moved under it.
+	// `evaluation_dataset_version_drafts` — the row this wire models as
+	// `DatasetChangesetV1` — is written by capture, moved by
+	// `PreviewPublishDatasetChangeset` and committed by
+	// `PublishDatasetCaseDrafts`, and until this wave was reachable through no
+	// read verb at all. Every mutation on it takes a `changeset_id` a client
+	// could only have obtained from a capture response IN THE SAME SESSION: a
+	// reviewer who came back tomorrow had no verb that would tell them a
+	// changeset was open on this collection, what state it was in, or whether its
+	// base version had moved under it. This is the half of doc `08` §8's fourth
+	// row that wave 42 did not close — that section named TWO absent verbs, and
+	// wave 42 shipped `ListEvaluationProposedCases` as `ListDatasetCaseDrafts`
+	// and left the container.
 	//
-	// `SELECTED_DETAIL`: the changeset and the collection's ACTIVE version, because
-	// "has my base moved?" is a question the server answers.
+	// NAMED `Changeset` AND NOT `Draft`, deliberately. Doc `08` §8 wrote the name
+	// `GetEvaluationDatasetDraft` in 2026-08-31 for a thing that did not exist,
+	// and the wave-42 wire since settled on a different word for it:
+	// `DatasetChangesetV1`, `DatasetChangesetStateV1`,
+	// `PreviewPublishDatasetChangeset`. A `GetDatasetDraft` sitting beside the
+	// shipped `GetDatasetCaseDraft` would ask a client to learn which of the two
+	// is a case and which is the container from the ABSENCE of an infix. One
+	// plane, one word.
+	//
+	// `SELECTED_DETAIL`, three statements: scope, the changeset, and the
+	// collection's ACTIVE version — because "has my base moved?" is a question
+	// the server answers, not one the client reassembles from two reads and a
+	// rule it reimplemented.
 	GetDatasetChangeset(context.Context, *connect.Request[v1.GetDatasetChangesetRequest]) (*connect.Response[v1.GetDatasetChangesetResponse], error)
-	// `PAGE`. Offset-paged and state-filtered, matching `ListDatasetCaseDrafts`. An
-	// EMPTY `states` means the LIVE set and never "all": a queue whose default
-	// included committed and abandoned changesets would bury the work under its
-	// own history.
+	// `PAGE`. Offset-paged and state-filtered, matching `ListDatasetCaseDrafts` —
+	// its sibling queue over the very same rows one level down — rather than
+	// inventing a second paging shape for one plane. An EMPTY `states` means the
+	// LIVE set and never "all", for the reason that request records: a queue
+	// whose default included committed and abandoned changesets would bury the
+	// work under its own history.
 	ListDatasetChangesets(context.Context, *connect.Request[v1.ListDatasetChangesetsRequest]) (*connect.Response[v1.ListDatasetChangesetsResponse], error)
-	// The Production Attention inbox. One read over what is already computed;
-	// every item kind has a typed source, and the kinds that have none are
-	// reported as typed absences rather than omitted. See the block at the end of
-	// this file.
+	// A2 `G22`, the Production Attention inbox (`BP:723-742`). One read over the
+	// projections that ALREADY exist, never an inbox-specific computation: 0b
+	// §3.6's coverage note is that every item kind has a typed source, and the
+	// two kinds that have none are reported as typed absences rather than
+	// omitted. See the block at the end of this file.
 	ListProductionAttentionItems(context.Context, *connect.Request[v1.ListProductionAttentionItemsRequest]) (*connect.Response[v1.ListProductionAttentionItemsResponse], error)
-	// The capability set, served once instead of ridden on every response.
+	// The capability set, served once instead of ridden 88 times.
 	//
 	// Every response on this surface and on `AgenticTraceViewService` embeds an
 	// `AgenticEvaluationCapabilitiesV1`; from version 51 that embedded copy is a
-	// STAMP (version and instant, no postures), and this is where the postures
-	// live. One RPC serves both services.
+	// STAMP — version and instant, no postures — and this is where the postures
+	// live. One RPC serves both services: the set is a property of the build, and
+	// a second verb on the trace-view service would be a second answer to a
+	// question that has one.
 	//
-	// `SUMMARY`. Scope-free for a machine principal: a machine that must discover
-	// what it may do before it plans cannot be asked for a scope in order to ask.
+	// `SUMMARY`, no statement of its own beyond the scope resolution every verb
+	// here pays. Scope-free for a machine principal, on `GetCallerPrincipal`'s
+	// reasoning: a machine that must discover what it may do before it plans
+	// cannot be asked for a scope in order to ask.
 	GetAgenticEvaluationCapabilities(context.Context, *connect.Request[v1.GetAgenticEvaluationCapabilitiesRequest]) (*connect.Response[v1.GetAgenticEvaluationCapabilitiesResponse], error)
-	// (#611) A member runs a code scorer on one input it supplies, as one PREVIEW
-	// sandbox job: no score and no dataset row is written, and it bills. The
-	// start returns at once; the read answers the job's status and result.
+	// P2.9b (#611). A member runs a code scorer on one input it supplies, as one
+	// PREVIEW sandbox job: no score and no dataset row is written, and it bills.
+	// The start returns at once; the read answers the job's status and result.
 	StartEvaluationScorerPreview(context.Context, *connect.Request[v1.StartEvaluationScorerPreviewRequest]) (*connect.Response[v1.StartEvaluationScorerPreviewResponse], error)
 	GetEvaluationScorerPreview(context.Context, *connect.Request[v1.GetEvaluationScorerPreviewRequest]) (*connect.Response[v1.GetEvaluationScorerPreviewResponse], error)
-	// (#611) An admin publishes a code scorer's draft: a conformance run on each
-	// declared smoke input, then the repeatability trials its determinism class
-	// asks for, all asynchronous. `GetEvaluationScorerConfig` reads the
+	// P2.9b (#611). An admin publishes a code scorer's draft: a conformance run on
+	// each declared smoke input, then the repeatability trials its determinism
+	// class asks for, all asynchronous. `GetEvaluationScorerConfig` reads the
 	// publication's state.
 	PublishEvaluationScorerConfig(context.Context, *connect.Request[v1.PublishEvaluationScorerConfigRequest]) (*connect.Response[v1.PublishEvaluationScorerConfigResponse], error)
-	// (#611) An owner or admin sets or clears the organization's own Loop spend
-	// cap, audited; any member reads the cap in force.
+	// P2.9c (#611). An owner or admin sets or clears the organization's own Loop
+	// spend cap, audited; any member reads the cap in force.
 	SetLoopOverageCap(context.Context, *connect.Request[v1.SetLoopOverageCapRequest]) (*connect.Response[v1.SetLoopOverageCapResponse], error)
 	GetLoopOverageCap(context.Context, *connect.Request[v1.GetLoopOverageCapRequest]) (*connect.Response[v1.GetLoopOverageCapResponse], error)
-	// (#611) A saved version's source, unsealed for this read, for members and
-	// admins; a viewer is refused PERMISSION_DENIED.
+	// P2.9d (#611). A saved version's source, unsealed for this read, for
+	// members and admins; a viewer is refused PERMISSION_DENIED.
 	GetEvaluationScorerSourceSnapshot(context.Context, *connect.Request[v1.GetEvaluationScorerSourceSnapshotRequest]) (*connect.Response[v1.GetEvaluationScorerSourceSnapshotResponse], error)
 }
 
