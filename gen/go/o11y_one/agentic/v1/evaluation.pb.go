@@ -7465,8 +7465,8 @@ type EvaluationScorerCodeLanguageV1 int32
 const (
 	EvaluationScorerCodeLanguageV1_EVALUATION_SCORER_CODE_LANGUAGE_V1_UNSPECIFIED EvaluationScorerCodeLanguageV1 = 0
 	EvaluationScorerCodeLanguageV1_EVALUATION_SCORER_CODE_LANGUAGE_V1_PYTHON      EvaluationScorerCodeLanguageV1 = 1
-	// P2.9d (#611). The sandbox runs it where the deployment serves the
-	// `typescript-base` runtime (#764), but `scorer_runtimes` lists none yet and
+	// P2.9d (#611). Where the deployment serves the `typescript-base` runtime
+	// (#764), `scorer_runtimes` lists it and it is authored and run; elsewhere
 	// authoring refuses it with `code_language_unsupported`.
 	EvaluationScorerCodeLanguageV1_EVALUATION_SCORER_CODE_LANGUAGE_V1_TYPESCRIPT EvaluationScorerCodeLanguageV1 = 2
 )
@@ -12335,6 +12335,13 @@ const (
 	// would read as a grant over all of them, which is the scope conflation the
 	// "never implied" rule above forbids.
 	MachinePrincipalScopeV1_MACHINE_PRINCIPAL_SCOPE_V1_RELEASE_CANARY MachinePrincipalScopeV1 = 6
+	// RECORDED AMENDMENT, 2026-10-12 (#722). NOT one of the four NN44 names.
+	//
+	// A trainer drives Loop rollouts with the organization's machine key:
+	// reset, step, close and fork, and the reads of its own run and rollouts
+	// (`rollout.proto`). It grants nothing on this service, and nothing on a
+	// run's limits, its cap or its stop, which stay a person's.
+	MachinePrincipalScopeV1_MACHINE_PRINCIPAL_SCOPE_V1_ROLLOUT_DRIVE MachinePrincipalScopeV1 = 7
 )
 
 // Enum value maps for MachinePrincipalScopeV1.
@@ -12347,6 +12354,7 @@ var (
 		4: "MACHINE_PRINCIPAL_SCOPE_V1_LEASE_SUBMIT",
 		5: "MACHINE_PRINCIPAL_SCOPE_V1_PLATFORM_ANNOTATION_WRITE",
 		6: "MACHINE_PRINCIPAL_SCOPE_V1_RELEASE_CANARY",
+		7: "MACHINE_PRINCIPAL_SCOPE_V1_ROLLOUT_DRIVE",
 	}
 	MachinePrincipalScopeV1_value = map[string]int32{
 		"MACHINE_PRINCIPAL_SCOPE_V1_UNSPECIFIED":               0,
@@ -12356,6 +12364,7 @@ var (
 		"MACHINE_PRINCIPAL_SCOPE_V1_LEASE_SUBMIT":              4,
 		"MACHINE_PRINCIPAL_SCOPE_V1_PLATFORM_ANNOTATION_WRITE": 5,
 		"MACHINE_PRINCIPAL_SCOPE_V1_RELEASE_CANARY":            6,
+		"MACHINE_PRINCIPAL_SCOPE_V1_ROLLOUT_DRIVE":             7,
 	}
 )
 
@@ -86927,7 +86936,7 @@ const file_o11y_one_agentic_v1_evaluation_proto_rawDesc = "" +
 	"\x1eReleaseObservationConfidenceV1\x121\n" +
 	"-RELEASE_OBSERVATION_CONFIDENCE_V1_UNSPECIFIED\x10\x00\x12+\n" +
 	"'RELEASE_OBSERVATION_CONFIDENCE_V1_EXACT\x10\x01\x12,\n" +
-	"(RELEASE_OBSERVATION_CONFIDENCE_V1_WINDOW\x10\x02*\xdf\x02\n" +
+	"(RELEASE_OBSERVATION_CONFIDENCE_V1_WINDOW\x10\x02*\x8d\x03\n" +
 	"\x17MachinePrincipalScopeV1\x12*\n" +
 	"&MACHINE_PRINCIPAL_SCOPE_V1_UNSPECIFIED\x10\x00\x12(\n" +
 	"$MACHINE_PRINCIPAL_SCOPE_V1_EVAL_READ\x10\x01\x12*\n" +
@@ -86935,7 +86944,8 @@ const file_o11y_one_agentic_v1_evaluation_proto_rawDesc = "" +
 	"(MACHINE_PRINCIPAL_SCOPE_V1_DATASET_WRITE\x10\x03\x12+\n" +
 	"'MACHINE_PRINCIPAL_SCOPE_V1_LEASE_SUBMIT\x10\x04\x128\n" +
 	"4MACHINE_PRINCIPAL_SCOPE_V1_PLATFORM_ANNOTATION_WRITE\x10\x05\x12-\n" +
-	")MACHINE_PRINCIPAL_SCOPE_V1_RELEASE_CANARY\x10\x06*\xbd\x01\n" +
+	")MACHINE_PRINCIPAL_SCOPE_V1_RELEASE_CANARY\x10\x06\x12,\n" +
+	"(MACHINE_PRINCIPAL_SCOPE_V1_ROLLOUT_DRIVE\x10\a*\xbd\x01\n" +
 	"\x17MachinePrincipalStateV1\x12*\n" +
 	"&MACHINE_PRINCIPAL_STATE_V1_UNSPECIFIED\x10\x00\x12%\n" +
 	"!MACHINE_PRINCIPAL_STATE_V1_ACTIVE\x10\x01\x12'\n" +

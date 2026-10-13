@@ -5,15 +5,15 @@
 #
 # source_repo:   o11y-api  (private; local checkouts are commonly ../o11y-api)
 # source_path:   proto/o11y_one/
-# source_branch: feat/loop-p2.5, the Loop P2.5 trunk, which carries the code
-#                scorer RPCs (StartEvaluationScorerPreview,
-#                PublishEvaluationScorerConfig), the TypeScript code language and
-#                the capability set's scorer_runtimes (#764) over P1's record and
-#                replay ones. Do not release from this pin until that trunk
-#                (o11y-api PR #902) reaches main.
+# source_branch: feat/loop-p3-environments-rl, the Loop P3 trunk, which carries
+#                LoopRolloutService (rollout.proto: the trainer verbs Reset,
+#                Step, Close and Fork, and the run and rollout reads) and
+#                LoopEnvironmentService (#722) over P2.5's code scorer RPCs.
+#                Do not release from this pin until that trunk (o11y-api PR #999)
+#                reaches main.
 #
 # Regenerate with:
 #   ./tools/sync-proto.sh ../o11y-api
 # which verifies the checkout is at the commit below, re-vendors proto/o11y_one/,
 # and re-runs `buf generate`. Generated code is committed.
-08d6c4910d1a0c65cdd179b97dd55bc903c5e3c1
+6df8d67c8f3670a95407ab9fdbe249d01789fb60
