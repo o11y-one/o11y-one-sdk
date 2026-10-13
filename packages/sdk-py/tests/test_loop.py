@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import base64
 import copy
+import importlib.util
 import logging
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -130,6 +131,20 @@ def client_with(service: FakeService, rollout_id: str | None = None) -> LoopClie
     client._service = service
     client._open = rollout_id
     return client
+
+
+def test_the_loop_package_keeps_every_import_the_loop_module_had() -> None:
+    from o11y_one.sdk.loop import LoopClient, RolloutRefused
+
+    assert {LoopClient.__module__, RolloutRefused.__module__} == {"o11y_one.sdk.loop"}
+    if importlib.util.find_spec("openenv") is None:
+        with pytest.raises(ImportError, match=r"o11y-one\[openenv\]"):
+            from o11y_one.sdk.loop import LoopEnvClient
+    else:
+        from o11y_one.sdk.loop import LoopEnvClient
+        from openenv.core.generic_client import GenericEnvClient
+
+        assert issubclass(LoopEnvClient, GenericEnvClient)
 
 
 @pytest.mark.parametrize(("reason", "code", "message"), RECORDED)
