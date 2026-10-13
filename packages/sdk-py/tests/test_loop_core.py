@@ -48,8 +48,13 @@ def test_the_primary_reward_is_the_first_unless_one_is_named() -> None:
     rewarded = rollout(0, ("tests_passed", 0.5), ("all_passed", 0.0))
     assert _core.reward(rewarded) == 0.5
     assert _core.reward(rewarded, "all_passed") == 0.0
-    with pytest.raises(KeyError):
+    with pytest.raises(LookupError, match="rollout r-1 closed without reward style"):
         _core.reward(rewarded, "style")
+
+
+def test_a_rewarded_rollout_without_rewards_raises_naming_it() -> None:
+    with pytest.raises(LookupError, match="rollout r-1 closed without reward any"):
+        _core.reward(rollout())
 
 
 def test_shell_runs_its_command_as_a_script_within_the_tool_timeout() -> None:
