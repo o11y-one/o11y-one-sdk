@@ -1,0 +1,76 @@
+name: adapters
+
+# The Loop trainer adapters, one leg per framework extra, on Python 3.12 with
+# CPU torch. The main `ci` job installs no extra and never runs these. Only a
+# change to the Loop client, the adapters, their tests or the lock starts a
+# leg, so every other PR still spins up one runner.
+on:
+  pull_request:
+    paths:
+      - "packages/sdk-py/src/o11y_one/sdk/loop/**"
+      - "packages/sdk-py/src/o11y_one/sdk/_openenv.py"
+      - "packages/sdk-py/tests/loop_adapters/**"
+      - "packages/sdk-py/tests/test_loop*.py"
+      - "packages/sdk-py/pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/adapters.yml"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: adapters-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  leg:
+    name: ${{ matrix.extra }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - extra: openenv
+            tests: packages/sdk-py/tests/test_loop.py packages/sdk-py/tests/test_loop_openenv.py
+            models: ""
+          - extra: trl
+            tests: packages/sdk-py/tests/loop_adapters
+            models: trl-internal-testing/tiny-Qwen3MoeForCausalLM
+    env:
+      HF_HUB_DISABLE_TELEMETRY: "1"
+      TRL_EXPERIMENTAL_SILENCE: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        with:
+          version: 2026.9.1
+          install: true
+          cache: true
+
+      # --locked: the lock takes torch from PyTorch's CPU index on Linux.
+      - name: Install the ${{ matrix.extra }} extra
+        env:
+          EXTRA: ${{ matrix.extra }}
+        run: uv sync --locked --all-packages --extra "$EXTRA" --python 3.12
+
+      # The only step with the Hub: the tests run offline after it.
+      - name: Fetch the test models
+        if: matrix.models != ''
+        env:
+          MODELS: ${{ matrix.models }}
+        run: |
+          for model in $MODELS; do
+            uv run --no-sync python -c "import sys; from huggingface_hub import snapshot_download; snapshot_download(sys.argv[1])" "$model"
+          done
+
+      - name: Test
+        env:
+          HF_HUB_OFFLINE: "1"
+          TESTS: ${{ matrix.tests }}
+        run: uv run --no-sync pytest $TESTS
