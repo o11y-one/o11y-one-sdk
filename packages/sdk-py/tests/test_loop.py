@@ -10,6 +10,7 @@ wire and never a log, repr or message.
 from __future__ import annotations
 
 import base64
+import copy
 import logging
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -95,7 +96,7 @@ class FakeService:
 
     def __getattr__(self, method: str):
         def call(request: object) -> object:
-            self.calls.append((method, request))
+            self.calls.append((method, copy.deepcopy(request)))
             answer = self.answers[method].pop(0)
             if isinstance(answer, BaseException):
                 raise answer
