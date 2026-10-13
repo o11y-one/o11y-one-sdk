@@ -39,6 +39,7 @@ __all__ = ["LoopCallback", "LoopEnvironment", "loop_reward"]
 _GROUPS = uuid.uuid5(uuid.NAMESPACE_URL, "https://o11y.one/loop/trl/group")
 
 # What LoopCallback learns of the trainer, for this process's environments.
+# ponytail: one trainer per process; two GRPOTrainers in one process would share it.
 _trainer = SimpleNamespace(
     pool=None,
     group_size=0,
