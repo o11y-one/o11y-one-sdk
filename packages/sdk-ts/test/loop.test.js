@@ -115,8 +115,8 @@ async function refusedBy(promise) {
   assert.fail("expected a refusal");
 }
 
-// Runs `promise` to its end with the clock advanced `stepMs` whenever it waits.
-async function drive(timers, promise, stepMs) {
+// Runs `promise` to its end, the clock jumping to each timer it waits on.
+async function drive(timers, promise) {
   let settled = false;
   promise.then(
     () => (settled = true),
@@ -124,7 +124,7 @@ async function drive(timers, promise, stepMs) {
   );
   while (!settled) {
     for (let i = 0; i < 20; i++) await new Promise((resolve) => setImmediate(resolve));
-    if (!settled) timers.tick(stepMs);
+    if (!settled) timers.runAll();
   }
   return promise;
 }
@@ -169,7 +169,7 @@ test("a paused run is retried after each retry-after under one request id", asyn
   const paused = Array.from({ length: 3 }, () => refusal("run_paused", { retryAfterMillis: 60_000n }));
   const stub = server({ ResetLoopRollout: [...paused, rollout("r-1")] });
   const client = clientOn(stub);
-  const reset = await drive(t.mock.timers, client.reset({ groupSize: 4 }), 60_000);
+  const reset = await drive(t.mock.timers, client.reset({ groupSize: 4 }));
   assert.equal(reset.rolloutId, "r-1");
   assert.equal(Date.now(), 180_000);
   const requests = stub.calls.map(([, request]) => request);
@@ -182,7 +182,7 @@ test("a paused run is retried for 30 minutes, then raised", async (t) => {
   t.mock.timers.enable({ apis: ["setTimeout", "Date"], now: 0 });
   const paused = Array.from({ length: 40 }, () => refusal("run_paused", { retryAfterMillis: 60_000n }));
   const stub = server({ ResetLoopRollout: paused });
-  const refused = await refusedBy(drive(t.mock.timers, clientOn(stub).reset(), 60_000));
+  const refused = await refusedBy(drive(t.mock.timers, clientOn(stub).reset()));
   assert.equal(refused.code, "run_paused");
   assert.equal(stub.calls.length, 31);
   assert.equal(Date.now(), 30 * 60_000);
@@ -192,8 +192,9 @@ test("a paused run without a retry-after waits the default", async (t) => {
   t.mock.timers.enable({ apis: ["setTimeout", "Date"], now: 0 });
   const paused = Array.from({ length: 400 }, () => refusal("run_paused"));
   const stub = server({ ResetLoopRollout: paused });
-  await refusedBy(drive(t.mock.timers, clientOn(stub).reset(), 5_000));
+  await refusedBy(drive(t.mock.timers, clientOn(stub).reset()));
   assert.equal(stub.calls.length, 30 * 60_000 / 5_000 + 1);
+  assert.equal(Date.now(), 30 * 60_000);
 });
 
 test("reset closes the open rollout before the next reset", async () => {
