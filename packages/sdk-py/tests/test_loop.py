@@ -300,6 +300,26 @@ def test_run_and_credential_fall_back_to_the_environment(monkeypatch: pytest.Mon
     assert service.calls[0][1].run_id == RUN
 
 
+def test_a_reset_names_the_adapter_and_framework_the_client_was_made_with() -> None:
+    service = FakeService(reset_loop_rollout=[ResetLoopRolloutResponse(rollout=rollout("r-1"))])
+    client = LoopClient(
+        run=RUN,
+        credential=CREDENTIAL,
+        adapter="o11y_one.sdk.loop.trl",
+        adapter_version="0.3.0",
+        framework_version="1.15.0",
+    )
+    client._service = service
+    client.reset()
+    sent = service.calls[0][1].client
+    assert (sent.adapter, sent.adapter_version, sent.framework_version) == (
+        "o11y_one.sdk.loop.trl",
+        "0.3.0",
+        "1.15.0",
+    )
+    assert (sent.sdk_version, sent.session_id) == (loop._SDK_VERSION, loop._SESSION_ID)
+
+
 def test_a_missing_run_or_credential_is_refused_locally(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("O11Y_API_KEY", raising=False)
     monkeypatch.delenv("O11Y_RUN", raising=False)
