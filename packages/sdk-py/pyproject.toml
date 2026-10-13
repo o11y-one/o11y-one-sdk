@@ -23,6 +23,10 @@ dependencies = [
 # OpenEnv v0.8.0 (625f5e72), exactly: LoopEnvClient overrides its client's
 # WebSocket connect, and Loop's /loop/v1/openenv/ws matches that release's wire.
 openenv = ["openenv==0.8.0"]
+# TRL 1.15 (v1.15.0, dae7b6a): o11y_one.sdk.loop.trl is GRPOTrainer's environment_factory,
+# which needs transformers 5.2 or later. torch is TRL's own dependency, named here only so
+# the lock takes it from PyTorch's CPU index on Linux (tool.uv.sources), as CI runs it.
+trl = ["trl>=1.15,<1.16", "transformers>=5.2", "torch"]
 
 [project.urls]
 Homepage = "https://o11y.one"
@@ -50,6 +54,14 @@ include = ["src", "README.md", "pyproject.toml"]
 # (agentic + common only), not the whole o11y-one-api — see
 # docs/proto-subsetting.md.
 o11y-one-api-agentic = { workspace = true }
+# The adapters CI runs on CPU: Linux takes PyTorch's CPU wheels, never its CUDA ones. A
+# user's own install resolves torch as it always would; sources never reach the wheel.
+torch = { index = "pytorch-cpu", marker = "sys_platform == 'linux'" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
 
 [dependency-groups]
 dev = ["pytest>=8.4"]
