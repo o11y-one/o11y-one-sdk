@@ -4,6 +4,9 @@ A person mints a run in the web and hands the trainer its id (``O11Y_RUN``, not
 a secret) and an organization's machine key with the ``rollout:drive`` scope
 (``O11Y_API_KEY``). :class:`LoopClient` resets, steps, closes and forks that
 run's rollouts over ``LoopRolloutService``, one open rollout at a time.
+
+``LoopEnvClient``, OpenEnv's own client with the key on its WebSocket upgrade,
+needs the ``openenv`` extra: ``pip install 'o11y-one[openenv]'``.
 """
 
 from __future__ import annotations
@@ -181,3 +184,15 @@ class LoopClient:
         if self._open is None:
             raise RuntimeError("no rollout is open: reset() first")
         return self._open
+
+
+def __getattr__(name: str) -> Any:
+    if name != "LoopEnvClient":
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    try:
+        from ._openenv import LoopEnvClient
+    except ModuleNotFoundError as error:
+        raise ImportError(
+            "LoopEnvClient needs the openenv extra: pip install 'o11y-one[openenv]'"
+        ) from error
+    return LoopEnvClient
