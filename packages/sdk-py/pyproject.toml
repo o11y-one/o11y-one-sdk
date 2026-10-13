@@ -19,6 +19,11 @@ dependencies = [
   "httpx>=0.28",
 ]
 
+[project.optional-dependencies]
+# OpenEnv v0.8.0 (625f5e72), exactly: LoopEnvClient overrides its client's
+# WebSocket connect, and Loop's /loop/v1/openenv/ws matches that release's wire.
+openenv = ["openenv==0.8.0"]
+
 [project.urls]
 Homepage = "https://o11y.one"
 Source = "https://github.com/o11y-one/o11y-one-sdk"
