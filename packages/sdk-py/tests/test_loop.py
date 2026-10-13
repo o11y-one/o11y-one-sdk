@@ -147,6 +147,12 @@ def test_the_loop_package_keeps_every_import_the_loop_module_had() -> None:
         assert issubclass(LoopEnvClient, GenericEnvClient)
 
 
+@pytest.mark.skipif(importlib.util.find_spec("trl") is not None, reason="the trl extra is here")
+def test_the_trl_adapter_without_its_extra_says_which_to_install() -> None:
+    with pytest.raises(ImportError, match=r"o11y-one\[trl\]"):
+        import o11y_one.sdk.loop.trl  # noqa: F401
+
+
 @pytest.mark.parametrize(("reason", "code", "message"), RECORDED)
 def test_each_recorded_refusal_raises_its_stable_code(
     reason: str, code: Code, message: str
