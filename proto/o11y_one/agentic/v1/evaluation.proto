@@ -7304,8 +7304,8 @@ message CheckEvaluationScorerAgainstRunResponse {
 enum EvaluationScorerCodeLanguageV1 {
   EVALUATION_SCORER_CODE_LANGUAGE_V1_UNSPECIFIED = 0;
   EVALUATION_SCORER_CODE_LANGUAGE_V1_PYTHON = 1;
-  // P2.9d (#611). The sandbox runs it where the deployment serves the
-  // `typescript-base` runtime (#764), but `scorer_runtimes` lists none yet and
+  // P2.9d (#611). Where the deployment serves the `typescript-base` runtime
+  // (#764), `scorer_runtimes` lists it and it is authored and run; elsewhere
   // authoring refuses it with `code_language_unsupported`.
   EVALUATION_SCORER_CODE_LANGUAGE_V1_TYPESCRIPT = 2;
 }
@@ -13703,6 +13703,13 @@ enum MachinePrincipalScopeV1 {
   // would read as a grant over all of them, which is the scope conflation the
   // "never implied" rule above forbids.
   MACHINE_PRINCIPAL_SCOPE_V1_RELEASE_CANARY = 6;
+  // RECORDED AMENDMENT, 2026-10-12 (#722). NOT one of the four NN44 names.
+  //
+  // A trainer drives Loop rollouts with the organization's machine key:
+  // reset, step, close and fork, and the reads of its own run and rollouts
+  // (`rollout.proto`). It grants nothing on this service, and nothing on a
+  // run's limits, its cap or its stop, which stay a person's.
+  MACHINE_PRINCIPAL_SCOPE_V1_ROLLOUT_DRIVE = 7;
 }
 
 // 0a §6.3.

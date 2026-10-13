@@ -1744,6 +1744,7 @@ class MachinePrincipalScopeV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper)
     MACHINE_PRINCIPAL_SCOPE_V1_LEASE_SUBMIT: _ClassVar[MachinePrincipalScopeV1]
     MACHINE_PRINCIPAL_SCOPE_V1_PLATFORM_ANNOTATION_WRITE: _ClassVar[MachinePrincipalScopeV1]
     MACHINE_PRINCIPAL_SCOPE_V1_RELEASE_CANARY: _ClassVar[MachinePrincipalScopeV1]
+    MACHINE_PRINCIPAL_SCOPE_V1_ROLLOUT_DRIVE: _ClassVar[MachinePrincipalScopeV1]
 
 class MachinePrincipalStateV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -3043,6 +3044,7 @@ MACHINE_PRINCIPAL_SCOPE_V1_DATASET_WRITE: MachinePrincipalScopeV1
 MACHINE_PRINCIPAL_SCOPE_V1_LEASE_SUBMIT: MachinePrincipalScopeV1
 MACHINE_PRINCIPAL_SCOPE_V1_PLATFORM_ANNOTATION_WRITE: MachinePrincipalScopeV1
 MACHINE_PRINCIPAL_SCOPE_V1_RELEASE_CANARY: MachinePrincipalScopeV1
+MACHINE_PRINCIPAL_SCOPE_V1_ROLLOUT_DRIVE: MachinePrincipalScopeV1
 MACHINE_PRINCIPAL_STATE_V1_UNSPECIFIED: MachinePrincipalStateV1
 MACHINE_PRINCIPAL_STATE_V1_ACTIVE: MachinePrincipalStateV1
 MACHINE_PRINCIPAL_STATE_V1_DISABLED: MachinePrincipalStateV1
