@@ -91,8 +91,8 @@ _NO_REWARD = (
 
 
 def reward(rollout: LoopRolloutV1, name: str | None = None) -> float | None:
-    """A closed rollout's reward: the one named, or the primary (the first the
-    environment declares). A task's or verifier's failure keeps its value;
+    """A closed rollout's reward: the one named, or the primary. Rewards are in
+    the environment's declared order, primary first (rollout.proto). A task's or verifier's failure keeps its value;
     ours (``INFRASTRUCTURE``) or a person's Stop answers ``None``, never a
     score. A reward the rollout lacks raises ``LookupError`` naming it."""
     if rollout.failure.failure_class in _NO_REWARD:
