@@ -33,6 +33,7 @@ except ModuleNotFoundError as error:
     ) from error
 
 from . import _SDK_VERSION, AsyncLoopClient, _core
+from ._core import LoopInfrastructureFailure
 
 __all__ = ["CONFIG", "LoopAgentLoop", "LoopInfrastructureFailure"]
 
@@ -47,10 +48,6 @@ UIDS_KEPT = 1 << 16
 @functools.lru_cache(maxsize=UIDS_KEPT)
 def _counter(uid: str) -> itertools.count:
     return itertools.count()
-
-
-class LoopInfrastructureFailure(Exception):
-    """Loop failed a trajectory twice on its own side; it is never scored."""
 
 
 class _LoopTool(BaseTool):
