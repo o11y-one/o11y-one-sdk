@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 
 	"connectrpc.com/connect"
@@ -19,6 +21,24 @@ const (
 	headerTenant = "x-o11y-tenant-id"
 )
 
+// loopback is where plain http may carry the key: this machine, for tests and local
+// development.
+var loopback = map[string]bool{"127.0.0.1": true, "::1": true, "localhost": true}
+
+// requireSecureURL refuses an endpoint that would carry the key in the clear: anything
+// but https, or http to this machine. The host is the URL's own, never its userinfo, and
+// the error names only the scheme.
+func requireSecureURL(raw string) error {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return &usageError{msg: "the base URL does not parse"}
+	}
+	if u.Scheme == "https" || (u.Scheme == "http" && loopback[u.Hostname()]) {
+		return nil
+	}
+	return &usageError{msg: fmt.Sprintf("refused a '%s' endpoint: use https, or http only to this machine", u.Scheme)}
+}
+
 // apiClients is the connect client this runner drives. The evaluation service
 // owns run launch, run status, platform annotations, and the run overview the
 // verdict is read off.
@@ -32,7 +52,10 @@ type apiClients struct {
 // site, so there is exactly one place that touches it and exactly zero places
 // that log it. The interceptor sets headers on outbound requests only; it never
 // reads them back, never prints them, and never returns them in an error.
-func newClients(common *commonFlags, cred string) *apiClients {
+func newClients(common *commonFlags, cred string) (*apiClients, error) {
+	if err := requireSecureURL(common.baseURL); err != nil {
+		return nil, err
+	}
 	httpClient := &http.Client{
 		// A generous per-request ceiling. The overall command deadline is the
 		// real bound (see commonFlags.timeout); this only stops a single wedged
@@ -64,7 +87,7 @@ func newClients(common *commonFlags, cred string) *apiClients {
 
 	return &apiClients{
 		eval: agenticv1connect.NewAgenticEvaluationServiceClient(httpClient, common.baseURL, opts...),
-	}
+	}, nil
 }
 
 // commandContext derives the command-scoped context and its cancel func from the

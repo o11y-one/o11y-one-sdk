@@ -399,8 +399,11 @@ func TestClientSpeaksGRPCWeb(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	clients := newClients(&commonFlags{baseURL: srv.URL}, "o11y_mach.sel.sec")
-	_, err := clients.eval.GetEvaluationRunOverview(context.Background(),
+	clients, err := newClients(&commonFlags{baseURL: srv.URL}, "o11y_mach.sel.sec")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = clients.eval.GetEvaluationRunOverview(context.Background(),
 		connect.NewRequest(&agenticv1.GetEvaluationRunOverviewRequest{}))
 
 	if contentType != "application/grpc-web+proto" {
@@ -752,4 +755,31 @@ func runCaptured(t *testing.T, command string, args ...string) (int, string, str
 		f.Close()
 	}
 	return code, got[0], got[1]
+}
+
+// The key travels only over https, or plain http to this machine; the error names the
+// scheme alone, never the host, its userinfo or the key.
+func TestAPlainHTTPEndpointOffThisMachineIsRefused(t *testing.T) {
+	for _, url := range []string{"http://grpc.invalid", "http://127.0.0.1@grpc.invalid", "ftp://grpc.invalid"} {
+		err := requireSecureURL(url)
+		if err == nil || strings.Contains(err.Error(), "grpc.invalid") || strings.Contains(err.Error(), "127.0.0.1") {
+			t.Errorf("requireSecureURL(%q) = %v, want a refusal naming the scheme only", url, err)
+		}
+	}
+	for _, url := range []string{"https://grpc.invalid", "http://127.0.0.1:1", "http://localhost:1", "http://[::1]:1", "http://grpc.invalid@127.0.0.1:1"} {
+		if err := requireSecureURL(url); err != nil {
+			t.Errorf("requireSecureURL(%q) = %v, want it allowed", url, err)
+		}
+	}
+
+	t.Setenv("O11Y_API_KEY", "o11y_mach.selector.secret")
+	byFlag := []string{"annotate", "--base-url", "http://grpc.invalid", "--timeout", "3s", "--title", "deploy"}
+	if got := run(byFlag); got != OutcomeUsageError.ExitCode() {
+		t.Errorf("run(%v) = %d, want %d (usage error)", byFlag, got, OutcomeUsageError.ExitCode())
+	}
+	t.Setenv("O11Y_BASE_URL", "http://grpc.invalid")
+	byEnv := []string{"annotate", "--timeout", "3s", "--title", "deploy"}
+	if got := run(byEnv); got != OutcomeUsageError.ExitCode() {
+		t.Errorf("run(%v) = %d, want %d (usage error)", byEnv, got, OutcomeUsageError.ExitCode())
+	}
 }
