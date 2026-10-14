@@ -55,6 +55,13 @@ def test_the_upgrade_carries_the_key_and_the_run_and_an_episode_runs_over_it() -
     assert not [text for text in shown if CREDENTIAL in text]
 
 
+def test_a_plain_websocket_off_this_machine_is_refused() -> None:
+    with pytest.raises(ValueError, match="'ws'") as refused:
+        LoopEnvClient("http://openenv.example/loop/v1/openenv", run=RUN, credential=CREDENTIAL)
+    assert CREDENTIAL not in str(refused.value)
+    LoopEnvClient("https://openenv.example/loop/v1/openenv", run=RUN, credential=CREDENTIAL)
+
+
 def test_run_and_credential_fall_back_to_the_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("O11Y_RUN", raising=False)
     monkeypatch.delenv("O11Y_API_KEY", raising=False)

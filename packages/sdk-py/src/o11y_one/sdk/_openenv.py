@@ -12,6 +12,7 @@ from openenv.core.generic_client import GenericEnvClient
 from websockets.protocol import State
 
 from .auth import CREDENTIAL_HEADER, assert_looks_like_machine_credential
+from .client import require_secure_url
 
 
 class LoopEnvClient(GenericEnvClient):
@@ -43,6 +44,7 @@ class LoopEnvClient(GenericEnvClient):
 
     def _set_base_url(self, base_url: str) -> None:
         super()._set_base_url(base_url)
+        require_secure_url(self._ws_url, "wss", "ws")
         self._ws_url = f"{self._ws_url}?{urlencode({'run': self._run})}"
 
     async def _connect_async(self) -> LoopEnvClient:
