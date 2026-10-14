@@ -496,3 +496,8 @@ def test_a_reset_is_answered_over_the_wire(
             client = kind(run=RUN, credential=CREDENTIAL)
         assert drive(client, "reset").rollout_id == "r-1"
     assert client.rollout_id == "r-1"
+
+
+def test_a_client_given_no_endpoint_in_tests_uses_the_closed_local_port(kind: type) -> None:
+    client = kind(run=RUN, credential=CREDENTIAL)
+    assert client._service._address == "http://127.0.0.1:9"
