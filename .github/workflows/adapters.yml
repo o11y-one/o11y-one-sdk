@@ -43,6 +43,10 @@ jobs:
           - extra: verl
             tests: packages/sdk-py/tests/loop_adapters
             models: trl-internal-testing/tiny-Qwen3MoeForCausalLM
+          # A fake TokenCompleter stands in for Tinker: no Tinker client, no Tinker key.
+          - extra: tinker
+            tests: packages/sdk-py/tests/loop_adapters
+            models: trl-internal-testing/tiny-Qwen3MoeForCausalLM
           # Not an extra: OpenRLHF's wheel pins CUDA builds. Its own install step is below.
           - extra: openrlhf
             tests: packages/sdk-py/tests/loop_adapters
