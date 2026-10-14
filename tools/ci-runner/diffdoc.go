@@ -7,8 +7,8 @@ import (
 	agenticv1 "github.com/o11y-one/o11y-one-sdk/gen/go/o11y_one/agentic/v1"
 )
 
-// SchemaVersion is the versioned contract this runner emits for the L4 PR-diff
-// renderer. See scratchpad l3-diff-schema.md. Breaking changes bump the major.
+// SchemaVersion is the versioned contract this runner emits for the PR-diff
+// renderer (tools/pr-diff). Breaking changes bump the major.
 const SchemaVersion = "o11y.eval.diff/v1"
 
 // OptionalNumber is the typed-absence primitive that makes the whole document
@@ -32,7 +32,7 @@ func numFromInt[T ~int32 | ~uint32 | ~int | ~int64](v T) OptionalNumber {
 	return numFrom(float64(v))
 }
 
-// DiffDocument is the machine-readable diff — the L4 renderer's sole input.
+// DiffDocument is the machine-readable diff — the PR-diff renderer's sole input.
 type DiffDocument struct {
 	SchemaVersion  string         `json:"schema_version"`
 	GeneratedAt    string         `json:"generated_at"`
@@ -109,8 +109,8 @@ const reasonNotReported = "not_reported_by_server"
 // --- the verdict mapping: the one place a server decision becomes an exit code -
 
 // The decision strings surfaced verbatim in the document, keyed by the server
-// enum. These are stable wire values L4 switches on, so an outcome this build
-// does not recognise renders as UNSPECIFIED rather than leaking a raw number a
+// enum. These are stable wire values the renderer switches on, so an outcome
+// this build does not recognise renders as UNSPECIFIED rather than leaking a raw number a
 // renderer could mistake for a decision.
 func decisionString(o agenticv1.EvaluationDecisionOutcomeV1) string {
 	switch o {
@@ -163,7 +163,7 @@ func outcomeForAdoptedDecision(ad *agenticv1.EvaluationAdoptedDecisionV1, candid
 	}
 }
 
-// buildDiffDocument serializes the run's adopted decision into the L4 contract.
+// buildDiffDocument serializes the run's adopted decision into the diff document.
 // It reads the decision; it never re-derives the verdict.
 func buildDiffDocument(resp *agenticv1.GetEvaluationRunOverviewResponse, candidateKey string, gen Generator) DiffDocument {
 	ad := resp.GetAdoptedDecision()

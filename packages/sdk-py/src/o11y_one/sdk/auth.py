@@ -1,9 +1,7 @@
 """Credential handling for machine principals.
 
-The wire contract below is SETTLED — it is read out of the running server, not
-designed here. Source: lane 50A's credential-shape note, which cites
-``shared/src/lib.rs:70`` for the header name and
-``server/src/services/api_tokens/crypto.rs`` for the encoding.
+The wire contract below is the server's: the header a machine credential travels
+in, and the credential's shape, both as the O11y One API accepts them.
 """
 
 from __future__ import annotations
@@ -18,7 +16,7 @@ __all__ = [
 ]
 
 #: The header a machine credential is presented in
-#: (``O11Y_ONE_API_KEY_HEADER_NAME``, o11y-api ``shared/src/lib.rs:70``).
+#: (the server's ``O11Y_ONE_API_KEY_HEADER_NAME``).
 #: ``x-api-key`` is accepted server-side as a fallback alias; this SDK always
 #: sends the canonical name.
 #:

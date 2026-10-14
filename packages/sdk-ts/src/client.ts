@@ -62,24 +62,10 @@ export interface ClientOptions {
  * An interceptor that stamps the credential and scoping headers onto every
  * outbound request.
  *
- * This is THE auth-injection point for the TypeScript SDK. Everything about the
- * shape it injects is settled (see auth.ts). What is NOT settled, and is the
- * one open dependency this package has on the backend:
- *
- * TODO(w50a-auth-shape / lane 50A): the machine-principal management surface —
- *   CreateMachinePrincipal, ListMachinePrincipals, CreateMachineCredential,
- *   RevokeMachineCredential, RevokeMachinePrincipal, GetCallerPrincipal
- *   — does not exist in the proto snapshot at PROTO_PIN (fb8f5098). auth.proto
- *   there carries only AuthFoundationService.ListAuthMethods. The RPC NAMES are
- *   held by 50A and will not move, so when lane A lands them:
- *     1. bump PROTO_PIN and run tools/sync-proto.sh,
- *     2. add `O11yClient.whoami()` over GetCallerPrincipal — the introspection
- *        call that answers "is my credential valid, and which scopes does it
- *        carry?" BEFORE a run, which is what makes `o11y-eval doctor` possible
- *        and what turns an UNAUTHENTICATED at minute 40 into an error at
- *        minute 0.
- *   Nothing else in this file changes: the header, the encoding and the error
- *   taxonomy are already the final ones.
+ * This is THE auth-injection point for the TypeScript SDK; auth.ts describes
+ * the shape it injects. To ask "is my credential valid, and which scopes does it
+ * carry?" BEFORE a run, turning an UNAUTHENTICATED at minute 40 into an error at
+ * minute 0, call `AgenticEvaluationClient.whoami()` (GetCallerPrincipal).
  */
 export function credentialInterceptor(options: {
   credential?: string;

@@ -1,9 +1,8 @@
 // Command pr-diff renders a GitHub-flavored-markdown PR comment from an eval
-// diff document. It is the thinnest lane in the T1 SDK wave: it CONSUMES the
-// machine-readable diff document lane L3 produces (scratchpad/l3-diff-schema.md,
-// schema_version "o11y.eval.diff/v1") and formats it. It recomputes nothing —
-// every number and verdict in the rendered comment comes straight out of the
-// document. See doc.go for the field-for-field binding to L3's schema.
+// diff document. It CONSUMES the machine-readable diff document o11y-eval
+// emits (schema_version "o11y.eval.diff/v1") and formats it. It recomputes
+// nothing — every number and verdict in the rendered comment comes straight out
+// of the document. See doc.go for the field-for-field binding to that schema.
 package main
 
 import (
@@ -22,7 +21,7 @@ Usage:
   pr-diff render  [flags]   render a diff document to markdown (pure, no network)
   pr-diff comment [flags]   render and idempotently upsert it onto a GitHub PR
 
-Both commands normally take --input, a path to an L3 diff document JSON
+Both commands normally take --input, a path to an o11y-eval diff document JSON
 (schema o11y.eval.diff/v1). When the eval runner failed before it could
 produce a document at all — a network/auth/RPC failure, or a bad invocation —
 pass --infra-failure or --usage-error instead of --input to render that state
@@ -141,7 +140,7 @@ func loadDoc(path string) (DiffDocument, error) {
 }
 
 // renderFlags are the flags shared by `render` and `comment` for choosing
-// between an L3 document and the infra-failure/usage-error fallback.
+// between an o11y-eval diff document and the infra-failure/usage-error fallback.
 type renderFlags struct {
 	input        *string
 	infraFailure *bool
@@ -160,7 +159,7 @@ func registerRenderFlags(fs *flag.FlagSet) renderFlags {
 	}
 }
 
-// resolve produces the markdown either from an L3 document at --input, or
+// resolve produces the markdown either from an o11y-eval diff document at --input, or
 // from the --infra-failure/--usage-error fallback. It returns at most one of
 // (doc, ok) set, so callers can tell which path was taken (only a real doc
 // carries a verdict to propagate via --exit-with-verdict).
