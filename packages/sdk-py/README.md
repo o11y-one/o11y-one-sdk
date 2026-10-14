@@ -172,6 +172,7 @@ A person mints a Loop run in the web and hands the trainer two values: the run's
 id, `O11Y_RUN` (`trn_…`, not a secret), and an organization machine key with the
 `rollout:drive` scope, `O11Y_API_KEY`. `LoopClient` reads both from the
 environment when they aren't passed, and never logs or shows the key.
+`O11Y_BASE_URL` names another endpoint, such as your region's.
 
 ```python
 from o11y_one.agentic.v1.rollout_pb2 import LoopToolCallV1, LoopToolExecV1

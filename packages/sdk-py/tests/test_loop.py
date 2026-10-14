@@ -455,7 +455,10 @@ def test_the_key_reaches_the_wire_and_never_a_log_repr_or_message(
     assert not [text for text in shown if CREDENTIAL in text or "BBBBBBBB" in text]
 
 
-def test_a_reset_is_answered_over_the_wire(kind: type) -> None:
+@pytest.mark.parametrize("via", ["argument", "O11Y_BASE_URL"])
+def test_a_reset_is_answered_over_the_wire(
+    kind: type, via: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
     answer = ResetLoopRolloutResponse(rollout=rollout("r-1")).SerializeToString()
     trailer = b"grpc-status: 0\r\n"
 
@@ -478,8 +481,12 @@ def test_a_reset_is_answered_over_the_wire(kind: type) -> None:
 
     with HTTPServer(("127.0.0.1", 0), Handler) as server:
         threading.Thread(target=server.handle_request, daemon=True).start()
-        client = kind(
-            run=RUN, credential=CREDENTIAL, base_url=f"http://127.0.0.1:{server.server_port}"
-        )
+        url = f"http://127.0.0.1:{server.server_port}"
+        if via == "argument":
+            client = kind(run=RUN, credential=CREDENTIAL, base_url=url)
+        else:
+            monkeypatch.setenv("O11Y_BASE_URL", url)
+            monkeypatch.setattr(loop, "DEFAULT_BASE_URL", "http://127.0.0.1:9")  # never a real Loop
+            client = kind(run=RUN, credential=CREDENTIAL)
         assert drive(client, "reset").rollout_id == "r-1"
     assert client.rollout_id == "r-1"

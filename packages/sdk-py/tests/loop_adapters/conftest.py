@@ -168,6 +168,7 @@ def loop(monkeypatch: pytest.MonkeyPatch):
     fake.url = f"http://127.0.0.1:{server.server_port}"
     monkeypatch.setenv("O11Y_RUN", RUN)
     monkeypatch.setenv("O11Y_API_KEY", CREDENTIAL)
+    monkeypatch.setenv("O11Y_BASE_URL", fake.url)  # an adapter test never reaches a real Loop
     yield fake
     for event in fake.held.values():
         event.set()
