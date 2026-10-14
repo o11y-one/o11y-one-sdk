@@ -115,7 +115,7 @@ class _Rollouts:
         *,
         run: str | None = None,
         credential: str | None = None,
-        base_url: str = DEFAULT_BASE_URL,
+        base_url: str | None = None,
         adapter: str = "",
         adapter_version: str = "",
         framework_version: str = "",
@@ -124,6 +124,7 @@ class _Rollouts:
         if not run:
             raise ValueError("no run: pass run= or set O11Y_RUN")
         credential = credential or os.environ.get("O11Y_API_KEY", "")
+        base_url = base_url or os.environ.get("O11Y_BASE_URL") or DEFAULT_BASE_URL
         self._service = self._connect(O11yClient(base_url=base_url, credential=credential))
         self._run = run
         self._open: str | None = None
@@ -161,7 +162,8 @@ class _Rollouts:
 class LoopClient(_Rollouts):
     """One run's rollouts, one open at a time.
 
-    ``run`` and ``credential`` default to ``O11Y_RUN`` and ``O11Y_API_KEY``.
+    ``run``, ``credential`` and ``base_url`` default to ``O11Y_RUN``,
+    ``O11Y_API_KEY`` and ``O11Y_BASE_URL`` (else :data:`DEFAULT_BASE_URL`).
     The key is sent as ``x-o11y-key`` and is never logged or shown. A trainer
     adapter names itself and its framework's version, which every reset
     reports.
