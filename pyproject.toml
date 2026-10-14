@@ -27,8 +27,12 @@ dev = ["ruff>=0.16.10,<0.17"]
 
 [tool.uv]
 # The trainer extras pin transformers apart (TRL 1.15 wants 5.13+ for its tool parser,
-# verl 0.9 caps it below 5.11), so each resolves on its own.
-conflicts = [[{ package = "o11y-one", extra = "trl" }, { package = "o11y-one", extra = "verl" }]]
+# verl 0.9 caps it below 5.11, tinker-cookbook 0.5 at 5.5.4), so each resolves on its own.
+conflicts = [
+  [{ package = "o11y-one", extra = "trl" }, { package = "o11y-one", extra = "verl" }],
+  [{ package = "o11y-one", extra = "trl" }, { package = "o11y-one", extra = "tinker" }],
+  [{ package = "o11y-one", extra = "verl" }, { package = "o11y-one", extra = "tinker" }],
+]
 
 [tool.ruff]
 line-length = 100
