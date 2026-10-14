@@ -31,6 +31,9 @@ trl = ["trl>=1.15,<1.16", "transformers>=5.2", "torch"]
 # that verl's agent_loop_config_path loads. verl's agent loop imports cachetools, fastapi and
 # uvicorn, which its own requirements leave to its verl-core extra. torch as for trl.
 verl = ["verl>=0.9.1,<0.10", "cachetools", "fastapi", "uvicorn", "torch"]
+# tinker-cookbook 0.5.7 (b739bed), with the tinker SDK it brings: o11y_one.sdk.loop.tinker is
+# an EnvGroupBuilder of the cookbook's tool envs. It never imports tinker itself. torch as for trl.
+tinker = ["tinker-cookbook>=0.5.7,<0.6", "torch"]
 
 [project.urls]
 Homepage = "https://o11y.one"
