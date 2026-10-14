@@ -4,8 +4,8 @@
 // 	protoc        (unknown)
 // source: o11y_one/agentic/v1/rollout.proto
 
-// Loop P3.5 (#722): runs and rollouts, the API a trainer drives Loop
-// environments through.
+// Loop runs and rollouts (#722), the API a trainer drives Loop environments
+// through.
 //
 // A person mints a run when they connect a trainer. It pins one published
 // environment version and, optionally, one task dataset version, and holds the
@@ -20,8 +20,8 @@
 // carries LoopRolloutRejectionV1 and a stable code. Failures on our side are
 // never billed.
 //
-// Same package as evaluation.proto (lock ruling L1-4), in its own FILE as
-// environment.proto is. A later change adds fields; it never renames one.
+// Same package as evaluation.proto, in its own FILE as environment.proto is. A
+// later change adds fields; it never renames one.
 
 package agenticv1
 
@@ -304,7 +304,7 @@ type LoopRewardDeterminismV1 int32
 
 const (
 	LoopRewardDeterminismV1_LOOP_REWARD_DETERMINISM_V1_UNSPECIFIED LoopRewardDeterminismV1 = 0
-	// Offline, every input pinned: the only class in P3.
+	// Offline, every input pinned: the only class today.
 	LoopRewardDeterminismV1_LOOP_REWARD_DETERMINISM_V1_OFFLINE_PINNED LoopRewardDeterminismV1 = 1
 )
 
@@ -2025,7 +2025,9 @@ type LoopRolloutV1 struct {
 	Failure *LoopRolloutFailureV1 `protobuf:"bytes,8,opt,name=failure,proto3" json:"failure,omitempty"`
 	// Set when REWARDED, and on a task's or a verifier's failure, as the
 	// environment declares: a reward with a minimum is that minimum, one
-	// without is the failure reward.
+	// without is the failure reward. In the order the environment version
+	// declares them, so the primary reward is first; any it does not declare
+	// follow, by name.
 	Rewards            []*LoopRewardV1              `protobuf:"bytes,9,rep,name=rewards,proto3" json:"rewards,omitempty"`
 	Verdict            LoopVerdictV1                `protobuf:"varint,10,opt,name=verdict,proto3,enum=o11y_one.agentic.v1.LoopVerdictV1" json:"verdict,omitempty"`
 	Determinism        LoopRewardDeterminismV1      `protobuf:"varint,11,opt,name=determinism,proto3,enum=o11y_one.agentic.v1.LoopRewardDeterminismV1" json:"determinism,omitempty"`

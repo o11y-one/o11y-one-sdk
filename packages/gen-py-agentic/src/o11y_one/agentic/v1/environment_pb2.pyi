@@ -325,6 +325,22 @@ class CreateLoopEnvironmentUploadResponse(_message.Message):
     already_uploaded: bool
     def __init__(self, upload_url: _Optional[str] = ..., expires_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., already_uploaded: _Optional[bool] = ...) -> None: ...
 
+class GetLoopEnvironmentBuildLogRequest(_message.Message):
+    __slots__ = ("environment_id", "version")
+    ENVIRONMENT_ID_FIELD_NUMBER: _ClassVar[int]
+    VERSION_FIELD_NUMBER: _ClassVar[int]
+    environment_id: str
+    version: int
+    def __init__(self, environment_id: _Optional[str] = ..., version: _Optional[int] = ...) -> None: ...
+
+class GetLoopEnvironmentBuildLogResponse(_message.Message):
+    __slots__ = ("log", "truncated")
+    LOG_FIELD_NUMBER: _ClassVar[int]
+    TRUNCATED_FIELD_NUMBER: _ClassVar[int]
+    log: bytes
+    truncated: bool
+    def __init__(self, log: _Optional[bytes] = ..., truncated: _Optional[bool] = ...) -> None: ...
+
 class LoopEnvironmentRejectionV1(_message.Message):
     __slots__ = ("reason_code", "field")
     REASON_CODE_FIELD_NUMBER: _ClassVar[int]
