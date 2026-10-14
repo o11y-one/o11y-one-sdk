@@ -43,6 +43,10 @@ jobs:
           - extra: verl
             tests: packages/sdk-py/tests/loop_adapters
             models: trl-internal-testing/tiny-Qwen3MoeForCausalLM
+          # Not an extra: OpenRLHF's wheel pins CUDA builds. Its own install step is below.
+          - extra: openrlhf
+            tests: packages/sdk-py/tests/loop_adapters
+            models: trl-internal-testing/tiny-Qwen3MoeForCausalLM
     env:
       HF_HUB_DISABLE_TELEMETRY: "1"
       TRL_EXPERIMENTAL_SILENCE: "1"
@@ -59,9 +63,20 @@ jobs:
 
       # --locked: the lock takes torch from PyTorch's CPU index on Linux.
       - name: Install the ${{ matrix.extra }} extra
+        if: matrix.extra != 'openrlhf'
         env:
           EXTRA: ${{ matrix.extra }}
         run: uv sync --locked --all-packages --extra "$EXTRA" --python 3.12
+
+      # OpenRLHF's agent module needs only these of its requirements (deepspeed and
+      # flash-attn are CUDA builds), so OpenRLHF 0.11.2 goes in without the rest.
+      - name: Install OpenRLHF's agent module
+        if: matrix.extra == 'openrlhf'
+        run: |
+          uv sync --locked --all-packages --python 3.12
+          uv pip install --index-url https://download.pytorch.org/whl/cpu torch==2.14.1
+          uv pip install --no-deps openrlhf==0.11.2
+          uv pip install aiohttp==3.14.5 sympy==1.14.0 pylatexenc==2.11 transformers==5.15.0
 
       # The only step with the Hub: the tests run offline after it.
       - name: Fetch the test models
