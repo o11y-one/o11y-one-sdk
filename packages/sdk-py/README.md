@@ -229,6 +229,10 @@ behind that framework's extra:
   `actor_rollout_ref.rollout.agent.agent_loop_config_path=$(python -m o11y_one.sdk.loop.verl)`
   and rows with `agent_name: loop`. See
   [docs/loop/verl.md](https://github.com/o11y-one/o11y-one-sdk/blob/main/docs/loop/verl.md).
+- **OpenRLHF** 0.11.2 (no extra): render the prompts with
+  `o11y_one.sdk.loop.openrlhf.render_prompts`, then pass the module's own file as
+  `--train.agent_func_path`. See
+  [docs/loop/openrlhf.md](https://github.com/o11y-one/o11y-one-sdk/blob/main/docs/loop/openrlhf.md).
 
 ### OpenEnv
 
