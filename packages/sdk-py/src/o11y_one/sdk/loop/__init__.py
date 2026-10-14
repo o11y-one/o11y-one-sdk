@@ -1,4 +1,4 @@
-"""The Loop rollout client a trainer drives (#722).
+"""The Loop rollout client a trainer drives.
 
 A person mints a run in the web and hands the trainer its id (``O11Y_RUN``, not
 a secret) and an organization's machine key with the ``rollout:drive`` scope
