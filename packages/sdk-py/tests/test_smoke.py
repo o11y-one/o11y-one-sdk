@@ -165,3 +165,9 @@ def test_error_taxonomy_does_not_collapse_auth_failures() -> None:
     other = classify(OSError("name resolution failed"))
     assert other.disposition is Disposition.UNCLASSIFIED
     assert other.code is None
+
+
+def test_every_client_refuses_plain_http_off_this_machine() -> None:
+    with pytest.raises(ValueError, match="'http'"):
+        O11yClient(base_url="http://grpc.example", credential=CREDENTIAL)
+    O11yClient(base_url="http://localhost:9", credential=CREDENTIAL)
