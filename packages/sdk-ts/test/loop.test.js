@@ -273,3 +273,18 @@ test("run and credential fall back to the environment, and the key is never show
   const shown = [inspect(client, { depth: 8 }), JSON.stringify(client), String(client), inspect(refused), String(refused)];
   assert.deepEqual(shown.filter((text) => text.includes("BBBBBBBB")), []);
 });
+
+test("a plain http endpoint off this machine is refused, naming only its scheme", () => {
+  for (const baseUrl of ["http://grpc.example", "http://user:secret@grpc.example"]) {
+    assert.throws(
+      () => new LoopClient({ run: RUN, credential: CREDENTIAL, baseUrl }),
+      (error) => /'http'/.test(error.message) && !error.message.includes("secret") && !error.message.includes(CREDENTIAL),
+    );
+  }
+});
+
+test("https, and plain http to this machine, are allowed", () => {
+  for (const baseUrl of ["https://grpc.example", "http://127.0.0.1:9", "http://localhost:9", "http://[::1]:9"]) {
+    new LoopClient({ run: RUN, credential: CREDENTIAL, baseUrl });
+  }
+});
