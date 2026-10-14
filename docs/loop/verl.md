@@ -46,6 +46,11 @@ This relies on verl 0.9's defaults: `data.return_raw_chat=True`, `rollout.mode=a
 - `extra_info.loop.case_revision_id` names the case, which the adapter sends on reset.
 - verl's `uid` (one per prompt, shared by its `rollout.n` trajectories) is the Loop group.
   Each trajectory takes an index from 0 to n−1 within it.
+- **Two rollouts of a group can share an index.** Each worker counts its own trajectories
+  of a uid. verl's chunking can split a uid's samples across workers, and a re-run reuses
+  its slot by design. Loop checks only that `0 ≤ index < size`, so the group is still
+  scored as one.
+- A worker keeps counters for its 65,536 most recent uids, far more than one step holds.
 
 ## Concurrency
 
