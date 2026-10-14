@@ -1,14 +1,13 @@
 syntax = "proto3";
 
-// Loop P3.1 (#718): environments, the images RL episodes run in. A version is
-// an image, a verifier, a size and setup steps, all given when it is created;
+// Loop environments (#718): the images RL episodes run in. A version is an
+// image, a verifier, a size and setup steps, all given when it is created;
 // none of them ever changes, so a change is a new version. The task
-// instruction is not part of a version: P3.9's dataset rows carry it.
+// instruction is not part of a version: a task dataset's rows carry it.
 //
-// Same package as evaluation.proto (lock ruling L1-4), in its own FILE so its
-// surface stays apart (artifact.proto). The signed, internal form is
-// sandbox/v1/environment.proto and the server converts. Every name carries
-// "Loop" because "environment" already means a deploy target.
+// Same package as evaluation.proto, in its own FILE so its surface stays apart
+// (artifact.proto). Every name carries "Loop" because "environment" already
+// means a deploy target.
 package o11y_one.agentic.v1;
 
 import "o11y_one/common/v1/common.proto";
@@ -25,9 +24,12 @@ service LoopEnvironmentService {
   // latest published version (#727).
   rpc ListLoopEnvironments(ListLoopEnvironmentsRequest) returns (ListLoopEnvironmentsResponse);
   // A presigned PUT for a Dockerfile build's context, under the organization's
-  // own prefix and named by its digest (#718 PR-7); none when the organization
+  // own prefix and named by its digest (#718); none when the organization
   // already uploaded it.
   rpc CreateLoopEnvironmentUpload(CreateLoopEnvironmentUploadRequest) returns (CreateLoopEnvironmentUploadResponse);
+  // The tail of a Dockerfile version's build log, as its build left it (#718);
+  // empty for an image's version, or before its build ran.
+  rpc GetLoopEnvironmentBuildLog(GetLoopEnvironmentBuildLogRequest) returns (GetLoopEnvironmentBuildLogResponse);
 }
 
 message LoopEnvironmentV1 {
@@ -60,10 +62,10 @@ message LoopOciImageSourceV1 {
 }
 
 // A Dockerfile, built by BuildKit in a single-use builder VM over a context
-// uploaded with CreateLoopEnvironmentUpload (#718 PR-7). Every base image is
-// pinned by its digest, e.g. `FROM python:3.12-slim@sha256:…`, or the build
-// fails with `base_image_not_pinned`; a `# syntax=` line is ignored. The build
-// has internet access; the environment it makes never does.
+// uploaded with CreateLoopEnvironmentUpload (#718). Every base image is pinned
+// by its digest, e.g. `FROM python:3.12-slim@sha256:…`, or the build fails with
+// `base_image_not_pinned`; a `# syntax=` line is ignored. The build has
+// internet access; the environment it makes never does.
 message LoopDockerfileSourceV1 {
   // SHA-256 of the uploaded context, 32 bytes.
   bytes context_sha256 = 1;
@@ -107,7 +109,7 @@ message LoopEnvironmentProfileRefV1 {
 
 enum LoopEnvironmentNetworkModeV1 {
   LOOP_ENVIRONMENT_NETWORK_MODE_V1_UNSPECIFIED = 0;
-  // The only mode in P3.
+  // The only mode today.
   LOOP_ENVIRONMENT_NETWORK_MODE_V1_OFFLINE = 1;
 }
 
@@ -138,7 +140,7 @@ message LoopEnvironmentVerifierV1 {
   // `verifier_bundle_not_found` when none did. Ignored with `files`.
   bytes bundle_sha256 = 3;
 
-  // ---- wave p3.4 v1: the reward contract (#721) ----
+  // ---- the reward contract (#721) ----
   // Required: the only paths of the episode's final disk the verifier sees,
   // 1 to 64, each absolute, never `/` and with no empty, `.` or `..`
   // component. A version without one is refused.
@@ -159,7 +161,7 @@ message LoopEnvironmentVerifierV1 {
   // when the episode or the verifier fails, each declared reward is its `min`,
   // or this. Finite, and inside every declared range.
   double failure_reward = 10;
-  // ---- end wave p3.4 v1 ----
+  // ---- end of the reward contract ----
 }
 
 // A reward the verifier returns, a finite number.
@@ -227,15 +229,15 @@ message LoopEnvironmentVersionV1 {
   uint32 high = 10;
   google.protobuf.Timestamp created_at = 11;
   google.protobuf.Timestamp finished_at = 12;
-  // Set when the version is withdrawn from every host.
+  // Set when the version is withdrawn: no new rollout starts on it.
   google.protobuf.Timestamp revoked_at = 13;
   // Imported report-only: a fixable Critical did not block its publication.
   bool scan_report_only = 14;
   // Set with `reason_code`, from it.
   LoopEnvironmentFailureCauseV1 failure_cause = 15;
-  // Its base is kept on the one host that built it: the snapshot store
-  // refused it at the organization's Loop storage cap (the trial's). Nothing
-  // is billed for it, and its rollouts run on that host alone.
+  // The organization's Loop storage is full (the trial's cap), so this
+  // version's base snapshot is not stored: nothing is billed for it, and its
+  // rollouts may start more slowly or wait for capacity.
   bool storage_full = 17;
 }
 
@@ -322,6 +324,19 @@ message CreateLoopEnvironmentUploadResponse {
   google.protobuf.Timestamp expires_at = 2;
   // The organization already uploaded a context of this digest and size.
   bool already_uploaded = 3;
+}
+
+message GetLoopEnvironmentBuildLogRequest {
+  string environment_id = 1;
+  uint32 version = 2;
+}
+
+message GetLoopEnvironmentBuildLogResponse {
+  // BuildKit's progress and the build's own output, at most its last 1 MiB:
+  // the tenant's bytes, to show as text, never as markup.
+  bytes log = 1;
+  // The build printed more than the 1 MiB kept, so its start is missing.
+  bool truncated = 2;
 }
 
 // The detail every LoopEnvironmentService refusal carries.

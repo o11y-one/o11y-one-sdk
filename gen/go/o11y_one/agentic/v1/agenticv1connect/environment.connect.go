@@ -2,15 +2,14 @@
 //
 // Source: o11y_one/agentic/v1/environment.proto
 
-// Loop P3.1 (#718): environments, the images RL episodes run in. A version is
-// an image, a verifier, a size and setup steps, all given when it is created;
+// Loop environments (#718): the images RL episodes run in. A version is an
+// image, a verifier, a size and setup steps, all given when it is created;
 // none of them ever changes, so a change is a new version. The task
-// instruction is not part of a version: P3.9's dataset rows carry it.
+// instruction is not part of a version: a task dataset's rows carry it.
 //
-// Same package as evaluation.proto (lock ruling L1-4), in its own FILE so its
-// surface stays apart (artifact.proto). The signed, internal form is
-// sandbox/v1/environment.proto and the server converts. Every name carries
-// "Loop" because "environment" already means a deploy target.
+// Same package as evaluation.proto, in its own FILE so its surface stays apart
+// (artifact.proto). Every name carries "Loop" because "environment" already
+// means a deploy target.
 package agenticv1connect
 
 import (
@@ -60,6 +59,9 @@ const (
 	// LoopEnvironmentServiceCreateLoopEnvironmentUploadProcedure is the fully-qualified name of the
 	// LoopEnvironmentService's CreateLoopEnvironmentUpload RPC.
 	LoopEnvironmentServiceCreateLoopEnvironmentUploadProcedure = "/o11y_one.agentic.v1.LoopEnvironmentService/CreateLoopEnvironmentUpload"
+	// LoopEnvironmentServiceGetLoopEnvironmentBuildLogProcedure is the fully-qualified name of the
+	// LoopEnvironmentService's GetLoopEnvironmentBuildLog RPC.
+	LoopEnvironmentServiceGetLoopEnvironmentBuildLogProcedure = "/o11y_one.agentic.v1.LoopEnvironmentService/GetLoopEnvironmentBuildLog"
 )
 
 // LoopEnvironmentServiceClient is a client for the o11y_one.agentic.v1.LoopEnvironmentService
@@ -75,9 +77,12 @@ type LoopEnvironmentServiceClient interface {
 	// latest published version (#727).
 	ListLoopEnvironments(context.Context, *connect.Request[v1.ListLoopEnvironmentsRequest]) (*connect.Response[v1.ListLoopEnvironmentsResponse], error)
 	// A presigned PUT for a Dockerfile build's context, under the organization's
-	// own prefix and named by its digest (#718 PR-7); none when the organization
+	// own prefix and named by its digest (#718); none when the organization
 	// already uploaded it.
 	CreateLoopEnvironmentUpload(context.Context, *connect.Request[v1.CreateLoopEnvironmentUploadRequest]) (*connect.Response[v1.CreateLoopEnvironmentUploadResponse], error)
+	// The tail of a Dockerfile version's build log, as its build left it (#718);
+	// empty for an image's version, or before its build ran.
+	GetLoopEnvironmentBuildLog(context.Context, *connect.Request[v1.GetLoopEnvironmentBuildLogRequest]) (*connect.Response[v1.GetLoopEnvironmentBuildLogResponse], error)
 }
 
 // NewLoopEnvironmentServiceClient constructs a client for the
@@ -127,6 +132,12 @@ func NewLoopEnvironmentServiceClient(httpClient connect.HTTPClient, baseURL stri
 			connect.WithSchema(loopEnvironmentServiceMethods.ByName("CreateLoopEnvironmentUpload")),
 			connect.WithClientOptions(opts...),
 		),
+		getLoopEnvironmentBuildLog: connect.NewClient[v1.GetLoopEnvironmentBuildLogRequest, v1.GetLoopEnvironmentBuildLogResponse](
+			httpClient,
+			baseURL+LoopEnvironmentServiceGetLoopEnvironmentBuildLogProcedure,
+			connect.WithSchema(loopEnvironmentServiceMethods.ByName("GetLoopEnvironmentBuildLog")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -138,6 +149,7 @@ type loopEnvironmentServiceClient struct {
 	listLoopEnvironmentVersions  *connect.Client[v1.ListLoopEnvironmentVersionsRequest, v1.ListLoopEnvironmentVersionsResponse]
 	listLoopEnvironments         *connect.Client[v1.ListLoopEnvironmentsRequest, v1.ListLoopEnvironmentsResponse]
 	createLoopEnvironmentUpload  *connect.Client[v1.CreateLoopEnvironmentUploadRequest, v1.CreateLoopEnvironmentUploadResponse]
+	getLoopEnvironmentBuildLog   *connect.Client[v1.GetLoopEnvironmentBuildLogRequest, v1.GetLoopEnvironmentBuildLogResponse]
 }
 
 // CreateLoopEnvironment calls o11y_one.agentic.v1.LoopEnvironmentService.CreateLoopEnvironment.
@@ -174,6 +186,12 @@ func (c *loopEnvironmentServiceClient) CreateLoopEnvironmentUpload(ctx context.C
 	return c.createLoopEnvironmentUpload.CallUnary(ctx, req)
 }
 
+// GetLoopEnvironmentBuildLog calls
+// o11y_one.agentic.v1.LoopEnvironmentService.GetLoopEnvironmentBuildLog.
+func (c *loopEnvironmentServiceClient) GetLoopEnvironmentBuildLog(ctx context.Context, req *connect.Request[v1.GetLoopEnvironmentBuildLogRequest]) (*connect.Response[v1.GetLoopEnvironmentBuildLogResponse], error) {
+	return c.getLoopEnvironmentBuildLog.CallUnary(ctx, req)
+}
+
 // LoopEnvironmentServiceHandler is an implementation of the
 // o11y_one.agentic.v1.LoopEnvironmentService service.
 type LoopEnvironmentServiceHandler interface {
@@ -187,9 +205,12 @@ type LoopEnvironmentServiceHandler interface {
 	// latest published version (#727).
 	ListLoopEnvironments(context.Context, *connect.Request[v1.ListLoopEnvironmentsRequest]) (*connect.Response[v1.ListLoopEnvironmentsResponse], error)
 	// A presigned PUT for a Dockerfile build's context, under the organization's
-	// own prefix and named by its digest (#718 PR-7); none when the organization
+	// own prefix and named by its digest (#718); none when the organization
 	// already uploaded it.
 	CreateLoopEnvironmentUpload(context.Context, *connect.Request[v1.CreateLoopEnvironmentUploadRequest]) (*connect.Response[v1.CreateLoopEnvironmentUploadResponse], error)
+	// The tail of a Dockerfile version's build log, as its build left it (#718);
+	// empty for an image's version, or before its build ran.
+	GetLoopEnvironmentBuildLog(context.Context, *connect.Request[v1.GetLoopEnvironmentBuildLogRequest]) (*connect.Response[v1.GetLoopEnvironmentBuildLogResponse], error)
 }
 
 // NewLoopEnvironmentServiceHandler builds an HTTP handler from the service implementation. It
@@ -235,6 +256,12 @@ func NewLoopEnvironmentServiceHandler(svc LoopEnvironmentServiceHandler, opts ..
 		connect.WithSchema(loopEnvironmentServiceMethods.ByName("CreateLoopEnvironmentUpload")),
 		connect.WithHandlerOptions(opts...),
 	)
+	loopEnvironmentServiceGetLoopEnvironmentBuildLogHandler := connect.NewUnaryHandler(
+		LoopEnvironmentServiceGetLoopEnvironmentBuildLogProcedure,
+		svc.GetLoopEnvironmentBuildLog,
+		connect.WithSchema(loopEnvironmentServiceMethods.ByName("GetLoopEnvironmentBuildLog")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/o11y_one.agentic.v1.LoopEnvironmentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case LoopEnvironmentServiceCreateLoopEnvironmentProcedure:
@@ -249,6 +276,8 @@ func NewLoopEnvironmentServiceHandler(svc LoopEnvironmentServiceHandler, opts ..
 			loopEnvironmentServiceListLoopEnvironmentsHandler.ServeHTTP(w, r)
 		case LoopEnvironmentServiceCreateLoopEnvironmentUploadProcedure:
 			loopEnvironmentServiceCreateLoopEnvironmentUploadHandler.ServeHTTP(w, r)
+		case LoopEnvironmentServiceGetLoopEnvironmentBuildLogProcedure:
+			loopEnvironmentServiceGetLoopEnvironmentBuildLogHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -280,4 +309,8 @@ func (UnimplementedLoopEnvironmentServiceHandler) ListLoopEnvironments(context.C
 
 func (UnimplementedLoopEnvironmentServiceHandler) CreateLoopEnvironmentUpload(context.Context, *connect.Request[v1.CreateLoopEnvironmentUploadRequest]) (*connect.Response[v1.CreateLoopEnvironmentUploadResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.LoopEnvironmentService.CreateLoopEnvironmentUpload is not implemented"))
+}
+
+func (UnimplementedLoopEnvironmentServiceHandler) GetLoopEnvironmentBuildLog(context.Context, *connect.Request[v1.GetLoopEnvironmentBuildLogRequest]) (*connect.Response[v1.GetLoopEnvironmentBuildLogResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.LoopEnvironmentService.GetLoopEnvironmentBuildLog is not implemented"))
 }

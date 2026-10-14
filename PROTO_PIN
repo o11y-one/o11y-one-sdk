@@ -5,15 +5,14 @@
 #
 # source_repo:   o11y-api  (private; local checkouts are commonly ../o11y-api)
 # source_path:   proto/o11y_one/
-# source_branch: feat/loop-p3-environments-rl, the Loop P3 trunk, which carries
-#                LoopRolloutService (rollout.proto: the trainer verbs Reset,
-#                Step, Close and Fork, and the run and rollout reads) and
-#                LoopEnvironmentService (#722) over P2.5's code scorer RPCs.
-#                Do not release from this pin until that trunk (o11y-api PR #999)
-#                reaches main.
+# source_branch: main. The snapshot carries the agentic evaluation surface
+#                (AgenticEvaluationService), Loop environments
+#                (LoopEnvironmentService), and Loop runs and rollouts
+#                (LoopRolloutService: the trainer verbs Reset, Step, Close and
+#                Fork, and the run and rollout reads).
 #
 # Regenerate with:
 #   ./tools/sync-proto.sh ../o11y-api
 # which verifies the checkout is at the commit below, re-vendors proto/o11y_one/,
 # and re-runs `buf generate`. Generated code is committed.
-6df8d67c8f3670a95407ab9fdbe249d01789fb60
+a58495cb9f3cbf5a0556239bb9adeaf6135ed8fa

@@ -2,8 +2,8 @@
 //
 // Source: o11y_one/agentic/v1/rollout.proto
 
-// Loop P3.5 (#722): runs and rollouts, the API a trainer drives Loop
-// environments through.
+// Loop runs and rollouts (#722), the API a trainer drives Loop environments
+// through.
 //
 // A person mints a run when they connect a trainer. It pins one published
 // environment version and, optionally, one task dataset version, and holds the
@@ -18,8 +18,8 @@
 // carries LoopRolloutRejectionV1 and a stable code. Failures on our side are
 // never billed.
 //
-// Same package as evaluation.proto (lock ruling L1-4), in its own FILE as
-// environment.proto is. A later change adds fields; it never renames one.
+// Same package as evaluation.proto, in its own FILE as environment.proto is. A
+// later change adds fields; it never renames one.
 package agenticv1connect
 
 import (
