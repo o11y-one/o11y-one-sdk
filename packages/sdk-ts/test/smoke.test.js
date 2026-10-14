@@ -68,3 +68,8 @@ test("the transport speaks gRPC-web and stamps credential and scoping headers on
   assert.equal(classified.missingScope, "eval:read");
   assert.equal(classified.retryable, false);
 });
+
+test("every client refuses plain http off this machine", () => {
+  assert.throws(() => new O11yClient({ baseUrl: "http://grpc.example", credential: CREDENTIAL }), /'http'/);
+  new O11yClient({ baseUrl: "http://localhost:9", credential: CREDENTIAL });
+});
