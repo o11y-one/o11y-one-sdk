@@ -9,9 +9,11 @@ wire and never a log, repr or message.
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import copy
 import importlib.util
+import inspect
 import logging
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -31,7 +33,7 @@ from o11y_one.agentic.v1.rollout_pb2 import (
     StepLoopRolloutResponse,
 )
 from o11y_one.sdk import CREDENTIAL_HEADER, Disposition, classify, loop
-from o11y_one.sdk.loop import LoopClient, RolloutRefused
+from o11y_one.sdk.loop import AsyncLoopClient, LoopClient, RolloutRefused
 
 CREDENTIAL = "o11y_mach.AAAAAAAAAAAAAAAAAAAAAA.BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBA"
 RUN = "trn_06AZ3XN1YQF4KD2M8RP7TV5W9C"
@@ -118,19 +120,49 @@ class FakeClock:
         self.slept.append(seconds)
         self.now += seconds
 
+    async def asleep(self, seconds: float) -> None:
+        self.sleep(seconds)
+
 
 @pytest.fixture
 def clock(monkeypatch: pytest.MonkeyPatch) -> FakeClock:
     fake = FakeClock()
     monkeypatch.setattr(loop, "time", fake)
+    monkeypatch.setattr(loop.asyncio, "sleep", fake.asleep)
     return fake
 
 
-def client_with(service: FakeService, rollout_id: str | None = None) -> LoopClient:
-    client = LoopClient(run=RUN, credential=CREDENTIAL)
-    client._service = service
+class AsyncService:
+    """A FakeService's answers, awaited, as the generated async client gives them."""
+
+    def __init__(self, service: FakeService) -> None:
+        self.service = service
+
+    def __getattr__(self, method: str):
+        call = getattr(self.service, method)
+
+        async def awaited(request: object) -> object:
+            return call(request)
+
+        return awaited
+
+
+@pytest.fixture(params=[LoopClient, AsyncLoopClient], ids=["sync", "async"])
+def kind(request: pytest.FixtureRequest) -> type:
+    return request.param
+
+
+def client_with(service: FakeService, rollout_id: str | None = None, kind: type = LoopClient):
+    client = kind(run=RUN, credential=CREDENTIAL)
+    client._service = service if kind is LoopClient else AsyncService(service)
     client._open = rollout_id
     return client
+
+
+def drive(client, verb: str, *args, **kwargs):
+    """``client.verb(...)``, awaited when the client is async."""
+    answer = getattr(client, verb)(*args, **kwargs)
+    return asyncio.run(answer) if inspect.iscoroutine(answer) else answer
 
 
 def test_the_loop_package_keeps_every_import_the_loop_module_had() -> None:
@@ -155,55 +187,55 @@ def test_the_trl_adapter_without_its_extra_says_which_to_install() -> None:
 
 @pytest.mark.parametrize(("reason", "code", "message"), RECORDED)
 def test_each_recorded_refusal_raises_its_stable_code(
-    reason: str, code: Code, message: str
+    kind: type, reason: str, code: Code, message: str
 ) -> None:
     sent = refusal(reason, retry_after_ms=1_500, limit=8)
-    client = client_with(FakeService(step_loop_rollout=[sent]), "r-1")
+    client = client_with(FakeService(step_loop_rollout=[sent]), "r-1", kind)
     with pytest.raises(RolloutRefused) as refused:
-        client.step([])
+        drive(client, "step", [])
     assert (refused.value.code, refused.value.retry_after_ms) == (reason, 1_500)
     assert str(refused.value) == f"{reason}: {message}"
     assert refused.value.__cause__ is sent
 
 
-def test_a_refusal_without_a_retry_after_says_none() -> None:
-    client = client_with(FakeService(step_loop_rollout=[refusal("step_in_progress")]), "r-1")
+def test_a_refusal_without_a_retry_after_says_none(kind: type) -> None:
+    service = FakeService(step_loop_rollout=[refusal("step_in_progress")])
     with pytest.raises(RolloutRefused) as refused:
-        client.step([])
+        drive(client_with(service, "r-1", kind), "step", [])
     assert refused.value.retry_after_ms is None
 
 
-def test_a_status_without_a_rollout_refusal_is_raised_as_the_server_sent_it() -> None:
+def test_a_status_without_a_rollout_refusal_is_raised_as_the_server_sent_it(kind: type) -> None:
     unknown = ConnectError(Code.NOT_FOUND, "no rollout in this organization has that id")
     revoked = ConnectError(Code.UNAUTHENTICATED, "Authentication failed")
-    client = client_with(FakeService(step_loop_rollout=[unknown, revoked]), "r-1")
+    client = client_with(FakeService(step_loop_rollout=[unknown, revoked]), "r-1", kind)
     with pytest.raises(ConnectError) as raised:
-        client.step([])
+        drive(client, "step", [])
     assert raised.value is unknown
     with pytest.raises(ConnectError) as raised:
-        client.step([])
+        drive(client, "step", [])
     assert raised.value is revoked
     assert classify(raised.value).disposition is Disposition.REAUTHENTICATE
 
 
-def test_plan_concurrency_reached_raises_at_once(clock: FakeClock) -> None:
+def test_plan_concurrency_reached_raises_at_once(kind: type, clock: FakeClock) -> None:
     service = FakeService(reset_loop_rollout=[refusal("plan_concurrency_reached", limit=200)])
     with pytest.raises(RolloutRefused) as refused:
-        client_with(service).reset()
+        drive(client_with(service, kind=kind), "reset")
     assert refused.value.code == "plan_concurrency_reached"
     assert len(service.calls) == 1
     assert clock.slept == []
 
 
 def test_a_paused_run_is_retried_after_each_retry_after_under_one_request_id(
-    clock: FakeClock,
+    kind: type, clock: FakeClock
 ) -> None:
     paused = [refusal("run_paused", retry_after_ms=60_000) for _ in range(3)]
     service = FakeService(
         reset_loop_rollout=[*paused, ResetLoopRolloutResponse(rollout=rollout("r-1"))]
     )
-    client = client_with(service)
-    assert client.reset(group_size=4).rollout_id == "r-1"
+    client = client_with(service, kind=kind)
+    assert drive(client, "reset", group_size=4).rollout_id == "r-1"
     assert clock.slept == [60.0, 60.0, 60.0]
     requests = [request for _, request in service.calls]
     assert len({request.request_id for request in requests}) == 1
@@ -211,25 +243,25 @@ def test_a_paused_run_is_retried_after_each_retry_after_under_one_request_id(
     assert client.rollout_id == "r-1"
 
 
-def test_a_paused_run_is_retried_for_30_minutes_then_raised(clock: FakeClock) -> None:
+def test_a_paused_run_is_retried_for_30_minutes_then_raised(kind: type, clock: FakeClock) -> None:
     paused = [refusal("run_paused", retry_after_ms=60_000) for _ in range(40)]
     service = FakeService(reset_loop_rollout=paused)
     with pytest.raises(RolloutRefused) as refused:
-        client_with(service).reset()
+        drive(client_with(service, kind=kind), "reset")
     assert refused.value.code == "run_paused"
     assert clock.slept == [60.0] * 30
     assert len(service.calls) == 31
 
 
-def test_a_paused_run_without_a_retry_after_waits_the_default(clock: FakeClock) -> None:
+def test_a_paused_run_without_a_retry_after_waits_the_default(kind: type, clock: FakeClock) -> None:
     paused = [refusal("run_paused") for _ in range(400)]
     with pytest.raises(RolloutRefused):
-        client_with(FakeService(reset_loop_rollout=paused)).reset()
+        drive(client_with(FakeService(reset_loop_rollout=paused), kind=kind), "reset")
     assert set(clock.slept) == {loop.RUN_PAUSED_WAIT_S}
     assert sum(clock.slept) <= loop.RUN_PAUSED_RETRY_S
 
 
-def test_reset_closes_the_open_rollout_before_the_next_reset() -> None:
+def test_reset_closes_the_open_rollout_before_the_next_reset(kind: type) -> None:
     service = FakeService(
         reset_loop_rollout=[
             ResetLoopRolloutResponse(rollout=rollout("r-1")),
@@ -240,9 +272,9 @@ def test_reset_closes_the_open_rollout_before_the_next_reset() -> None:
             CloseLoopRolloutResponse(rollout=rollout("r-1")),
         ],
     )
-    client = client_with(service)
-    client.reset()
-    client.reset()
+    client = client_with(service, kind=kind)
+    drive(client, "reset")
+    drive(client, "reset")
     sent = [(method, getattr(request, "rollout_id", "")) for method, request in service.calls]
     assert sent == [
         ("reset_loop_rollout", ""),
@@ -253,20 +285,20 @@ def test_reset_closes_the_open_rollout_before_the_next_reset() -> None:
     assert client.rollout_id == "r-2"
 
 
-def test_close_answers_the_rewarded_rollout_and_leaves_none_open() -> None:
+def test_close_answers_the_rewarded_rollout_and_leaves_none_open(kind: type) -> None:
     service = FakeService(close_loop_rollout=[CloseLoopRolloutResponse(rollout=rollout("r-1"))])
-    client = client_with(service, "r-1")
-    assert client.close().rollout_id == "r-1"
+    client = client_with(service, "r-1", kind)
+    assert drive(client, "close").rollout_id == "r-1"
     assert client.rollout_id is None
-    assert client.close() is None
+    assert drive(client, "close") is None
     assert len(service.calls) == 1
 
 
-def test_step_sends_the_calls_and_model_message_on_the_open_rollout() -> None:
+def test_step_sends_the_calls_and_model_message_on_the_open_rollout(kind: type) -> None:
     service = FakeService(step_loop_rollout=[StepLoopRolloutResponse(step=1)])
-    client = client_with(service, "r-1")
+    client = client_with(service, "r-1", kind)
     call = LoopToolCallV1(timeout_millis=1_000, exec=LoopToolExecV1(argv=["true"]))
-    assert client.step([call], model_message='{"role":"assistant"}').step == 1
+    assert drive(client, "step", [call], model_message='{"role":"assistant"}').step == 1
     ((_, request),) = service.calls
     assert (request.rollout_id, list(request.calls), request.model_message_json) == (
         "r-1",
@@ -275,9 +307,30 @@ def test_step_sends_the_calls_and_model_message_on_the_open_rollout() -> None:
     )
 
 
-def test_step_without_an_open_rollout_is_refused_locally() -> None:
+def test_step_without_an_open_rollout_is_refused_locally(kind: type) -> None:
     with pytest.raises(RuntimeError, match="reset"):
-        client_with(FakeService()).step([])
+        drive(client_with(FakeService(), kind=kind), "step", [])
+
+
+def test_concurrent_steps_on_one_async_client_reach_loop_one_at_a_time() -> None:
+    seen = {"in_flight": 0, "most": 0}
+
+    class Slow:
+        async def step_loop_rollout(self, request: object) -> StepLoopRolloutResponse:
+            seen["in_flight"] += 1
+            seen["most"] = max(seen["most"], seen["in_flight"])
+            await asyncio.sleep(0.01)
+            seen["in_flight"] -= 1
+            return StepLoopRolloutResponse(step=1)
+
+    client = AsyncLoopClient(run=RUN, credential=CREDENTIAL)
+    client._service, client._open = Slow(), "r-1"
+
+    async def at_once() -> list:
+        return await asyncio.gather(*(client.step([]) for _ in range(4)))
+
+    assert len(asyncio.run(at_once())) == 4
+    assert seen["most"] == 1
 
 
 def test_fork_answers_a_client_per_copy_the_rollout_itself_first() -> None:
@@ -361,7 +414,7 @@ def _status_details(code: Code, message: str, detail: LoopRolloutRejectionV1) ->
 
 
 def test_the_key_reaches_the_wire_and_never_a_log_repr_or_message(
-    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+    kind: type, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
     seen: dict[str, object] = {}
     reason, code, message = RECORDED[1]
@@ -383,9 +436,9 @@ def test_the_key_reaches_the_wire_and_never_a_log_repr_or_message(
     caplog.set_level(logging.DEBUG)
     with HTTPServer(("127.0.0.1", 0), Handler) as server:
         threading.Thread(target=server.handle_request, daemon=True).start()
-        client = LoopClient(run=RUN, base_url=f"http://127.0.0.1:{server.server_port}")
+        client = kind(run=RUN, base_url=f"http://127.0.0.1:{server.server_port}")
         with pytest.raises(RolloutRefused) as refused:
-            client.reset()
+            drive(client, "reset")
 
     assert seen == {
         "path": "/o11y_one.agentic.v1.LoopRolloutService/ResetLoopRollout",
@@ -394,3 +447,33 @@ def test_the_key_reaches_the_wire_and_never_a_log_repr_or_message(
     assert (refused.value.code, refused.value.retry_after_ms) == (reason, None)
     shown = [repr(client), str(client), repr(refused.value), str(refused.value), caplog.text]
     assert not [text for text in shown if CREDENTIAL in text or "BBBBBBBB" in text]
+
+
+def test_a_reset_is_answered_over_the_wire(kind: type) -> None:
+    answer = ResetLoopRolloutResponse(rollout=rollout("r-1")).SerializeToString()
+    trailer = b"grpc-status: 0\r\n"
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_POST(self) -> None:
+            self.rfile.read(int(self.headers.get("content-length") or 0))
+            body = (
+                b"\x00"
+                + len(answer).to_bytes(4, "big")
+                + answer
+                + b"\x80"
+                + len(trailer).to_bytes(4, "big")
+                + trailer
+            )
+            self.send_response(200)
+            self.send_header("content-type", "application/grpc-web+proto")
+            self.send_header("content-length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+    with HTTPServer(("127.0.0.1", 0), Handler) as server:
+        threading.Thread(target=server.handle_request, daemon=True).start()
+        client = kind(
+            run=RUN, credential=CREDENTIAL, base_url=f"http://127.0.0.1:{server.server_port}"
+        )
+        assert drive(client, "reset").rollout_id == "r-1"
+    assert client.rollout_id == "r-1"
