@@ -39,7 +39,7 @@ class PyfixDataset(RLDatasetBuilder):
     path: str
 
     async def __call__(self):
-        rows = [json.loads(line) for line in open(self.path)]  # P3.9's Tinker export
+        rows = [json.loads(line) for line in open(self.path)]  # Loop's Tinker dataset export
         return LoopRLDataset(
             rows,
             batch_size=8,
@@ -106,27 +106,13 @@ Then run it with `asyncio.run(train.main(config))`.
 - **Tinker** bills its own sampling and training tokens, under your Tinker account. Loop never
   sees that bill.
 
-## Reference run #4 (the operator's, with their own Tinker key)
+## Reference run
 
-| Setting | Value |
-|---|---|
-| Task | `loop-ref-pyfix`, a run with an environment limit of 64 |
-| Model | `Qwen/Qwen3-4B-Instruct-2507` with LoRA, renderer `qwen3_instruct` |
-| Shape | `groups_per_batch=8`, `group_size=8`, 30 steps |
-| Tinker spend cap | about $50 |
+The reference run trains `Qwen/Qwen3-4B-Instruct-2507` with LoRA (renderer `qwen3_instruct`)
+on Tinker, with your own Tinker key and a spend cap you set, on `loop-ref-pyfix`
+(`examples/loop/pyfix/`): `groups_per_batch=8` and `group_size=8`, so 64 rollouts a step, for
+30 steps. Give its run an environment limit of 64.
 
-Record:
-- the run id, with links, and three trajectories with their restore lineage;
-- the per-step mean reward;
-- failures, by class and by code;
-- `rollouts_per_minute`;
-- sandbox-hours per step (`billed_unit_seconds ÷ 3600 ÷ steps`), beside Tinker's tokens and
-  spend.
-
-| Result | Value |
-|---|---|
-| Run id | TODO |
-| Mean reward, step 1 → step 30 | TODO |
-| Sandbox-hours per step | TODO |
-| Tinker tokens and spend | TODO |
-| Rollouts per minute | TODO |
+It is measured by the per-step mean reward on the run's Train live board; failures by
+class and by code; rollouts per minute; and sandbox-hours per step
+(`billed_unit_seconds ÷ 3600 ÷ steps`), beside Tinker's own tokens and spend.

@@ -34,7 +34,7 @@ python -m verl.trainer.main_ppo \
 This relies on verl 0.9's defaults: `data.return_raw_chat=True`, `rollout.mode=async` and
 `multi_turn.format=hermes`.
 
-- Each row of the dataset names `agent_name: loop`. P3.9's verl export writes it.
+- Each row of the dataset names `agent_name: loop`. Loop's verl dataset export writes it.
 - The agent-loop config (`verl.yaml`, shipped in the package) maps `loop` to `LoopAgentLoop`.
 - To use another endpoint, add `base_url: https://…` beside `_target_` in a copy of that file.
 - The tools are `shell`, `read_file` and `write_file`. Each tool call is one Loop step, and it
@@ -81,31 +81,14 @@ This relies on verl 0.9's defaults: `data.return_raw_chat=True`, `rollout.mode=a
 - Watch `step_overhead_p50` on the run's Train live board. One round trip per step is the
   budget against the 5% overhead target.
 
-## Reference run #2 (the operator's)
+## Reference run
 
-These are the plan's numbers. Run it once, then record the results here.
+The reference GRPO run trains Qwen3-1.7B (full FSDP, vLLM colocated) on one 80 GB H100, on
+`loop-ref-pyfix` (`examples/loop/pyfix/`): `data.train_batch_size=8` and `rollout.n=8`, so 64
+rollouts a step, for 30 steps, with `multi_turn.max_assistant_turns=8`. Give its run a group
+size of 8 and an environment limit of 64.
 
-| Setting | Value |
-|---|---|
-| Task | `loop-ref-pyfix`: its environment, dataset and a run with group size 8 and an environment limit of 64 |
-| Model | Qwen3-1.7B, full FSDP, vLLM colocated |
-| GPU | 1× H100 80 GB |
-| Shape | `data.train_batch_size=8`, `rollout.n=8`, `trainer.total_training_steps=30`, `multi_turn.max_assistant_turns=8` |
-
-Record:
-- the run id, with links to the run's Train live and Rollouts boards, and three trajectories
-  with traces (each with its `base_snapshot_id` → `restore_snapshot_id` and `group_id`);
-- the per-step mean reward;
-- failures, by class and by code;
-- Loop overhead ÷ rollout wall time, where overhead is reset + step overhead + the client's
-  round trip, from GetLoopRun's `time_split` plus the harness's timings;
-- `rollouts_per_minute`;
-- GPU utilisation at 1 Hz during each step's rollout phase.
-
-| Result | Value |
-|---|---|
-| Run id | TODO |
-| Mean reward, step 1 → step 30 | TODO |
-| Overhead ÷ rollout wall time | TODO |
-| Rollouts per minute | TODO |
-| GPU idle waiting on environments | TODO |
+It is measured by the per-step mean reward on the run's Train live board; failures by
+class and by code; Loop's overhead (reset, step overhead and the client's round trip) as a
+share of rollout wall time, which should stay at or below 5%; rollouts per minute; and GPU
+utilisation while each step's rollouts run.
