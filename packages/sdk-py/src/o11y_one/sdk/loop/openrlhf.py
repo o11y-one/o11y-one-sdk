@@ -1,4 +1,4 @@
-"""OpenRLHF's agent executor on a Loop run (#934). Point OpenRLHF at this file::
+"""OpenRLHF's agent executor on a Loop run. Point OpenRLHF at this file::
 
     --train.agent_func_path $(python -c 'import o11y_one.sdk.loop.openrlhf as m; print(m.__file__)')
 
@@ -47,8 +47,8 @@ _sample: ContextVar[SimpleNamespace] = ContextVar("o11y_one_loop_sample")
 
 
 def render_prompts(rows: Path, out: Path, tokenizer: Any) -> None:
-    """P3.9's OpenRLHF JSONL, each ``prompt`` rendered by ``tokenizer``'s chat template
-    with the core tools, as OpenRLHF never passes ``tools=``."""
+    """Loop's OpenRLHF dataset export (JSONL), each ``prompt`` rendered by ``tokenizer``'s
+    chat template with the core tools, as OpenRLHF never passes ``tools=``."""
     with Path(rows).open() as lines, Path(out).open("w") as written:
         for line in lines:
             row = json.loads(line)

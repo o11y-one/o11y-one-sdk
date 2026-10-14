@@ -50,7 +50,7 @@ python -m openrlhf.cli.train_ppo_ray \
 
 ## Dataset
 
-- P3.9's OpenRLHF export holds `prompt`, the messages, and `label`, a JSON string.
+- Loop's OpenRLHF dataset export holds `prompt`, the messages, and `label`, a JSON string.
 - The adapter sends the label's `case_revision_id` on reset.
 - **Not sent:** `group_id` and `trainer_step`. OpenRLHF's executor gets neither, so each
   sample is its own group on the boards, and its series run by time, not by step.
@@ -81,23 +81,14 @@ python -m openrlhf.cli.train_ppo_ray \
 Run the trainer in the region of the run's Loop environments, set `O11Y_BASE_URL` to that
 region's endpoint, and watch `step_overhead_p50` on the run's Train live board.
 
-## Reference run #3 (the operator's)
+## Reference run
 
-| Setting | Value |
-|---|---|
-| Task | `loop-ref-pyfix`, a run with an environment limit of 64 |
-| Model | Qwen3-1.7B, colocated |
-| GPU | 2× H100 80 GB (Ray: actor + vLLM) |
-| Shape | `rollout.batch_size=8`, `rollout.n_samples_per_prompt=8`, 30 steps |
+The reference run trains Qwen3-1.7B on two 80 GB H100s (Ray: the actor and vLLM), on
+`loop-ref-pyfix` (`examples/loop/pyfix/`): `rollout.batch_size=8` and
+`rollout.n_samples_per_prompt=8`, so 64 rollouts a step, for 30 steps. Give its run an
+environment limit of 64.
 
-Record what reference runs #1 and #2 record: the run id and links, three trajectories with
-their restore lineage, the per-step mean reward, failures by class and by code, overhead ÷
-rollout wall time, `rollouts_per_minute` and GPU utilisation.
-
-| Result | Value |
-|---|---|
-| Run id | TODO |
-| Mean reward, step 1 → step 30 | TODO |
-| Overhead ÷ rollout wall time | TODO |
-| Rollouts per minute | TODO |
-| GPU idle waiting on environments | TODO |
+It is measured by the per-step mean reward on the run's Train live board; failures by
+class and by code; Loop's overhead (reset, step overhead and the client's round trip) as a
+share of rollout wall time, which should stay at or below 5%; rollouts per minute; and GPU
+utilisation while each step's rollouts run.

@@ -1,4 +1,4 @@
-"""verl's agent loop on a Loop run (#723).
+"""verl's agent loop on a Loop run.
 
 Rows name ``agent_name: loop``, and verl loads :class:`LoopAgentLoop` from this
 package's agent-loop config::
