@@ -90,6 +90,20 @@ export function credentialInterceptor(options: {
   };
 }
 
+const LOOPBACK = new Set(["127.0.0.1", "[::1]", "localhost"]);
+
+/**
+ * `url` when it is https, or http to this machine (tests and local development); any
+ * other throws, naming only the scheme, so a key never travels in the clear.
+ */
+export function requireSecureUrl(url: string): string {
+  // scheme://[userinfo@]host — no URL global: this package builds without DOM or Node types.
+  const [, scheme = "", host = ""] = /^([a-z][a-z0-9+.-]*):\/\/(?:[^@/?#]*@)?(\[[^\]]*\]|[^:/?#]*)/i.exec(url) ?? [];
+  const lower = scheme.toLowerCase();
+  if (lower === "https" || (lower === "http" && LOOPBACK.has(host.toLowerCase()))) return url;
+  throw new Error(`refused a '${lower}' endpoint: use https, or http only to this machine`);
+}
+
 /**
  * Build a gRPC-web transport with the credential interceptor installed.
  *
@@ -104,7 +118,7 @@ export function credentialInterceptor(options: {
  */
 export function createTransport(options: ClientOptions): Transport {
   return createGrpcWebTransport({
-    baseUrl: options.baseUrl,
+    baseUrl: requireSecureUrl(options.baseUrl),
     // Binary wire format: smaller, and it round-trips proto3 field presence
     // without the JSON mapping's ambiguities.
     useBinaryFormat: true,
