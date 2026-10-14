@@ -224,6 +224,10 @@ behind that framework's extra:
   environment_factory=LoopEnvironment, reward_funcs=[loop_reward],
   callbacks=[LoopCallback()])`. See
   [docs/loop/trl.md](https://github.com/o11y-one/o11y-one-sdk/blob/main/docs/loop/trl.md).
+- **verl**: `pip install 'o11y-one[verl]'`, then
+  `actor_rollout_ref.rollout.agent.agent_loop_config_path=$(python -m o11y_one.sdk.loop.verl)`
+  and rows with `agent_name: loop`. See
+  [docs/loop/verl.md](https://github.com/o11y-one/o11y-one-sdk/blob/main/docs/loop/verl.md).
 
 ### OpenEnv
 
