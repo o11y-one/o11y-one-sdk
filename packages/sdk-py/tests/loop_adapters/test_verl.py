@@ -16,7 +16,7 @@ import pytest
 pytest.importorskip("verl")
 
 import hydra  # noqa: E402
-from fake_loop import CONNECTS, CREDENTIAL  # noqa: E402
+from fake_loop import CONNECTS, CREDENTIAL, tiny_qwen3  # noqa: E402
 from o11y_one.agentic.v1.rollout_pb2 import LoopFailureClassV1  # noqa: E402
 from o11y_one.sdk.loop import RolloutRefused  # noqa: E402
 from o11y_one.sdk.loop import verl as adapter  # noqa: E402
@@ -27,7 +27,7 @@ from verl.utils.dataset.rl_dataset import RLHFDataset  # noqa: E402
 from verl.workers.rollout.replica import TokenOutput  # noqa: E402
 
 INFRASTRUCTURE = LoopFailureClassV1.LOOP_FAILURE_CLASS_V1_INFRASTRUCTURE
-TOKENIZER = "trl-internal-testing/tiny-Qwen3MoeForCausalLM"
+TOKENIZER = tiny_qwen3()
 TOOL_CALL = '<tool_call>\n{"name": "shell", "arguments": {"command": "pytest -q"}}\n</tool_call>'
 N = 4
 

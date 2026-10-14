@@ -18,13 +18,13 @@ import pytest
 pytest.importorskip("openrlhf")
 
 import o11y_one.sdk.loop.openrlhf as adapter  # noqa: E402
-from fake_loop import CONNECTS, CREDENTIAL, refusal  # noqa: E402
+from fake_loop import CONNECTS, CREDENTIAL, refusal, tiny_qwen3  # noqa: E402
 from o11y_one.agentic.v1.rollout_pb2 import LoopFailureClassV1  # noqa: E402
 from o11y_one.sdk.loop import RolloutRefused, _core  # noqa: E402
 from openrlhf.utils.agent import AgentExecutorBase  # noqa: E402
 from transformers import AutoTokenizer  # noqa: E402
 
-TOKENIZER = "trl-internal-testing/tiny-Qwen3MoeForCausalLM"
+TOKENIZER = tiny_qwen3()
 SHELL = '<tool_call>\n{"name": "shell", "arguments": {"command": "pytest -q"}}\n</tool_call>'
 READ = '<tool_call>\n{"name": "read_file", "arguments": {"path": "/work/mod.py"}}\n</tool_call>'
 LABEL = json.dumps({"case_revision_id": "case-a", "environment_version_id": "v-1"})
