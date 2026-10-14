@@ -1,4 +1,4 @@
-"""TRL's ``GRPOTrainer`` on a Loop run (#933), through its own public hooks::
+"""TRL's ``GRPOTrainer`` on a Loop run, through its own public hooks::
 
     GRPOTrainer(
         model, args=args, train_dataset=dataset,

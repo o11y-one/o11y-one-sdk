@@ -1,9 +1,10 @@
-"""tinker-cookbook's RL loop on a Loop run (#724).
+"""tinker-cookbook's RL loop on a Loop run.
 
-:class:`LoopRLDataset` turns P3.9's Tinker JSONL rows into :class:`LoopEnvGroupBuilder`
-groups. Each env is the cookbook's own tool env (``build_agent_tool_env``) whose tools run
-in a Loop rollout of the run ``O11Y_RUN``, and each trajectory's whole reward is that
-rollout's verifier reward, added by ``compute_group_rewards`` however the episode ended.
+:class:`LoopRLDataset` turns the rows of Loop's Tinker dataset export into
+:class:`LoopEnvGroupBuilder` groups. Each env is the cookbook's own tool env
+(``build_agent_tool_env``) whose tools run in a Loop rollout of the run ``O11Y_RUN``, and
+each trajectory's whole reward is that rollout's verifier reward, added by
+``compute_group_rewards`` however the episode ended.
 A task's or verifier's failure keeps its value; our failure (``INFRASTRUCTURE``) raises
 :class:`~o11y_one.sdk.loop._core.LoopInfrastructureFailure`, so the group is never scored.
 
@@ -187,7 +188,7 @@ class LoopEnvGroupBuilder(EnvGroupBuilder):
 
 
 class LoopRLDataset(RLDataset):
-    """P3.9's Tinker JSONL rows (``{"messages", "loop": {"case_revision_id"}}``), each a
+    """Loop's Tinker dataset export rows (``{"messages", "loop": {"case_revision_id"}}``), each a
     group of ``group_size``, ``batch_size`` groups a step; step ``i`` is batch ``i``."""
 
     def __init__(

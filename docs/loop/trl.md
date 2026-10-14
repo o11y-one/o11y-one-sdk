@@ -48,7 +48,7 @@ trainer.train()
 ## Dataset
 
 - `prompt` holds the task, as GRPO expects.
-- `loop_case_revision_id` names the case. P3.9's TRL export writes it. The adapter sends it
+- `loop_case_revision_id` names the case. Loop's TRL dataset export writes it. The adapter sends it
   on reset, and groups by it.
 - A row without that column is grouped by its prompt.
 - A group is one step's rollouts of one case. Its id is derived from the run, the step and
@@ -93,3 +93,16 @@ trainer.train()
 
 Every refusal raises `RolloutRefused` with a stable `code`. The codes are listed in the
 sdk-py README's Loop section.
+
+## Reference run
+
+The reference GRPO run trains Qwen3-1.7B with LoRA (r=16) on one 80 GB H100, on
+`loop-ref-pyfix` (`examples/loop/pyfix/`): `num_generations=8`,
+`per_device_train_batch_size=8` and `gradient_accumulation_steps=8`, so 64 rollouts a step, for
+30 steps. Give its run a group size of 8 and an environment limit of 64.
+
+It is measured by the per-step mean reward on the run's Train live board; failures by
+class and by code; Loop's overhead (reset, step overhead and the client's round trip) as a
+share of rollout wall time, which should stay at or below 5%; rollouts per minute; and GPU
+utilisation while each step's rollouts run.
+TRL's serial tool calls show up as GPU idle time between generations.
