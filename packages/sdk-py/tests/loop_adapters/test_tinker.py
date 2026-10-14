@@ -13,7 +13,7 @@ import pytest
 
 pytest.importorskip("tinker_cookbook")
 
-from fake_loop import CONNECTS, CREDENTIAL, refusal  # noqa: E402
+from fake_loop import CONNECTS, CREDENTIAL, refusal, tiny_qwen3  # noqa: E402
 from o11y_one.agentic.v1.rollout_pb2 import LoopFailureClassV1  # noqa: E402
 from o11y_one.sdk.loop import RolloutRefused, _core  # noqa: E402
 from o11y_one.sdk.loop import tinker as adapter  # noqa: E402
@@ -21,7 +21,7 @@ from tinker_cookbook.completers import TokenCompleter, TokensWithLogprobs  # noq
 from tinker_cookbook.rl.rollouts import do_group_rollout  # noqa: E402
 from transformers import AutoTokenizer  # noqa: E402
 
-MODEL = "trl-internal-testing/tiny-Qwen3MoeForCausalLM"
+MODEL = tiny_qwen3()
 SHELL = '<tool_call>\n{"name": "shell", "arguments": {"command": "pytest -q"}}\n</tool_call>'
 TINKER_CANARY = "tinker-canary-not-a-key"
 N = 4

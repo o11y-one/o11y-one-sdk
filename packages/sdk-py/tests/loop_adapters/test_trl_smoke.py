@@ -24,11 +24,11 @@ pytest.importorskip("trl")
 
 import torch  # noqa: E402
 from datasets import Dataset  # noqa: E402
-from fake_loop import CONNECTS, CREDENTIAL  # noqa: E402
+from fake_loop import CONNECTS, CREDENTIAL, tiny_qwen3  # noqa: E402
 from o11y_one.sdk.loop.trl import LoopCallback, LoopEnvironment, loop_reward  # noqa: E402
 from trl import GRPOConfig, GRPOTrainer  # noqa: E402
 
-MODEL = "trl-internal-testing/tiny-Qwen3MoeForCausalLM"
+MODEL = tiny_qwen3()
 
 
 class CpuGRPOTrainer(GRPOTrainer):

@@ -39,6 +39,18 @@ from o11y_one.agentic.v1.rollout_pb2 import (
 CREDENTIAL = "o11y_mach.AAAAAAAAAAAAAAAAAAAAAA.BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBA"
 RUN = "trn_06AZ3XN1YQF4KD2M8RP7TV5W9C"
 
+# TRL's tiny Qwen3, at the commit CI fetches (adapters.yml); the tests load it offline.
+TINY_QWEN3 = "trl-internal-testing/tiny-Qwen3MoeForCausalLM"
+TINY_QWEN3_REVISION = "6db57163fa56fa0e00d4b820169908ac0d3a219d"
+
+
+def tiny_qwen3() -> str:
+    """The pinned snapshot's local directory: loading it never resolves a branch."""
+    from huggingface_hub import snapshot_download
+
+    return snapshot_download(TINY_QWEN3, revision=TINY_QWEN3_REVISION)
+
+
 CONNECTS: list[object] = []
 
 
