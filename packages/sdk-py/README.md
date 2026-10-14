@@ -233,6 +233,9 @@ behind that framework's extra:
   `o11y_one.sdk.loop.openrlhf.render_prompts`, then pass the module's own file as
   `--train.agent_func_path`. See
   [docs/loop/openrlhf.md](https://github.com/o11y-one/o11y-one-sdk/blob/main/docs/loop/openrlhf.md).
+- **Tinker**: `pip install 'o11y-one[tinker]'`, then a `LoopRLDataset` as the cookbook's RL
+  dataset. Tinker's key stays Tinker's. See
+  [docs/loop/tinker.md](https://github.com/o11y-one/o11y-one-sdk/blob/main/docs/loop/tinker.md).
 
 ### OpenEnv
 
