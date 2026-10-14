@@ -84,6 +84,10 @@ def render(result: LoopToolResultV1) -> str:
     return "\n".join(lines)
 
 
+class LoopInfrastructureFailure(Exception):
+    """Loop failed a rollout on its own side twice in a row; an adapter never scores it."""
+
+
 _NO_REWARD = (
     LoopFailureClassV1.LOOP_FAILURE_CLASS_V1_INFRASTRUCTURE,
     LoopFailureClassV1.LOOP_FAILURE_CLASS_V1_CANCELLED,
