@@ -39,6 +39,10 @@ jobs:
           - extra: trl
             tests: packages/sdk-py/tests/loop_adapters
             models: trl-internal-testing/tiny-Qwen3MoeForCausalLM
+          # verl's tests take that model's tokenizer; TRL's skip without their extra.
+          - extra: verl
+            tests: packages/sdk-py/tests/loop_adapters
+            models: trl-internal-testing/tiny-Qwen3MoeForCausalLM
     env:
       HF_HUB_DISABLE_TELEMETRY: "1"
       TRL_EXPERIMENTAL_SILENCE: "1"
