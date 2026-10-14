@@ -16,7 +16,7 @@ import pytest
 pytest.importorskip("verl")
 
 import hydra  # noqa: E402
-from conftest import CONNECTS, CREDENTIAL  # noqa: E402
+from fake_loop import CONNECTS, CREDENTIAL  # noqa: E402
 from o11y_one.agentic.v1.rollout_pb2 import LoopFailureClassV1  # noqa: E402
 from o11y_one.sdk.loop import RolloutRefused  # noqa: E402
 from o11y_one.sdk.loop import verl as adapter  # noqa: E402
@@ -173,7 +173,7 @@ def test_our_failure_reruns_the_trajectory_once_then_raises(loop, tokenizer) -> 
 
 
 def test_a_refused_reset_fails_the_trajectory_with_its_code(loop, tokenizer) -> None:
-    from conftest import refusal
+    from fake_loop import refusal
 
     loop.refusals["reset"] = [refusal("run_concurrency_reached")]
     with pytest.raises(RolloutRefused) as refused:
