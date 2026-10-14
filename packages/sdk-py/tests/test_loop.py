@@ -507,3 +507,23 @@ def test_a_reset_is_answered_over_the_wire(
 def test_a_client_given_no_endpoint_in_tests_uses_the_closed_local_port(kind: type) -> None:
     client = kind(run=RUN, credential=CREDENTIAL)
     assert client._service._address == "http://127.0.0.1:9"
+
+
+@pytest.mark.parametrize("via", ["argument", "O11Y_BASE_URL"])
+def test_a_plain_http_endpoint_off_this_machine_is_refused(
+    kind: type, via: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    url = "http://grpc.example"
+    if via == "O11Y_BASE_URL":
+        monkeypatch.setenv("O11Y_BASE_URL", url)
+    with pytest.raises(ValueError, match="'http'") as refused:
+        kind(run=RUN, credential=CREDENTIAL, **({"base_url": url} if via == "argument" else {}))
+    assert CREDENTIAL not in str(refused.value)
+
+
+@pytest.mark.parametrize(
+    "url",
+    ["https://grpc.example", "http://127.0.0.1:9", "http://localhost:9", "http://[::1]:9"],
+)
+def test_https_and_plain_http_to_this_machine_are_allowed(kind: type, url: str) -> None:
+    assert kind(run=RUN, credential=CREDENTIAL, base_url=url)._service._address == url

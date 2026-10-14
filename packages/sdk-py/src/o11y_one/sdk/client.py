@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 from typing import Any, TypeVar
+from urllib.parse import urlsplit
 
 from connectrpc.client import ConnectClient, ConnectClientSync
 from connectrpc.interceptor import Interceptor, InterceptorSync
@@ -95,6 +96,21 @@ class CredentialInterceptor:
         return await call_next(request, ctx)
 
 
+_LOOPBACK = frozenset({"127.0.0.1", "::1", "localhost"})
+
+
+def require_secure_url(url: str, secure: str = "https", plain: str = "http") -> str:
+    """``url`` when its scheme is ``secure``, or ``plain`` to this machine (tests and local
+    development); any other raises ``ValueError`` naming the scheme, so a key never
+    travels in the clear."""
+    parts = urlsplit(url)
+    if parts.scheme == secure or (parts.scheme == plain and parts.hostname in _LOOPBACK):
+        return url
+    raise ValueError(
+        f"refused a {parts.scheme!r} endpoint: use {secure}, or {plain} only to this machine"
+    )
+
+
 class O11yClient:
     """Holds connection settings so callers construct credentials once and mint
     typed service clients per service.
@@ -134,7 +150,7 @@ class O11yClient:
         timeout_ms: int | None = None,
         interceptors: Iterable[Interceptor | InterceptorSync] = (),
     ) -> None:
-        self._base_url = base_url.rstrip("/")
+        self._base_url = require_secure_url(base_url).rstrip("/")
         self._interceptor = CredentialInterceptor(
             credential=credential, org_id=org_id, tenant_id=tenant_id
         )
