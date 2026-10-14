@@ -198,6 +198,9 @@ rewards = {reward.name: reward.value for reward in closed.rewards}
   its own `group_index` and the `group_size`.
 - **A trainer adapter names itself:** `LoopClient(adapter=, adapter_version=,
   framework_version=)`, which every reset reports and the run's boards show.
+- **`AsyncLoopClient`** is the same client for an asyncio trainer: `await
+  loop.reset()`, `step()` and `close()`. Its steps take turns, so tool calls
+  gathered at once never meet `step_in_progress`.
 - **`fork(n)`** branches the open rollout into `n` copies of its current state
   and answers a client per copy, this one first.
 - **Refusals** raise `RolloutRefused` with the server's stable `code` and, when
