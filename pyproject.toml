@@ -25,6 +25,11 @@ members = ["packages/gen-py-agentic", "packages/sdk-py"]
 [dependency-groups]
 dev = ["ruff>=0.16.8,<0.17"]
 
+[tool.uv]
+# The trainer extras pin transformers apart (TRL 1.15 wants 5.13+ for its tool parser,
+# verl 0.9 caps it below 5.11), so each resolves on its own.
+conflicts = [[{ package = "o11y-one", extra = "trl" }, { package = "o11y-one", extra = "verl" }]]
+
 [tool.ruff]
 line-length = 100
 # The generated tree is not ours to style.
