@@ -35,6 +35,9 @@ class LoopEnvironmentService(Protocol):
     async def create_loop_environment_upload(self, request: o11y__one_dot_agentic_dot_v1_dot_environment__pb2.CreateLoopEnvironmentUploadRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_environment__pb2.CreateLoopEnvironmentUploadResponse:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
+    async def get_loop_environment_build_log(self, request: o11y__one_dot_agentic_dot_v1_dot_environment__pb2.GetLoopEnvironmentBuildLogRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_environment__pb2.GetLoopEnvironmentBuildLogResponse:
+        raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
+
 
 class LoopEnvironmentServiceASGIApplication(ConnectASGIApplication[LoopEnvironmentService]):
     def __init__(self, service: LoopEnvironmentService | AsyncGenerator[LoopEnvironmentService], *, interceptors: Iterable[Interceptor]=(), read_max_bytes: int | None = None, compressions: Iterable[Compression] | None = None) -> None:
@@ -100,6 +103,16 @@ class LoopEnvironmentServiceASGIApplication(ConnectASGIApplication[LoopEnvironme
                         idempotency_level=IdempotencyLevel.UNKNOWN,
                     ),
                     function=svc.create_loop_environment_upload,
+                ),
+                "/o11y_one.agentic.v1.LoopEnvironmentService/GetLoopEnvironmentBuildLog": Endpoint.unary(
+                    method=MethodInfo(
+                        name="GetLoopEnvironmentBuildLog",
+                        service_name="o11y_one.agentic.v1.LoopEnvironmentService",
+                        input=o11y__one_dot_agentic_dot_v1_dot_environment__pb2.GetLoopEnvironmentBuildLogRequest,
+                        output=o11y__one_dot_agentic_dot_v1_dot_environment__pb2.GetLoopEnvironmentBuildLogResponse,
+                        idempotency_level=IdempotencyLevel.UNKNOWN,
+                    ),
+                    function=svc.get_loop_environment_build_log,
                 ),
             },
             interceptors=interceptors,
@@ -234,6 +247,26 @@ class LoopEnvironmentServiceClient(ConnectClient):
             timeout_ms=timeout_ms,
         )
 
+    async def get_loop_environment_build_log(
+        self,
+        request: o11y__one_dot_agentic_dot_v1_dot_environment__pb2.GetLoopEnvironmentBuildLogRequest,
+        *,
+        headers: Headers | Mapping[str, str] | None = None,
+        timeout_ms: int | None = None,
+    ) -> o11y__one_dot_agentic_dot_v1_dot_environment__pb2.GetLoopEnvironmentBuildLogResponse:
+        return await self.execute_unary(
+            request=request,
+            method=MethodInfo(
+                name="GetLoopEnvironmentBuildLog",
+                service_name="o11y_one.agentic.v1.LoopEnvironmentService",
+                input=o11y__one_dot_agentic_dot_v1_dot_environment__pb2.GetLoopEnvironmentBuildLogRequest,
+                output=o11y__one_dot_agentic_dot_v1_dot_environment__pb2.GetLoopEnvironmentBuildLogResponse,
+                idempotency_level=IdempotencyLevel.UNKNOWN,
+            ),
+            headers=headers,
+            timeout_ms=timeout_ms,
+        )
+
 
 class LoopEnvironmentServiceSync(Protocol):
     def create_loop_environment(self, request: o11y__one_dot_agentic_dot_v1_dot_environment__pb2.CreateLoopEnvironmentRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_environment__pb2.CreateLoopEnvironmentResponse:
@@ -247,6 +280,8 @@ class LoopEnvironmentServiceSync(Protocol):
     def list_loop_environments(self, request: o11y__one_dot_agentic_dot_v1_dot_environment__pb2.ListLoopEnvironmentsRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_environment__pb2.ListLoopEnvironmentsResponse:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
     def create_loop_environment_upload(self, request: o11y__one_dot_agentic_dot_v1_dot_environment__pb2.CreateLoopEnvironmentUploadRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_environment__pb2.CreateLoopEnvironmentUploadResponse:
+        raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
+    def get_loop_environment_build_log(self, request: o11y__one_dot_agentic_dot_v1_dot_environment__pb2.GetLoopEnvironmentBuildLogRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_environment__pb2.GetLoopEnvironmentBuildLogResponse:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
 
@@ -313,6 +348,16 @@ class LoopEnvironmentServiceWSGIApplication(ConnectWSGIApplication):
                         idempotency_level=IdempotencyLevel.UNKNOWN,
                     ),
                     function=service.create_loop_environment_upload,
+                ),
+                "/o11y_one.agentic.v1.LoopEnvironmentService/GetLoopEnvironmentBuildLog": EndpointSync.unary(
+                    method=MethodInfo(
+                        name="GetLoopEnvironmentBuildLog",
+                        service_name="o11y_one.agentic.v1.LoopEnvironmentService",
+                        input=o11y__one_dot_agentic_dot_v1_dot_environment__pb2.GetLoopEnvironmentBuildLogRequest,
+                        output=o11y__one_dot_agentic_dot_v1_dot_environment__pb2.GetLoopEnvironmentBuildLogResponse,
+                        idempotency_level=IdempotencyLevel.UNKNOWN,
+                    ),
+                    function=service.get_loop_environment_build_log,
                 ),
             },
             interceptors=interceptors,
@@ -441,6 +486,26 @@ class LoopEnvironmentServiceClientSync(ConnectClientSync):
                 service_name="o11y_one.agentic.v1.LoopEnvironmentService",
                 input=o11y__one_dot_agentic_dot_v1_dot_environment__pb2.CreateLoopEnvironmentUploadRequest,
                 output=o11y__one_dot_agentic_dot_v1_dot_environment__pb2.CreateLoopEnvironmentUploadResponse,
+                idempotency_level=IdempotencyLevel.UNKNOWN,
+            ),
+            headers=headers,
+            timeout_ms=timeout_ms,
+        )
+
+    def get_loop_environment_build_log(
+        self,
+        request: o11y__one_dot_agentic_dot_v1_dot_environment__pb2.GetLoopEnvironmentBuildLogRequest,
+        *,
+        headers: Headers | Mapping[str, str] | None = None,
+        timeout_ms: int | None = None,
+    ) -> o11y__one_dot_agentic_dot_v1_dot_environment__pb2.GetLoopEnvironmentBuildLogResponse:
+        return self.execute_unary(
+            request=request,
+            method=MethodInfo(
+                name="GetLoopEnvironmentBuildLog",
+                service_name="o11y_one.agentic.v1.LoopEnvironmentService",
+                input=o11y__one_dot_agentic_dot_v1_dot_environment__pb2.GetLoopEnvironmentBuildLogRequest,
+                output=o11y__one_dot_agentic_dot_v1_dot_environment__pb2.GetLoopEnvironmentBuildLogResponse,
                 idempotency_level=IdempotencyLevel.UNKNOWN,
             ),
             headers=headers,
