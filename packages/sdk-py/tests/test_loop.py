@@ -179,6 +179,12 @@ def test_the_loop_package_keeps_every_import_the_loop_module_had() -> None:
         assert issubclass(LoopEnvClient, GenericEnvClient)
 
 
+@pytest.mark.skipif(importlib.util.find_spec("verl") is not None, reason="the verl extra is here")
+def test_the_verl_adapter_without_its_extra_says_which_to_install() -> None:
+    with pytest.raises(ImportError, match=r"o11y-one\[verl\]"):
+        import o11y_one.sdk.loop.verl  # noqa: F401
+
+
 @pytest.mark.skipif(importlib.util.find_spec("trl") is not None, reason="the trl extra is here")
 def test_the_trl_adapter_without_its_extra_says_which_to_install() -> None:
     with pytest.raises(ImportError, match=r"o11y-one\[trl\]"):
