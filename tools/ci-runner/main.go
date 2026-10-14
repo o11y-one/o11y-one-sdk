@@ -237,7 +237,10 @@ func cmdRun(args []string) error {
 	ctx, cancel := common.commandContext()
 	defer cancel()
 
-	clients := newClients(&common, cred)
+	clients, err := newClients(&common, cred)
+	if err != nil {
+		return err
+	}
 	token := *previewToken
 	var tape []field
 	if token == "" {
@@ -427,7 +430,10 @@ func cmdWait(args []string) error {
 	ctx, cancel := common.commandContext()
 	defer cancel()
 
-	clients := newClients(&common, cred)
+	clients, err := newClients(&common, cred)
+	if err != nil {
+		return err
+	}
 	reqMsg := &agenticv1.GetEvaluationOperationRequest{}
 	if *operationID != "" {
 		reqMsg.Selector = &agenticv1.GetEvaluationOperationRequest_OperationId{OperationId: *operationID}
@@ -480,7 +486,10 @@ func cmdDiff(args []string) error {
 	ctx, cancel := common.commandContext()
 	defer cancel()
 
-	clients := newClients(&common, cred)
+	clients, err := newClients(&common, cred)
+	if err != nil {
+		return err
+	}
 	resp, err := clients.eval.GetEvaluationRunOverview(ctx, connect.NewRequest(&agenticv1.GetEvaluationRunOverviewRequest{
 		EvaluationRunId: *runID,
 		// INITIAL, not FULL: the adopted decision rides on both profiles and is
@@ -595,7 +604,10 @@ func cmdAnnotate(args []string) error {
 	ctx, cancel := common.commandContext()
 	defer cancel()
 
-	clients := newClients(&common, cred)
+	clients, err := newClients(&common, cred)
+	if err != nil {
+		return err
+	}
 	resp, err := clients.eval.RecordPlatformAnnotation(ctx, connect.NewRequest(req))
 	if err != nil {
 		return fmt.Errorf("annotate: RecordPlatformAnnotation failed: %w", err)
