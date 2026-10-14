@@ -202,3 +202,10 @@ def test_the_module_prints_only_the_config_path_for_the_shell_to_take() -> None:
     )
     assert run.stdout == f"{adapter.CONFIG}\n"
     assert adapter.CONFIG.is_file()
+
+
+def test_a_worker_keeps_counters_for_its_recent_uids_only() -> None:
+    adapter._counter.cache_clear()
+    for number in range(adapter.UIDS_KEPT + 10):
+        next(adapter._counter(f"uid-{number}"))
+    assert adapter._counter.cache_info().currsize == adapter.UIDS_KEPT

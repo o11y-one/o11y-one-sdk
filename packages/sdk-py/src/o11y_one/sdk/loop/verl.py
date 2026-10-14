@@ -17,7 +17,6 @@ from __future__ import annotations
 import functools
 import itertools
 import json
-from collections import defaultdict
 from contextvars import ContextVar
 from pathlib import Path
 from typing import Any
@@ -41,8 +40,13 @@ __all__ = ["CONFIG", "LoopAgentLoop", "LoopInfrastructureFailure"]
 CONFIG = Path(__file__).with_name("verl.yaml")
 
 _rollout: ContextVar[AsyncLoopClient] = ContextVar("o11y_one_loop_rollout")
-# ponytail: one counter per uid this worker sees, never pruned; prune by step if runs get huge.
-_indices: defaultdict[str, itertools.count] = defaultdict(itertools.count)
+#: The uids whose group-index counters a worker keeps; a step holds far fewer.
+UIDS_KEPT = 1 << 16
+
+
+@functools.lru_cache(maxsize=UIDS_KEPT)
+def _counter(uid: str) -> itertools.count:
+    return itertools.count()
 
 
 class LoopInfrastructureFailure(Exception):
@@ -83,7 +87,7 @@ class LoopAgentLoop(ToolAgentLoop):
         uid, n = kwargs["uid"], self.rollout_config.n
         fields = {
             "group_id": uid,
-            "group_index": next(_indices[uid]) % n,
+            "group_index": next(_counter(uid)) % n,
             "group_size": n,
             "experiment_name": self.config.trainer.get("experiment_name", ""),
         }
