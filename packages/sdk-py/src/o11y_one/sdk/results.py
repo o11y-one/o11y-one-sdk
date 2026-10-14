@@ -4,8 +4,7 @@ Several RPCs on ``AgenticEvaluationService`` never turn a business refusal into
 an RPC error: a lease that expired, a run that is not executable, a scope the
 caller's credential lacks — all of these come back as a normal ``200``-shaped
 response with the success field ABSENT and a typed refusal sub-message present
-instead (``LeaseEvaluationCasesResponse.refusal``, and siblings). See
-DESIGN-AGENT-START-HERE.md §3 ("findDetails typed refusals", "refusals-on-a-200").
+instead (``LeaseEvaluationCasesResponse.refusal``, and siblings).
 
 Forcing every caller to remember to check ``response.HasField("refusal")``
 before touching the success field is exactly the class of mistake this module

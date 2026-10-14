@@ -1,4 +1,4 @@
-"""Code scorers (o11y-api #611, #764): a member authors a Python or TypeScript
+"""Code scorers: a member authors a Python or TypeScript
 scorer as a draft, previews it on one input, and an admin publishes it; only a
 published version runs across a dataset.
 

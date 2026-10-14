@@ -1,6 +1,6 @@
 """The O11y One error taxonomy, as the SDK must render it.
 
-From lane 50A's note: ``UNAUTHENTICATED`` vs ``PERMISSION_DENIED`` is the whole
+``UNAUTHENTICATED`` vs ``PERMISSION_DENIED`` is the whole
 reason this layer exists. "Your credential is invalid" and "your credential is
 fine but this capability is not granted / not shipped" are different problems
 with different fixes, and collapsing them into "auth error" is the failure mode
@@ -22,7 +22,7 @@ __all__ = [
     "classify",
 ]
 
-#: The five canonical machine-principal scope strings (50A, frozen taxonomy).
+#: The five canonical machine-principal scope strings, a fixed set.
 #: These are the exact strings that appear in the ``api_tokens.scopes`` array and
 #: that a PERMISSION_DENIED message names.
 MACHINE_SCOPES: tuple[str, ...] = (
