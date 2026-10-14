@@ -18,7 +18,7 @@ import pytest
 pytest.importorskip("openrlhf")
 
 import o11y_one.sdk.loop.openrlhf as adapter  # noqa: E402
-from conftest import CONNECTS, CREDENTIAL, refusal  # noqa: E402
+from fake_loop import CONNECTS, CREDENTIAL, refusal  # noqa: E402
 from o11y_one.agentic.v1.rollout_pb2 import LoopFailureClassV1  # noqa: E402
 from o11y_one.sdk.loop import RolloutRefused, _core  # noqa: E402
 from openrlhf.utils.agent import AgentExecutorBase  # noqa: E402

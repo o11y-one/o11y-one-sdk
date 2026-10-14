@@ -17,7 +17,7 @@ import pytest
 
 pytest.importorskip("trl")
 
-from conftest import CREDENTIAL, refusal  # noqa: E402
+from fake_loop import CREDENTIAL, refusal  # noqa: E402
 from o11y_one.agentic.v1.rollout_pb2 import LoopFailureClassV1  # noqa: E402
 from o11y_one.sdk.loop import RolloutRefused, _core  # noqa: E402
 from o11y_one.sdk.loop import trl as adapter  # noqa: E402
