@@ -1,10 +1,10 @@
 """The Loop rollout client against the statuses the server sends.
 
-Each refusal below is the server's own (``loop_rollout.rs``'s ``refusal``): its
-gRPC code, its sentence and its ``LoopRolloutRejectionV1``. A fake service
-stands in for the generated client, and a fake clock for ``time``, so no test
-sleeps. One test goes over a real gRPC-web socket, to prove the key reaches the
-wire and never a log, repr or message.
+Each refusal below is the server's own: its gRPC code, its sentence and its
+``LoopRolloutRejectionV1``. A fake service stands in for the generated client,
+and a fake clock for ``time``, so no test sleeps. One test goes over a real
+gRPC-web socket, to prove the key reaches the wire and never a log, repr or
+message.
 """
 
 from __future__ import annotations
@@ -38,7 +38,7 @@ from o11y_one.sdk.loop import AsyncLoopClient, LoopClient, RolloutRefused
 CREDENTIAL = "o11y_mach.AAAAAAAAAAAAAAAAAAAAAA.BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBA"
 RUN = "trn_06AZ3XN1YQF4KD2M8RP7TV5W9C"
 
-# (reason code, gRPC code, the server's sentence), as loop_rollout.rs sends them.
+# (reason code, gRPC code, the server's sentence), as the server sends them.
 RECORDED = [
     ("run_paused", Code.UNAVAILABLE, "the run is paused; resets wait until it resumes"),
     (
