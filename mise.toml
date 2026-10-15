@@ -23,7 +23,7 @@ python = "3.14.7"
 uv = "0.12.9"
 
 # --- Go -----------------------------------------------------------------
-go = "1.27.1"
+go = "1.27.2"
 
 # --- Protobuf -----------------------------------------------------------
 # Codegen plugins are NOT installed locally: buf.gen.agentic.yaml uses BSR remote
