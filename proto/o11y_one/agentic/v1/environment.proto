@@ -1,0 +1,355 @@
+syntax = "proto3";
+
+// Loop environments (#718): the images RL episodes run in. A version is an
+// image, a verifier, a size and setup steps, all given when it is created;
+// none of them ever changes, so a change is a new version. The task
+// instruction is not part of a version: a task dataset's rows carry it.
+//
+// Same package as evaluation.proto, in its own FILE so its surface stays apart
+// (artifact.proto). Every name carries "Loop" because "environment" already
+// means a deploy target.
+package o11y_one.agentic.v1;
+
+import "o11y_one/common/v1/common.proto";
+import "google/protobuf/timestamp.proto";
+
+service LoopEnvironmentService {
+  rpc CreateLoopEnvironment(CreateLoopEnvironmentRequest) returns (CreateLoopEnvironmentResponse);
+  // Imports the image as the environment's next version, IMPORTING until it
+  // is PUBLISHED, REJECTED or FAILED.
+  rpc CreateLoopEnvironmentVersion(CreateLoopEnvironmentVersionRequest) returns (CreateLoopEnvironmentVersionResponse);
+  rpc GetLoopEnvironmentVersion(GetLoopEnvironmentVersionRequest) returns (GetLoopEnvironmentVersionResponse);
+  rpc ListLoopEnvironmentVersions(ListLoopEnvironmentVersionsRequest) returns (ListLoopEnvironmentVersionsResponse);
+  // The organization's environments, newest first, each with its newest and its
+  // latest published version (#727).
+  rpc ListLoopEnvironments(ListLoopEnvironmentsRequest) returns (ListLoopEnvironmentsResponse);
+  // A presigned PUT for a Dockerfile build's context, under the organization's
+  // own prefix and named by its digest (#718); none when the organization
+  // already uploaded it.
+  rpc CreateLoopEnvironmentUpload(CreateLoopEnvironmentUploadRequest) returns (CreateLoopEnvironmentUploadResponse);
+  // The tail of a Dockerfile version's build log, as its build left it (#718);
+  // empty for an image's version, or before its build ran.
+  rpc GetLoopEnvironmentBuildLog(GetLoopEnvironmentBuildLogRequest) returns (GetLoopEnvironmentBuildLogResponse);
+}
+
+message LoopEnvironmentV1 {
+  string environment_id = 1;
+  // Unique in the organization, 1 to 64 bytes.
+  string name = 2;
+  google.protobuf.Timestamp created_at = 3;
+  // At most 256 bytes, set when the environment is created; empty when it has
+  // none (#988).
+  string description = 4;
+}
+
+// A pull-scoped, short-lived registry credential. Write-only: it is held only
+// until the pull ends and no read ever returns it.
+message LoopRegistryCredentialV1 {
+  string username = 1;
+  string password = 2;
+}
+
+message LoopOciImageSourceV1 {
+  // The repository without a tag or digest, e.g. `ghcr.io/acme/env`, on ECR,
+  // Artifact Registry, GHCR or Docker Hub.
+  string repository = 1;
+  // `sha256:` and 64 lowercase hex digits. A tag is refused with
+  // `image_not_pinned`. Reads show the linux/amd64 image manifest's digest the
+  // import resolved, which is another when this named an index.
+  string digest = 2;
+  // Absent for a public image.
+  LoopRegistryCredentialV1 credential = 3;
+}
+
+// A Dockerfile, built by BuildKit in a single-use builder VM over a context
+// uploaded with CreateLoopEnvironmentUpload (#718). Every base image is pinned
+// by its digest, e.g. `FROM python:3.12-slim@sha256:…`, or the build fails with
+// `base_image_not_pinned`; a `# syntax=` line is ignored. The build has
+// internet access; the environment it makes never does.
+message LoopDockerfileSourceV1 {
+  // SHA-256 of the uploaded context, 32 bytes.
+  bytes context_sha256 = 1;
+  // Relative to the context's root, e.g. `Dockerfile` or `docker/Dockerfile`.
+  string dockerfile_path = 2;
+  // The stage to build; empty builds the last one.
+  string target = 3;
+  // At most 64, by unique name, none starting `BUILDKIT_`. Public: reads
+  // return them and the image's history shows them, so never pass a secret.
+  repeated LoopBuildArgV1 build_args = 4;
+  // The registry host `credential` is for, e.g. `ghcr.io`, on ECR, Artifact
+  // Registry, GHCR or Docker Hub. Empty without a credential.
+  string credential_registry = 5;
+  // For a private base image on `credential_registry`. Write-only.
+  LoopRegistryCredentialV1 credential = 6;
+  // Read-only: SHA-256 of the image manifest the build made, once PUBLISHED.
+  bytes image_manifest_sha256 = 7;
+}
+
+message LoopBuildArgV1 {
+  // An identifier of at most 128 bytes.
+  string name = 1;
+  // At most 4 KiB; a build's values at most 32 KiB in all.
+  string value = 2;
+}
+
+enum LoopEnvironmentProfileV1 {
+  LOOP_ENVIRONMENT_PROFILE_V1_UNSPECIFIED = 0;
+  // 2 vCPU, 4 GiB of memory, 10 GiB of scratch, 1 hour.
+  LOOP_ENVIRONMENT_PROFILE_V1_SMALL = 1;
+  // 4 vCPU, 8 GiB, 25 GiB, 1 hour.
+  LOOP_ENVIRONMENT_PROFILE_V1_MEDIUM = 2;
+  // 8 vCPU, 16 GiB, 50 GiB, 1 hour.
+  LOOP_ENVIRONMENT_PROFILE_V1_LARGE = 3;
+}
+
+message LoopEnvironmentProfileRefV1 {
+  LoopEnvironmentProfileV1 id = 1;
+  uint32 version = 2;
+}
+
+enum LoopEnvironmentNetworkModeV1 {
+  LOOP_ENVIRONMENT_NETWORK_MODE_V1_UNSPECIFIED = 0;
+  // The only mode today.
+  LOOP_ENVIRONMENT_NETWORK_MODE_V1_OFFLINE = 1;
+}
+
+// A command, run without a shell.
+message LoopEnvironmentExecStepV1 {
+  // 1 to 64 arguments, each at most 4 KiB.
+  repeated string argv = 1;
+  // From 1 to the profile's wall time.
+  uint32 timeout_millis = 2;
+}
+
+message LoopEnvironmentFileV1 {
+  // Relative, at most 256 bytes.
+  string path = 1;
+  bytes content = 2;
+}
+
+message LoopEnvironmentVerifierV1 {
+  // Write-only: sealed under the organization's data key, paths strictly
+  // ascending, at most 32 files and 256 KiB. Every read leaves it empty and
+  // shows `bundle_sha256`.
+  repeated LoopEnvironmentFileV1 files = 1;
+  // 1 to 64 arguments, each at most 4 KiB.
+  repeated string argv = 2;
+  // SHA-256 of the sealed bundle, 32 bytes. Set by reads. On create without
+  // `files`, it names a bundle a version of the same environment sealed, which
+  // the new version seals again, so its files are not sent twice (#988);
+  // `verifier_bundle_not_found` when none did. Ignored with `files`.
+  bytes bundle_sha256 = 3;
+
+  // ---- the reward contract (#721) ----
+  // Required: the only paths of the episode's final disk the verifier sees,
+  // 1 to 64, each absolute, never `/` and with no empty, `.` or `..`
+  // component. A version without one is refused.
+  repeated string final_state_paths = 4;
+  // Absent means none. At most 64 globs, each under a final-state path,
+  // replaced by their pristine copies before the verifier runs.
+  repeated string protected_paths = 5;
+  // Absent means none. At most 4 commands run before `argv`, e.g. to start a
+  // service from the final configuration.
+  repeated LoopEnvironmentExecStepV1 start = 6;
+  // Required: from 1 to the profile's wall time. Zero is refused.
+  uint32 timeout_millis = 7;
+  // Absent means 0: the verifier runs as root.
+  uint32 run_as_uid = 8;
+  // Required: 1 to 16, by unique name.
+  repeated LoopEnvironmentRewardDeclV1 rewards = 9;
+  // Absent means 0. The error value of a reward that declares no minimum:
+  // when the episode or the verifier fails, each declared reward is its `min`,
+  // or this. Finite, and inside every declared range.
+  double failure_reward = 10;
+  // ---- end of the reward contract ----
+}
+
+// A reward the verifier returns, a finite number.
+message LoopEnvironmentRewardDeclV1 {
+  // 1 to 128 bytes.
+  string name = 1;
+  // Absent means unbounded below. Finite, and below `max` when both are set.
+  // This reward's value when the episode or the verifier fails.
+  optional double min = 2;
+  // Absent means unbounded above. Finite.
+  optional double max = 3;
+}
+
+message LoopEnvironmentSpecV1 {
+  LoopEnvironmentVerifierV1 verifier = 1;
+  LoopEnvironmentProfileRefV1 profile = 2;
+  // OFFLINE.
+  LoopEnvironmentNetworkModeV1 network_mode = 3;
+  // At most 16, run in order before the environment is ready to snapshot.
+  repeated LoopEnvironmentExecStepV1 setup_steps = 4;
+}
+
+enum LoopEnvironmentVersionStateV1 {
+  LOOP_ENVIRONMENT_VERSION_STATE_V1_UNSPECIFIED = 0;
+  LOOP_ENVIRONMENT_VERSION_STATE_V1_IMPORTING = 1;
+  LOOP_ENVIRONMENT_VERSION_STATE_V1_PUBLISHED = 2;
+  // The image or its scan was refused; `reason_code` says why.
+  LOOP_ENVIRONMENT_VERSION_STATE_V1_REJECTED = 3;
+  // The import did not finish on our side.
+  LOOP_ENVIRONMENT_VERSION_STATE_V1_FAILED = 4;
+}
+
+// Whose a REJECTED or FAILED version's `reason_code` is (#727).
+enum LoopEnvironmentFailureCauseV1 {
+  // The version is IMPORTING or PUBLISHED.
+  LOOP_ENVIRONMENT_FAILURE_CAUSE_V1_UNSPECIFIED = 0;
+  // The image, its registry, its scan or its spec: the customer's.
+  LOOP_ENVIRONMENT_FAILURE_CAUSE_V1_TASK = 1;
+  // Ours: the import did not finish on our side.
+  LOOP_ENVIRONMENT_FAILURE_CAUSE_V1_INFRASTRUCTURE = 2;
+}
+
+// Its inputs never change; its outputs are written once, when it is
+// published, rejected or failed; after that only `revoked_at` may be set.
+message LoopEnvironmentVersionV1 {
+  string environment_id = 1;
+  // From 1, the next for its environment.
+  uint32 version = 2;
+  oneof source {
+    // Its credential is never returned.
+    LoopOciImageSourceV1 oci_image = 3;
+    // Its credential is never returned.
+    LoopDockerfileSourceV1 dockerfile = 16;
+  }
+  LoopEnvironmentSpecV1 spec = 4;
+  LoopEnvironmentVersionStateV1 state = 5;
+  optional string reason_code = 6;
+  // The encoded sandbox.v1 SignedManifestV1 over the environment manifest,
+  // with its key id: what a customer verifies. Empty until PUBLISHED.
+  bytes signed_manifest = 7;
+  // SHA-256 of the signed payload, 32 bytes. Empty until PUBLISHED.
+  bytes environment_manifest_sha256 = 8;
+  // The scan's counts of fixable Critical and of High vulnerabilities.
+  uint32 critical_fixable = 9;
+  uint32 high = 10;
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp finished_at = 12;
+  // Set when the version is withdrawn: no new rollout starts on it.
+  google.protobuf.Timestamp revoked_at = 13;
+  // Imported report-only: a fixable Critical did not block its publication.
+  bool scan_report_only = 14;
+  // Set with `reason_code`, from it.
+  LoopEnvironmentFailureCauseV1 failure_cause = 15;
+  // The organization's Loop storage is full (the trial's cap), so this
+  // version's base snapshot is not stored: nothing is billed for it, and its
+  // rollouts may start more slowly or wait for capacity.
+  bool storage_full = 17;
+}
+
+message CreateLoopEnvironmentRequest {
+  string name = 1;
+  // At most 256 bytes; absent means none.
+  string description = 2;
+}
+
+message CreateLoopEnvironmentResponse {
+  LoopEnvironmentV1 environment = 1;
+}
+
+message CreateLoopEnvironmentVersionRequest {
+  string environment_id = 1;
+  oneof source {
+    LoopOciImageSourceV1 oci_image = 2;
+    LoopDockerfileSourceV1 dockerfile = 6;
+  }
+  LoopEnvironmentSpecV1 spec = 3;
+  // An admin's alone, and audited: a fixable Critical vulnerability, which
+  // otherwise refuses publication with `scan_policy_rejected`, is reported and
+  // does not block it. False when absent.
+  bool scan_report_only = 4;
+  // A UUID the client picks for this import. A repeat with the same id returns
+  // the version the first created, and starts no second import.
+  string request_id = 5;
+}
+
+message CreateLoopEnvironmentVersionResponse {
+  LoopEnvironmentVersionV1 version = 1;
+}
+
+message GetLoopEnvironmentVersionRequest {
+  string environment_id = 1;
+  uint32 version = 2;
+}
+
+message GetLoopEnvironmentVersionResponse {
+  LoopEnvironmentVersionV1 version = 1;
+}
+
+message ListLoopEnvironmentVersionsRequest {
+  string environment_id = 1;
+  o11y_one.common.v1.PageRequestV1 page = 2;
+}
+
+message ListLoopEnvironmentVersionsResponse {
+  repeated LoopEnvironmentVersionV1 versions = 1;
+  o11y_one.common.v1.PageResponseV1 page = 2;
+  // Absent for another organization's environment.
+  LoopEnvironmentV1 environment = 3;
+}
+
+message ListLoopEnvironmentsRequest {
+  o11y_one.common.v1.PageRequestV1 page = 1;
+}
+
+// A version here carries only `profile` of its `spec`.
+message LoopEnvironmentSummaryV1 {
+  LoopEnvironmentV1 environment = 1;
+  // Absent until a version is created.
+  LoopEnvironmentVersionV1 newest = 2;
+  // The newest PUBLISHED version not withdrawn; absent when there is none.
+  LoopEnvironmentVersionV1 latest_published = 3;
+}
+
+message ListLoopEnvironmentsResponse {
+  repeated LoopEnvironmentSummaryV1 environments = 1;
+  o11y_one.common.v1.PageResponseV1 page = 2;
+}
+
+message CreateLoopEnvironmentUploadRequest {
+  // SHA-256 of the context, 32 bytes: a tar archive, which may be compressed.
+  bytes sha256 = 1;
+  // 1 byte to 1 GiB.
+  uint64 size_bytes = 2;
+}
+
+message CreateLoopEnvironmentUploadResponse {
+  // PUT the context's bytes here before `expires_at`. A credential until then.
+  // Empty when `already_uploaded`.
+  string upload_url = 1;
+  google.protobuf.Timestamp expires_at = 2;
+  // The organization already uploaded a context of this digest and size.
+  bool already_uploaded = 3;
+}
+
+message GetLoopEnvironmentBuildLogRequest {
+  string environment_id = 1;
+  uint32 version = 2;
+}
+
+message GetLoopEnvironmentBuildLogResponse {
+  // BuildKit's progress and the build's own output, at most its last 1 MiB:
+  // the tenant's bytes, to show as text, never as markup.
+  bytes log = 1;
+  // The build printed more than the 1 MiB kept, so its start is missing.
+  bool truncated = 2;
+}
+
+// The detail every LoopEnvironmentService refusal carries.
+message LoopEnvironmentRejectionV1 {
+  // Stable, e.g. `image_not_pinned`, `registry_unsupported` or
+  // `registry_auth_failed`; it never names our configuration.
+  string reason_code = 1;
+  // The spec's setting refused, as the contract names it, on
+  // `environment_spec_invalid` and the verifier bundle's codes: the first out
+  // of bounds, e.g. `failure_reward`, `rewards`, `files`, or `size` for the
+  // whole spec (#988); and the Dockerfile source's on
+  // `dockerfile_path_invalid`, `build_target_invalid` and `build_arg_invalid`:
+  // `dockerfile_path`, `target` or `build_args` (#718). Absent on every other
+  // code.
+  optional string field = 2;
+}

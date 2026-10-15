@@ -62,6 +62,8 @@ class ProviderNameV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     PROVIDER_NAME_V1_DEEPSEEK: _ClassVar[ProviderNameV1]
     PROVIDER_NAME_V1_OPENROUTER: _ClassVar[ProviderNameV1]
     PROVIDER_NAME_V1_META: _ClassVar[ProviderNameV1]
+    PROVIDER_NAME_V1_TYPESAFE: _ClassVar[ProviderNameV1]
+    PROVIDER_NAME_V1_CLOUDFLARE: _ClassVar[ProviderNameV1]
 
 class ProviderToolChoiceV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -201,6 +203,18 @@ class MetaTextModelV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     META_TEXT_MODEL_V1_UNSPECIFIED: _ClassVar[MetaTextModelV1]
     META_TEXT_MODEL_V1_MUSE_SPARK_1_3: _ClassVar[MetaTextModelV1]
     META_TEXT_MODEL_V1_MUSE_SPARK_1_3_CONTRIBUTOR: _ClassVar[MetaTextModelV1]
+
+class TypeSafeDecisionModelV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    TYPE_SAFE_DECISION_MODEL_V1_UNSPECIFIED: _ClassVar[TypeSafeDecisionModelV1]
+    TYPE_SAFE_DECISION_MODEL_V1_JEV_1_13_0: _ClassVar[TypeSafeDecisionModelV1]
+
+class CloudflareDecisionModelV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    CLOUDFLARE_DECISION_MODEL_V1_UNSPECIFIED: _ClassVar[CloudflareDecisionModelV1]
+    CLOUDFLARE_DECISION_MODEL_V1_CLEF: _ClassVar[CloudflareDecisionModelV1]
+    CLOUDFLARE_DECISION_MODEL_V1_CLEF_FLASH: _ClassVar[CloudflareDecisionModelV1]
+    CLOUDFLARE_DECISION_MODEL_V1_CLEF_OMNI: _ClassVar[CloudflareDecisionModelV1]
 
 class PrincipalKindV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -1068,6 +1082,12 @@ class EvaluationScorerConfigRejectionKindV1(int, metaclass=_enum_type_wrapper.En
     EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_CODE_VERSION_IMMUTABLE: _ClassVar[EvaluationScorerConfigRejectionKindV1]
     EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_CODE_INPUT_INVALID: _ClassVar[EvaluationScorerConfigRejectionKindV1]
 
+class JudgeModeV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    JUDGE_MODE_V1_UNSPECIFIED: _ClassVar[JudgeModeV1]
+    JUDGE_MODE_V1_SYSTEM_ONE: _ClassVar[JudgeModeV1]
+    JUDGE_MODE_V1_TEXT_THEN_SYSTEM_ONE: _ClassVar[JudgeModeV1]
+
 class EvaluationScorerPreviewVerdictV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     EVALUATION_SCORER_PREVIEW_VERDICT_V1_UNSPECIFIED: _ClassVar[EvaluationScorerPreviewVerdictV1]
@@ -1744,6 +1764,7 @@ class MachinePrincipalScopeV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper)
     MACHINE_PRINCIPAL_SCOPE_V1_LEASE_SUBMIT: _ClassVar[MachinePrincipalScopeV1]
     MACHINE_PRINCIPAL_SCOPE_V1_PLATFORM_ANNOTATION_WRITE: _ClassVar[MachinePrincipalScopeV1]
     MACHINE_PRINCIPAL_SCOPE_V1_RELEASE_CANARY: _ClassVar[MachinePrincipalScopeV1]
+    MACHINE_PRINCIPAL_SCOPE_V1_ROLLOUT_DRIVE: _ClassVar[MachinePrincipalScopeV1]
 
 class MachinePrincipalStateV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -1919,6 +1940,8 @@ PROVIDER_NAME_V1_MOONSHOT: ProviderNameV1
 PROVIDER_NAME_V1_DEEPSEEK: ProviderNameV1
 PROVIDER_NAME_V1_OPENROUTER: ProviderNameV1
 PROVIDER_NAME_V1_META: ProviderNameV1
+PROVIDER_NAME_V1_TYPESAFE: ProviderNameV1
+PROVIDER_NAME_V1_CLOUDFLARE: ProviderNameV1
 PROVIDER_TOOL_CHOICE_V1_UNSPECIFIED: ProviderToolChoiceV1
 PROVIDER_TOOL_CHOICE_V1_AUTO: ProviderToolChoiceV1
 PROVIDER_TOOL_CHOICE_V1_NONE: ProviderToolChoiceV1
@@ -2016,6 +2039,12 @@ OPEN_ROUTER_TEXT_MODEL_V1_MOONSHOTAI_KIMI_K2_THINKING: OpenRouterTextModelV1
 META_TEXT_MODEL_V1_UNSPECIFIED: MetaTextModelV1
 META_TEXT_MODEL_V1_MUSE_SPARK_1_3: MetaTextModelV1
 META_TEXT_MODEL_V1_MUSE_SPARK_1_3_CONTRIBUTOR: MetaTextModelV1
+TYPE_SAFE_DECISION_MODEL_V1_UNSPECIFIED: TypeSafeDecisionModelV1
+TYPE_SAFE_DECISION_MODEL_V1_JEV_1_13_0: TypeSafeDecisionModelV1
+CLOUDFLARE_DECISION_MODEL_V1_UNSPECIFIED: CloudflareDecisionModelV1
+CLOUDFLARE_DECISION_MODEL_V1_CLEF: CloudflareDecisionModelV1
+CLOUDFLARE_DECISION_MODEL_V1_CLEF_FLASH: CloudflareDecisionModelV1
+CLOUDFLARE_DECISION_MODEL_V1_CLEF_OMNI: CloudflareDecisionModelV1
 PRINCIPAL_KIND_V1_UNSPECIFIED: PrincipalKindV1
 PRINCIPAL_KIND_V1_USER: PrincipalKindV1
 PRINCIPAL_KIND_V1_MACHINE: PrincipalKindV1
@@ -2591,6 +2620,9 @@ EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_SANDBOX_UNAVAILABLE: EvaluationScorer
 EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_CODE_SPEC_INVALID: EvaluationScorerConfigRejectionKindV1
 EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_CODE_VERSION_IMMUTABLE: EvaluationScorerConfigRejectionKindV1
 EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_CODE_INPUT_INVALID: EvaluationScorerConfigRejectionKindV1
+JUDGE_MODE_V1_UNSPECIFIED: JudgeModeV1
+JUDGE_MODE_V1_SYSTEM_ONE: JudgeModeV1
+JUDGE_MODE_V1_TEXT_THEN_SYSTEM_ONE: JudgeModeV1
 EVALUATION_SCORER_PREVIEW_VERDICT_V1_UNSPECIFIED: EvaluationScorerPreviewVerdictV1
 EVALUATION_SCORER_PREVIEW_VERDICT_V1_PASS: EvaluationScorerPreviewVerdictV1
 EVALUATION_SCORER_PREVIEW_VERDICT_V1_FAIL: EvaluationScorerPreviewVerdictV1
@@ -3043,6 +3075,7 @@ MACHINE_PRINCIPAL_SCOPE_V1_DATASET_WRITE: MachinePrincipalScopeV1
 MACHINE_PRINCIPAL_SCOPE_V1_LEASE_SUBMIT: MachinePrincipalScopeV1
 MACHINE_PRINCIPAL_SCOPE_V1_PLATFORM_ANNOTATION_WRITE: MachinePrincipalScopeV1
 MACHINE_PRINCIPAL_SCOPE_V1_RELEASE_CANARY: MachinePrincipalScopeV1
+MACHINE_PRINCIPAL_SCOPE_V1_ROLLOUT_DRIVE: MachinePrincipalScopeV1
 MACHINE_PRINCIPAL_STATE_V1_UNSPECIFIED: MachinePrincipalStateV1
 MACHINE_PRINCIPAL_STATE_V1_ACTIVE: MachinePrincipalStateV1
 MACHINE_PRINCIPAL_STATE_V1_DISABLED: MachinePrincipalStateV1
@@ -3167,7 +3200,7 @@ class CorrelationContextV1(_message.Message):
     def __init__(self, trace_id: _Optional[str] = ..., span_id: _Optional[str] = ..., observation_id: _Optional[str] = ..., conversation_id: _Optional[str] = ..., user_id: _Optional[str] = ..., account_id: _Optional[str] = ..., customer_id: _Optional[str] = ..., feature_id: _Optional[str] = ..., deployment_id: _Optional[str] = ..., prompt_version: _Optional[str] = ..., model_version: _Optional[str] = ..., tool_version: _Optional[str] = ..., release_id: _Optional[str] = ..., source_turn_id: _Optional[str] = ...) -> None: ...
 
 class ProviderModelRefV1(_message.Message):
-    __slots__ = ("openai", "anthropic", "google", "xai", "moonshot", "deepseek", "openrouter", "meta")
+    __slots__ = ("openai", "anthropic", "google", "xai", "moonshot", "deepseek", "openrouter", "meta", "typesafe", "cloudflare")
     OPENAI_FIELD_NUMBER: _ClassVar[int]
     ANTHROPIC_FIELD_NUMBER: _ClassVar[int]
     GOOGLE_FIELD_NUMBER: _ClassVar[int]
@@ -3176,6 +3209,8 @@ class ProviderModelRefV1(_message.Message):
     DEEPSEEK_FIELD_NUMBER: _ClassVar[int]
     OPENROUTER_FIELD_NUMBER: _ClassVar[int]
     META_FIELD_NUMBER: _ClassVar[int]
+    TYPESAFE_FIELD_NUMBER: _ClassVar[int]
+    CLOUDFLARE_FIELD_NUMBER: _ClassVar[int]
     openai: OpenAiTextModelV1
     anthropic: AnthropicTextModelV1
     google: GoogleTextModelV1
@@ -3184,7 +3219,9 @@ class ProviderModelRefV1(_message.Message):
     deepseek: DeepSeekTextModelV1
     openrouter: OpenRouterTextModelV1
     meta: MetaTextModelV1
-    def __init__(self, openai: _Optional[_Union[OpenAiTextModelV1, str]] = ..., anthropic: _Optional[_Union[AnthropicTextModelV1, str]] = ..., google: _Optional[_Union[GoogleTextModelV1, str]] = ..., xai: _Optional[_Union[XaiTextModelV1, str]] = ..., moonshot: _Optional[_Union[MoonshotTextModelV1, str]] = ..., deepseek: _Optional[_Union[DeepSeekTextModelV1, str]] = ..., openrouter: _Optional[_Union[OpenRouterTextModelV1, str]] = ..., meta: _Optional[_Union[MetaTextModelV1, str]] = ...) -> None: ...
+    typesafe: TypeSafeDecisionModelV1
+    cloudflare: CloudflareDecisionModelV1
+    def __init__(self, openai: _Optional[_Union[OpenAiTextModelV1, str]] = ..., anthropic: _Optional[_Union[AnthropicTextModelV1, str]] = ..., google: _Optional[_Union[GoogleTextModelV1, str]] = ..., xai: _Optional[_Union[XaiTextModelV1, str]] = ..., moonshot: _Optional[_Union[MoonshotTextModelV1, str]] = ..., deepseek: _Optional[_Union[DeepSeekTextModelV1, str]] = ..., openrouter: _Optional[_Union[OpenRouterTextModelV1, str]] = ..., meta: _Optional[_Union[MetaTextModelV1, str]] = ..., typesafe: _Optional[_Union[TypeSafeDecisionModelV1, str]] = ..., cloudflare: _Optional[_Union[CloudflareDecisionModelV1, str]] = ...) -> None: ...
 
 class ProviderRequestSettingsV1(_message.Message):
     __slots__ = ("max_output_tokens", "fixed_cost_usd", "input_token_rate_usd", "output_token_rate_usd", "budget_limit_usd", "anthropic_version", "reasoning_effort", "reasoning_budget_tokens", "temperature", "top_p", "frequency_penalty", "presence_penalty", "stop_sequences", "tool_choice", "reasoning_effort_mode", "verbosity", "max_tool_calls", "parallel_tool_calls", "truncation", "prompt_cache_key", "prompt_cache_retention", "safety_identifier", "service_tier", "top_logprobs", "top_k", "anthropic_metadata_user_id", "provider_metadata", "tool_choice_name", "seed")
@@ -4680,7 +4717,7 @@ class EvaluationHarnessManifestV1(_message.Message):
     def __init__(self, candidates: _Optional[_Iterable[_Union[EvaluationCandidateHarnessV1, _Mapping]]] = ...) -> None: ...
 
 class EvaluationFrozenEvaluatorRefV1(_message.Message):
-    __slots__ = ("score_config_id", "config_key", "evaluator_template_id", "template_version_discriminator", "evaluator_kind", "execution_mode", "evaluator_config_json", "provider_execution_json", "provider", "model_id", "provider_credential_id", "model_rate")
+    __slots__ = ("score_config_id", "config_key", "evaluator_template_id", "template_version_discriminator", "evaluator_kind", "execution_mode", "evaluator_config_json", "provider_execution_json", "provider", "model_id", "provider_credential_id", "model_rate", "system_one_model_rate")
     SCORE_CONFIG_ID_FIELD_NUMBER: _ClassVar[int]
     CONFIG_KEY_FIELD_NUMBER: _ClassVar[int]
     EVALUATOR_TEMPLATE_ID_FIELD_NUMBER: _ClassVar[int]
@@ -4693,6 +4730,7 @@ class EvaluationFrozenEvaluatorRefV1(_message.Message):
     MODEL_ID_FIELD_NUMBER: _ClassVar[int]
     PROVIDER_CREDENTIAL_ID_FIELD_NUMBER: _ClassVar[int]
     MODEL_RATE_FIELD_NUMBER: _ClassVar[int]
+    SYSTEM_ONE_MODEL_RATE_FIELD_NUMBER: _ClassVar[int]
     score_config_id: str
     config_key: str
     evaluator_template_id: str
@@ -4705,7 +4743,8 @@ class EvaluationFrozenEvaluatorRefV1(_message.Message):
     model_id: str
     provider_credential_id: str
     model_rate: EvaluationModelRateV1
-    def __init__(self, score_config_id: _Optional[str] = ..., config_key: _Optional[str] = ..., evaluator_template_id: _Optional[str] = ..., template_version_discriminator: _Optional[str] = ..., evaluator_kind: _Optional[str] = ..., execution_mode: _Optional[str] = ..., evaluator_config_json: _Optional[str] = ..., provider_execution_json: _Optional[str] = ..., provider: _Optional[_Union[ProviderNameV1, str]] = ..., model_id: _Optional[str] = ..., provider_credential_id: _Optional[str] = ..., model_rate: _Optional[_Union[EvaluationModelRateV1, _Mapping]] = ...) -> None: ...
+    system_one_model_rate: EvaluationModelRateV1
+    def __init__(self, score_config_id: _Optional[str] = ..., config_key: _Optional[str] = ..., evaluator_template_id: _Optional[str] = ..., template_version_discriminator: _Optional[str] = ..., evaluator_kind: _Optional[str] = ..., execution_mode: _Optional[str] = ..., evaluator_config_json: _Optional[str] = ..., provider_execution_json: _Optional[str] = ..., provider: _Optional[_Union[ProviderNameV1, str]] = ..., model_id: _Optional[str] = ..., provider_credential_id: _Optional[str] = ..., model_rate: _Optional[_Union[EvaluationModelRateV1, _Mapping]] = ..., system_one_model_rate: _Optional[_Union[EvaluationModelRateV1, _Mapping]] = ...) -> None: ...
 
 class EvaluationRunProgressV1(_message.Message):
     __slots__ = ("expected_cell_count", "prepared_cell_count", "queued_cell_count", "cancelled_cell_count", "completed_shard_count", "total_shard_count", "execution_progress_availability", "executed_cell_count", "succeeded_cell_count", "failed_cell_count", "scorer_result_count", "awaiting_review_cell_count", "skipped_cell_count", "superseded_result_count", "pending_code_scorer_count", "scoring_in_sandbox_cell_count")
@@ -8405,19 +8444,33 @@ class EvaluationScorerJudgeTemplateRefV1(_message.Message):
     template_version_discriminator: str
     def __init__(self, evaluator_template_id: _Optional[str] = ..., template_version_discriminator: _Optional[str] = ...) -> None: ...
 
+class SystemOneStepV1(_message.Message):
+    __slots__ = ("model", "credential_ref", "provider_endpoint_ref")
+    MODEL_FIELD_NUMBER: _ClassVar[int]
+    CREDENTIAL_REF_FIELD_NUMBER: _ClassVar[int]
+    PROVIDER_ENDPOINT_REF_FIELD_NUMBER: _ClassVar[int]
+    model: ProviderModelRefV1
+    credential_ref: str
+    provider_endpoint_ref: str
+    def __init__(self, model: _Optional[_Union[ProviderModelRefV1, _Mapping]] = ..., credential_ref: _Optional[str] = ..., provider_endpoint_ref: _Optional[str] = ...) -> None: ...
+
 class EvaluationScorerJudgeProviderExecutionV1(_message.Message):
-    __slots__ = ("model", "credential_ref", "request_settings", "provider_endpoint_ref", "reasoning_effort")
+    __slots__ = ("model", "credential_ref", "request_settings", "provider_endpoint_ref", "reasoning_effort", "judge_mode", "system_one")
     MODEL_FIELD_NUMBER: _ClassVar[int]
     CREDENTIAL_REF_FIELD_NUMBER: _ClassVar[int]
     REQUEST_SETTINGS_FIELD_NUMBER: _ClassVar[int]
     PROVIDER_ENDPOINT_REF_FIELD_NUMBER: _ClassVar[int]
     REASONING_EFFORT_FIELD_NUMBER: _ClassVar[int]
+    JUDGE_MODE_FIELD_NUMBER: _ClassVar[int]
+    SYSTEM_ONE_FIELD_NUMBER: _ClassVar[int]
     model: ProviderModelRefV1
     credential_ref: str
     request_settings: ProviderRequestSettingsV1
     provider_endpoint_ref: str
     reasoning_effort: ProviderReasoningEffortV1
-    def __init__(self, model: _Optional[_Union[ProviderModelRefV1, _Mapping]] = ..., credential_ref: _Optional[str] = ..., request_settings: _Optional[_Union[ProviderRequestSettingsV1, _Mapping]] = ..., provider_endpoint_ref: _Optional[str] = ..., reasoning_effort: _Optional[_Union[ProviderReasoningEffortV1, str]] = ...) -> None: ...
+    judge_mode: JudgeModeV1
+    system_one: SystemOneStepV1
+    def __init__(self, model: _Optional[_Union[ProviderModelRefV1, _Mapping]] = ..., credential_ref: _Optional[str] = ..., request_settings: _Optional[_Union[ProviderRequestSettingsV1, _Mapping]] = ..., provider_endpoint_ref: _Optional[str] = ..., reasoning_effort: _Optional[_Union[ProviderReasoningEffortV1, str]] = ..., judge_mode: _Optional[_Union[JudgeModeV1, str]] = ..., system_one: _Optional[_Union[SystemOneStepV1, _Mapping]] = ...) -> None: ...
 
 class EvaluationScorerJudgeSpecV1(_message.Message):
     __slots__ = ("rubric_content", "template_ref", "provider_execution", "pass_threshold")
