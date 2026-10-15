@@ -1,55 +1,23 @@
 syntax = "proto3";
 
-// Agentic Reliability V2 trace-viewer read models — wave 32 (lane D).
+// Trace viewer read models.
 //
-// Same package as agentic.proto, evaluation.proto and artifact.proto by design
-// (lock ruling L1-4): prost emits one Rust module per package, so
-// `proto::agentic::*` stays one flat namespace and `proto/src/lib.rs` needs no
-// change. A separate FILE keeps `buf breaking` (FILE mode, `proto/buf.yaml`)
-// from letting this surface destabilise either neighbour's breaking surface —
-// which matters more than usual here, because a second lane is appending to
-// evaluation.proto in the same tree.
+// Same package as evaluation.proto, artifact.proto and agent_run.proto, in its
+// own FILE so its surface stays apart. It reuses evaluation.proto's typed
+// absence (`MetricAvailabilityV1`) and verbatim provider-usage record
+// (`ProviderUsageRecordV1`) rather than defining them again.
 //
-// WHY THIS FILE RATHER THAN agentic.proto
-//
-//   The trace viewer must speak two things it does not own: typed absence
-//   (`MetricAvailabilityV1`) and the verbatim provider-usage record
-//   (`ProviderUsageRecordV1`). Both are defined in evaluation.proto, and
-//   evaluation.proto already imports agentic.proto — so defining these messages
-//   in agentic.proto would need the reverse import and a package cycle. This
-//   file imports evaluation.proto, exactly as artifact.proto does, and reuses
-//   those value objects rather than twinning them (rule R5).
-//
-// WHY THIS SERVICE RATHER THAN AgenticEvaluationService
-//
-//   There is no span table in Postgres. Span rows live in `otel_traces` Parquet
-//   segments plus a realtime tier, reachable only through
-//   `UnifiedTelemetryQueryEngine` — which `AgenticEvaluationGrpcService` does
-//   not hold. A read model over spans is a query-engine read model or it is
-//   nothing, so the service that serves it is the one that holds the engine.
-//
-// THE CONTRACT THIS FILE IMPLEMENTS
-//
-//   Design handoff `backend-handoff-post-design-run.pdf` p.3, "Trace viewer
-//   (12 · P4B — THE LARGEST CONTRACT)", five levels: (1) a step-level summary,
-//   (2) operation groups per step, (3) raw spans paged on demand, (4) per-span
-//   verbatim usage reusing the eval side's contract, (5) a SERVER-computed
-//   critical path and needs-attention set so "Highlight errors" is a filter
-//   rather than a client scan. All five land here, folded into two RPCs so that
-//   one screen costs two bounded span scans rather than five.
+// Five levels: (1) a step-level summary, (2) operation groups per step, (3) raw
+// spans paged on demand, (4) per-span verbatim usage, with the same contract as
+// evaluation usage, and (5) a SERVER-computed critical path and needs-attention
+// set, so "Highlight errors" is a filter rather than a client scan. All five are
+// folded into two RPCs, so one screen costs two bounded span scans rather than
+// five.
 package o11y_one.agentic.v1;
 
 import "google/protobuf/timestamp.proto";
-// W-V1-1 (D3): `AgenticEvidenceGraphNodeV1.metadata` is a `Struct`, and it came
-// with the message rather than being flattened on the way over.
 import "o11y_one/agentic/v1/evaluation.proto";
-// Wave 41 lane A. The agent-run identity plane lives in its own file for the
-// same reason this one does: a CONVERSATION contract and a TRACE contract move
-// on different schedules, and `buf breaking` runs in FILE mode.
 import "o11y_one/agentic/v1/agent_run.proto";
-// Wave 41 lane C: `ArtifactLinkV1`, the four artifact enums, the resolver
-// posture, `EvidenceAnchorV1`, and the `LinkExternalArtifact` pair that
-// `artifact.proto` minted and left for the increment that wires the surface.
 import "o11y_one/agentic/v1/artifact.proto";
 
 // ---------------------------------------------------------------------------
@@ -61,7 +29,7 @@ import "o11y_one/agentic/v1/artifact.proto";
 // OTHER is not a parse failure and not a sentinel: it means this build
 // classified the span and it is none of the five. A closed enum of exactly the
 // five would force every queue, worker and internal span into a category it
-// does not belong to, which is the conflation this track exists to prevent.
+// does not belong to.
 //
 // Precedence is FIRST MATCH WINS in the order TOOL, RETRIEVAL, LLM, DB, HTTP,
 // OTHER, and it is stated because a span can satisfy two rules at once: an
@@ -98,14 +66,10 @@ enum TraceAttentionKindV1 {
   TRACE_ATTENTION_KIND_V1_SLOW_OUTLIER = 3;
 }
 
-// How a span failed, in the lake's own vocabulary (wave 35, lane B).
+// How a span failed, in ingest's own vocabulary.
 //
-// These are not new names. They are `transformation`'s `ErrorCategory` — the
-// thirteen arms of `transformation/src/classifier/error.rs`, written into the
-// `error_category` column at ingest by the classifier every span already goes
-// through. Restating them here as an enum rather than passing the column's
-// string through is what lets a client switch on a fault kind instead of
-// matching prose, and the ordering below is that file's own.
+// The thirteen fault categories ingest assigns every span. An enum rather than
+// a string, so a client switches on a fault kind instead of matching prose.
 //
 // The column is NULL for a span that did not fail, so a value here is always a
 // statement about a failure — with one exception, which is
@@ -134,9 +98,8 @@ enum TraceFaultCategoryV1 {
 
 // Where a span's money came from. Two provenances, and neither is a bill.
 //
-// The operator's ruling of 2026-08-28: *"If client instrumented cost, use that,
-// else, use the stock provider rate"*. Both halves are on the wire as their own
-// value, because a number a customer's own code stated and a number this build
+// If the client instrumented a cost, that is used; otherwise the provider's
+// published rate. Both halves are on the wire as their own value, because a number a customer's own code stated and a number this build
 // computed off a published list price are different evidence, and a client that
 // cannot tell them apart cannot say which one it is rendering.
 enum TraceSpanCostProvenanceV1 {
@@ -213,8 +176,7 @@ message TraceSpanPopulationBoundaryV1 {
 
 // The window actually read, and whether it is the window that was asked for.
 //
-// The §4 invariant is "clamped windows say so in-band". `ListSessions` clamps
-// to 720h silently and the only record of it is a fixture case name; this
+// Clamped windows say so in-band. `ListSessions` clamps to 720h silently; this
 // surface publishes the clamp, because a client rendering "no spans" must be
 // able to tell "your window was narrowed" from "there is nothing there".
 message TraceWindowV1 {
@@ -252,7 +214,7 @@ message TraceFaultStatusCountV1 {
   uint32 span_count = 2;
 }
 
-// The composition of a failure count (wave 35, lane B).
+// The composition of a failure count.
 //
 // Rides both `TraceStepSummaryV1` and `TraceOperationGroupV1`: a fault
 // breakdown per turn and per operation group is the same arithmetic over a
@@ -323,12 +285,12 @@ message TraceFirstFailureV1 {
 // cost with no rate identity beside it is a number nobody can check.
 //
 // What it deliberately does NOT carry is a provider. `ProviderUsageRecordV1` on
-// the span beside it sets `provider = UNSPECIFIED` on purpose (NN5): a span
-// names its provider, when it names one at all, in free text, and mapping that
-// onto this build's closed enum would put a provider-attributed fact on the
-// wire the provider never stated. The estimate does not need one — the SPAN
-// states its own model id, and that string is matched to a registry row by
-// EXACT model id. The rate identity is a row, not an attribution.
+// the span beside it sets `provider = UNSPECIFIED` on purpose: a span names its
+// provider, when it names one at all, in free text, and mapping that onto this
+// build's closed enum would put a provider-attributed fact on the wire the
+// provider never stated. The estimate does not need one — the SPAN states its
+// own model id, and that string is matched to a registry row by EXACT model id.
+// The rate identity is a row, not an attribution.
 message TraceSpanRateBasisV1 {
   // The model id the span itself stated (response model first — the model that
   // served is the model billed), matched to a registry row by exact equality.
@@ -337,18 +299,14 @@ message TraceSpanRateBasisV1 {
   string registry_version = 2;
   string registry_effective_date = 3;
   // THIS ROW's own as-of date — when these numbers were last read off the
-  // provider's page. Per-row rather than table-wide, which is the whole point
-  // of increment E1-5: a table-wide date claims every row was reviewed on one
-  // day. THIS is the date the tooltip renders.
+  // provider's page. Per-row rather than table-wide: a table-wide date claims
+  // every row was reviewed on one day. THIS is the date the tooltip renders.
   string rate_checked_at = 4;
   // The age at which the registry calls itself stale, in days.
   //
-  // The THRESHOLD and no verdict, and that is the same ruling `capability.rs`
-  // made for the rate-freshness posture (increment E1-6, narrowed by wave 25):
-  // a staleness state is `observed_at - effective_date`, which changes every
-  // midnight, and this message rides responses the fixture corpus asserts byte
-  // for byte. A verdict here would turn the corpus red on one future calendar
-  // day with no code change. So this publishes the compiled-in facts — which
+  // The THRESHOLD and no verdict, as for the rate-freshness posture: a staleness
+  // state is `observed_at - effective_date`, which changes every midnight, so
+  // a client computes it. This publishes the compiled-in facts — which
   // table, which row, when a human last re-read it, and the rule's threshold —
   // and lets the client, which has its own clock, apply the rule. The eval
   // side's frozen verdict still lives where a verdict belongs: on
@@ -372,7 +330,7 @@ message TraceSpanRateBasisV1 {
   repeated EvaluationRateDimensionNoteV1 dimension_notes = 9;
 }
 
-// Level 4b. One span's cost, with its provenance stated (wave 35, lane B).
+// Level 4b. One span's cost, with its provenance stated.
 //
 // HARD BOUNDARY, stated on the wire because it is the property that makes this
 // message safe to ship: this number is DISPLAY PLANE ONLY. It enters no
@@ -477,10 +435,10 @@ message TraceOperationGroupV1 {
   // read as a complete one.
   uint32 omitted_outlier_count = 9;
 
-  // Wave 35. The composition of `failure_count` above: which categories, which
-  // statuses, how many exceptions.
+  // The composition of `failure_count` above: which categories, which statuses,
+  // how many exceptions.
   TraceFaultBreakdownV1 faults = 10;
-  // Wave 35. What these ×N calls cost, and how that number was arrived at.
+  // What these ×N calls cost, and how that number was arrived at.
   TraceSpanCostRollupV1 cost = 11;
 }
 
@@ -513,15 +471,15 @@ message TraceStepSummaryV1 {
   repeated TraceOperationGroupV1 operation_groups = 12;
   uint32 omitted_operation_group_count = 13;
 
-  // Wave 35. The composition of `failure_count` above, over this turn's spans
-  // INCLUDING the turn's own span — the same member set the count uses, for the
-  // same reason: a turn that failed is a failure of that turn.
+  // The composition of `failure_count` above, over this turn's spans INCLUDING
+  // the turn's own span — the same member set the count uses, for the same
+  // reason: a turn that failed is a failure of that turn.
   TraceFaultBreakdownV1 faults = 14;
-  // Wave 35. The earliest failure in this turn. Absent when the turn had none —
-  // absent, not a zero-valued pointer at a span that did not fail.
+  // The earliest failure in this turn. Absent when the turn had none — absent,
+  // not a zero-valued pointer at a span that did not fail.
   optional TraceFirstFailureV1 first_failure = 15;
 
-  // S2. What this turn cost, over the SAME member set `failure_count` and
+  // What this turn cost, over the SAME member set `failure_count` and
   // `faults` use — the turn's spans INCLUDING the turn's own span, because a
   // turn's money is the money of that turn. It is therefore NOT the sum of
   // `operation_groups`' rollups whenever the turn's own span carries a cost:
@@ -554,8 +512,8 @@ message TraceCriticalPathV1 {
   int64 total_duration_micros = 2;
   MetricAvailabilityV1 availability = 3;
   // Which definition produced this path. A client that renders "the critical
-  // path" without knowing the definition cannot compare two builds, and a later
-  // change of definition should be a fixture diff a reviewer sees.
+  // path" without knowing the definition cannot compare two builds, and a
+  // change of definition comes with a new name.
   //
   // `latest_finishing_child_chain_v1`: from the root, repeatedly descend to the
   // child whose end time is latest; ties by longer duration, then by span id
@@ -605,7 +563,7 @@ message AgentTraceHeaderV1 {
   // turns did nothing.
   MetricAvailabilityV1 step_availability = 8;
 
-  // S2. What the whole trace cost, over EVERY span in the population — the
+  // What the whole trace cost, over EVERY span in the population — the
   // turns, their operations, and the spans that attribute to no turn. Over the
   // whole population rather than over the steps because a trace whose LLM calls
   // carry no `gen_ai.agent.name` has no steps at all, and a money total that
@@ -617,7 +575,7 @@ message AgentTraceHeaderV1 {
   // trace total too. A partial-provenance total is labelled, not hidden.
   TraceSpanCostRollupV1 cost = 9;
 
-  // S3. Spans that exist only because an earlier attempt failed: members of an
+  // Spans that exist only because an earlier attempt failed: members of an
   // inferred retry chain whose `attempt_index` is greater than one. An honest
   // zero — the population was read and no chain was found — which is why it is
   // a count here and an absence on the span.
@@ -628,9 +586,9 @@ message AgentTraceHeaderV1 {
 // references, not bodies.
 //
 // Present so the absence is legible rather than implied. Turning one of these
-// into a payload is the Phase 5 "Extraction Preview" plane — redaction before
-// preview, dedupe fingerprints, leakage signals — and the capability
-// `trace_span_content_hydration` says it is UNAVAILABLE.
+// into a payload is the extraction preview's job (redaction before preview,
+// dedupe fingerprints, leakage signals), and the capability
+// `trace_span_content_hydration` says it is UNAVAILABLE here.
 message TraceSpanContentRefV1 {
   // `input`, `output`, `tool_arguments`, `tool_result`, `retrieval_documents`,
   // `reasoning`.
@@ -638,12 +596,12 @@ message TraceSpanContentRefV1 {
   string storage_uri = 2;
 }
 
-// S3. One span's place in a retry chain.
+// One span's place in a retry chain.
 //
 // INFERRED, and the capability says so. Nothing in this build marks a span as a
-// retry of another: no `retry`, `resend` or `attempt` key reaches a typed
-// column, and span links arrive at the lake with their ATTRIBUTES DROPPED, so
-// OTel's own relational mechanism cannot say WHY it links. What is left is the
+// retry of another: no `retry`, `resend` or `attempt` key is ingested as a
+// typed field, and span links are stored without their ATTRIBUTES, so a link
+// cannot say WHY it links. What is left is the
 // shape — one parent, one name, one kind, one target, non-overlapping in time,
 // every attempt but the last in error — and `trace_view_retry_chain` publishes
 // `retry_chain_inference = 1` so a client renders this as a reading of the
@@ -655,7 +613,7 @@ message TraceSpanRetryV1 {
   // The parent span id, the operation kind, the span name and the target,
   // joined. It is the grouping key itself, so two spans carry one id exactly
   // when they are in one chain. Deterministic, so two reads of one trace name
-  // the chain identically and a fixture is byte-stable. The kind and the target
+  // the chain identically. The kind and the target
   // are in it because two sibling groups can share a name and differ only in
   // the kind, or only in the model or tool they called. Key by it; it is not
   // meant to be parsed.
@@ -710,13 +668,12 @@ message TraceSpanV1 {
 
   repeated TraceSpanContentRefV1 content_refs = 18;
 
-  // Level 4b (wave 35). What this span cost, and where that number came from:
-  // the client's own instrumented figure, an estimate off the provider's
-  // published list price, or a typed absence. Display plane only — see
-  // `TraceSpanCostV1`.
+  // Level 4b. What this span cost, and where that number came from: the
+  // client's own instrumented figure, an estimate off the provider's published
+  // list price, or a typed absence. Display plane only — see `TraceSpanCostV1`.
   TraceSpanCostV1 cost = 19;
 
-  // S3. Where this span sits in an inferred retry chain, or absent when it sits
+  // Where this span sits in an inferred retry chain, or absent when it sits
   // in none. See `TraceSpanRetryV1` for what "inferred" buys and costs.
   optional TraceSpanRetryV1 retry = 20;
 }
@@ -783,27 +740,15 @@ message ListAgentTraceSpansResponse {
 
 
 // ---------------------------------------------------------------------------
-// ---- wave 41 lane B: summary index ----
+// ---- the agent-run summary index ----
 //
-// WHY THIS BLOCK IS HERE AND NOT IN `agent_run.proto`
-//
-// Lane A's block reserves these names and says they are defined "below" — in
-// that file. They cannot be: `trace_view.proto` imports `agent_run.proto`
-// (:47, for `ConfirmAgentRunGrouping`), and every message here carries at least
-// one shape defined in THIS file — `TraceFaultBreakdownV1`,
-// `TraceFirstFailureV1`, `TraceSpanCostRollupV1`, `TraceOperationKindV1`,
-// `TraceWindowV1`, `TraceSpanPopulationBoundaryV1`. Defining them in
-// `agent_run.proto` would need the reverse import, which is the cycle, or a
-// second minting of the fault and cost shapes, which would put two spellings of
-// one fault breakdown on one screen. The names stay unique either way: one
-// prost module per package (lock ruling `L1-4`).
+// Defined here rather than in `agent_run.proto` because every message carries a
+// trace shape defined in this file.
 // ---------------------------------------------------------------------------
 
-// The first word on the agent-run header (`BP:755`).
+// The first word on the agent-run header.
 //
-// `PLAN:1683` asks for an "outcome" and neither the plan nor `0b` §4 defines the
-// vocabulary — handoff doc 11 §9 Q1 raises exactly that. This is the answer, and
-// its derivation is published as `agent_run_outcome_v1` in the capability set so
+// The outcome's derivation is published as `agent_run_outcome_v1` in the capability set so
 // a reader can argue with the rule rather than only with the word.
 //
 // `_UNKNOWN` IS A VERDICT, NOT A NULL. It is what this build says when the
@@ -820,16 +765,15 @@ enum AgentRunOutcomeV1 {
   AGENT_RUN_OUTCOME_V1_DEGRADED = 3;
   // A member span reported an error status.
   AGENT_RUN_OUTCOME_V1_FAILED = 4;
-  // A production rule (§6, wave 39) returned a failing verdict over this run's
-  // work. It OUTRANKS `_FAILED`, deliberately: the span plane knows whether the
+  // A production rule returned a failing verdict over this run's work. It
+  // OUTRANKS `_FAILED`, deliberately: the span plane knows whether the
   // machinery worked and the rule plane knows whether the work was acceptable,
-  // and J2's operator arrived holding the second question.
+  // and an operator triaging a failure arrives holding the second question.
   AGENT_RUN_OUTCOME_V1_POLICY_FAILED = 5;
 }
 
 // Which input the derivation consulted, so "why does it say Failed" is returned
-// data rather than a frontend heuristic — `0b P7-3`'s rule for grouping
-// confidence, applied to the field beside it.
+// data rather than a frontend heuristic, as grouping confidence is.
 enum AgentRunOutcomeInputKindV1 {
   AGENT_RUN_OUTCOME_INPUT_KIND_V1_UNSPECIFIED = 0;
   AGENT_RUN_OUTCOME_INPUT_KIND_V1_CONVERSATION_COMPLETENESS = 1;
@@ -854,8 +798,7 @@ message AgentRunOutcomeAssessmentV1 {
   repeated AgentRunOutcomeInputV1 inputs = 2;
   // `agent_run_outcome_v1`. The same discipline `TraceCriticalPathV1.method_code`
   // applies: a header word computed by an unnamed rule is a word nobody can
-  // argue with, and a later change of rule should be a fixture diff a reviewer
-  // sees.
+  // argue with, and a change of rule is visible as a new name.
   string method_code = 3;
   // Set only for `_UNKNOWN`: `conversation_still_open` or
   // `no_member_span_reports_a_status`. Absent on every other verdict, because a
@@ -868,7 +811,7 @@ message AgentRunOutcomeAssessmentV1 {
 // THERE IS NO RUN-LEVEL MONEY TOTAL ANYWHERE ON THIS SURFACE, and its absence is
 // the design. A run-wide figure is a bill-shaped object, and a bill-shaped object
 // on a telemetry read model is how a display-plane estimate ends up quoted at
-// somebody. `PLAN:1683` says "cost line ITEMS"; a client that wants a total adds
+// somebody. These are line ITEMS; a client that wants a total adds
 // these in front of the reader, where the reader can see what is being added and
 // that some of it is estimated.
 message AgentRunCostLineItemV1 {
@@ -909,13 +852,13 @@ message AgentRunUsageTotalsV1 {
 //
 // Counts and a worst verdict, never rows: the rows live on the eval and workflow
 // planes and are reached by a pivot. A summary that embedded them would be a
-// page in a `SUMMARY`'s clothing (`A2` §2.1 rule 1).
+// page in a `SUMMARY`'s clothing.
 message AgentRunScorePostureV1 {
   // `eval_scores` rows anchored to a member trace.
   uint32 score_count = 1;
   uint32 scored_member_trace_count = 2;
   optional double worst_score_value = 3;
-  // Production-rule verdicts over this run's member traces (wave 39).
+  // Production-rule verdicts over this run's member traces.
   uint32 failing_rule_verdict_count = 4;
   uint32 passing_rule_verdict_count = 5;
   // A scorer that could not produce a verdict. NEVER counted as a failing
@@ -926,7 +869,7 @@ message AgentRunScorePostureV1 {
   MetricAvailabilityV1 availability = 7;
 }
 
-// The dimensions `PLAN:1683` names and `PLAN:1685` filters on.
+// The run's dimensions, which the agent-run list filters on.
 //
 // `distinct_count > 1` is not an error — a conversation can legitimately cross
 // deployments — but it is a fact the reader must be able to see, so the count
@@ -940,7 +883,7 @@ message AgentRunDimensionV1 {
   MetricAvailabilityV1 availability = 3;
 }
 
-// `PLAN:1683`'s "prompt/model/tool/retrieval versions".
+// The run's prompt, model, tool and retrieval versions.
 message AgentRunVersionContextV1 {
   AgentRunDimensionV1 prompt_version = 1;
   AgentRunDimensionV1 model_version = 2;
@@ -952,7 +895,7 @@ message AgentRunVersionContextV1 {
   MetricAvailabilityV1 retrieval_version_availability = 4;
 }
 
-// `PLAN:1683`'s "release context".
+// The run's release context.
 //
 // The link is transitive and the response says so rather than implying a
 // relation the planes do not carry: a release names a `release_key`, a release
@@ -967,10 +910,10 @@ message AgentRunReleaseContextV1 {
   MetricAvailabilityV1 availability = 4;
 }
 
-// J2 step 7 — "is this failure already covered?" (`BP:482`, A2 gap `G21`).
+// "Is this failure already covered?"
 //
-// `_UNKNOWN` IS A REAL VERDICT AND NEVER MEANS "NOT COVERED". `0b` §4.5 says so
-// in as many words, and the distinction is the whole value of the block: telling
+// `_UNKNOWN` IS A REAL VERDICT AND NEVER MEANS "NOT COVERED", and the
+// distinction is the whole value of the block: telling
 // an operator "not covered" about a run whose lineage this build cannot resolve
 // would send them to write a duplicate dataset case.
 enum AgentRunCoverageVerdictV1 {
@@ -996,20 +939,20 @@ message AgentRunCoverageReferenceV1 {
 
 message AgentRunEvaluationCoverageV1 {
   AgentRunCoverageVerdictV1 verdict = 1;
-  // At most `max_coverage_references` (A2 J2.4 states ten). The count is over the
+  // At most `max_coverage_references` (ten). The count is over the
   // whole population; the list is capped, and `omitted_reference_count` says so.
   repeated AgentRunCoverageReferenceV1 references = 2;
   uint32 covering_reference_count = 3;
   uint32 omitted_reference_count = 4;
   // Set for `_UNKNOWN` only. `provisional_grouping_cannot_claim_lineage` is the
-  // common one and is the `0b P7-10` matrix speaking: a group of unknown
+  // common one: a group of unknown
   // membership has no lineage claim to make, so this build declines to make one
   // rather than making a weak one.
   optional string unknown_reason_code = 5;
   MetricAvailabilityV1 availability = 6;
 }
 
-// `PLAN:1684`'s instrumentation completeness, as facts rather than a grade.
+// The run's instrumentation completeness, as facts rather than a grade.
 message AgentRunInstrumentationCompletenessV1 {
   CompletenessStateV1 state = 1;
   // Member spans attributable to no agent turn. A real gap; never folded into a
@@ -1030,25 +973,23 @@ message AgentRunInstrumentationCompletenessV1 {
   MetricAvailabilityV1 handoff_count_availability = 7;
   MetricAvailabilityV1 guardrail_count_availability = 8;
   MetricAvailabilityV1 memory_operation_count_availability = 9;
-  // Always NOT_SUPPORTED / `non_streaming_provider_client` — wave 32's code,
-  // reused rather than re-minted.
+  // Always NOT_SUPPORTED / `non_streaming_provider_client`, the trace
+  // viewer's code.
   MetricAvailabilityV1 time_to_first_token_availability = 10;
   // Whether every count on the row is a total rather than a lower bound.
   // AVAILABLE, or NOT_OBSERVED naming the refusal or the ceiling.
   MetricAvailabilityV1 counts_availability = 11;
 }
 
-// The `PLAN:1683` field set, served from the maintained projection (`P7-14`).
+// The agent-run summary, served from a maintained index.
 //
-// EVERY FIELD HERE IS A COLUMN, not a join performed while the page is built.
-// `PLAN:1687` forbids scanning and hydrating models, tools, scores, releases and
-// evidence per row, and the way this build keeps that promise is that the read
-// path holds no query engine and issues no per-row statement — see the
-// `agent_run_index` capability's `list_span_scans` limit, which is zero.
+// EVERY FIELD HERE IS STORED, not joined while the page is built: listing runs
+// scans no spans and hydrates no models, tools, scores, releases or evidence per
+// row. The `agent_run_index` capability's `list_span_scans` limit is zero.
 message AgentRunSummaryV1 {
   string agent_run_id = 1;
-  // Lane A's spine, carried verbatim: state, confidence, the confidence INPUTS
-  // (`P7-3`), revision, bounds, and the redirect when the id was stale.
+  // The identity block, carried verbatim: state, confidence, the confidence INPUTS,
+  // revision, bounds, and the redirect when the id was stale.
   AgentRunGroupingV1 grouping = 2;
   ConversationCompletenessV1 completeness = 3;
   AgentRunOutcomeAssessmentV1 outcome = 4;
@@ -1056,8 +997,8 @@ message AgentRunSummaryV1 {
   google.protobuf.Timestamp started_at = 5;
   google.protobuf.Timestamp ended_at = 6;
   // The keyset's sort key. A late span advances it and the run RE-SURFACES at the
-  // head of the list; `P7-16`'s watermark rule is what makes that legible rather
-  // than a reshuffle.
+  // head of the list; the watermark is what makes that legible rather than a
+  // reshuffle.
   google.protobuf.Timestamp last_seen_at = 7;
 
   uint32 trace_count = 8;
@@ -1075,10 +1016,9 @@ message AgentRunSummaryV1 {
   uint32 mcp_span_count = 17;
 
   uint32 hard_failure_count = 18;
-  // Spans that recorded a fault WITHOUT failing. Wave 35 found this is zero by
-  // construction in today's ingest (`classify_error` ORs the exception into
-  // `is_error`); the field is computed correctly and kept, on the same argument
-  // wave 35 gave for keeping `warned_span_count`.
+  // Spans that recorded a fault WITHOUT failing. Today's ingest counts a span
+  // with an exception as failed, so this is zero for now; it is kept, as
+  // `warned_span_count` is.
   uint32 degraded_failure_count = 19;
   TraceFaultBreakdownV1 faults = 20;
   optional TraceFirstFailureV1 first_failure = 21;
@@ -1110,7 +1050,7 @@ message AgentRunSummaryV1 {
   EvaluationFreshnessV1 freshness = 38;
 }
 
-// `PLAN:1685` — the filters Production > Agent runs needs.
+// The filters the Production > Agent runs list needs.
 message AgentRunListFilterV1 {
   optional string customer_id = 1;
   optional string deployment_id = 2;
@@ -1121,10 +1061,9 @@ message AgentRunListFilterV1 {
   optional string prompt_version = 7;
   optional string model_version = 8;
   optional string tool_version = 9;
-  // `P7-4`/`B1-4`: identity-less traces appear as single-trace runs and are
-  // INCLUDED by default. Setting this hides them and the response then reports
-  // `hidden_ungrouped_run_count` — R8's rule, satisfied by construction rather
-  // than by a default the caller has to discover.
+  // Identity-less traces appear as single-trace runs and are INCLUDED by
+  // default. Setting this hides them and the response then reports
+  // `hidden_ungrouped_run_count`.
   bool exclude_ungrouped = 10;
 }
 
@@ -1144,7 +1083,7 @@ message ListAgentRunsResponse {
   bool has_more = 3;
   // How many `_UNGROUPED` runs the filter removed. Present whenever
   // `exclude_ungrouped` was set, INCLUDING when it is zero: an empty list is
-  // never evidence of none (R8).
+  // never evidence of none.
   optional uint32 hidden_ungrouped_run_count = 4;
   // Clamped IN BAND, with the reason. The `ListSessions` silent clamp is the
   // defect this field exists not to repeat.
@@ -1162,17 +1101,16 @@ message ListAgentRunsResponse {
 
 message GetAgentRunRequest {
   // A stale (`_MERGED_AWAY` / `_SPLIT_AWAY` / `_REDIRECTED`) id is answered with
-  // the canonical run plus `summary.grouping.redirect`, never `NOT_FOUND`
-  // (`P7-6`). A run in another tenant IS `NOT_FOUND`, and the two are different
-  // answers on purpose.
+  // the canonical run plus `summary.grouping.redirect`, never `NOT_FOUND`. A run
+  // in another tenant IS `NOT_FOUND`, and the two are different answers on
+  // purpose.
   string agent_run_id = 1;
 }
 
 message GetAgentRunResponse {
   AgentRunSummaryV1 summary = 1;
-  // J2 step 7. On the DETAIL only — putting it on every list row would be the
-  // per-row hydration `PLAN:1687` forbids, even though the value is a stored
-  // column, because the payload would then grow with the page.
+  // On the DETAIL only: on every list row the payload would grow with the
+  // page.
   AgentRunEvaluationCoverageV1 evaluation_coverage = 2;
   TraceWindowV1 window = 3;
   TraceSpanPopulationBoundaryV1 boundary = 4;
@@ -1180,59 +1118,43 @@ message GetAgentRunResponse {
   AgenticEvaluationCapabilitiesV1 capabilities = 6;
   optional TraceReadRefusalV1 refusal = 7;
 }
-// ---- end wave 41 lane B ----
+// ---- end of the agent-run summary index ----
 
-// ---- wave 41 lane C: timeline ----
+// ---- the agent-run timeline ----
 //
-// `ListAgentRunEvents` (`PLAN:492`) and the three external-artifact verbs
-// (`PLAN:495`-`:498`), against 0b §4.5 (`P7-13`, `P7-15`, `P7-16`) and §5
-// (`AL-1`…`AL-14`, `SM-12`, `SM-13`).
-//
-// WHY THESE MESSAGES LIVE HERE AND NOT IN `agent_run.proto`
-//
-//   The same import-cycle constraint lane B recorded: `trace_view.proto` already
-//   imports `agent_run.proto`, and every message below carries at least one
-//   shape defined in THIS file — `TraceSpanCostV1`, `TraceSpanContentRefV1`,
-//   `TraceOperationKindV1`, `TraceSpanStatusV1`, `TraceFaultCategoryV1`,
-//   `TraceFirstFailureV1`, `TraceWindowV1`, `TraceReadRefusalV1`. Defining them
-//   in `agent_run.proto` would need the reverse import or a second minting of
-//   the cost and fault shapes, and a second minting is a future disagreement.
-//   The names lane A reserved stay unique in the package either way: one prost
-//   module per package (`L1-4`).
+// `ListAgentRunEvents` and the three external-artifact verbs. Defined here
+// rather than in `agent_run.proto` because every message carries a trace shape
+// defined in this file.
 //
 // WHAT IS DELIBERATELY NOT HERE
 //
-//   * **No raw-trace mode.** `0b P7-15` models three and makes raw trace a
-//     PIVOT to `ListAgentTraceSpans`. A fourth arm would invite this RPC to grow
-//     the raw-span path NN26 forbids, so there is no arm to reach for.
-//   * **No handoff, memory, guardrail or retry event kind.** No ingest source
-//     exists for any of them — a whole-crate grep of `transformation/` finds no
-//     such attribute, and w35b already recorded that nothing marks a span as a
-//     retry of another. They are reported through
+//   * **No raw-trace mode.** Raw trace is a PIVOT to `ListAgentTraceSpans`.
+//   * **No handoff, memory, guardrail or retry event kind.** No ingested
+//     attribute marks any of them. They are reported through
 //     `AgentRunEventKindCoverageV1` as typed absences. Synthesising them from
 //     same-parent adjacency would put a relationship on the wire nobody
 //     instrumented.
-//   * **No reasoning text, anywhere.** NN27 (`PLAN:171`): a provider-exposed
-//     reasoning SUMMARY is reachable only as an authorized content reference on
+//   * **No reasoning text, anywhere.** A provider-exposed reasoning SUMMARY is
+//     reachable only as an authorized content reference on
 //     `AgentRunEventV1.content_refs`, never as an event and never as a body.
 //     There is no field below that could carry one.
-//   * **No run-level money total.** Handoff doc 11 §8: a trace-wide money total
-//     is a bill-shaped object, and a bill-shaped object on a telemetry read
-//     model is how a display-plane estimate ends up quoted at somebody. Costs
-//     are per event, with `TraceSpanCostV1`'s own provenance.
+//   * **No run-level money total.** A trace-wide money total is a bill-shaped
+//     object, and a bill-shaped object on a telemetry read model is how a
+//     display-plane estimate ends up quoted at somebody. Costs are per event,
+//     with `TraceSpanCostV1`'s own provenance.
 
-// `0b P7-15`, FROZEN. Three modes, and raw trace is not one of them.
+// Three modes, and raw trace is not one of them.
 enum AgentRunTimelineModeV1 {
   AGENT_RUN_TIMELINE_MODE_V1_UNSPECIFIED = 0;
-  // Semantic operations grouped by agent and task (`BP:772`). The unfiltered
+  // Semantic operations grouped by agent and task. The unfiltered
   // timeline: this mode never filters server-side and says so.
   AGENT_RUN_TIMELINE_MODE_V1_SUMMARY = 1;
-  // Failed/degraded work PLUS causal parents (`BP:773`). A failed tool call
+  // Failed/degraded work PLUS causal parents. A failed tool call
   // without the model turn that issued it is a leaf with no story.
   AGENT_RUN_TIMELINE_MODE_V1_FAILURES_ONLY = 2;
-  // The work determining end-to-end latency (`BP:774`), computed by the trace
-  // viewer's own `latest_finishing_child_chain_v1` so "critical" means one
-  // thing across this product.
+  // The work determining end-to-end latency, computed by the trace viewer's own
+  // `latest_finishing_child_chain_v1` so "critical" means one thing across this
+  // product.
   AGENT_RUN_TIMELINE_MODE_V1_CRITICAL_PATH = 3;
 }
 
@@ -1252,7 +1174,7 @@ enum AgentRunEventKindV1 {
   AGENT_RUN_EVENT_KIND_V1_GENERIC = 6;
 }
 
-// `0b P7-16`. How a client applies an event it just received.
+// How a client applies an event it just received.
 enum AgentRunEventDeliveryV1 {
   AGENT_RUN_EVENT_DELIVERY_V1_UNSPECIFIED = 0;
   // New, after the cursor's position.
@@ -1262,25 +1184,25 @@ enum AgentRunEventDeliveryV1 {
   AGENT_RUN_EVENT_DELIVERY_V1_UPSERT = 2;
 }
 
-// Which spelling produced a normalized attribute (`PLAN:1720`, semconv registry
-// §6.8). A verdict a client groups by, not a hint.
+// Which spelling produced a normalized attribute. A verdict a client groups by,
+// not a hint.
 enum AgentRunAttributeSourceV1 {
   AGENT_RUN_ATTRIBUTE_SOURCE_V1_UNSPECIFIED = 0;
   AGENT_RUN_ATTRIBUTE_SOURCE_V1_CANONICAL = 1;
   // The deprecated `o11y.*` spelling. Every span in this build, until the
-  // registry's `1C-5` rename lands the canonical columns.
+  // canonical names land.
   AGENT_RUN_ATTRIBUTE_SOURCE_V1_LEGACY_ALIAS = 2;
   AGENT_RUN_ATTRIBUTE_SOURCE_V1_BOTH_EQUAL = 3;
   // Both spellings, different values. Canonical wins and both are recorded.
   AGENT_RUN_ATTRIBUTE_SOURCE_V1_CONFLICT = 4;
 }
 
-// Which of `PLAN:1691`'s event families this build can actually produce.
+// Which event families this build can actually produce.
 //
 // `kind` is a slug rather than `AgentRunEventKindV1` deliberately: the four
 // families with no ingest source have no enum arm, and giving them one so they
-// could be reported absent would be minting the very kinds this lane refuses to
-// invent.
+// could be reported absent would be minting the very kinds this surface refuses
+// to invent.
 message AgentRunEventKindCoverageV1 {
   // `model` | `tool` | `retrieval` | `downstream` | `error` | `generic` |
   // `handoff` | `memory` | `guardrail` | `retry`.
@@ -1291,12 +1213,11 @@ message AgentRunEventKindCoverageV1 {
   MetricAvailabilityV1 availability = 2;
 }
 
-// Which of `AL-1`'s five source kinds this build can actually receive a link
+// Which of the five link source kinds this build can actually receive a link
 // from.
 //
 // This is how a client tells "this run has no artifacts" from "this build could
-// not have seen one" — NN11's rule that a refusal is observable, applied to an
-// absence.
+// not have seen one".
 message AgentRunArtifactSourceCoverageV1 {
   ArtifactLinkSourceKindV1 source_kind = 1;
   // AVAILABLE for `FALLBACK_RPC` and `BACKFILL`. NOT_SUPPORTED with
@@ -1306,11 +1227,10 @@ message AgentRunArtifactSourceCoverageV1 {
   MetricAvailabilityV1 availability = 2;
 }
 
-// The deprecated-alias provenance channel (`PLAN:1695`).
+// The deprecated-alias provenance channel.
 //
 // This is the ONLY place a legacy `o11y.*` string reaches a response. The public
-// typed field is the neutral one — semconv registry §4.4 establishes that the
-// response surface is already neutral, and this lane does not breach it.
+// typed field is the neutral one.
 message AgentRunEventAttributeProvenanceV1 {
   // The public, neutral field this resolves to.
   string canonical_field = 1;
@@ -1339,7 +1259,7 @@ message AgentRunEventUsageV1 {
   MetricAvailabilityV1 availability = 7;
 }
 
-// Generation settings and response identity, "where applicable" (`PLAN:1694`).
+// Generation settings and response identity, "where applicable".
 //
 // Every field optional, because most spans are not model calls and a zero would
 // claim a temperature nobody set.
@@ -1348,11 +1268,10 @@ message AgentRunEventGenerationV1 {
   optional string response_model = 2;
 }
 
-// One lane of the timeline (`PLAN:1694`, `BP:756-766`).
+// One lane of the timeline.
 //
 // Discovered from `gen_ai.agent.id` / `gen_ai.agent.name` / `service.name` at
-// render time, never a fixed vocabulary: handoff doc 11 §8.1 records the
-// prototype's four-value lane TYPE as the specific trap here. Work with no agent
+// render time, never a fixed vocabulary. Work with no agent
 // identity gets the `unattributed` lane rather than being dropped, so the lane
 // counts and the event count agree.
 message AgentRunLaneV1 {
@@ -1370,11 +1289,10 @@ message AgentRunChildSummaryV1 {
   bool is_error = 5;
 }
 
-// An artifact linked to this event, SUMMARISED (`PLAN:1703`).
+// An artifact linked to this event, SUMMARISED.
 //
-// A summary, never content: `PLAN:1700` keeps large payloads behind the existing
-// artifact content APIs, and `AL-14` rule 1 forbids resolving anything while
-// building a page. `resolver_posture` is what the timeline shows instead — a
+// A summary, never content: large payloads stay behind the artifact content
+// APIs, and nothing is resolved while building a page. `resolver_posture` is what the timeline shows instead — a
 // client can render "resolvable" without a single byte having been fetched.
 message AgentRunArtifactSummaryV1 {
   bytes link_id = 1;
@@ -1384,12 +1302,12 @@ message AgentRunArtifactSummaryV1 {
   ArtifactRelationV1 relation = 5;
   // The CURRENT status: the row's write-time status overlaid with the
   // append-only correction ledger. A revoked link is projected identically to an
-  // accepted one apart from this field and its audit — `PLAN:1693`.
+  // accepted one apart from this field and its audit.
   ArtifactLinkStatusV1 status = 6;
   ArtifactLinkConflictPostureV1 conflict_posture = 7;
-  // `SM-13`. Posture, never resolution.
+  // Posture, never resolution.
   ArtifactResolverPostureV1 resolver_posture = 8;
-  // `AL-1`: the ONLY thing that distinguishes the paths. The typed read model is
+  // The ONLY thing that distinguishes the paths. The typed read model is
   // otherwise identical, which is exit `:1733`'s whole claim.
   ArtifactLinkSourceKindV1 source_kind = 9;
   optional ArtifactLinkFallbackReasonV1 fallback_reason = 10;
@@ -1398,9 +1316,8 @@ message AgentRunArtifactSummaryV1 {
   optional string storage_system = 13;
   optional string resolver_key = 14;
   uint32 correction_sequence = 15;
-  // `normalize::ArtifactLinkRejectionReason::as_str()`. Machine-groupable,
-  // never prose — `PLAN:1692` requires rejected/unresolved diagnostics to be
-  // preserved "without requiring raw-key parsing in the timeline".
+  // Machine-groupable, never prose: a rejected or unresolved link's reason is
+  // read without parsing raw keys.
   optional string rejection_reason_code = 16;
   google.protobuf.Timestamp observed_at = 17;
   // The anchor the link was made against, reusing the locked twelve-arm shape.
@@ -1416,7 +1333,7 @@ message AgentRunArtifactDiagnosticV1 {
   uint32 occurrence_count = 2;
 }
 
-// What each nested family lost to its own cap (`PLAN:1698`).
+// What each nested family lost to its own cap.
 //
 // Per family, because the caps are INDEPENDENT: an event with six artifacts and
 // one child loses one artifact and no child. A single shared cap would make one
@@ -1428,10 +1345,10 @@ message AgentRunNestedCapsV1 {
   uint32 attribute_provenance_omitted = 4;
 }
 
-// One timeline event (`PLAN:1694`).
+// One timeline event.
 message AgentRunEventV1 {
   // `trace_id:span_id`. Stable across re-reads, unique across the run's member
-  // traces, and the key `P7-16`'s upserts are applied by.
+  // traces, and the key upserts are applied by.
   string event_id = 1;
   AgentRunEventDeliveryV1 delivery = 2;
   string lane_id = 3;
@@ -1473,11 +1390,10 @@ message AgentRunEventV1 {
   bool on_critical_path = 27;
   AgentRunEventGenerationV1 generation = 28;
   AgentRunEventUsageV1 usage = 29;
-  // `span_cost::span_cost`, by import. A list-rate estimate with its provenance
-  // attached, never a bill.
+  // A list-rate estimate with its provenance attached, never a bill.
   TraceSpanCostV1 cost = 30;
-  // References, never bodies (`PLAN:1700`). The `reasoning` class is a
-  // provider-exposed SUMMARY reference and nothing else (NN27).
+  // References, never bodies. The `reasoning` class is a provider-exposed
+  // SUMMARY reference and nothing else.
   repeated TraceSpanContentRefV1 content_refs = 31;
   repeated AgentRunEventAttributeProvenanceV1 attribute_provenance = 32;
   repeated AgentRunChildSummaryV1 children = 33;
@@ -1485,10 +1401,10 @@ message AgentRunEventV1 {
   AgentRunNestedCapsV1 nested_caps = 35;
 }
 
-// Whether the server actually filtered, and by how much (`PLAN:1696`).
+// Whether the server actually filtered, and by how much.
 //
-// `0b P7-15`: server-side filters exist "only where they materially reduce
-// payload — a filter that returns 195 of 200 events is a client concern". The
+// Server-side filters exist only where they materially reduce the payload: a
+// filter that returns 195 of 200 events is a client concern. The
 // rule is published as a number (`filter_materiality_retained_percent`) and the
 // verdict is on the wire, because a client that had to GUESS whether the server
 // filtered would filter defensively every time and the server's filter would buy
@@ -1505,14 +1421,14 @@ message AgentRunTimelineModeEffectV1 {
   uint32 retained_count = 5;
 }
 
-// `0b P7-16`'s cursor.
+// The timeline's cursor.
 message AgentRunTimelineCursorV1 {
   // Absent when the page exhausted the population.
   optional string next_page_token = 1;
   // The prefix to re-emit was larger than this build re-emits, so the client
   // restarts from page 1. A typed escape, never a silent truncation.
   bool resync_required = 2;
-  // Lane A's monotone projection version this page was built at.
+  // The monotone projection version this page was built at.
   int64 projection_version = 3;
   // Set when the BYTE ceiling ended the page rather than the event count.
   // "200 events" and "as many as fit" are different answers and an operator
@@ -1524,10 +1440,10 @@ message AgentRunTimelineCursorV1 {
   uint32 total_event_count = 5;
 }
 
-// The cost-driving event of the run (J2 step 4).
+// The cost-driving event of the run.
 //
-// The single largest AVAILABLE per-event cost — not a sum. A sum would be the
-// run-level money total handoff doc 11 §8 refuses to publish.
+// The single largest AVAILABLE per-event cost, not a sum: this surface
+// publishes no run-level money total.
 message AgentRunTimelineCostDriverV1 {
   optional string event_id = 1;
   TraceSpanCostV1 cost = 2;
@@ -1536,7 +1452,7 @@ message AgentRunTimelineCostDriverV1 {
 
 message ListAgentRunEventsRequest {
   // A non-`_CURRENT` id is not an error: it resolves to the canonical run and
-  // the response carries the redirect (`P7-6`).
+  // the response carries the redirect.
   string agent_run_id = 1;
   AgentRunTimelineModeV1 mode = 2;
   // From a previous response. Bound to the run, the mode and the projection
@@ -1551,15 +1467,15 @@ message ListAgentRunEventsRequest {
 message ListAgentRunEventsResponse {
   // The CANONICAL run id, which may differ from the one requested.
   string agent_run_id = 1;
-  // Present when the requested id was not `_CURRENT` (`P7-6`).
+  // Present when the requested id was not `_CURRENT`.
   optional GroupingRedirectV1 redirect = 2;
   repeated AgentRunEventV1 events = 3;
   repeated AgentRunLaneV1 lanes = 4;
   AgentRunTimelineModeEffectV1 mode_effect = 5;
   AgentRunTimelineCursorV1 cursor = 6;
-  // `P7-13`: the timeline's "this conversation is done" affordance READS this
-  // state. It computes no idle heuristic of its own, and there is no field here
-  // that would let it.
+  // The timeline's "this conversation is done" affordance READS this state. It
+  // computes no idle heuristic of its own, and there is no field here that
+  // would let it.
   ConversationCompletenessV1 completeness = 7;
   repeated AgentRunEventKindCoverageV1 event_kind_coverage = 8;
   repeated AgentRunArtifactSourceCoverageV1 artifact_source_coverage = 9;
@@ -1568,12 +1484,12 @@ message ListAgentRunEventsResponse {
   // score to a single span today. An absence with a reason, not an empty list a
   // client would read as "unscored".
   MetricAvailabilityV1 event_score_availability = 11;
-  // J2's "downstream trace unavailable", typed. NOT_SUPPORTED with
-  // `span_links_reach_the_lake_without_attributes` — OTel's own relational
-  // mechanism survives ingest with its attributes dropped, so a span link cannot
+  // "Downstream trace unavailable", typed. NOT_SUPPORTED with
+  // `span_links_reach_the_lake_without_attributes`: span links are stored
+  // without their attributes, so a span link cannot
   // say WHY it links and a downstream reference cannot be built from it.
   MetricAvailabilityV1 downstream_reference_availability = 12;
-  // The earliest failure across the run's member traces (J2 step 4), reusing the
+  // The earliest failure across the run's member traces, reusing the
   // trace viewer's own shape and fold.
   optional TraceFirstFailureV1 first_failure = 13;
   AgentRunTimelineCostDriverV1 cost_driver = 14;
@@ -1593,7 +1509,7 @@ message ListAgentRunEventsResponse {
   repeated AgentRunArtifactSummaryV1 run_artifacts = 20;
 }
 
-// `PLAN:497` / `AL-8` / `SM-12`. An audited logical revocation: a tombstone in
+// An audited logical revocation: a tombstone in
 // the append-only correction ledger, never a delete of the immutable telemetry
 // that carried the link.
 message RevokeExternalArtifactLinkRequest {
@@ -1612,7 +1528,7 @@ message RevokeExternalArtifactLinkResponse {
   optional string rejection_reason_code = 3;
 }
 
-// `PLAN:498` / `AL-14`. One resolve, one artifact, only after an explicit
+// One resolve, one artifact, only after an explicit
 // selection. List and timeline reads return POSTURE and never invoke a resolver.
 message ResolveExternalArtifactLinkRequest {
   PrincipalRefV1 principal = 1;
@@ -1620,37 +1536,29 @@ message ResolveExternalArtifactLinkRequest {
 }
 
 message ResolveExternalArtifactLinkResponse {
-  // The outcome posture. `SM-13`'s six values.
+  // The outcome posture.
   ArtifactResolverPostureV1 posture = 1;
   // `resolver_not_configured` | `resolver_executor_not_shipped` |
   // `resolver_denied_by_policy` | `link_not_found` | `link_revoked`.
   string reason_code = 2;
-  // Deliberately NOT a URL and NOT a credential. `AL-14` rule 3 and NN8: neither
-  // is stored, and neither is returned. When a resolver executor ships, the
+  // Deliberately NOT a URL and NOT a credential: neither is stored, and neither
+  // is returned. When a resolver executor ships, the
   // authorized content reference is what this grows — never a signed URL on a
   // read model.
   google.protobuf.Timestamp attempted_at = 3;
 }
-// ---- end wave 41 lane C ----
+// ---- end of the agent-run timeline ----
 
 // ---------------------------------------------------------------------------
-// ---- W-V1-1 (D2): the trace list ----
+// ---- the trace list ----
 //
-// `o11y-web`'s `/traces` page is the only trace LIST this product has, and it
-// runs on v1 `ListTraceInvestigations`: a six-branch UNION-ALL candidate query
-// merged with a trace-lake scan, seven signal CTEs, a failed-gate join, the
-// fix-queue decoration, and filter/sort/facet/cohort in memory over ten
-// thousand rows. This is the same page's data in TWO reads — one DataFrame
-// aggregate over the span plane and one membership statement — because the
-// decoration was the cost and none of it was the list.
+// The traces page's data, in two bounded reads.
 // ---------------------------------------------------------------------------
 
 // One trace, as the list renders it.
 //
-// The aggregate's own columns and nothing derived from a second plane.
-// `AgentRunScorePostureV1` is DELIBERATELY ABSENT: it is a read of `eval_scores`
-// and of the production-rule verdicts per trace, which is a third statement for
-// a column a list sorts by but cannot act on. `GetAgentRun` carries the posture
+// The trace's own aggregates and nothing derived from scores.
+// `AgentRunScorePostureV1` is DELIBERATELY ABSENT from the list. `GetAgentRun` carries the posture
 // for the run a reader pivots to, which is where it is worth a read.
 message AgentTraceRowV1 {
   // Lowercase hex, as `AgentTraceHeaderV1.trace_id` spells it.
@@ -1666,9 +1574,8 @@ message AgentTraceRowV1 {
   // Spans the ingest classifier marked failed. A trace with one is a trace the
   // `errors_only` filter keeps.
   uint32 error_count = 6;
-  // Distinct agent, model and tool names — the same column rules
-  // `agent_run/fold.rs` folds a RUN's counts from, so the two surfaces cannot
-  // drift into disagreeing about what a tool is.
+  // Distinct agent, model and tool names, by the same rules a run's counts
+  // use, so the two surfaces cannot disagree about what a tool is.
   uint32 agent_count = 7;
   uint32 model_count = 8;
   uint32 tool_count = 9;
@@ -1686,18 +1593,8 @@ message AgentTraceRowV1 {
 // `AgentTraceListFilterV1` is DEFINED IN `evaluation.proto` and used here by its
 // package-local name.
 //
-// It lived in this file until a scratch launch's live-trace source needed it on
-// `PreviewEvaluationRunRequest`. The import direction forbids reuse the other way
-// round — this file imports `evaluation.proto` (:45), so `evaluation.proto`
-// importing this one is a cycle — and both alternatives were worse: a second
-// spelling of one filter, which is how two surfaces come to disagree about what
-// `errors_only` means, or the locally-spelled shape this file's
-// `DatasetCaseLineageAnchorKindV1` neighbour had to settle for.
-//
-// Moving it costs nothing a reader can observe. The package is one prost module
-// (lock ruling `L1-4`), so every Rust path is unchanged, and `buf.yaml` breaks on
-// `PACKAGE` rather than `FILE` for exactly this reason: "the guarantee is the
-// wire within o11y_one.agentic.v1, not which file a type lives in".
+// One filter, one meaning: a scratch launch's live-trace source and the trace
+// list never disagree about what `errors_only` means.
 
 message ListAgentTracesRequest {
   optional google.protobuf.Timestamp start = 1;
@@ -1725,22 +1622,13 @@ message ListAgentTracesResponse {
   AgenticEvaluationCapabilitiesV1 capabilities = 8;
   optional TraceReadRefusalV1 refusal = 9;
 }
-// ---- end W-V1-1 (D2) ----
+// ---- end of the trace list ----
 
 // ---------------------------------------------------------------------------
-// ---- W-V1-1 (D3): the evidence graph ----
+// ---- the evidence graph ----
 //
-// MOVED here from `agentic.proto`, unchanged. Six of the v1 verb's eight scope
-// arms die with v1 — session, dataset item, eval job, experiment run item,
-// release gate evaluation, annotation task — and the two that survive, a trace
-// and an agent run, are this service's concepts. Same package, so the move is a
-// file move and not a wire change: `buf breaking` runs in PACKAGE mode.
-//
-// `TraceInvestigationUnavailableReasonV1` and `TraceInvestigationEvidenceLinkV1`
-// come with them because a node carries evidence links and a graph carries
-// unavailable reasons. Leaving those two behind would have meant importing
-// `agentic.proto` here, and `agentic.proto` must import THIS file to keep naming
-// the graph — which is the import cycle protoc refuses.
+// A trace's or an agent run's evidence graph: its nodes, edges and evidence
+// links, and why a section is unavailable.
 // ---------------------------------------------------------------------------
 
 message TraceInvestigationUnavailableReasonV1 {
@@ -1766,7 +1654,7 @@ message AgenticEvidenceGraphNodeV1 {
   // Display-only facts about the node (a score's value, a run's grouping
   // state), serialised JSON. A string rather than `google.protobuf.Struct`
   // because the v2 contract carries no untyped document a service could branch
-  // on (`PLAN:1895`); this one is rendered, never read back.
+  // on; this one is rendered, never read back.
   string metadata_json = 7;
   repeated TraceInvestigationEvidenceLinkV1 evidence_links = 6;
   reserved 5;
@@ -1786,20 +1674,17 @@ message AgenticEvidenceGraphV1 {
   repeated TraceInvestigationUnavailableReasonV1 unavailable_reasons = 4;
 }
 
-// The two arms that survive v1. Six die with it — session, dataset item, eval
-// job, experiment run item, release gate evaluation, annotation task — and
-// every one of them names a v1-only concept.
+// A trace or an agent run.
 message GetAgentEvidenceGraphRequest {
   oneof scope {
     // Lowercase hex, as `AgentTraceHeaderV1.trace_id` spells it.
     string trace_id = 1;
     // A stale (`_MERGED_AWAY` / `_SPLIT_AWAY`) id resolves through the grouping
-    // redirect and answers with the CANONICAL run, never `NOT_FOUND` (`P7-6`).
+    // redirect and answers with the CANONICAL run, never `NOT_FOUND`.
     string agent_run_id = 2;
   }
-  // Default 64, clamped to 8..=512. The clamp is silent, exactly as the v1 verb
-  // clamps it: a client that asked for 4,000 nodes gets 512 and no field says
-  // so, and changing that is a contract change rather than a move.
+  // Default 64, clamped to 8..=512. The clamp is silent: a client that asked
+  // for 4,000 nodes gets 512 and no field says so.
   optional uint32 node_limit = 3;
 }
 
@@ -1807,76 +1692,42 @@ message GetAgentEvidenceGraphResponse {
   AgenticEvidenceGraphV1 graph = 1;
 }
 
-// The trace viewer's read plane.
+// The trace viewer's reads, and the agent-run and external-artifact verbs.
 //
-// Served by the process that holds `UnifiedTelemetryQueryEngine`, because span
-// rows are reachable through nothing else. Two RPCs, one bounded span scan
-// each, so a screen costs two scans rather than five.
+// Two trace RPCs, one bounded span scan each, so a screen costs two scans rather
+// than five.
 service AgenticTraceViewService {
   rpc GetAgentTraceDetail(GetAgentTraceDetailRequest) returns (GetAgentTraceDetailResponse);
   rpc ListAgentTraceSpans(ListAgentTraceSpansRequest) returns (ListAgentTraceSpansResponse);
 
-  // ---- wave 41 lane A: identity ----
-  //
-  // The audited promotion of a provisional grouping (`PLAN:494`, `PLAN:1675`).
-  // It lives here rather than on a service of its own because a confirmation is
-  // a statement about a grouping the query engine produced, and the process that
-  // holds the engine is the one that can resolve the run it names.
-  //
-  // It is also this lane's proof of `P7-6`: addressed with a `_MERGED_AWAY` id
-  // it resolves to the canonical run and returns the redirect, and never a
-  // `NOT_FOUND`.
-
-
+  // The audited promotion of a provisional grouping. Addressed with a
+  // `_MERGED_AWAY` id it resolves to the canonical run and returns the redirect,
+  // never a `NOT_FOUND`.
   rpc ConfirmAgentRunGrouping(ConfirmAgentRunGroupingRequest) returns (ConfirmAgentRunGroupingResponse);
-  // ---- end wave 41 lane A ----
 
-  // ---- wave 41 lane B: summary index ----
-  //
-  // The Production > Agent runs list and the run header (`PLAN:491`).
-  //
-  // Both are served from the MAINTAINED projection (`P7-14`, `PLAN:1687`) and
-  // neither touches the query engine: the index pass on the preparation worker
-  // does the scanning, and `agent_trace_span_scans_issued()` not moving across
-  // these two calls is how that is proved rather than asserted.
+  // The Production > Agent runs list and the run header, both served from a
+  // maintained index: neither scans spans.
   rpc ListAgentRuns(ListAgentRunsRequest) returns (ListAgentRunsResponse);
-  // W-V1-1 (D2). The `/traces` list, in two reads. It sits beside
+  // The traces list, in two reads. It sits beside
   // `ListAgentRuns` because the two are the same screen at two altitudes —
   // every trace, and the runs those traces group into.
   rpc ListAgentTraces(ListAgentTracesRequest) returns (ListAgentTracesResponse);
 
-  // W-V1-1 (D3). The trace sheet's and the agent-run screen's evidence graph,
-  // built by the SAME builders the v1 verb now calls: the two arms moved here
-  // rather than being copied, so the two services cannot answer differently
-  // for the same scope while both exist.
+  // The trace sheet's and the agent-run screen's evidence graph.
   rpc GetAgentEvidenceGraph(GetAgentEvidenceGraphRequest) returns (GetAgentEvidenceGraphResponse);
   rpc GetAgentRun(GetAgentRunRequest) returns (GetAgentRunResponse);
-  // ---- end wave 41 lane B ----
 
-  // ---- wave 41 lane C: timeline ----
-  //
-  // The conversation timeline (`PLAN:492`) and the three external-artifact verbs
-  // (`PLAN:495`-`:498`).
-  //
-  // They live on this service for the reason the file header already gives: span
-  // rows are reachable only through `UnifiedTelemetryQueryEngine`, and a read
-  // model over spans is a query-engine read model or it is nothing. The three
-  // verbs join them because the timeline is where an artifact link is READ, and
-  // splitting the write of a link from the read of it across two services would
-  // make "the RPC fallback produces the identical typed read model"
-  // (exit `:1733`) a claim about two codebases instead of one.
+  // The conversation timeline, and the three external-artifact verbs beside it:
+  // the timeline is where an artifact link is READ.
   rpc ListAgentRunEvents(ListAgentRunEventsRequest) returns (ListAgentRunEventsResponse);
 
-  // `AL-9`/`AL-10`: for unavailable instrumentation, backfill, correction or
-  // revocation ONLY — never the normal instrumentation path. `MUTATION_ACK`
-  // class, authorized principal, one audit row per call, rate-limited as a write
-  // surface. Request and response are `artifact.proto`'s, which minted them and
-  // left the surface to "the increment that wires it".
+  // For unavailable instrumentation, backfill, correction or revocation ONLY,
+  // never the normal instrumentation path. `MUTATION_ACK` class, authorized
+  // principal, one audit row per call, rate-limited as a write surface. Request
+  // and response are defined in `artifact.proto`.
   rpc LinkExternalArtifact(LinkExternalArtifactRequest) returns (LinkExternalArtifactResponse);
   rpc RevokeExternalArtifactLink(RevokeExternalArtifactLinkRequest) returns (RevokeExternalArtifactLinkResponse);
-  // `AL-14`: one authorized, explicitly selected artifact. There is no batch
-  // resolve, because a batch resolve is a fan-out with a nicer name.
+  // One authorized, explicitly selected artifact. There is no batch resolve,
+  // because a batch resolve is a fan-out with a nicer name.
   rpc ResolveExternalArtifactLink(ResolveExternalArtifactLinkRequest) returns (ResolveExternalArtifactLinkResponse);
-  // ---- end wave 41 lane C ----
-
 }
