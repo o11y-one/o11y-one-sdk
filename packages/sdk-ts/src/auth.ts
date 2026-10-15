@@ -1,16 +1,14 @@
 /**
  * Credential handling for machine principals.
  *
- * The wire contract below is SETTLED — it is read out of the running server, not
- * designed here. Source: lane 50A's credential-shape note (w50d handoff), which
- * in turn cites `shared/src/lib.rs:70` for the header name and
- * `server/src/services/api_tokens/crypto.rs` for the encoding.
+ * The wire contract below is the server's: the header a machine credential travels
+ * in, and the credential's shape, both as the O11y One API accepts them.
  */
 
 /**
  * The header a machine credential is presented in.
  *
- * `O11Y_ONE_API_KEY_HEADER_NAME` in o11y-api (`shared/src/lib.rs:70`).
+ * The server's `O11Y_ONE_API_KEY_HEADER_NAME`.
  * `x-api-key` is accepted server-side as a fallback alias; this SDK always sends
  * the canonical name.
  *
@@ -25,10 +23,10 @@ export const ORG_ID_HEADER = "x-o11y-org-id";
 /** Tenant scoping header (`O11Y_ONE_TENANT_ID_HEADER_NAME`). */
 export const TENANT_ID_HEADER = "x-o11y-tenant-id";
 
-/** Prefix carried by machine-principal credentials (`APITokenType::prefix()`). */
+/** Prefix carried by machine-principal credentials. */
 export const MACHINE_CREDENTIAL_PREFIX = "o11y_mach";
 
-/** Server-side cap on the presented credential string (`API_TOKEN_MAX_LEN`). */
+/** Server-side cap on the presented credential string. */
 export const CREDENTIAL_MAX_LEN = 128;
 
 /**
@@ -36,8 +34,8 @@ export const CREDENTIAL_MAX_LEN = 128;
  *
  * Shape is `o11y_mach.<selector>.<secret>` where selector is 16 random bytes and
  * secret is 32 random bytes, both base64url without padding. The SDK does not
- * parse past the prefix and must never try to: verification is Argon2id +
- * blake3 on the server and none of that is the client's business.
+ * parse past the prefix and must never try to: the credential is verified
+ * server-side and none of that is the client's business.
  *
  * It is returned exactly once, by `CreateMachineCredential`. There is no
  * read-back RPC and no recovery path.
@@ -54,9 +52,9 @@ export type MachineCredential = string & { readonly __brand: "MachineCredential"
  * expired, or unknown; only the server can say.
  */
 export function assertLooksLikeMachineCredential(raw: string): MachineCredential {
-  // The server trims whitespace and strips one layer of surrounding quotes
-  // (`normalize_api_token_input`) so a value pasted out of a shell still works.
-  // We normalise the same way rather than relying on it.
+  // The server trims whitespace and strips one layer of surrounding quotes so a
+  // value pasted out of a shell still works. We normalise the same way rather
+  // than relying on it.
   let value = raw.trim();
   if (value.length >= 2) {
     const first = value[0];

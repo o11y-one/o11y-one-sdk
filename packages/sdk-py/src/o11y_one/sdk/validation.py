@@ -1,7 +1,7 @@
 """Fast, synchronous, pre-wire input validation for the agentic surface.
 
 Every check here runs BEFORE a request leaves the process. The contract is the
-same one lane L1 (TypeScript) enforces on its side of the same wire messages:
+same one the TypeScript SDK enforces on its side of the same wire messages:
 required fields, mutually exclusive oneofs, and selector shape. None of this
 duplicates server-side validation — the server still checks everything, and
 still wins on any disagreement — it only turns the common mistakes into an
@@ -15,8 +15,7 @@ symbol only (``MAX_IDEMPOTENCY_KEY_LEN``, ``max_output_bytes``,
 ``max_preview_field_bytes``, ...) without carrying their numeric values across
 the wire or into the generated stubs — those constants live server-side. A
 client-side cap invented here would either be wrong (drift from the real
-value) or a lie (a number nobody asked for). See ``l2-notes.md`` for the full
-accounting of which caps this module enforces and which it cannot.
+value) or a lie (a number nobody asked for).
 """
 
 from __future__ import annotations
@@ -54,7 +53,7 @@ def require_not_unspecified(value: int, *, field: str, unspecified: int = 0) -> 
     """Reject the zero-value (``*_UNSPECIFIED``) discriminant on a required enum.
 
     An unspecified discriminant sent over the wire is ``INVALID_ARGUMENT``
-    server-side (0a §6.4, as the vendored proto puts it for
+    server-side (as the vendored proto puts it for
     ``CreateMachinePrincipalRequest.scopes``). Catching it here turns that into
     an immediate, local error with the field name attached.
     """

@@ -1,4 +1,4 @@
-"""Tests for the code scorer helpers (o11y-api #611) and the ``score()`` types.
+"""Tests for the code scorer helpers and the ``score()`` types.
 
 Needs ``gen-py-agentic`` regenerated at PROTO_PIN: the request and result
 messages these build and read are new there. Same fakes as ``test_agentic.py``:

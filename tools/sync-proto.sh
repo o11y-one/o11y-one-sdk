@@ -91,7 +91,7 @@ fi
 #
 # Extracted with `git archive` from the COMMIT, never copied from the working
 # tree. o11y-api is worked on continuously and its tree is routinely dirty — a
-# lane mid-edit on evaluation.proto is normal, not exceptional. Copying the
+# change mid-edit on evaluation.proto is normal, not exceptional. Copying the
 # working tree would vendor somebody's half-finished change under a PROTO_PIN
 # that claims it came from a specific commit, and the resulting snapshot would
 # be unreproducible: nobody could ever regenerate it.

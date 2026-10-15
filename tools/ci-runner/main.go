@@ -494,7 +494,7 @@ func cmdDiff(args []string) error {
 
 	doc := buildDiffDocument(resp.Msg, *candidate, generatorStamp())
 
-	// The document always goes to stdout (it is L4's input); the exit code
+	// The document always goes to stdout (it is pr-diff's input); the exit code
 	// carries the verdict. --out additionally persists it for archival.
 	payload, err := json.MarshalIndent(doc, "", "  ")
 	if err != nil {

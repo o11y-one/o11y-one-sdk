@@ -25,7 +25,7 @@ refusal-on-a-200, idempotency and capability-envelope conventions across
 dozens of RPCs, and getting any one of those conventions wrong locally
 degrades silently to an opaque network error rather than a loud local one. See
 :mod:`o11y_one.sdk.agentic` for what the facade adds on top of the generated
-client, and ``l2-notes.md`` for why this scope was drawn where it was.
+client.
 
 Note that ``o11y_one`` itself is a PEP 420 namespace package contributed to by
 two distributions: ``o11y-one-api`` (generated) and ``o11y-one`` (this one).
