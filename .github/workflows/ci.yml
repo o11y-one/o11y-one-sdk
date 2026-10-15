@@ -84,6 +84,9 @@ jobs:
       - name: Published artifacts carry only the agentic closure
         run: just surface-check
 
+      - name: No internal engineering notes in the tree
+        run: just internal-text-check
+
       # ---- build + test all packages on the host toolchain.
       # --frozen-lockfile / --locked: CI never resolves. A manifest/lockfile
       # disagreement is a PR fix, not something to paper over on a runner.
