@@ -1,9 +1,9 @@
 // The Loop rollout client against the statuses the server sends.
 //
-// A stub fetch answers in gRPC-web: each refusal is the server's own
-// (loop_rollout.rs `refusal`): its gRPC code, its sentence, and its
-// LoopRolloutRejectionV1 in grpc-status-details-bin, as tonic sends it. Timers
-// and Date are node:test's mocks, so the paused-run retries never sleep.
+// A stub fetch answers in gRPC-web, and each refusal is the server's own: its
+// gRPC code, its sentence, and its LoopRolloutRejectionV1 in
+// grpc-status-details-bin, as the server sends it. Timers and Date are
+// node:test's mocks, so the paused-run retries never sleep.
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { inspect } from "node:util";
@@ -29,7 +29,7 @@ import { LoopClient, RolloutRefused } from "@o11y-one/sdk/loop";
 const CREDENTIAL = "o11y_mach.AAAAAAAAAAAAAAAAAAAAAA.BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBA";
 const RUN = "trn_06AZ3XN1YQF4KD2M8RP7TV5W9C";
 
-// [reason code, gRPC status, the server's sentence], as loop_rollout.rs sends them.
+// [reason code, gRPC status, the server's sentence], as the server sends them.
 const RECORDED = [
   ["run_paused", 14, "the run is paused; resets wait until it resumes"],
   ["plan_concurrency_reached", 8, "the organization has as many environments open as its plan allows"],
