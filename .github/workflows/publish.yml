@@ -78,6 +78,8 @@ jobs:
         run: just gen-check
       - name: Published artifacts carry only the agentic closure
         run: just surface-check
+      - name: No internal engineering notes in the tree
+        run: just internal-text-check
       - run: just build # before lint: sdk-ts typechecks against a built dist
       - run: just lint
       - run: just test

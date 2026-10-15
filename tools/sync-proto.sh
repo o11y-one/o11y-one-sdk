@@ -14,7 +14,8 @@
 #   2. Copies <checkout>/proto/o11y_one/ into ./proto/o11y_one/.
 #   3. Applies the ONE deterministic transform this repo makes (see below).
 #   4. Verifies every remaining import resolves locally or to a well-known type.
-#   5. Runs `buf lint` and `buf generate`.
+#   5. Fails if the snapshot's comments carry internal engineering notes.
+#   6. Runs `buf lint` and `buf generate`.
 #
 # ---------------------------------------------------------------------------
 # The import re-rooting transform  (the only edit made to vendored bytes)
@@ -135,7 +136,14 @@ while IFS= read -r imp; do
 done < <(grep -rho '^import "[^"]*"' proto/o11y_one | sed 's/^import "//; s/"$//' | sort -u)
 [[ "$bad" -eq 0 ]] || { echo "import audit failed" >&2; exit 1; }
 
-# --- 5. build + generate ---------------------------------------------------
+# --- 5. internal-text check ------------------------------------------------
+# The vendored comments ship as API documentation in every generated package. A
+# snapshot whose comments carry internal engineering notes or server source
+# paths is fixed upstream, in o11y-api, before it is vendored here.
+echo "==> checking proto/ for internal engineering notes"
+"$repo_root/tools/internal-text-check.sh" proto
+
+# --- 6. build + generate ---------------------------------------------------
 # `buf build`, not `buf lint`: see the comment in buf.yaml. Style belongs to
 # o11y-api; all this repo owns is "the snapshot compiles".
 echo "==> buf build"

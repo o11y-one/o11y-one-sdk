@@ -10,6 +10,7 @@
 #   just test       test every package
 #   just lint       fmt/vet/typecheck every package
 #   just surface-check  fail if a published artifact carries a non-agentic domain
+#   just internal-text-check  fail if a file carries internal engineering notes
 #   just pack-check     inspect every tarball, wheel and sdist a release would publish
 #   just clean      remove build artifacts
 #   just publish-dry rehearse the publish without publishing
@@ -78,6 +79,12 @@ surface-check:
     done
     [[ "$fail" -eq 0 ]] || exit 1
     echo "vendored and published surface = agentic closure ($closure)"
+
+# Everything here is public, and the vendored proto comments ship as API docs in
+# every generated package. Fails if a file carries internal engineering notes or
+# a server source path. tools/sync-proto.sh runs the same check on proto/.
+internal-text-check:
+    ./tools/internal-text-check.sh
 
 # Build every artifact a release publishes, exactly as the publish jobs do (npm
 # tarballs via `pnpm pack`, wheels and sdists via `just build-py`), print their
