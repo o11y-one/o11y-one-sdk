@@ -1,9 +1,7 @@
 """Credential handling for machine principals.
 
-The wire contract below is SETTLED — it is read out of the running server, not
-designed here. Source: lane 50A's credential-shape note, which cites
-``shared/src/lib.rs:70`` for the header name and
-``server/src/services/api_tokens/crypto.rs`` for the encoding.
+The wire contract below is the server's: the header a machine credential travels
+in, and the credential's shape, both as the O11y One API accepts them.
 """
 
 from __future__ import annotations
@@ -18,7 +16,7 @@ __all__ = [
 ]
 
 #: The header a machine credential is presented in
-#: (``O11Y_ONE_API_KEY_HEADER_NAME``, o11y-api ``shared/src/lib.rs:70``).
+#: (the server's ``O11Y_ONE_API_KEY_HEADER_NAME``).
 #: ``x-api-key`` is accepted server-side as a fallback alias; this SDK always
 #: sends the canonical name.
 #:
@@ -32,10 +30,10 @@ ORG_ID_HEADER = "x-o11y-org-id"
 #: Tenant scoping header (``O11Y_ONE_TENANT_ID_HEADER_NAME``).
 TENANT_ID_HEADER = "x-o11y-tenant-id"
 
-#: Prefix carried by machine-principal credentials (``APITokenType::prefix()``).
+#: Prefix carried by machine-principal credentials.
 MACHINE_CREDENTIAL_PREFIX = "o11y_mach"
 
-#: Server-side cap on the presented credential string (``API_TOKEN_MAX_LEN``).
+#: Server-side cap on the presented credential string.
 CREDENTIAL_MAX_LEN = 128
 
 
@@ -44,9 +42,9 @@ def assert_looks_like_machine_credential(raw: str) -> str:
 
     The credential's shape is ``o11y_mach.<selector>.<secret>`` where selector is
     16 random bytes and secret is 32 random bytes, both base64url without
-    padding. The SDK does not parse past the prefix and must never try to:
-    verification is Argon2id plus a blake3 constant-time compare on the server,
-    and none of that is the client's business.
+    padding. The SDK does not parse past the prefix and must never try to: the
+    credential is verified server-side, and none of that is the client's
+    business.
 
     This is NOT authentication. A string that passes here can still be revoked,
     expired, or unknown; only the server can say. What it catches is the
@@ -58,9 +56,9 @@ def assert_looks_like_machine_credential(raw: str) -> str:
     Raises:
         ValueError: if the string cannot possibly be a machine credential.
     """
-    # The server trims whitespace and strips one layer of surrounding quotes
-    # (``normalize_api_token_input``) so a value pasted out of a shell still
-    # works. We normalise the same way rather than relying on it.
+    # The server trims whitespace and strips one layer of surrounding quotes so
+    # a value pasted out of a shell still works. We normalise the same way
+    # rather than relying on it.
     value = raw.strip()
     if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
         value = value[1:-1].strip()

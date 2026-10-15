@@ -6,33 +6,28 @@ import (
 	"strings"
 )
 
-// This file binds, field-for-field, to lane L3's contract at
-// scratchpad/l3-diff-schema.md ("L3 → L4 contract: the evaluation diff
-// document", schema_version "o11y.eval.diff/v1", STABLE). JSON tags below are
-// copied verbatim from that document's field reference; nothing here is
-// invented. Where L3's document is silent on a field this renderer would like
-// to have, that goes in scratchpad/l4-needs.md — it is not added here as a
-// guess.
+// This file binds, field-for-field, to the evaluation diff document o11y-eval
+// emits (schema_version "o11y.eval.diff/v1", STABLE; see
+// tools/ci-runner/diffdoc.go). JSON tags below match that document's fields;
+// nothing here is invented, and a field the document lacks is not guessed at.
 //
-// supportedSchemaMajor is the only major version this build understands, per
-// "L4 should hard-check the vN major and refuse a major it doesn't
-// recognize." Unknown *fields* within a recognized major are tolerated
-// (json.Unmarshal already ignores them); unknown *enum members* are passed
-// through by the render code rather than rejected, per "L4 must tolerate
-// unknown codes."
+// supportedSchemaMajor is the only major version this build understands: the
+// renderer refuses a major it doesn't recognize. Unknown *fields* within a
+// recognized major are tolerated (json.Unmarshal already ignores them); unknown
+// *enum members* are passed through by the render code rather than rejected.
 const supportedSchemaMajor = 1
 
-// OptionalNumber is L3's `OptionalNumber` wrapper: a value is either present
+// OptionalNumber is the schema's `OptionalNumber` wrapper: a value is either present
 // (a real float, which may legitimately be 0.0) or explicitly not present.
 // Present is the only field the renderer may branch on — Value is meaningless
 // when Present is false, and MUST NOT be treated as 0 in that case. This is
-// the single rule the schema doc calls out as the one L4 must honor.
+// the single rule the schema doc calls out as the one the renderer must honor.
 type OptionalNumber struct {
 	Present bool    `json:"present"`
 	Value   float64 `json:"value,omitempty"`
 }
 
-// Outcome is L3's mapped CI taxonomy (`verdict.outcome`): improvement,
+// Outcome is the schema's mapped CI taxonomy (`verdict.outcome`): improvement,
 // regression, or indeterminate. There is no "infra-failure" or "usage-error"
 // member here — the schema doc is explicit that those aren't values this
 // field takes, because a diff document only exists once the server has
@@ -48,8 +43,8 @@ const (
 )
 
 // Verdict is `verdict` in the document — the load-bearing, server-authored
-// object. L4 renders it; it never re-derives or second-guesses it (per
-// "What L4 must NOT do": don't re-map verdict.outcome/exit_code).
+// object. The renderer renders it; it never re-derives or second-guesses it (per
+// "what the renderer must NOT do": don't re-map verdict.outcome/exit_code).
 type Verdict struct {
 	Decision        string  `json:"decision"`
 	DecisionSource  string  `json:"decision_source"`
@@ -105,7 +100,7 @@ type FailureReasons struct {
 
 // Note is one entry of `notes[]`: a non-fatal caveat about comparability.
 // Known v1 codes are baseline_source_changed, used_fallback_baseline_changed,
-// decision_changed, simulated_evaluation, but per the schema doc L4 must
+// decision_changed, simulated_evaluation, but per the schema doc the renderer must
 // tolerate unknown codes — render Message and default Severity to "info".
 type Note struct {
 	Code     string `json:"code"`
@@ -159,7 +154,7 @@ func schemaMajor(schemaVersion string) (int, error) {
 	}
 	rest := strings.TrimPrefix(schemaVersion, prefix)
 	// Accept "v1" and also "v1.2" / "v1.2.3" (major.minor.patch), taking only
-	// the major component, in case L3 later qualifies the version further.
+	// the major component, in case the schema later qualifies the version further.
 	major := rest
 	if i := strings.IndexByte(rest, '.'); i >= 0 {
 		major = rest[:i]

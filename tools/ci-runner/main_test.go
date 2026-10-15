@@ -123,7 +123,7 @@ func TestIndeterminateCannotBeCoerced(t *testing.T) {
 }
 
 // buildDiffDocument reads the run's adopted decision; it never recomputes the
-// verdict. This asserts the mapping end-to-end AND the typed absence contract L4
+// verdict. This asserts the mapping end-to-end AND the typed absence contract pr-diff
 // depends on: a nil optional is Present=false, a real 0.0 is Present=true with
 // value 0.
 func TestBuildDiffDocumentIndeterminateAndTypedAbsence(t *testing.T) {
@@ -657,7 +657,7 @@ func adoptedDecision(state agenticv1.MetricAvailabilityStateV1, outcome agenticv
 
 // fakeEval is the evaluation service's launch path, served by the real
 // generated handler so the client's gRPC-web framing is exercised. Like the
-// server (o11y-api run_handlers.rs:170-174), CreateEvaluationRun refuses a
+// server, CreateEvaluationRun refuses a
 // token its preview did not mint for that definition.
 type fakeEval struct {
 	agenticv1connect.UnimplementedAgenticEvaluationServiceHandler
@@ -701,7 +701,7 @@ func (f *fakeEval) CreateEvaluationRun(_ context.Context, req *connect.Request[a
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("preview token is malformed"))
 	}
 	// A reused key replays: the server compares the re-resolved binding's
-	// digest, which carries no nonce and no expiry (run_domain.rs:81-100), so a
+	// digest, which carries no nonce and no expiry, so a
 	// fresh preview of an unchanged definition matches the accepted one.
 	replay := f.keys[m.GetIdempotencyKey()]
 	f.keys[m.GetIdempotencyKey()] = true

@@ -1,7 +1,7 @@
 /**
  * The O11y One error taxonomy, as the SDK must render it.
  *
- * From lane 50A's note: `UNAUTHENTICATED` vs `PERMISSION_DENIED` is the whole
+ * `UNAUTHENTICATED` vs `PERMISSION_DENIED` is the whole
  * reason this layer exists. "Your token is invalid" and "your token is fine but
  * this capability is not shipped / not granted" are different problems with
  * different fixes, and collapsing them into "auth error" is the failure mode
@@ -43,7 +43,7 @@ const CANONICAL_SCOPES = [
   "platform-annotation:write",
 ] as const;
 
-/** The five canonical machine-principal scope strings (50A, frozen taxonomy). */
+/** The five canonical machine-principal scope strings, a fixed set. */
 export type MachineScope = (typeof CANONICAL_SCOPES)[number];
 
 export const MACHINE_SCOPES: readonly MachineScope[] = CANONICAL_SCOPES;

@@ -1,8 +1,8 @@
 """The two refusal-delivery channels ``AgenticEvaluationService`` uses, and the
 one discriminant convention both channels render through.
 
-Per DESIGN-AGENT-START-HERE.md §3 and lane L1's notes (TypeScript, same wire):
-a business refusal on this surface arrives one of two ways —
+A business refusal on this surface arrives one of two ways, the same in the
+Python and TypeScript SDKs:
 
 1. **On an otherwise-successful response** (a ``200``-shaped message with a
    ``refusal``/``rejection`` sub-message populated instead of the success
@@ -15,10 +15,10 @@ a business refusal on this surface arrives one of two ways —
    dataset case capture (``EvaluationCaptureRefusalV1``), dataset version
    publish (``EvaluationDatasetVersionRejectionV1``), and platform annotation
    recording (``PlatformAnnotationRejectionV1``). :func:`find_error_detail` is
-   this module's equivalent of connect-es's ``ConnectError.findDetails`` /
-   lane L1's ``findDetail`` helper.
+   this module's equivalent of connect-es's ``ConnectError.findDetails``, which
+   the TypeScript SDK uses.
 
-**Discriminant convention (matches lane L1 exactly — this is the wire
+**Discriminant convention (shared with the TypeScript SDK — this is the wire
 contract between the two SDKs, not a per-language choice):** a
 :class:`~o11y_one.sdk.results.Refusal.reason_code` is always the wire enum
 member's name with its own type's common prefix stripped — e.g.
@@ -26,27 +26,18 @@ member's name with its own type's common prefix stripped — e.g.
 ``EXTERNAL_LEASE_REFUSAL_KIND_V1_LEASE_EXPIRED`` renders as ``"LEASE_EXPIRED"``
 — derived mechanically via :func:`bare_enum_name`, never a hand-picked label.
 An unrecognized discriminant (version skew: the SDK is older than the server)
-folds to ``"UNSPECIFIED"`` rather than a bare int, exactly as lane L1 does.
+folds to ``"UNSPECIFIED"`` rather than a bare int, in both SDKs.
 
-This module deliberately does NOT introduce its own taxonomy for the
-externally-executed lease's five illustrative recovery states named in the
-task brief (lease-expiry / abandonment / budget-exhaustion / indeterminacy /
-token-revocation): lane L1 checked and none of the wire enums carry a
-five-state cut that matches those names, so it rendered the seven REAL
-``ExternalLeaseRefusalKindV1`` variants verbatim instead
-(``RUN_NOT_EXECUTABLE``, ``CANDIDATE_NOT_EXTERNALLY_EXECUTED``,
-``LEASE_NOT_HELD``, ``LEASE_EXPIRED``, ``RENEWAL_BUDGET_EXHAUSTED``,
-``BOUNDS_EXCEEDED``, ``SCOPE_MISSING``). This module follows that resolution
-rather than the task brief's illustrative names, because "same names L1 uses"
-and "the illustrative five" turned out to be mutually exclusive once L1 read
-the proto, and cross-SDK parity on the wire-facing string wins. See
-``l2-notes.md`` for the full accounting, including how ``token-revocation``
-(a credential problem, not a lease problem) is instead reported by
-:func:`o11y_one.sdk.errors.classify` returning ``Disposition.REAUTHENTICATE``,
-and how ``indeterminacy`` (a submit whose outcome is unknown after a transport
-error) has no refusal message to decode at all — it is a ``ConnectError``
-with no matching Any packed into it, and the caller's only correct move is
-"retry with the same idempotency key and reconcile against
+The externally-executed lease's refusals are the seven real
+``ExternalLeaseRefusalKindV1`` variants, verbatim (``RUN_NOT_EXECUTABLE``,
+``CANDIDATE_NOT_EXTERNALLY_EXECUTED``, ``LEASE_NOT_HELD``, ``LEASE_EXPIRED``,
+``RENEWAL_BUDGET_EXHAUSTED``, ``BOUNDS_EXCEEDED``, ``SCOPE_MISSING``); this
+module adds no taxonomy of its own. A revoked token (a credential problem, not a
+lease problem) is reported by :func:`o11y_one.sdk.errors.classify` returning
+``Disposition.REAUTHENTICATE``. A submit whose outcome is unknown after a
+transport error has no refusal message to decode at all — it is a
+``ConnectError`` with no matching Any packed into it, and the caller's only
+correct move is "retry with the same idempotency key and reconcile against
 ``already_submitted_count``", not a discriminant this module can name.
 """
 
@@ -76,7 +67,7 @@ def bare_enum_name(enum_type: EnumTypeWrapper, value: int) -> str:
 
     An unrecognized discriminant — an int with no matching name, the version
     skew case where this SDK is older than the server that sent it — folds to
-    ``"UNSPECIFIED"``, matching lane L1's convention exactly.
+    ``"UNSPECIFIED"``, as the TypeScript SDK does.
     """
     names = list(enum_type.keys())
     prefix = _common_prefix(names)

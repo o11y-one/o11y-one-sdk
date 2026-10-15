@@ -22,7 +22,7 @@ const commentMarker = "<!-- o11y-one:pr-diff:v1 -->"
 // what makes the GitHub-posting path in comment.go testable without a server.
 //
 // Every value printed here is read directly off doc; nothing is recomputed,
-// thresholded, or second-guessed, per the L3 contract's "What L4 must NOT
+// thresholded, or second-guessed, per the schema's "what the renderer must NOT
 // do."
 func Render(doc DiffDocument) (string, error) {
 	var b strings.Builder
@@ -54,7 +54,7 @@ func Render(doc DiffDocument) (string, error) {
 // comparison (network, auth, an unimplemented RPC; see
 // tools/ci-runner.OutcomeInfraFailure) or the invocation itself was wrong
 // (tools/ci-runner.OutcomeUsageError). Neither state exists as a value of
-// `verdict.outcome` in L3's schema, because the schema only describes a
+// `verdict.outcome` in the schema, because the schema only describes a
 // document the server *did* produce a comparison for. This is deliberately a
 // separate function, not a fake DiffDocument with invented fields, so the two
 // code paths — "here is what the server said" vs. "the server was never
@@ -91,7 +91,7 @@ func verdictDisplay(o Outcome) (emoji, label string) {
 	case OutcomeIndeterminate:
 		return "⚠️", "Indeterminate"
 	default:
-		// Schema says L4 must tolerate unknown enum members rather than
+		// Schema says the renderer must tolerate unknown enum members rather than
 		// erroring. An outcome this build has never seen is rendered
 		// honestly as unknown, not silently folded into one of the three
 		// known states.
@@ -287,7 +287,7 @@ func renderDelta(r MetricRow) string {
 
 // writeAbsencesFootnote renders `absences[]` as a single "N fields
 // unavailable" footnote per-field, exactly as the schema doc suggests ("lets
-// L4 show a single 'N fields unavailable' footnote without walking the
+// the renderer show a single 'N fields unavailable' footnote without walking the
 // tree") — it does not try to path-match an absence back to a specific table
 // cell.
 func writeAbsencesFootnote(b *strings.Builder, absences []Absence) {

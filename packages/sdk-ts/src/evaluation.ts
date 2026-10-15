@@ -366,8 +366,7 @@ export class AgenticEvaluationClient {
    * from the token this returns.
    *
    * NOTE: the wire contract launches from a definition (+ optional revision)
-   * through a preview token; there is no inline-draft launch path in the proto
-   * at this capability. See l1-notes.
+   * through a preview token; there is no inline-draft launch path.
    */
   async previewRun(args: {
     definitionId: string;

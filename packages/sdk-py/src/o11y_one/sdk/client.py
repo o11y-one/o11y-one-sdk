@@ -38,24 +38,15 @@ class CredentialInterceptor:
     This is THE auth-injection point for the Python SDK. Everything about the
     shape it injects is settled (see :mod:`o11y_one.sdk.auth`).
 
-    RESOLVED (was a TODO against w50a-auth-shape / lane 50A): the
-    machine-principal management surface -- ``CreateMachinePrincipal``,
+    The machine-principal management calls (``CreateMachinePrincipal``,
     ``ListMachinePrincipals``, ``CreateMachineCredential``,
     ``RevokeMachineCredential``, ``RevokeMachinePrincipal``,
-    ``GetCallerPrincipal`` -- landed at PROTO_PIN capability 48
-    (``fd227e87``), but NOT on ``AuthFoundationService`` as this note
-    originally expected: ``auth.proto`` still carries only
-    ``AuthFoundationService.ListAuthMethods``. The RPC names held, the
-    service didn't -- they shipped on ``AgenticEvaluationService``
-    (``o11y_one/agentic/v1/evaluation.proto``) instead, alongside the rest of
-    the lease/run/dataset surface. The introspection call this note wanted --
-    "is my credential valid, and which scopes does it carry?" BEFORE a run,
-    turning an UNAUTHENTICATED at minute 40 into an error at minute 0 -- is
-    :meth:`o11y_one.sdk.agentic.AgenticClientSync.whoami` (and its async
-    twin), not a method on this class: this module's job stays "build clients
-    and attach headers," and whoami is a ``AgenticEvaluationService`` RPC like
-    any other. Nothing in THIS module changed: the header, the encoding, and
-    the error taxonomy were already the final ones.
+    ``GetCallerPrincipal``) are ``AgenticEvaluationService`` RPCs
+    (``o11y_one/agentic/v1/evaluation.proto``). To ask "is my credential valid,
+    and which scopes does it carry?" BEFORE a run, turning an UNAUTHENTICATED at
+    minute 40 into an error at minute 0, call
+    :meth:`o11y_one.sdk.agentic.AgenticClientSync.whoami` (or its async twin).
+    This class only builds clients and attaches headers.
 
     Implements both the sync and async unary interceptor protocols, which
     connect-python matches structurally (``runtime_checkable`` Protocols), so one
