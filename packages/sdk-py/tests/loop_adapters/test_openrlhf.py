@@ -2,7 +2,8 @@
 ``--train.agent_func_path``, with a fake engine answering as vLLM does.
 
 Needs OpenRLHF's agent module (``pip install --no-deps openrlhf==0.11.2`` with aiohttp, sympy,
-pylatexenc and transformers 5.15); skipped without it. The tokenizer is TRL's tiny Qwen3's.
+pylatexenc, transformers 5.15 and datasets 5.1); skipped without it. The tokenizer is TRL's
+tiny Qwen3's.
 """
 
 from __future__ import annotations
@@ -167,3 +168,42 @@ def test_an_openrlhf_outside_the_tested_range_is_refused_at_import(monkeypatch) 
     monkeypatch.delitem(sys.modules, "o11y_one.sdk.loop.openrlhf")
     with pytest.raises(ImportError, match=r"0\.11\.2.*0\.12.*0\.10\.4"):
         importlib.import_module("o11y_one.sdk.loop.openrlhf")
+
+
+def trajectory_rows(path) -> None:
+    """Loop's OpenRLHF trajectory export: a JSONL row per rollout, each call's arguments JSON
+    text, and a field a message lacks absent. The two calls' tools take different arguments."""
+    shell = {"name": "shell", "arguments": '{"command": "pytest -q"}'}
+    write = {"name": "write_file", "arguments": '{"path": "/work/mod.py", "content": "x = 1\\n"}'}
+    rows = [
+        [
+            {"role": "user", "content": "Fix the module."},
+            {
+                "role": "assistant",
+                "content": "",
+                "tool_calls": [{"id": "000000001", "type": "function", "function": call}],
+            },
+            {"role": "tool", "content": "exit code 0", "tool_call_id": "000000001", "name": name},
+            {"role": "assistant", "content": "Done."},
+        ]
+        for call, name in [(shell, "shell"), (write, "write_file")]
+    ]
+    path.write_text("".join(json.dumps({"messages": messages}) + "\n" for messages in rows))
+
+
+def test_sft_dataset_gives_openrlhfs_reader_each_rows_own_parsed_arguments(tmp_path) -> None:
+    from openrlhf.datasets.utils import blending_datasets
+
+    trajectory_rows(tmp_path / "rows.jsonl")
+    adapter.sft_dataset(tmp_path / "rows.jsonl", tmp_path / "sft.parquet")
+    strategy = SimpleNamespace(
+        print=lambda *_: None, is_rank_0=lambda: False, args=SimpleNamespace(use_ms=False)
+    )
+    data = blending_datasets(str(tmp_path / "sft.parquet"), None, strategy)
+    first, second = (row["messages"] for row in data)
+    assert first[1]["tool_calls"][0]["function"]["arguments"] == {"command": "pytest -q"}
+    assert second[1]["tool_calls"][0]["function"]["arguments"] == {
+        "path": "/work/mod.py",
+        "content": "x = 1\n",
+    }
+    assert first[0] == {"role": "user", "content": "Fix the module."}

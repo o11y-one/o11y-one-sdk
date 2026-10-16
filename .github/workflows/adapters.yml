@@ -72,15 +72,15 @@ jobs:
           EXTRA: ${{ matrix.extra }}
         run: uv sync --locked --all-packages --extra "$EXTRA" --python 3.12
 
-      # OpenRLHF's agent module needs only these of its requirements (deepspeed and
-      # flash-attn are CUDA builds), so OpenRLHF 0.11.2 goes in without the rest.
+      # OpenRLHF's agent module and SFT reader need only these of its requirements
+      # (deepspeed and flash-attn are CUDA builds), so OpenRLHF 0.11.2 goes in without the rest.
       - name: Install OpenRLHF's agent module
         if: matrix.extra == 'openrlhf'
         run: |
           uv sync --locked --all-packages --python 3.12
           uv pip install --index-url https://download.pytorch.org/whl/cpu torch==2.14.1
           uv pip install --no-deps openrlhf==0.11.2
-          uv pip install aiohttp==3.14.5 sympy==1.14.0 pylatexenc==2.11 transformers==5.15.0
+          uv pip install aiohttp==3.14.5 sympy==1.14.0 pylatexenc==2.11 transformers==5.15.0 datasets==5.1.0
 
       # The only step with the Hub: each model at its pinned commit (repo@sha, as
       # tests/loop_adapters/fake_loop.py loads it). The tests run offline after it.
