@@ -16,6 +16,7 @@ import pytest
 pytest.importorskip("verl")
 
 import hydra  # noqa: E402
+import loop_exports  # noqa: E402
 from fake_loop import CONNECTS, CREDENTIAL, tiny_qwen3  # noqa: E402
 from o11y_one.agentic.v1.rollout_pb2 import LoopFailureClassV1  # noqa: E402
 from o11y_one.sdk.loop import RolloutRefused  # noqa: E402
@@ -211,53 +212,60 @@ def test_a_worker_keeps_counters_for_its_recent_uids_only() -> None:
     assert adapter._counter.cache_info().currsize == adapter.UIDS_KEPT
 
 
-def sft_parquet(path) -> str:
-    """One row of Loop's verl trajectory export, as it writes the Parquet: every message field in
-    every message, null where it lacks one, and the tools and each call's arguments JSON text."""
-    import pyarrow as pa
-    import pyarrow.parquet as pq
-    from o11y_one.sdk.loop import _core
-
-    def message(role, content, tool_calls=None, tool_call_id=None, name=None):
-        return {
-            "role": role,
-            "content": content,
-            "tool_calls": tool_calls,
-            "tool_call_id": tool_call_id,
-            "name": name,
-        }
-
-    call = {"name": "shell", "arguments": '{"command": "pytest -q"}'}
-    messages = [
-        message("user", "Fix the module."),
-        message("assistant", "", [{"id": "000000001", "type": "function", "function": call}]),
-        message("tool", "exit code 0\nstdout:\n1 passed", tool_call_id="000000001", name="shell"),
-        message("assistant", "Done."),
-    ]
-    row = {
-        "messages": messages,
-        "tools": json.dumps(_core.TOOLS),
-        "loop_rollout_id": "r-1",
-        "loop_group_id": "g-1",
-        "loop_rewards": '{"tests_passed": 1.0}',
-    }
-    pq.write_table(pa.Table.from_pylist([row]), path)
-    return str(path)
-
-
 def test_the_sft_dataset_parses_the_trajectory_exports_tools_and_arguments(
     tmp_path, tokenizer
 ) -> None:
     from o11y_one.sdk.loop import _core
 
-    # Qwen3's template adds an empty think block to the last turn only, which verl's per-turn
-    # check reports; its own setting accepts that.
+    path = loop_exports.trajectory_set("verl", tmp_path / "verl.parquet")
+    # Qwen3's template answers a message's parallel calls in one tool block, which verl's
+    # per-turn check reports; its own setting accepts that.
     config = {"ignore_input_ids_mismatch": True}
-    dataset = adapter.LoopSFTDataset(sft_parquet(tmp_path / "verl.parquet"), tokenizer, config)
-    assert dataset.tools == [_core.TOOLS]
+    dataset = adapter.LoopSFTDataset(str(path), tokenizer, config)
+    assert dataset.tools == [_core.TOOLS, _core.TOOLS]
     # verl's __getitem__ builds each row's messages from its frame, not from dataset.messages.
-    built = dataset._build_messages(dataset.dataframe.iloc[0].to_dict())
-    assert built == dataset.messages[0]
-    assert built[1]["tool_calls"][0]["function"]["arguments"] == {"command": "pytest -q"}
-    assert built[0] == {"role": "user", "content": "Fix the module."}
-    assert dataset[0]["loss_mask"].sum() > 0
+    built = dataset._build_messages(dataset.dataframe.iloc[1].to_dict())
+    assert built == dataset.messages[1]
+    arguments = [call["function"]["arguments"] for call in built[1]["tool_calls"]]
+    assert arguments[0] == {"path": "/work/mod.py"}
+    assert built[0] == loop_exports.PROMPTS[1][0]  # a field the message lacks is absent
+    assert dataset[1]["loss_mask"].sum() > 0
+
+
+def test_verls_rl_loader_takes_a_task_set_whose_batch_resets_on_its_case(
+    loop, tmp_path, tokenizer
+) -> None:
+    from torch.utils.data import DataLoader
+    from verl.utils.dataset.rl_dataset import collate_fn
+
+    path = loop_exports.task_set("verl", tmp_path / "tasks.parquet")
+    config = OmegaConf.create({"filter_overlong_prompts_workers": 1, "cache_dir": str(tmp_path)})
+    batch = next(
+        iter(DataLoader(RLHFDataset(str(path), tokenizer, config), 2, collate_fn=collate_fn))
+    )
+    assert list(batch["agent_name"]) == ["loop", "loop"]
+    first = {
+        "raw_prompt": batch["raw_prompt"][0],
+        "uid": "u-1",
+        "extra_info": batch["extra_info"][0],
+    }
+    asyncio.run(trajectories(loop, tokenizer, [first]))
+    assert [reset.case_revision_id for reset in loop.sent("reset")] == loop_exports.CASES[:1]
+
+
+def test_verls_sft_loader_takes_a_trajectory_set_through_loop_sft_dataset(
+    tmp_path, tokenizer
+) -> None:
+    from torch.utils.data import DataLoader
+
+    path = loop_exports.trajectory_set("verl", tmp_path / "trajectories.parquet")
+    # Qwen3's template answers a message's parallel calls in one tool block, which verl's
+    # per-turn check reports; its own setting accepts that.
+    config = {"pad_mode": "right", "max_length": 1024, "ignore_input_ids_mismatch": True}
+    dataset = adapter.LoopSFTDataset(str(path), tokenizer, config)
+    batch = next(iter(DataLoader(dataset, batch_size=2)))
+    assert batch["input_ids"].shape == (2, 1024)
+    assert (batch["loss_mask"].sum(dim=1) > 0).all()  # each row trains on its assistant turns
+    text = tokenizer.decode(batch["input_ids"][1][batch["attention_mask"][1].bool()])
+    assert '{"name": "write_file", "arguments": {"path": "/work/mod.py"' in text
+    assert '"name": "write_file", "description"' in text  # the tools the rollout reset with

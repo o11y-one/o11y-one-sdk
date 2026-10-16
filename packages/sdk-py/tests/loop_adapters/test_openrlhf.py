@@ -18,6 +18,7 @@ import pytest
 
 pytest.importorskip("openrlhf")
 
+import loop_exports  # noqa: E402
 import o11y_one.sdk.loop.openrlhf as adapter  # noqa: E402
 from fake_loop import CONNECTS, CREDENTIAL, refusal, tiny_qwen3  # noqa: E402
 from o11y_one.agentic.v1.rollout_pb2 import LoopFailureClassV1  # noqa: E402
@@ -191,40 +192,58 @@ def test_an_openrlhf_outside_the_tested_range_is_refused_at_import(monkeypatch) 
         importlib.import_module("o11y_one.sdk.loop.openrlhf")
 
 
-def trajectory_rows(path) -> None:
-    """Loop's OpenRLHF trajectory export: a JSONL row per rollout, each call's arguments JSON
-    text, and a field a message lacks absent. The two calls' tools take different arguments."""
-    shell = {"name": "shell", "arguments": '{"command": "pytest -q"}'}
-    write = {"name": "write_file", "arguments": '{"path": "/work/mod.py", "content": "x = 1\\n"}'}
-    rows = [
-        [
-            {"role": "user", "content": "Fix the module."},
-            {
-                "role": "assistant",
-                "content": "",
-                "tool_calls": [{"id": "000000001", "type": "function", "function": call}],
-            },
-            {"role": "tool", "content": "exit code 0", "tool_call_id": "000000001", "name": name},
-            {"role": "assistant", "content": "Done."},
-        ]
-        for call, name in [(shell, "shell"), (write, "write_file")]
-    ]
-    path.write_text("".join(json.dumps({"messages": messages}) + "\n" for messages in rows))
+def openrlhf_strategy(**data) -> SimpleNamespace:
+    """What OpenRLHF's datasets read of its training strategy."""
+    return SimpleNamespace(
+        print=lambda *_: None,
+        is_rank_0=lambda: False,
+        args=SimpleNamespace(use_ms=False, data=SimpleNamespace(**data)),
+    )
 
 
 def test_sft_dataset_gives_openrlhfs_reader_each_rows_own_parsed_arguments(tmp_path) -> None:
     from openrlhf.datasets.utils import blending_datasets
 
-    trajectory_rows(tmp_path / "rows.jsonl")
-    adapter.sft_dataset(tmp_path / "rows.jsonl", tmp_path / "sft.parquet")
-    strategy = SimpleNamespace(
-        print=lambda *_: None, is_rank_0=lambda: False, args=SimpleNamespace(use_ms=False)
-    )
-    data = blending_datasets(str(tmp_path / "sft.parquet"), None, strategy)
+    rows = loop_exports.trajectory_set("openrlhf", tmp_path / "rows.jsonl")
+    adapter.sft_dataset(rows, tmp_path / "sft.parquet")
+    data = blending_datasets(str(tmp_path / "sft.parquet"), None, openrlhf_strategy())
     first, second = (row["messages"] for row in data)
     assert first[1]["tool_calls"][0]["function"]["arguments"] == {"command": "pytest -q"}
-    assert second[1]["tool_calls"][0]["function"]["arguments"] == {
-        "path": "/work/mod.py",
-        "content": "x = 1\n",
-    }
-    assert first[0] == {"role": "user", "content": "Fix the module."}
+    arguments = [call["function"]["arguments"] for call in second[1]["tool_calls"]]
+    assert arguments[0] == {"path": "/work/mod.py"}  # never another row's argument names
+    assert first[0] == loop_exports.PROMPTS[0][0]
+
+
+def test_ppos_loader_takes_a_rendered_task_set_whose_batch_resets_on_its_case(
+    loop, tmp_path, tokenizer
+) -> None:
+    from openrlhf.datasets import PromptDataset
+    from openrlhf.datasets.utils import blending_datasets
+    from torch.utils.data import DataLoader
+
+    rows = loop_exports.task_set("openrlhf", tmp_path / "tasks.jsonl")
+    adapter.render_prompts(rows, tmp_path / "rendered.jsonl", tokenizer)
+    strategy = openrlhf_strategy(input_key="prompt", label_key="label", apply_chat_template=False)
+    data = PromptDataset(
+        blending_datasets(str(tmp_path / "rendered.jsonl"), None, strategy), tokenizer, strategy
+    )
+    _, prompts, labels, _ = next(iter(DataLoader(data, batch_size=2, collate_fn=data.collate_fn)))
+    assert all(prompt.endswith("<|im_start|>assistant\n") for prompt in prompts)
+    execute(loop, tokenizer, label=labels[0])
+    assert [reset.case_revision_id for reset in loop.sent("reset")] == loop_exports.CASES[:1]
+
+
+def test_sfts_loader_takes_a_trajectory_set_through_sft_dataset(tmp_path, tokenizer) -> None:
+    from openrlhf.datasets import SFTDataset
+    from openrlhf.datasets.utils import blending_datasets
+    from torch.utils.data import DataLoader
+
+    rows = loop_exports.trajectory_set("openrlhf", tmp_path / "trajectories.jsonl")
+    adapter.sft_dataset(rows, tmp_path / "sft.parquet")
+    strategy = openrlhf_strategy(input_key="messages", output_key=None, apply_chat_template=True)
+    data = blending_datasets(str(tmp_path / "sft.parquet"), None, strategy)
+    dataset = SFTDataset(data, tokenizer, 2048, strategy, multiturn=True, num_processors=1)
+    ids, _, loss = next(iter(DataLoader(dataset, batch_size=2, collate_fn=dataset.collate_fn)))
+    assert ids.shape[0] == 2
+    assert (loss.sum(dim=1) > 0).all()  # each row trains on its assistant turns
+    assert '"arguments": {"path": "/work/mod.py"' in tokenizer.decode(ids[1])

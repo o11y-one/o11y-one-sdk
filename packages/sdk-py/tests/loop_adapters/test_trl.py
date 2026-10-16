@@ -17,6 +17,7 @@ import pytest
 
 pytest.importorskip("trl")
 
+import loop_exports  # noqa: E402
 from fake_loop import CREDENTIAL, refusal  # noqa: E402
 from o11y_one.agentic.v1.rollout_pb2 import LoopFailureClassV1  # noqa: E402
 from o11y_one.sdk.loop import RolloutRefused, _core  # noqa: E402
@@ -200,3 +201,55 @@ def test_the_key_reaches_loop_and_never_a_log_or_repr(
     assert loop.keys == {CREDENTIAL}
     shown = [repr(env), str(env), repr(env._client), caplog.text]
     assert not [text for text in shown if CREDENTIAL in text or "BBBBBBBB" in text]
+
+
+def test_grpos_loader_takes_a_task_set_whose_batch_resets_on_its_case(loop, tmp_path) -> None:
+    from datasets import load_dataset
+    from fake_loop import tiny_qwen3
+    from trl import GRPOConfig, GRPOTrainer
+
+    path = loop_exports.task_set("trl", tmp_path / "tasks.parquet")
+    args = GRPOConfig(
+        output_dir=str(tmp_path),
+        per_device_train_batch_size=2,
+        num_generations=2,
+        report_to="none",
+        use_cpu=True,
+    )
+    trainer = GRPOTrainer(
+        model=tiny_qwen3(),
+        args=args,
+        train_dataset=load_dataset("parquet", data_files=str(path), split="train"),
+        environment_factory=functools.partial(adapter.LoopEnvironment, base_url=loop.url),
+        reward_funcs=[adapter.loop_reward],
+        callbacks=[adapter.LoopCallback()],
+    )
+    batch = next(iter(trainer.get_train_dataloader()))
+    assert {row["loop_case_revision_id"] for row in batch} <= set(loop_exports.CASES)
+    start()
+    (env,) = environments(loop, 1)
+    env.reset(**batch[0])
+    started([env])
+    assert [reset.case_revision_id for reset in loop.sent("reset")] == [
+        batch[0]["loop_case_revision_id"]
+    ]
+
+
+def test_sfts_loader_takes_a_trajectory_set_with_its_tools_and_arguments(tmp_path) -> None:
+    from datasets import Dataset
+    from fake_loop import tiny_qwen3
+    from trl import SFTConfig, SFTTrainer
+
+    path = loop_exports.trajectory_set("trl", tmp_path / "trajectories.parquet")
+    dataset = Dataset.from_parquet(str(path))
+    (call, _) = dataset[1]["messages"][1]["tool_calls"]
+    assert call["function"]["arguments"]["path"] == "/work/mod.py"  # Json(): an object
+    args = SFTConfig(
+        output_dir=str(tmp_path), per_device_train_batch_size=2, report_to="none", use_cpu=True
+    )
+    trainer = SFTTrainer(model=tiny_qwen3(), args=args, train_dataset=dataset)
+    batch = next(iter(trainer.get_train_dataloader()))
+    assert batch["input_ids"].shape[0] == 2
+    texts = [trainer.processing_class.decode(ids) for ids in batch["input_ids"]]
+    assert any('{"name": "write_file", "arguments": {"path": "/work/mod.py"' in t for t in texts)
+    assert all('"name": "write_file", "description"' in text for text in texts)

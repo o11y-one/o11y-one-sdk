@@ -15,6 +15,7 @@ import pytest
 
 pytest.importorskip("tinker_cookbook")
 
+import loop_exports  # noqa: E402
 from fake_loop import CONNECTS, CREDENTIAL, refusal, tiny_qwen3  # noqa: E402
 from o11y_one.agentic.v1.rollout_pb2 import LoopFailureClassV1  # noqa: E402
 from o11y_one.sdk.loop import RolloutRefused, _core  # noqa: E402
@@ -174,3 +175,19 @@ def test_the_dataset_gives_each_step_its_groups(loop) -> None:
         ("c2", 1, 2),
         ("c3", 1, 2),
     ]
+
+
+def test_a_task_sets_rows_make_a_batch_whose_groups_reset_on_their_cases(loop, tmp_path) -> None:
+    path = loop_exports.task_set("tinker", tmp_path / "tasks.jsonl")
+    rows = [json.loads(line) for line in path.read_text().splitlines()]
+    dataset = adapter.LoopRLDataset(
+        rows,
+        batch_size=2,
+        group_size=1,
+        model_name=MODEL,
+        renderer_name="qwen3_instruct",
+        base_url=loop.url,
+    )
+    (first, _) = dataset.get_batch(0)
+    rollout(first)
+    assert [reset.case_revision_id for reset in loop.sent("reset")] == loop_exports.CASES[:1]
