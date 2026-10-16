@@ -411,7 +411,7 @@ class LoopFinalStateV1(_message.Message):
     def __init__(self, entries: _Optional[int] = ..., bytes: _Optional[int] = ..., oversized: _Optional[bool] = ...) -> None: ...
 
 class LoopRolloutV1(_message.Message):
-    __slots__ = ("rollout_id", "run_id", "group_id", "group_index", "group_size", "task", "state", "failure", "rewards", "verdict", "determinism", "environment_id", "environment_version", "profile", "base_snapshot_id", "restore_snapshot_id", "parent_rollout_id", "parent_step", "trace_id", "step_count", "trainer_step", "final_state", "infrastructure_retries", "created_at", "ready_at", "closed_at", "verifier_started_at", "ended_at", "credential_prefix")
+    __slots__ = ("rollout_id", "run_id", "group_id", "group_index", "group_size", "task", "state", "failure", "rewards", "verdict", "determinism", "environment_id", "environment_version", "profile", "base_snapshot_id", "restore_snapshot_id", "parent_rollout_id", "parent_step", "trace_id", "step_count", "trainer_step", "final_state", "infrastructure_retries", "created_at", "ready_at", "closed_at", "verifier_started_at", "ended_at", "credential_prefix", "flags")
     ROLLOUT_ID_FIELD_NUMBER: _ClassVar[int]
     RUN_ID_FIELD_NUMBER: _ClassVar[int]
     GROUP_ID_FIELD_NUMBER: _ClassVar[int]
@@ -441,6 +441,7 @@ class LoopRolloutV1(_message.Message):
     VERIFIER_STARTED_AT_FIELD_NUMBER: _ClassVar[int]
     ENDED_AT_FIELD_NUMBER: _ClassVar[int]
     CREDENTIAL_PREFIX_FIELD_NUMBER: _ClassVar[int]
+    FLAGS_FIELD_NUMBER: _ClassVar[int]
     rollout_id: str
     run_id: str
     group_id: str
@@ -470,7 +471,28 @@ class LoopRolloutV1(_message.Message):
     verifier_started_at: _timestamp_pb2.Timestamp
     ended_at: _timestamp_pb2.Timestamp
     credential_prefix: str
-    def __init__(self, rollout_id: _Optional[str] = ..., run_id: _Optional[str] = ..., group_id: _Optional[str] = ..., group_index: _Optional[int] = ..., group_size: _Optional[int] = ..., task: _Optional[_Union[LoopTaskV1, _Mapping]] = ..., state: _Optional[_Union[LoopRolloutStateV1, str]] = ..., failure: _Optional[_Union[LoopRolloutFailureV1, _Mapping]] = ..., rewards: _Optional[_Iterable[_Union[LoopRewardV1, _Mapping]]] = ..., verdict: _Optional[_Union[LoopVerdictV1, str]] = ..., determinism: _Optional[_Union[LoopRewardDeterminismV1, str]] = ..., environment_id: _Optional[str] = ..., environment_version: _Optional[int] = ..., profile: _Optional[_Union[_environment_pb2.LoopEnvironmentProfileRefV1, _Mapping]] = ..., base_snapshot_id: _Optional[bytes] = ..., restore_snapshot_id: _Optional[bytes] = ..., parent_rollout_id: _Optional[str] = ..., parent_step: _Optional[int] = ..., trace_id: _Optional[bytes] = ..., step_count: _Optional[int] = ..., trainer_step: _Optional[int] = ..., final_state: _Optional[_Union[LoopFinalStateV1, _Mapping]] = ..., infrastructure_retries: _Optional[int] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., ready_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., closed_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., verifier_started_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., ended_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., credential_prefix: _Optional[str] = ...) -> None: ...
+    flags: LoopRolloutFlagsV1
+    def __init__(self, rollout_id: _Optional[str] = ..., run_id: _Optional[str] = ..., group_id: _Optional[str] = ..., group_index: _Optional[int] = ..., group_size: _Optional[int] = ..., task: _Optional[_Union[LoopTaskV1, _Mapping]] = ..., state: _Optional[_Union[LoopRolloutStateV1, str]] = ..., failure: _Optional[_Union[LoopRolloutFailureV1, _Mapping]] = ..., rewards: _Optional[_Iterable[_Union[LoopRewardV1, _Mapping]]] = ..., verdict: _Optional[_Union[LoopVerdictV1, str]] = ..., determinism: _Optional[_Union[LoopRewardDeterminismV1, str]] = ..., environment_id: _Optional[str] = ..., environment_version: _Optional[int] = ..., profile: _Optional[_Union[_environment_pb2.LoopEnvironmentProfileRefV1, _Mapping]] = ..., base_snapshot_id: _Optional[bytes] = ..., restore_snapshot_id: _Optional[bytes] = ..., parent_rollout_id: _Optional[str] = ..., parent_step: _Optional[int] = ..., trace_id: _Optional[bytes] = ..., step_count: _Optional[int] = ..., trainer_step: _Optional[int] = ..., final_state: _Optional[_Union[LoopFinalStateV1, _Mapping]] = ..., infrastructure_retries: _Optional[int] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., ready_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., closed_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., verifier_started_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., ended_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., credential_prefix: _Optional[str] = ..., flags: _Optional[_Union[LoopRolloutFlagsV1, _Mapping]] = ...) -> None: ...
+
+class LoopRolloutFlagsV1(_message.Message):
+    __slots__ = ("scanned_at", "detected", "evidence_incomplete", "evidence_unsealed")
+    SCANNED_AT_FIELD_NUMBER: _ClassVar[int]
+    DETECTED_FIELD_NUMBER: _ClassVar[int]
+    EVIDENCE_INCOMPLETE_FIELD_NUMBER: _ClassVar[int]
+    EVIDENCE_UNSEALED_FIELD_NUMBER: _ClassVar[int]
+    scanned_at: _timestamp_pb2.Timestamp
+    detected: _containers.RepeatedCompositeFieldContainer[LoopRolloutFlagV1]
+    evidence_incomplete: bool
+    evidence_unsealed: bool
+    def __init__(self, scanned_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., detected: _Optional[_Iterable[_Union[LoopRolloutFlagV1, _Mapping]]] = ..., evidence_incomplete: _Optional[bool] = ..., evidence_unsealed: _Optional[bool] = ...) -> None: ...
+
+class LoopRolloutFlagV1(_message.Message):
+    __slots__ = ("detector", "explanation")
+    DETECTOR_FIELD_NUMBER: _ClassVar[int]
+    EXPLANATION_FIELD_NUMBER: _ClassVar[int]
+    detector: str
+    explanation: str
+    def __init__(self, detector: _Optional[str] = ..., explanation: _Optional[str] = ...) -> None: ...
 
 class LoopToolExecV1(_message.Message):
     __slots__ = ("argv", "output_cap_bytes")
@@ -727,7 +749,7 @@ class StopLoopRunResponse(_message.Message):
     def __init__(self, run: _Optional[_Union[LoopRunV1, _Mapping]] = ...) -> None: ...
 
 class ResetLoopRolloutRequest(_message.Message):
-    __slots__ = ("run_id", "request_id", "group_id", "group_index", "group_size", "case_revision_id", "trainer_step", "trainer_total_steps", "experiment_name", "client")
+    __slots__ = ("run_id", "request_id", "group_id", "group_index", "group_size", "case_revision_id", "trainer_step", "trainer_total_steps", "experiment_name", "client", "tools_json")
     RUN_ID_FIELD_NUMBER: _ClassVar[int]
     REQUEST_ID_FIELD_NUMBER: _ClassVar[int]
     GROUP_ID_FIELD_NUMBER: _ClassVar[int]
@@ -738,6 +760,7 @@ class ResetLoopRolloutRequest(_message.Message):
     TRAINER_TOTAL_STEPS_FIELD_NUMBER: _ClassVar[int]
     EXPERIMENT_NAME_FIELD_NUMBER: _ClassVar[int]
     CLIENT_FIELD_NUMBER: _ClassVar[int]
+    TOOLS_JSON_FIELD_NUMBER: _ClassVar[int]
     run_id: str
     request_id: str
     group_id: str
@@ -748,7 +771,8 @@ class ResetLoopRolloutRequest(_message.Message):
     trainer_total_steps: int
     experiment_name: str
     client: LoopClientV1
-    def __init__(self, run_id: _Optional[str] = ..., request_id: _Optional[str] = ..., group_id: _Optional[str] = ..., group_index: _Optional[int] = ..., group_size: _Optional[int] = ..., case_revision_id: _Optional[str] = ..., trainer_step: _Optional[int] = ..., trainer_total_steps: _Optional[int] = ..., experiment_name: _Optional[str] = ..., client: _Optional[_Union[LoopClientV1, _Mapping]] = ...) -> None: ...
+    tools_json: str
+    def __init__(self, run_id: _Optional[str] = ..., request_id: _Optional[str] = ..., group_id: _Optional[str] = ..., group_index: _Optional[int] = ..., group_size: _Optional[int] = ..., case_revision_id: _Optional[str] = ..., trainer_step: _Optional[int] = ..., trainer_total_steps: _Optional[int] = ..., experiment_name: _Optional[str] = ..., client: _Optional[_Union[LoopClientV1, _Mapping]] = ..., tools_json: _Optional[str] = ...) -> None: ...
 
 class ResetLoopRolloutResponse(_message.Message):
     __slots__ = ("rollout",)
@@ -817,20 +841,24 @@ class GetLoopRolloutResponse(_message.Message):
     def __init__(self, rollout: _Optional[_Union[LoopRolloutV1, _Mapping]] = ...) -> None: ...
 
 class ListLoopRolloutsRequest(_message.Message):
-    __slots__ = ("run_id", "group_id", "trainer_step", "state", "failure_class", "page")
+    __slots__ = ("run_id", "group_id", "trainer_step", "state", "failure_class", "page", "flagged", "parent_rollout_id")
     RUN_ID_FIELD_NUMBER: _ClassVar[int]
     GROUP_ID_FIELD_NUMBER: _ClassVar[int]
     TRAINER_STEP_FIELD_NUMBER: _ClassVar[int]
     STATE_FIELD_NUMBER: _ClassVar[int]
     FAILURE_CLASS_FIELD_NUMBER: _ClassVar[int]
     PAGE_FIELD_NUMBER: _ClassVar[int]
+    FLAGGED_FIELD_NUMBER: _ClassVar[int]
+    PARENT_ROLLOUT_ID_FIELD_NUMBER: _ClassVar[int]
     run_id: str
     group_id: str
     trainer_step: int
     state: LoopRolloutStateV1
     failure_class: LoopFailureClassV1
     page: _common_pb2.PageRequestV1
-    def __init__(self, run_id: _Optional[str] = ..., group_id: _Optional[str] = ..., trainer_step: _Optional[int] = ..., state: _Optional[_Union[LoopRolloutStateV1, str]] = ..., failure_class: _Optional[_Union[LoopFailureClassV1, str]] = ..., page: _Optional[_Union[_common_pb2.PageRequestV1, _Mapping]] = ...) -> None: ...
+    flagged: bool
+    parent_rollout_id: str
+    def __init__(self, run_id: _Optional[str] = ..., group_id: _Optional[str] = ..., trainer_step: _Optional[int] = ..., state: _Optional[_Union[LoopRolloutStateV1, str]] = ..., failure_class: _Optional[_Union[LoopFailureClassV1, str]] = ..., page: _Optional[_Union[_common_pb2.PageRequestV1, _Mapping]] = ..., flagged: _Optional[bool] = ..., parent_rollout_id: _Optional[str] = ...) -> None: ...
 
 class ListLoopRolloutsResponse(_message.Message):
     __slots__ = ("rollouts", "page")
@@ -899,6 +927,42 @@ class ListLoopRolloutGroupsResponse(_message.Message):
     groups: _containers.RepeatedCompositeFieldContainer[LoopRolloutGroupV1]
     page: _common_pb2.PageResponseV1
     def __init__(self, groups: _Optional[_Iterable[_Union[LoopRolloutGroupV1, _Mapping]]] = ..., page: _Optional[_Union[_common_pb2.PageResponseV1, _Mapping]] = ...) -> None: ...
+
+class GetLoopRolloutTrajectoryRequest(_message.Message):
+    __slots__ = ("rollout_id", "page")
+    ROLLOUT_ID_FIELD_NUMBER: _ClassVar[int]
+    PAGE_FIELD_NUMBER: _ClassVar[int]
+    rollout_id: str
+    page: _common_pb2.PageRequestV1
+    def __init__(self, rollout_id: _Optional[str] = ..., page: _Optional[_Union[_common_pb2.PageRequestV1, _Mapping]] = ...) -> None: ...
+
+class GetLoopRolloutTrajectoryResponse(_message.Message):
+    __slots__ = ("steps", "page", "pending", "incomplete")
+    STEPS_FIELD_NUMBER: _ClassVar[int]
+    PAGE_FIELD_NUMBER: _ClassVar[int]
+    PENDING_FIELD_NUMBER: _ClassVar[int]
+    INCOMPLETE_FIELD_NUMBER: _ClassVar[int]
+    steps: _containers.RepeatedCompositeFieldContainer[LoopTrajectoryStepV1]
+    page: _common_pb2.PageResponseV1
+    pending: bool
+    incomplete: bool
+    def __init__(self, steps: _Optional[_Iterable[_Union[LoopTrajectoryStepV1, _Mapping]]] = ..., page: _Optional[_Union[_common_pb2.PageResponseV1, _Mapping]] = ..., pending: _Optional[bool] = ..., incomplete: _Optional[bool] = ...) -> None: ...
+
+class LoopTrajectoryStepV1(_message.Message):
+    __slots__ = ("step", "model_message_json", "calls", "results", "tools_json", "cut")
+    STEP_FIELD_NUMBER: _ClassVar[int]
+    MODEL_MESSAGE_JSON_FIELD_NUMBER: _ClassVar[int]
+    CALLS_FIELD_NUMBER: _ClassVar[int]
+    RESULTS_FIELD_NUMBER: _ClassVar[int]
+    TOOLS_JSON_FIELD_NUMBER: _ClassVar[int]
+    CUT_FIELD_NUMBER: _ClassVar[int]
+    step: int
+    model_message_json: str
+    calls: _containers.RepeatedCompositeFieldContainer[LoopToolCallV1]
+    results: _containers.RepeatedCompositeFieldContainer[LoopToolResultV1]
+    tools_json: str
+    cut: bool
+    def __init__(self, step: _Optional[int] = ..., model_message_json: _Optional[str] = ..., calls: _Optional[_Iterable[_Union[LoopToolCallV1, _Mapping]]] = ..., results: _Optional[_Iterable[_Union[LoopToolResultV1, _Mapping]]] = ..., tools_json: _Optional[str] = ..., cut: _Optional[bool] = ...) -> None: ...
 
 class GetLoopRolloutChangeListRequest(_message.Message):
     __slots__ = ("rollout_id", "page")
@@ -1021,6 +1085,112 @@ class ListLoopRunStepsResponse(_message.Message):
     steps: _containers.RepeatedCompositeFieldContainer[LoopRunStepV1]
     page: _common_pb2.PageResponseV1
     def __init__(self, steps: _Optional[_Iterable[_Union[LoopRunStepV1, _Mapping]]] = ..., page: _Optional[_Union[_common_pb2.PageResponseV1, _Mapping]] = ...) -> None: ...
+
+class LoopTrajectoryDatasetVersionV1(_message.Message):
+    __slots__ = ("dataset_version_id", "dataset_collection_id", "dataset_name", "version_number", "label", "rollout_count", "pinned", "created_at", "base_dataset_version_id", "sole_pin_rollouts")
+    DATASET_VERSION_ID_FIELD_NUMBER: _ClassVar[int]
+    DATASET_COLLECTION_ID_FIELD_NUMBER: _ClassVar[int]
+    DATASET_NAME_FIELD_NUMBER: _ClassVar[int]
+    VERSION_NUMBER_FIELD_NUMBER: _ClassVar[int]
+    LABEL_FIELD_NUMBER: _ClassVar[int]
+    ROLLOUT_COUNT_FIELD_NUMBER: _ClassVar[int]
+    PINNED_FIELD_NUMBER: _ClassVar[int]
+    CREATED_AT_FIELD_NUMBER: _ClassVar[int]
+    BASE_DATASET_VERSION_ID_FIELD_NUMBER: _ClassVar[int]
+    SOLE_PIN_ROLLOUTS_FIELD_NUMBER: _ClassVar[int]
+    dataset_version_id: str
+    dataset_collection_id: str
+    dataset_name: str
+    version_number: int
+    label: str
+    rollout_count: int
+    pinned: bool
+    created_at: _timestamp_pb2.Timestamp
+    base_dataset_version_id: str
+    sole_pin_rollouts: int
+    def __init__(self, dataset_version_id: _Optional[str] = ..., dataset_collection_id: _Optional[str] = ..., dataset_name: _Optional[str] = ..., version_number: _Optional[int] = ..., label: _Optional[str] = ..., rollout_count: _Optional[int] = ..., pinned: _Optional[bool] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., base_dataset_version_id: _Optional[str] = ..., sole_pin_rollouts: _Optional[int] = ...) -> None: ...
+
+class LoopRewardRangeV1(_message.Message):
+    __slots__ = ("name", "min", "max")
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    MIN_FIELD_NUMBER: _ClassVar[int]
+    MAX_FIELD_NUMBER: _ClassVar[int]
+    name: str
+    min: float
+    max: float
+    def __init__(self, name: _Optional[str] = ..., min: _Optional[float] = ..., max: _Optional[float] = ...) -> None: ...
+
+class CreateLoopTrajectoryDatasetVersionRequest(_message.Message):
+    __slots__ = ("request_id", "dataset_collection_id", "dataset_name", "label", "rollout_ids", "run_id", "reward", "base_dataset_version_id")
+    REQUEST_ID_FIELD_NUMBER: _ClassVar[int]
+    DATASET_COLLECTION_ID_FIELD_NUMBER: _ClassVar[int]
+    DATASET_NAME_FIELD_NUMBER: _ClassVar[int]
+    LABEL_FIELD_NUMBER: _ClassVar[int]
+    ROLLOUT_IDS_FIELD_NUMBER: _ClassVar[int]
+    RUN_ID_FIELD_NUMBER: _ClassVar[int]
+    REWARD_FIELD_NUMBER: _ClassVar[int]
+    BASE_DATASET_VERSION_ID_FIELD_NUMBER: _ClassVar[int]
+    request_id: str
+    dataset_collection_id: str
+    dataset_name: str
+    label: str
+    rollout_ids: _containers.RepeatedScalarFieldContainer[str]
+    run_id: str
+    reward: LoopRewardRangeV1
+    base_dataset_version_id: str
+    def __init__(self, request_id: _Optional[str] = ..., dataset_collection_id: _Optional[str] = ..., dataset_name: _Optional[str] = ..., label: _Optional[str] = ..., rollout_ids: _Optional[_Iterable[str]] = ..., run_id: _Optional[str] = ..., reward: _Optional[_Union[LoopRewardRangeV1, _Mapping]] = ..., base_dataset_version_id: _Optional[str] = ...) -> None: ...
+
+class CreateLoopTrajectoryDatasetVersionResponse(_message.Message):
+    __slots__ = ("version",)
+    VERSION_FIELD_NUMBER: _ClassVar[int]
+    version: LoopTrajectoryDatasetVersionV1
+    def __init__(self, version: _Optional[_Union[LoopTrajectoryDatasetVersionV1, _Mapping]] = ...) -> None: ...
+
+class ListLoopDatasetVersionRolloutsRequest(_message.Message):
+    __slots__ = ("dataset_version_id", "page")
+    DATASET_VERSION_ID_FIELD_NUMBER: _ClassVar[int]
+    PAGE_FIELD_NUMBER: _ClassVar[int]
+    dataset_version_id: str
+    page: _common_pb2.PageRequestV1
+    def __init__(self, dataset_version_id: _Optional[str] = ..., page: _Optional[_Union[_common_pb2.PageRequestV1, _Mapping]] = ...) -> None: ...
+
+class LoopDatasetVersionRolloutV1(_message.Message):
+    __slots__ = ("ordinal", "rollout_id", "rollout", "expired")
+    ORDINAL_FIELD_NUMBER: _ClassVar[int]
+    ROLLOUT_ID_FIELD_NUMBER: _ClassVar[int]
+    ROLLOUT_FIELD_NUMBER: _ClassVar[int]
+    EXPIRED_FIELD_NUMBER: _ClassVar[int]
+    ordinal: int
+    rollout_id: str
+    rollout: LoopRolloutV1
+    expired: bool
+    def __init__(self, ordinal: _Optional[int] = ..., rollout_id: _Optional[str] = ..., rollout: _Optional[_Union[LoopRolloutV1, _Mapping]] = ..., expired: _Optional[bool] = ...) -> None: ...
+
+class ListLoopDatasetVersionRolloutsResponse(_message.Message):
+    __slots__ = ("version", "rollouts", "page")
+    VERSION_FIELD_NUMBER: _ClassVar[int]
+    ROLLOUTS_FIELD_NUMBER: _ClassVar[int]
+    PAGE_FIELD_NUMBER: _ClassVar[int]
+    version: LoopTrajectoryDatasetVersionV1
+    rollouts: _containers.RepeatedCompositeFieldContainer[LoopDatasetVersionRolloutV1]
+    page: _common_pb2.PageResponseV1
+    def __init__(self, version: _Optional[_Union[LoopTrajectoryDatasetVersionV1, _Mapping]] = ..., rollouts: _Optional[_Iterable[_Union[LoopDatasetVersionRolloutV1, _Mapping]]] = ..., page: _Optional[_Union[_common_pb2.PageResponseV1, _Mapping]] = ...) -> None: ...
+
+class SetLoopDatasetVersionPinnedRequest(_message.Message):
+    __slots__ = ("dataset_version_id", "pinned", "reason")
+    DATASET_VERSION_ID_FIELD_NUMBER: _ClassVar[int]
+    PINNED_FIELD_NUMBER: _ClassVar[int]
+    REASON_FIELD_NUMBER: _ClassVar[int]
+    dataset_version_id: str
+    pinned: bool
+    reason: str
+    def __init__(self, dataset_version_id: _Optional[str] = ..., pinned: _Optional[bool] = ..., reason: _Optional[str] = ...) -> None: ...
+
+class SetLoopDatasetVersionPinnedResponse(_message.Message):
+    __slots__ = ("version",)
+    VERSION_FIELD_NUMBER: _ClassVar[int]
+    version: LoopTrajectoryDatasetVersionV1
+    def __init__(self, version: _Optional[_Union[LoopTrajectoryDatasetVersionV1, _Mapping]] = ...) -> None: ...
 
 class LoopRolloutRejectionV1(_message.Message):
     __slots__ = ("reason_code", "retry_after_millis", "limit")

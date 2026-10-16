@@ -134,6 +134,74 @@ func (LoopEnvironmentNetworkModeV1) EnumDescriptor() ([]byte, []int) {
 	return file_o11y_one_agentic_v1_environment_proto_rawDescGZIP(), []int{1}
 }
 
+// A reward-hack detector (#725).
+type LoopEnvironmentHackDetectorV1 int32
+
+const (
+	LoopEnvironmentHackDetectorV1_LOOP_ENVIRONMENT_HACK_DETECTOR_V1_UNSPECIFIED LoopEnvironmentHackDetectorV1 = 0
+	// A protected path or a test runner's config changed. May gate.
+	LoopEnvironmentHackDetectorV1_LOOP_ENVIRONMENT_HACK_DETECTOR_V1_TEST_EDIT LoopEnvironmentHackDetectorV1 = 1
+	// History beyond the checkout read. May gate.
+	LoopEnvironmentHackDetectorV1_LOOP_ENVIRONMENT_HACK_DETECTOR_V1_GIT_HISTORY LoopEnvironmentHackDetectorV1 = 2
+	// Refused in `hack_gate`.
+	LoopEnvironmentHackDetectorV1_LOOP_ENVIRONMENT_HACK_DETECTOR_V1_GRADER_READ LoopEnvironmentHackDetectorV1 = 3
+	// A network reached for, offline. May gate.
+	LoopEnvironmentHackDetectorV1_LOOP_ENVIRONMENT_HACK_DETECTOR_V1_OFFLINE_NETWORK LoopEnvironmentHackDetectorV1 = 4
+	// Refused in `hack_gate`.
+	LoopEnvironmentHackDetectorV1_LOOP_ENVIRONMENT_HACK_DETECTOR_V1_DODGE LoopEnvironmentHackDetectorV1 = 5
+	// Refused in `hack_gate`.
+	LoopEnvironmentHackDetectorV1_LOOP_ENVIRONMENT_HACK_DETECTOR_V1_HARDCODED_OUTPUT LoopEnvironmentHackDetectorV1 = 6
+)
+
+// Enum value maps for LoopEnvironmentHackDetectorV1.
+var (
+	LoopEnvironmentHackDetectorV1_name = map[int32]string{
+		0: "LOOP_ENVIRONMENT_HACK_DETECTOR_V1_UNSPECIFIED",
+		1: "LOOP_ENVIRONMENT_HACK_DETECTOR_V1_TEST_EDIT",
+		2: "LOOP_ENVIRONMENT_HACK_DETECTOR_V1_GIT_HISTORY",
+		3: "LOOP_ENVIRONMENT_HACK_DETECTOR_V1_GRADER_READ",
+		4: "LOOP_ENVIRONMENT_HACK_DETECTOR_V1_OFFLINE_NETWORK",
+		5: "LOOP_ENVIRONMENT_HACK_DETECTOR_V1_DODGE",
+		6: "LOOP_ENVIRONMENT_HACK_DETECTOR_V1_HARDCODED_OUTPUT",
+	}
+	LoopEnvironmentHackDetectorV1_value = map[string]int32{
+		"LOOP_ENVIRONMENT_HACK_DETECTOR_V1_UNSPECIFIED":      0,
+		"LOOP_ENVIRONMENT_HACK_DETECTOR_V1_TEST_EDIT":        1,
+		"LOOP_ENVIRONMENT_HACK_DETECTOR_V1_GIT_HISTORY":      2,
+		"LOOP_ENVIRONMENT_HACK_DETECTOR_V1_GRADER_READ":      3,
+		"LOOP_ENVIRONMENT_HACK_DETECTOR_V1_OFFLINE_NETWORK":  4,
+		"LOOP_ENVIRONMENT_HACK_DETECTOR_V1_DODGE":            5,
+		"LOOP_ENVIRONMENT_HACK_DETECTOR_V1_HARDCODED_OUTPUT": 6,
+	}
+)
+
+func (x LoopEnvironmentHackDetectorV1) Enum() *LoopEnvironmentHackDetectorV1 {
+	p := new(LoopEnvironmentHackDetectorV1)
+	*p = x
+	return p
+}
+
+func (x LoopEnvironmentHackDetectorV1) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (LoopEnvironmentHackDetectorV1) Descriptor() protoreflect.EnumDescriptor {
+	return file_o11y_one_agentic_v1_environment_proto_enumTypes[2].Descriptor()
+}
+
+func (LoopEnvironmentHackDetectorV1) Type() protoreflect.EnumType {
+	return &file_o11y_one_agentic_v1_environment_proto_enumTypes[2]
+}
+
+func (x LoopEnvironmentHackDetectorV1) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use LoopEnvironmentHackDetectorV1.Descriptor instead.
+func (LoopEnvironmentHackDetectorV1) EnumDescriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_environment_proto_rawDescGZIP(), []int{2}
+}
+
 type LoopEnvironmentVersionStateV1 int32
 
 const (
@@ -175,11 +243,11 @@ func (x LoopEnvironmentVersionStateV1) String() string {
 }
 
 func (LoopEnvironmentVersionStateV1) Descriptor() protoreflect.EnumDescriptor {
-	return file_o11y_one_agentic_v1_environment_proto_enumTypes[2].Descriptor()
+	return file_o11y_one_agentic_v1_environment_proto_enumTypes[3].Descriptor()
 }
 
 func (LoopEnvironmentVersionStateV1) Type() protoreflect.EnumType {
-	return &file_o11y_one_agentic_v1_environment_proto_enumTypes[2]
+	return &file_o11y_one_agentic_v1_environment_proto_enumTypes[3]
 }
 
 func (x LoopEnvironmentVersionStateV1) Number() protoreflect.EnumNumber {
@@ -188,7 +256,7 @@ func (x LoopEnvironmentVersionStateV1) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use LoopEnvironmentVersionStateV1.Descriptor instead.
 func (LoopEnvironmentVersionStateV1) EnumDescriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_environment_proto_rawDescGZIP(), []int{2}
+	return file_o11y_one_agentic_v1_environment_proto_rawDescGZIP(), []int{3}
 }
 
 // Whose a REJECTED or FAILED version's `reason_code` is (#727).
@@ -228,11 +296,11 @@ func (x LoopEnvironmentFailureCauseV1) String() string {
 }
 
 func (LoopEnvironmentFailureCauseV1) Descriptor() protoreflect.EnumDescriptor {
-	return file_o11y_one_agentic_v1_environment_proto_enumTypes[3].Descriptor()
+	return file_o11y_one_agentic_v1_environment_proto_enumTypes[4].Descriptor()
 }
 
 func (LoopEnvironmentFailureCauseV1) Type() protoreflect.EnumType {
-	return &file_o11y_one_agentic_v1_environment_proto_enumTypes[3]
+	return &file_o11y_one_agentic_v1_environment_proto_enumTypes[4]
 }
 
 func (x LoopEnvironmentFailureCauseV1) Number() protoreflect.EnumNumber {
@@ -241,7 +309,7 @@ func (x LoopEnvironmentFailureCauseV1) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use LoopEnvironmentFailureCauseV1.Descriptor instead.
 func (LoopEnvironmentFailureCauseV1) EnumDescriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_environment_proto_rawDescGZIP(), []int{3}
+	return file_o11y_one_agentic_v1_environment_proto_rawDescGZIP(), []int{4}
 }
 
 type LoopEnvironmentV1 struct {
@@ -789,6 +857,20 @@ type LoopEnvironmentVerifierV1 struct {
 	// when the episode or the verifier fails, each declared reward is its `min`,
 	// or this. Finite, and inside every declared range.
 	FailureReward float64 `protobuf:"fixed64,10,opt,name=failure_reward,json=failureReward,proto3" json:"failure_reward,omitempty"` // ---- end of the reward contract ----
+	// ---- the reward gate (#725) ----
+	// Absent means none: no reward is gated. The detectors whose finding gates
+	// the reward. TEST_EDIT fails a rollout when a gated environment's
+	// protected paths or runner configs (conftest.py, pytest.ini and the like
+	// under the final-state paths) were changed; the verifier restores them
+	// before it runs. Each reward is then what a failed episode gives, its
+	// `min` or `failure_reward`, or what the verifier gave where that is less;
+	// the verdict is FAIL, and the rollout carries the flag that says why.
+	// GIT_HISTORY and OFFLINE_NETWORK do the same to a rollout whose episode
+	// read git's history files, or reached an address off the loopback, as the
+	// sandbox saw it, or blinded the sandbox's watch. Only TEST_EDIT,
+	// GIT_HISTORY and OFFLINE_NETWORK, each once; anything else is refused. Part
+	// of the version: a new version changes it.
+	HackGate      []LoopEnvironmentHackDetectorV1 `protobuf:"varint,11,rep,packed,name=hack_gate,json=hackGate,proto3,enum=o11y_one.agentic.v1.LoopEnvironmentHackDetectorV1" json:"hack_gate,omitempty"` // ---- end of the reward gate ----
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -891,6 +973,13 @@ func (x *LoopEnvironmentVerifierV1) GetFailureReward() float64 {
 		return x.FailureReward
 	}
 	return 0
+}
+
+func (x *LoopEnvironmentVerifierV1) GetHackGate() []LoopEnvironmentHackDetectorV1 {
+	if x != nil {
+		return x.HackGate
+	}
+	return nil
 }
 
 // A reward the verifier returns, a finite number.
@@ -2204,7 +2293,7 @@ const file_o11y_one_agentic_v1_environment_proto_rawDesc = "" +
 	"\x0etimeout_millis\x18\x02 \x01(\rR\rtimeoutMillis\"E\n" +
 	"\x15LoopEnvironmentFileV1\x12\x12\n" +
 	"\x04path\x18\x01 \x01(\tR\x04path\x12\x18\n" +
-	"\acontent\x18\x02 \x01(\fR\acontent\"\xe9\x03\n" +
+	"\acontent\x18\x02 \x01(\fR\acontent\"\xba\x04\n" +
 	"\x19LoopEnvironmentVerifierV1\x12@\n" +
 	"\x05files\x18\x01 \x03(\v2*.o11y_one.agentic.v1.LoopEnvironmentFileV1R\x05files\x12\x12\n" +
 	"\x04argv\x18\x02 \x03(\tR\x04argv\x12#\n" +
@@ -2217,7 +2306,8 @@ const file_o11y_one_agentic_v1_environment_proto_rawDesc = "" +
 	"run_as_uid\x18\b \x01(\rR\brunAsUid\x12J\n" +
 	"\arewards\x18\t \x03(\v20.o11y_one.agentic.v1.LoopEnvironmentRewardDeclV1R\arewards\x12%\n" +
 	"\x0efailure_reward\x18\n" +
-	" \x01(\x01R\rfailureReward\"o\n" +
+	" \x01(\x01R\rfailureReward\x12O\n" +
+	"\thack_gate\x18\v \x03(\x0e22.o11y_one.agentic.v1.LoopEnvironmentHackDetectorV1R\bhackGate\"o\n" +
 	"\x1bLoopEnvironmentRewardDeclV1\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x15\n" +
 	"\x03min\x18\x02 \x01(\x01H\x00R\x03min\x88\x01\x01\x12\x15\n" +
@@ -2324,7 +2414,15 @@ const file_o11y_one_agentic_v1_environment_proto_rawDesc = "" +
 	"!LOOP_ENVIRONMENT_PROFILE_V1_LARGE\x10\x03*~\n" +
 	"\x1cLoopEnvironmentNetworkModeV1\x120\n" +
 	",LOOP_ENVIRONMENT_NETWORK_MODE_V1_UNSPECIFIED\x10\x00\x12,\n" +
-	"(LOOP_ENVIRONMENT_NETWORK_MODE_V1_OFFLINE\x10\x01*\x92\x02\n" +
+	"(LOOP_ENVIRONMENT_NETWORK_MODE_V1_OFFLINE\x10\x01*\x85\x03\n" +
+	"\x1dLoopEnvironmentHackDetectorV1\x121\n" +
+	"-LOOP_ENVIRONMENT_HACK_DETECTOR_V1_UNSPECIFIED\x10\x00\x12/\n" +
+	"+LOOP_ENVIRONMENT_HACK_DETECTOR_V1_TEST_EDIT\x10\x01\x121\n" +
+	"-LOOP_ENVIRONMENT_HACK_DETECTOR_V1_GIT_HISTORY\x10\x02\x121\n" +
+	"-LOOP_ENVIRONMENT_HACK_DETECTOR_V1_GRADER_READ\x10\x03\x125\n" +
+	"1LOOP_ENVIRONMENT_HACK_DETECTOR_V1_OFFLINE_NETWORK\x10\x04\x12+\n" +
+	"'LOOP_ENVIRONMENT_HACK_DETECTOR_V1_DODGE\x10\x05\x126\n" +
+	"2LOOP_ENVIRONMENT_HACK_DETECTOR_V1_HARDCODED_OUTPUT\x10\x06*\x92\x02\n" +
 	"\x1dLoopEnvironmentVersionStateV1\x121\n" +
 	"-LOOP_ENVIRONMENT_VERSION_STATE_V1_UNSPECIFIED\x10\x00\x12/\n" +
 	"+LOOP_ENVIRONMENT_VERSION_STATE_V1_IMPORTING\x10\x01\x12/\n" +
@@ -2357,102 +2455,104 @@ func file_o11y_one_agentic_v1_environment_proto_rawDescGZIP() []byte {
 	return file_o11y_one_agentic_v1_environment_proto_rawDescData
 }
 
-var file_o11y_one_agentic_v1_environment_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
+var file_o11y_one_agentic_v1_environment_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
 var file_o11y_one_agentic_v1_environment_proto_msgTypes = make([]protoimpl.MessageInfo, 28)
 var file_o11y_one_agentic_v1_environment_proto_goTypes = []any{
 	(LoopEnvironmentProfileV1)(0),                // 0: o11y_one.agentic.v1.LoopEnvironmentProfileV1
 	(LoopEnvironmentNetworkModeV1)(0),            // 1: o11y_one.agentic.v1.LoopEnvironmentNetworkModeV1
-	(LoopEnvironmentVersionStateV1)(0),           // 2: o11y_one.agentic.v1.LoopEnvironmentVersionStateV1
-	(LoopEnvironmentFailureCauseV1)(0),           // 3: o11y_one.agentic.v1.LoopEnvironmentFailureCauseV1
-	(*LoopEnvironmentV1)(nil),                    // 4: o11y_one.agentic.v1.LoopEnvironmentV1
-	(*LoopRegistryCredentialV1)(nil),             // 5: o11y_one.agentic.v1.LoopRegistryCredentialV1
-	(*LoopOciImageSourceV1)(nil),                 // 6: o11y_one.agentic.v1.LoopOciImageSourceV1
-	(*LoopDockerfileSourceV1)(nil),               // 7: o11y_one.agentic.v1.LoopDockerfileSourceV1
-	(*LoopBuildArgV1)(nil),                       // 8: o11y_one.agentic.v1.LoopBuildArgV1
-	(*LoopEnvironmentProfileRefV1)(nil),          // 9: o11y_one.agentic.v1.LoopEnvironmentProfileRefV1
-	(*LoopEnvironmentExecStepV1)(nil),            // 10: o11y_one.agentic.v1.LoopEnvironmentExecStepV1
-	(*LoopEnvironmentFileV1)(nil),                // 11: o11y_one.agentic.v1.LoopEnvironmentFileV1
-	(*LoopEnvironmentVerifierV1)(nil),            // 12: o11y_one.agentic.v1.LoopEnvironmentVerifierV1
-	(*LoopEnvironmentRewardDeclV1)(nil),          // 13: o11y_one.agentic.v1.LoopEnvironmentRewardDeclV1
-	(*LoopEnvironmentSpecV1)(nil),                // 14: o11y_one.agentic.v1.LoopEnvironmentSpecV1
-	(*LoopEnvironmentVersionV1)(nil),             // 15: o11y_one.agentic.v1.LoopEnvironmentVersionV1
-	(*CreateLoopEnvironmentRequest)(nil),         // 16: o11y_one.agentic.v1.CreateLoopEnvironmentRequest
-	(*CreateLoopEnvironmentResponse)(nil),        // 17: o11y_one.agentic.v1.CreateLoopEnvironmentResponse
-	(*CreateLoopEnvironmentVersionRequest)(nil),  // 18: o11y_one.agentic.v1.CreateLoopEnvironmentVersionRequest
-	(*CreateLoopEnvironmentVersionResponse)(nil), // 19: o11y_one.agentic.v1.CreateLoopEnvironmentVersionResponse
-	(*GetLoopEnvironmentVersionRequest)(nil),     // 20: o11y_one.agentic.v1.GetLoopEnvironmentVersionRequest
-	(*GetLoopEnvironmentVersionResponse)(nil),    // 21: o11y_one.agentic.v1.GetLoopEnvironmentVersionResponse
-	(*ListLoopEnvironmentVersionsRequest)(nil),   // 22: o11y_one.agentic.v1.ListLoopEnvironmentVersionsRequest
-	(*ListLoopEnvironmentVersionsResponse)(nil),  // 23: o11y_one.agentic.v1.ListLoopEnvironmentVersionsResponse
-	(*ListLoopEnvironmentsRequest)(nil),          // 24: o11y_one.agentic.v1.ListLoopEnvironmentsRequest
-	(*LoopEnvironmentSummaryV1)(nil),             // 25: o11y_one.agentic.v1.LoopEnvironmentSummaryV1
-	(*ListLoopEnvironmentsResponse)(nil),         // 26: o11y_one.agentic.v1.ListLoopEnvironmentsResponse
-	(*CreateLoopEnvironmentUploadRequest)(nil),   // 27: o11y_one.agentic.v1.CreateLoopEnvironmentUploadRequest
-	(*CreateLoopEnvironmentUploadResponse)(nil),  // 28: o11y_one.agentic.v1.CreateLoopEnvironmentUploadResponse
-	(*GetLoopEnvironmentBuildLogRequest)(nil),    // 29: o11y_one.agentic.v1.GetLoopEnvironmentBuildLogRequest
-	(*GetLoopEnvironmentBuildLogResponse)(nil),   // 30: o11y_one.agentic.v1.GetLoopEnvironmentBuildLogResponse
-	(*LoopEnvironmentRejectionV1)(nil),           // 31: o11y_one.agentic.v1.LoopEnvironmentRejectionV1
-	(*timestamppb.Timestamp)(nil),                // 32: google.protobuf.Timestamp
-	(*v1.PageRequestV1)(nil),                     // 33: o11y_one.common.v1.PageRequestV1
-	(*v1.PageResponseV1)(nil),                    // 34: o11y_one.common.v1.PageResponseV1
+	(LoopEnvironmentHackDetectorV1)(0),           // 2: o11y_one.agentic.v1.LoopEnvironmentHackDetectorV1
+	(LoopEnvironmentVersionStateV1)(0),           // 3: o11y_one.agentic.v1.LoopEnvironmentVersionStateV1
+	(LoopEnvironmentFailureCauseV1)(0),           // 4: o11y_one.agentic.v1.LoopEnvironmentFailureCauseV1
+	(*LoopEnvironmentV1)(nil),                    // 5: o11y_one.agentic.v1.LoopEnvironmentV1
+	(*LoopRegistryCredentialV1)(nil),             // 6: o11y_one.agentic.v1.LoopRegistryCredentialV1
+	(*LoopOciImageSourceV1)(nil),                 // 7: o11y_one.agentic.v1.LoopOciImageSourceV1
+	(*LoopDockerfileSourceV1)(nil),               // 8: o11y_one.agentic.v1.LoopDockerfileSourceV1
+	(*LoopBuildArgV1)(nil),                       // 9: o11y_one.agentic.v1.LoopBuildArgV1
+	(*LoopEnvironmentProfileRefV1)(nil),          // 10: o11y_one.agentic.v1.LoopEnvironmentProfileRefV1
+	(*LoopEnvironmentExecStepV1)(nil),            // 11: o11y_one.agentic.v1.LoopEnvironmentExecStepV1
+	(*LoopEnvironmentFileV1)(nil),                // 12: o11y_one.agentic.v1.LoopEnvironmentFileV1
+	(*LoopEnvironmentVerifierV1)(nil),            // 13: o11y_one.agentic.v1.LoopEnvironmentVerifierV1
+	(*LoopEnvironmentRewardDeclV1)(nil),          // 14: o11y_one.agentic.v1.LoopEnvironmentRewardDeclV1
+	(*LoopEnvironmentSpecV1)(nil),                // 15: o11y_one.agentic.v1.LoopEnvironmentSpecV1
+	(*LoopEnvironmentVersionV1)(nil),             // 16: o11y_one.agentic.v1.LoopEnvironmentVersionV1
+	(*CreateLoopEnvironmentRequest)(nil),         // 17: o11y_one.agentic.v1.CreateLoopEnvironmentRequest
+	(*CreateLoopEnvironmentResponse)(nil),        // 18: o11y_one.agentic.v1.CreateLoopEnvironmentResponse
+	(*CreateLoopEnvironmentVersionRequest)(nil),  // 19: o11y_one.agentic.v1.CreateLoopEnvironmentVersionRequest
+	(*CreateLoopEnvironmentVersionResponse)(nil), // 20: o11y_one.agentic.v1.CreateLoopEnvironmentVersionResponse
+	(*GetLoopEnvironmentVersionRequest)(nil),     // 21: o11y_one.agentic.v1.GetLoopEnvironmentVersionRequest
+	(*GetLoopEnvironmentVersionResponse)(nil),    // 22: o11y_one.agentic.v1.GetLoopEnvironmentVersionResponse
+	(*ListLoopEnvironmentVersionsRequest)(nil),   // 23: o11y_one.agentic.v1.ListLoopEnvironmentVersionsRequest
+	(*ListLoopEnvironmentVersionsResponse)(nil),  // 24: o11y_one.agentic.v1.ListLoopEnvironmentVersionsResponse
+	(*ListLoopEnvironmentsRequest)(nil),          // 25: o11y_one.agentic.v1.ListLoopEnvironmentsRequest
+	(*LoopEnvironmentSummaryV1)(nil),             // 26: o11y_one.agentic.v1.LoopEnvironmentSummaryV1
+	(*ListLoopEnvironmentsResponse)(nil),         // 27: o11y_one.agentic.v1.ListLoopEnvironmentsResponse
+	(*CreateLoopEnvironmentUploadRequest)(nil),   // 28: o11y_one.agentic.v1.CreateLoopEnvironmentUploadRequest
+	(*CreateLoopEnvironmentUploadResponse)(nil),  // 29: o11y_one.agentic.v1.CreateLoopEnvironmentUploadResponse
+	(*GetLoopEnvironmentBuildLogRequest)(nil),    // 30: o11y_one.agentic.v1.GetLoopEnvironmentBuildLogRequest
+	(*GetLoopEnvironmentBuildLogResponse)(nil),   // 31: o11y_one.agentic.v1.GetLoopEnvironmentBuildLogResponse
+	(*LoopEnvironmentRejectionV1)(nil),           // 32: o11y_one.agentic.v1.LoopEnvironmentRejectionV1
+	(*timestamppb.Timestamp)(nil),                // 33: google.protobuf.Timestamp
+	(*v1.PageRequestV1)(nil),                     // 34: o11y_one.common.v1.PageRequestV1
+	(*v1.PageResponseV1)(nil),                    // 35: o11y_one.common.v1.PageResponseV1
 }
 var file_o11y_one_agentic_v1_environment_proto_depIdxs = []int32{
-	32, // 0: o11y_one.agentic.v1.LoopEnvironmentV1.created_at:type_name -> google.protobuf.Timestamp
-	5,  // 1: o11y_one.agentic.v1.LoopOciImageSourceV1.credential:type_name -> o11y_one.agentic.v1.LoopRegistryCredentialV1
-	8,  // 2: o11y_one.agentic.v1.LoopDockerfileSourceV1.build_args:type_name -> o11y_one.agentic.v1.LoopBuildArgV1
-	5,  // 3: o11y_one.agentic.v1.LoopDockerfileSourceV1.credential:type_name -> o11y_one.agentic.v1.LoopRegistryCredentialV1
+	33, // 0: o11y_one.agentic.v1.LoopEnvironmentV1.created_at:type_name -> google.protobuf.Timestamp
+	6,  // 1: o11y_one.agentic.v1.LoopOciImageSourceV1.credential:type_name -> o11y_one.agentic.v1.LoopRegistryCredentialV1
+	9,  // 2: o11y_one.agentic.v1.LoopDockerfileSourceV1.build_args:type_name -> o11y_one.agentic.v1.LoopBuildArgV1
+	6,  // 3: o11y_one.agentic.v1.LoopDockerfileSourceV1.credential:type_name -> o11y_one.agentic.v1.LoopRegistryCredentialV1
 	0,  // 4: o11y_one.agentic.v1.LoopEnvironmentProfileRefV1.id:type_name -> o11y_one.agentic.v1.LoopEnvironmentProfileV1
-	11, // 5: o11y_one.agentic.v1.LoopEnvironmentVerifierV1.files:type_name -> o11y_one.agentic.v1.LoopEnvironmentFileV1
-	10, // 6: o11y_one.agentic.v1.LoopEnvironmentVerifierV1.start:type_name -> o11y_one.agentic.v1.LoopEnvironmentExecStepV1
-	13, // 7: o11y_one.agentic.v1.LoopEnvironmentVerifierV1.rewards:type_name -> o11y_one.agentic.v1.LoopEnvironmentRewardDeclV1
-	12, // 8: o11y_one.agentic.v1.LoopEnvironmentSpecV1.verifier:type_name -> o11y_one.agentic.v1.LoopEnvironmentVerifierV1
-	9,  // 9: o11y_one.agentic.v1.LoopEnvironmentSpecV1.profile:type_name -> o11y_one.agentic.v1.LoopEnvironmentProfileRefV1
-	1,  // 10: o11y_one.agentic.v1.LoopEnvironmentSpecV1.network_mode:type_name -> o11y_one.agentic.v1.LoopEnvironmentNetworkModeV1
-	10, // 11: o11y_one.agentic.v1.LoopEnvironmentSpecV1.setup_steps:type_name -> o11y_one.agentic.v1.LoopEnvironmentExecStepV1
-	6,  // 12: o11y_one.agentic.v1.LoopEnvironmentVersionV1.oci_image:type_name -> o11y_one.agentic.v1.LoopOciImageSourceV1
-	7,  // 13: o11y_one.agentic.v1.LoopEnvironmentVersionV1.dockerfile:type_name -> o11y_one.agentic.v1.LoopDockerfileSourceV1
-	14, // 14: o11y_one.agentic.v1.LoopEnvironmentVersionV1.spec:type_name -> o11y_one.agentic.v1.LoopEnvironmentSpecV1
-	2,  // 15: o11y_one.agentic.v1.LoopEnvironmentVersionV1.state:type_name -> o11y_one.agentic.v1.LoopEnvironmentVersionStateV1
-	32, // 16: o11y_one.agentic.v1.LoopEnvironmentVersionV1.created_at:type_name -> google.protobuf.Timestamp
-	32, // 17: o11y_one.agentic.v1.LoopEnvironmentVersionV1.finished_at:type_name -> google.protobuf.Timestamp
-	32, // 18: o11y_one.agentic.v1.LoopEnvironmentVersionV1.revoked_at:type_name -> google.protobuf.Timestamp
-	3,  // 19: o11y_one.agentic.v1.LoopEnvironmentVersionV1.failure_cause:type_name -> o11y_one.agentic.v1.LoopEnvironmentFailureCauseV1
-	4,  // 20: o11y_one.agentic.v1.CreateLoopEnvironmentResponse.environment:type_name -> o11y_one.agentic.v1.LoopEnvironmentV1
-	6,  // 21: o11y_one.agentic.v1.CreateLoopEnvironmentVersionRequest.oci_image:type_name -> o11y_one.agentic.v1.LoopOciImageSourceV1
-	7,  // 22: o11y_one.agentic.v1.CreateLoopEnvironmentVersionRequest.dockerfile:type_name -> o11y_one.agentic.v1.LoopDockerfileSourceV1
-	14, // 23: o11y_one.agentic.v1.CreateLoopEnvironmentVersionRequest.spec:type_name -> o11y_one.agentic.v1.LoopEnvironmentSpecV1
-	15, // 24: o11y_one.agentic.v1.CreateLoopEnvironmentVersionResponse.version:type_name -> o11y_one.agentic.v1.LoopEnvironmentVersionV1
-	15, // 25: o11y_one.agentic.v1.GetLoopEnvironmentVersionResponse.version:type_name -> o11y_one.agentic.v1.LoopEnvironmentVersionV1
-	33, // 26: o11y_one.agentic.v1.ListLoopEnvironmentVersionsRequest.page:type_name -> o11y_one.common.v1.PageRequestV1
-	15, // 27: o11y_one.agentic.v1.ListLoopEnvironmentVersionsResponse.versions:type_name -> o11y_one.agentic.v1.LoopEnvironmentVersionV1
-	34, // 28: o11y_one.agentic.v1.ListLoopEnvironmentVersionsResponse.page:type_name -> o11y_one.common.v1.PageResponseV1
-	4,  // 29: o11y_one.agentic.v1.ListLoopEnvironmentVersionsResponse.environment:type_name -> o11y_one.agentic.v1.LoopEnvironmentV1
-	33, // 30: o11y_one.agentic.v1.ListLoopEnvironmentsRequest.page:type_name -> o11y_one.common.v1.PageRequestV1
-	4,  // 31: o11y_one.agentic.v1.LoopEnvironmentSummaryV1.environment:type_name -> o11y_one.agentic.v1.LoopEnvironmentV1
-	15, // 32: o11y_one.agentic.v1.LoopEnvironmentSummaryV1.newest:type_name -> o11y_one.agentic.v1.LoopEnvironmentVersionV1
-	15, // 33: o11y_one.agentic.v1.LoopEnvironmentSummaryV1.latest_published:type_name -> o11y_one.agentic.v1.LoopEnvironmentVersionV1
-	25, // 34: o11y_one.agentic.v1.ListLoopEnvironmentsResponse.environments:type_name -> o11y_one.agentic.v1.LoopEnvironmentSummaryV1
-	34, // 35: o11y_one.agentic.v1.ListLoopEnvironmentsResponse.page:type_name -> o11y_one.common.v1.PageResponseV1
-	32, // 36: o11y_one.agentic.v1.CreateLoopEnvironmentUploadResponse.expires_at:type_name -> google.protobuf.Timestamp
-	16, // 37: o11y_one.agentic.v1.LoopEnvironmentService.CreateLoopEnvironment:input_type -> o11y_one.agentic.v1.CreateLoopEnvironmentRequest
-	18, // 38: o11y_one.agentic.v1.LoopEnvironmentService.CreateLoopEnvironmentVersion:input_type -> o11y_one.agentic.v1.CreateLoopEnvironmentVersionRequest
-	20, // 39: o11y_one.agentic.v1.LoopEnvironmentService.GetLoopEnvironmentVersion:input_type -> o11y_one.agentic.v1.GetLoopEnvironmentVersionRequest
-	22, // 40: o11y_one.agentic.v1.LoopEnvironmentService.ListLoopEnvironmentVersions:input_type -> o11y_one.agentic.v1.ListLoopEnvironmentVersionsRequest
-	24, // 41: o11y_one.agentic.v1.LoopEnvironmentService.ListLoopEnvironments:input_type -> o11y_one.agentic.v1.ListLoopEnvironmentsRequest
-	27, // 42: o11y_one.agentic.v1.LoopEnvironmentService.CreateLoopEnvironmentUpload:input_type -> o11y_one.agentic.v1.CreateLoopEnvironmentUploadRequest
-	29, // 43: o11y_one.agentic.v1.LoopEnvironmentService.GetLoopEnvironmentBuildLog:input_type -> o11y_one.agentic.v1.GetLoopEnvironmentBuildLogRequest
-	17, // 44: o11y_one.agentic.v1.LoopEnvironmentService.CreateLoopEnvironment:output_type -> o11y_one.agentic.v1.CreateLoopEnvironmentResponse
-	19, // 45: o11y_one.agentic.v1.LoopEnvironmentService.CreateLoopEnvironmentVersion:output_type -> o11y_one.agentic.v1.CreateLoopEnvironmentVersionResponse
-	21, // 46: o11y_one.agentic.v1.LoopEnvironmentService.GetLoopEnvironmentVersion:output_type -> o11y_one.agentic.v1.GetLoopEnvironmentVersionResponse
-	23, // 47: o11y_one.agentic.v1.LoopEnvironmentService.ListLoopEnvironmentVersions:output_type -> o11y_one.agentic.v1.ListLoopEnvironmentVersionsResponse
-	26, // 48: o11y_one.agentic.v1.LoopEnvironmentService.ListLoopEnvironments:output_type -> o11y_one.agentic.v1.ListLoopEnvironmentsResponse
-	28, // 49: o11y_one.agentic.v1.LoopEnvironmentService.CreateLoopEnvironmentUpload:output_type -> o11y_one.agentic.v1.CreateLoopEnvironmentUploadResponse
-	30, // 50: o11y_one.agentic.v1.LoopEnvironmentService.GetLoopEnvironmentBuildLog:output_type -> o11y_one.agentic.v1.GetLoopEnvironmentBuildLogResponse
-	44, // [44:51] is the sub-list for method output_type
-	37, // [37:44] is the sub-list for method input_type
-	37, // [37:37] is the sub-list for extension type_name
-	37, // [37:37] is the sub-list for extension extendee
-	0,  // [0:37] is the sub-list for field type_name
+	12, // 5: o11y_one.agentic.v1.LoopEnvironmentVerifierV1.files:type_name -> o11y_one.agentic.v1.LoopEnvironmentFileV1
+	11, // 6: o11y_one.agentic.v1.LoopEnvironmentVerifierV1.start:type_name -> o11y_one.agentic.v1.LoopEnvironmentExecStepV1
+	14, // 7: o11y_one.agentic.v1.LoopEnvironmentVerifierV1.rewards:type_name -> o11y_one.agentic.v1.LoopEnvironmentRewardDeclV1
+	2,  // 8: o11y_one.agentic.v1.LoopEnvironmentVerifierV1.hack_gate:type_name -> o11y_one.agentic.v1.LoopEnvironmentHackDetectorV1
+	13, // 9: o11y_one.agentic.v1.LoopEnvironmentSpecV1.verifier:type_name -> o11y_one.agentic.v1.LoopEnvironmentVerifierV1
+	10, // 10: o11y_one.agentic.v1.LoopEnvironmentSpecV1.profile:type_name -> o11y_one.agentic.v1.LoopEnvironmentProfileRefV1
+	1,  // 11: o11y_one.agentic.v1.LoopEnvironmentSpecV1.network_mode:type_name -> o11y_one.agentic.v1.LoopEnvironmentNetworkModeV1
+	11, // 12: o11y_one.agentic.v1.LoopEnvironmentSpecV1.setup_steps:type_name -> o11y_one.agentic.v1.LoopEnvironmentExecStepV1
+	7,  // 13: o11y_one.agentic.v1.LoopEnvironmentVersionV1.oci_image:type_name -> o11y_one.agentic.v1.LoopOciImageSourceV1
+	8,  // 14: o11y_one.agentic.v1.LoopEnvironmentVersionV1.dockerfile:type_name -> o11y_one.agentic.v1.LoopDockerfileSourceV1
+	15, // 15: o11y_one.agentic.v1.LoopEnvironmentVersionV1.spec:type_name -> o11y_one.agentic.v1.LoopEnvironmentSpecV1
+	3,  // 16: o11y_one.agentic.v1.LoopEnvironmentVersionV1.state:type_name -> o11y_one.agentic.v1.LoopEnvironmentVersionStateV1
+	33, // 17: o11y_one.agentic.v1.LoopEnvironmentVersionV1.created_at:type_name -> google.protobuf.Timestamp
+	33, // 18: o11y_one.agentic.v1.LoopEnvironmentVersionV1.finished_at:type_name -> google.protobuf.Timestamp
+	33, // 19: o11y_one.agentic.v1.LoopEnvironmentVersionV1.revoked_at:type_name -> google.protobuf.Timestamp
+	4,  // 20: o11y_one.agentic.v1.LoopEnvironmentVersionV1.failure_cause:type_name -> o11y_one.agentic.v1.LoopEnvironmentFailureCauseV1
+	5,  // 21: o11y_one.agentic.v1.CreateLoopEnvironmentResponse.environment:type_name -> o11y_one.agentic.v1.LoopEnvironmentV1
+	7,  // 22: o11y_one.agentic.v1.CreateLoopEnvironmentVersionRequest.oci_image:type_name -> o11y_one.agentic.v1.LoopOciImageSourceV1
+	8,  // 23: o11y_one.agentic.v1.CreateLoopEnvironmentVersionRequest.dockerfile:type_name -> o11y_one.agentic.v1.LoopDockerfileSourceV1
+	15, // 24: o11y_one.agentic.v1.CreateLoopEnvironmentVersionRequest.spec:type_name -> o11y_one.agentic.v1.LoopEnvironmentSpecV1
+	16, // 25: o11y_one.agentic.v1.CreateLoopEnvironmentVersionResponse.version:type_name -> o11y_one.agentic.v1.LoopEnvironmentVersionV1
+	16, // 26: o11y_one.agentic.v1.GetLoopEnvironmentVersionResponse.version:type_name -> o11y_one.agentic.v1.LoopEnvironmentVersionV1
+	34, // 27: o11y_one.agentic.v1.ListLoopEnvironmentVersionsRequest.page:type_name -> o11y_one.common.v1.PageRequestV1
+	16, // 28: o11y_one.agentic.v1.ListLoopEnvironmentVersionsResponse.versions:type_name -> o11y_one.agentic.v1.LoopEnvironmentVersionV1
+	35, // 29: o11y_one.agentic.v1.ListLoopEnvironmentVersionsResponse.page:type_name -> o11y_one.common.v1.PageResponseV1
+	5,  // 30: o11y_one.agentic.v1.ListLoopEnvironmentVersionsResponse.environment:type_name -> o11y_one.agentic.v1.LoopEnvironmentV1
+	34, // 31: o11y_one.agentic.v1.ListLoopEnvironmentsRequest.page:type_name -> o11y_one.common.v1.PageRequestV1
+	5,  // 32: o11y_one.agentic.v1.LoopEnvironmentSummaryV1.environment:type_name -> o11y_one.agentic.v1.LoopEnvironmentV1
+	16, // 33: o11y_one.agentic.v1.LoopEnvironmentSummaryV1.newest:type_name -> o11y_one.agentic.v1.LoopEnvironmentVersionV1
+	16, // 34: o11y_one.agentic.v1.LoopEnvironmentSummaryV1.latest_published:type_name -> o11y_one.agentic.v1.LoopEnvironmentVersionV1
+	26, // 35: o11y_one.agentic.v1.ListLoopEnvironmentsResponse.environments:type_name -> o11y_one.agentic.v1.LoopEnvironmentSummaryV1
+	35, // 36: o11y_one.agentic.v1.ListLoopEnvironmentsResponse.page:type_name -> o11y_one.common.v1.PageResponseV1
+	33, // 37: o11y_one.agentic.v1.CreateLoopEnvironmentUploadResponse.expires_at:type_name -> google.protobuf.Timestamp
+	17, // 38: o11y_one.agentic.v1.LoopEnvironmentService.CreateLoopEnvironment:input_type -> o11y_one.agentic.v1.CreateLoopEnvironmentRequest
+	19, // 39: o11y_one.agentic.v1.LoopEnvironmentService.CreateLoopEnvironmentVersion:input_type -> o11y_one.agentic.v1.CreateLoopEnvironmentVersionRequest
+	21, // 40: o11y_one.agentic.v1.LoopEnvironmentService.GetLoopEnvironmentVersion:input_type -> o11y_one.agentic.v1.GetLoopEnvironmentVersionRequest
+	23, // 41: o11y_one.agentic.v1.LoopEnvironmentService.ListLoopEnvironmentVersions:input_type -> o11y_one.agentic.v1.ListLoopEnvironmentVersionsRequest
+	25, // 42: o11y_one.agentic.v1.LoopEnvironmentService.ListLoopEnvironments:input_type -> o11y_one.agentic.v1.ListLoopEnvironmentsRequest
+	28, // 43: o11y_one.agentic.v1.LoopEnvironmentService.CreateLoopEnvironmentUpload:input_type -> o11y_one.agentic.v1.CreateLoopEnvironmentUploadRequest
+	30, // 44: o11y_one.agentic.v1.LoopEnvironmentService.GetLoopEnvironmentBuildLog:input_type -> o11y_one.agentic.v1.GetLoopEnvironmentBuildLogRequest
+	18, // 45: o11y_one.agentic.v1.LoopEnvironmentService.CreateLoopEnvironment:output_type -> o11y_one.agentic.v1.CreateLoopEnvironmentResponse
+	20, // 46: o11y_one.agentic.v1.LoopEnvironmentService.CreateLoopEnvironmentVersion:output_type -> o11y_one.agentic.v1.CreateLoopEnvironmentVersionResponse
+	22, // 47: o11y_one.agentic.v1.LoopEnvironmentService.GetLoopEnvironmentVersion:output_type -> o11y_one.agentic.v1.GetLoopEnvironmentVersionResponse
+	24, // 48: o11y_one.agentic.v1.LoopEnvironmentService.ListLoopEnvironmentVersions:output_type -> o11y_one.agentic.v1.ListLoopEnvironmentVersionsResponse
+	27, // 49: o11y_one.agentic.v1.LoopEnvironmentService.ListLoopEnvironments:output_type -> o11y_one.agentic.v1.ListLoopEnvironmentsResponse
+	29, // 50: o11y_one.agentic.v1.LoopEnvironmentService.CreateLoopEnvironmentUpload:output_type -> o11y_one.agentic.v1.CreateLoopEnvironmentUploadResponse
+	31, // 51: o11y_one.agentic.v1.LoopEnvironmentService.GetLoopEnvironmentBuildLog:output_type -> o11y_one.agentic.v1.GetLoopEnvironmentBuildLogResponse
+	45, // [45:52] is the sub-list for method output_type
+	38, // [38:45] is the sub-list for method input_type
+	38, // [38:38] is the sub-list for extension type_name
+	38, // [38:38] is the sub-list for extension extendee
+	0,  // [0:38] is the sub-list for field type_name
 }
 
 func init() { file_o11y_one_agentic_v1_environment_proto_init() }
@@ -2475,7 +2575,7 @@ func file_o11y_one_agentic_v1_environment_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_o11y_one_agentic_v1_environment_proto_rawDesc), len(file_o11y_one_agentic_v1_environment_proto_rawDesc)),
-			NumEnums:      4,
+			NumEnums:      5,
 			NumMessages:   28,
 			NumExtensions: 0,
 			NumServices:   1,

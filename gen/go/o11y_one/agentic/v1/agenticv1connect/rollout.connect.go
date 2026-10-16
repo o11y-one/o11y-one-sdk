@@ -102,6 +102,18 @@ const (
 	// LoopRolloutServiceListLoopRunStepsProcedure is the fully-qualified name of the
 	// LoopRolloutService's ListLoopRunSteps RPC.
 	LoopRolloutServiceListLoopRunStepsProcedure = "/o11y_one.agentic.v1.LoopRolloutService/ListLoopRunSteps"
+	// LoopRolloutServiceGetLoopRolloutTrajectoryProcedure is the fully-qualified name of the
+	// LoopRolloutService's GetLoopRolloutTrajectory RPC.
+	LoopRolloutServiceGetLoopRolloutTrajectoryProcedure = "/o11y_one.agentic.v1.LoopRolloutService/GetLoopRolloutTrajectory"
+	// LoopRolloutServiceCreateLoopTrajectoryDatasetVersionProcedure is the fully-qualified name of the
+	// LoopRolloutService's CreateLoopTrajectoryDatasetVersion RPC.
+	LoopRolloutServiceCreateLoopTrajectoryDatasetVersionProcedure = "/o11y_one.agentic.v1.LoopRolloutService/CreateLoopTrajectoryDatasetVersion"
+	// LoopRolloutServiceListLoopDatasetVersionRolloutsProcedure is the fully-qualified name of the
+	// LoopRolloutService's ListLoopDatasetVersionRollouts RPC.
+	LoopRolloutServiceListLoopDatasetVersionRolloutsProcedure = "/o11y_one.agentic.v1.LoopRolloutService/ListLoopDatasetVersionRollouts"
+	// LoopRolloutServiceSetLoopDatasetVersionPinnedProcedure is the fully-qualified name of the
+	// LoopRolloutService's SetLoopDatasetVersionPinned RPC.
+	LoopRolloutServiceSetLoopDatasetVersionPinnedProcedure = "/o11y_one.agentic.v1.LoopRolloutService/SetLoopDatasetVersionPinned"
 )
 
 // LoopRolloutServiceClient is a client for the o11y_one.agentic.v1.LoopRolloutService service.
@@ -136,11 +148,29 @@ type LoopRolloutServiceClient interface {
 	ListLoopRollouts(context.Context, *connect.Request[v1.ListLoopRolloutsRequest]) (*connect.Response[v1.ListLoopRolloutsResponse], error)
 	// A run's groups, newest first.
 	ListLoopRolloutGroups(context.Context, *connect.Request[v1.ListLoopRolloutGroupsRequest]) (*connect.Response[v1.ListLoopRolloutGroupsResponse], error)
-	// The paths the rollout's verifier found changed in its final state.
+	// The paths the rollout's verifier found changed in its final state. A
+	// member's, never a viewer's (#726).
 	GetLoopRolloutChangeList(context.Context, *connect.Request[v1.GetLoopRolloutChangeListRequest]) (*connect.Response[v1.GetLoopRolloutChangeListResponse], error)
 	GetLoopRolloutStats(context.Context, *connect.Request[v1.GetLoopRolloutStatsRequest]) (*connect.Response[v1.GetLoopRolloutStatsResponse], error)
 	// A run's series by training step or by time.
 	ListLoopRunSteps(context.Context, *connect.Request[v1.ListLoopRunStepsRequest]) (*connect.Response[v1.ListLoopRunStepsResponse], error)
+	// ---- trajectories (#726) ----
+	// A page of a rollout's steps as they were kept: each step's calls, their
+	// results and the assistant message they came from, redacted. A member's,
+	// never a viewer's.
+	GetLoopRolloutTrajectory(context.Context, *connect.Request[v1.GetLoopRolloutTrajectoryRequest]) (*connect.Response[v1.GetLoopRolloutTrajectoryResponse], error)
+	// ---- end of trajectories ----
+	// ---- trajectory datasets (#726) ----
+	// A new version of a trajectory dataset holding the organization's ended
+	// rollouts whose steps are kept, pinned so retention keeps them; a repeat
+	// under the same `request_id` answers with the version the first created.
+	CreateLoopTrajectoryDatasetVersion(context.Context, *connect.Request[v1.CreateLoopTrajectoryDatasetVersionRequest]) (*connect.Response[v1.CreateLoopTrajectoryDatasetVersionResponse], error)
+	// A trajectory dataset version's rollouts, in order, each as it is now:
+	// its run, environment version, task, snapshots, group and parent.
+	ListLoopDatasetVersionRollouts(context.Context, *connect.Request[v1.ListLoopDatasetVersionRolloutsRequest]) (*connect.Response[v1.ListLoopDatasetVersionRolloutsResponse], error)
+	// Pins a trajectory dataset version, so retention keeps its rollouts'
+	// steps, or unpins it, so they go at their time.
+	SetLoopDatasetVersionPinned(context.Context, *connect.Request[v1.SetLoopDatasetVersionPinnedRequest]) (*connect.Response[v1.SetLoopDatasetVersionPinnedResponse], error)
 }
 
 // NewLoopRolloutServiceClient constructs a client for the o11y_one.agentic.v1.LoopRolloutService
@@ -256,28 +286,56 @@ func NewLoopRolloutServiceClient(httpClient connect.HTTPClient, baseURL string, 
 			connect.WithSchema(loopRolloutServiceMethods.ByName("ListLoopRunSteps")),
 			connect.WithClientOptions(opts...),
 		),
+		getLoopRolloutTrajectory: connect.NewClient[v1.GetLoopRolloutTrajectoryRequest, v1.GetLoopRolloutTrajectoryResponse](
+			httpClient,
+			baseURL+LoopRolloutServiceGetLoopRolloutTrajectoryProcedure,
+			connect.WithSchema(loopRolloutServiceMethods.ByName("GetLoopRolloutTrajectory")),
+			connect.WithClientOptions(opts...),
+		),
+		createLoopTrajectoryDatasetVersion: connect.NewClient[v1.CreateLoopTrajectoryDatasetVersionRequest, v1.CreateLoopTrajectoryDatasetVersionResponse](
+			httpClient,
+			baseURL+LoopRolloutServiceCreateLoopTrajectoryDatasetVersionProcedure,
+			connect.WithSchema(loopRolloutServiceMethods.ByName("CreateLoopTrajectoryDatasetVersion")),
+			connect.WithClientOptions(opts...),
+		),
+		listLoopDatasetVersionRollouts: connect.NewClient[v1.ListLoopDatasetVersionRolloutsRequest, v1.ListLoopDatasetVersionRolloutsResponse](
+			httpClient,
+			baseURL+LoopRolloutServiceListLoopDatasetVersionRolloutsProcedure,
+			connect.WithSchema(loopRolloutServiceMethods.ByName("ListLoopDatasetVersionRollouts")),
+			connect.WithClientOptions(opts...),
+		),
+		setLoopDatasetVersionPinned: connect.NewClient[v1.SetLoopDatasetVersionPinnedRequest, v1.SetLoopDatasetVersionPinnedResponse](
+			httpClient,
+			baseURL+LoopRolloutServiceSetLoopDatasetVersionPinnedProcedure,
+			connect.WithSchema(loopRolloutServiceMethods.ByName("SetLoopDatasetVersionPinned")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // loopRolloutServiceClient implements LoopRolloutServiceClient.
 type loopRolloutServiceClient struct {
-	createLoopRun            *connect.Client[v1.CreateLoopRunRequest, v1.CreateLoopRunResponse]
-	getLoopRun               *connect.Client[v1.GetLoopRunRequest, v1.GetLoopRunResponse]
-	listLoopRuns             *connect.Client[v1.ListLoopRunsRequest, v1.ListLoopRunsResponse]
-	updateLoopRun            *connect.Client[v1.UpdateLoopRunRequest, v1.UpdateLoopRunResponse]
-	pauseLoopRun             *connect.Client[v1.PauseLoopRunRequest, v1.PauseLoopRunResponse]
-	resumeLoopRun            *connect.Client[v1.ResumeLoopRunRequest, v1.ResumeLoopRunResponse]
-	stopLoopRun              *connect.Client[v1.StopLoopRunRequest, v1.StopLoopRunResponse]
-	resetLoopRollout         *connect.Client[v1.ResetLoopRolloutRequest, v1.ResetLoopRolloutResponse]
-	stepLoopRollout          *connect.Client[v1.StepLoopRolloutRequest, v1.StepLoopRolloutResponse]
-	closeLoopRollout         *connect.Client[v1.CloseLoopRolloutRequest, v1.CloseLoopRolloutResponse]
-	forkLoopRollout          *connect.Client[v1.ForkLoopRolloutRequest, v1.ForkLoopRolloutResponse]
-	getLoopRollout           *connect.Client[v1.GetLoopRolloutRequest, v1.GetLoopRolloutResponse]
-	listLoopRollouts         *connect.Client[v1.ListLoopRolloutsRequest, v1.ListLoopRolloutsResponse]
-	listLoopRolloutGroups    *connect.Client[v1.ListLoopRolloutGroupsRequest, v1.ListLoopRolloutGroupsResponse]
-	getLoopRolloutChangeList *connect.Client[v1.GetLoopRolloutChangeListRequest, v1.GetLoopRolloutChangeListResponse]
-	getLoopRolloutStats      *connect.Client[v1.GetLoopRolloutStatsRequest, v1.GetLoopRolloutStatsResponse]
-	listLoopRunSteps         *connect.Client[v1.ListLoopRunStepsRequest, v1.ListLoopRunStepsResponse]
+	createLoopRun                      *connect.Client[v1.CreateLoopRunRequest, v1.CreateLoopRunResponse]
+	getLoopRun                         *connect.Client[v1.GetLoopRunRequest, v1.GetLoopRunResponse]
+	listLoopRuns                       *connect.Client[v1.ListLoopRunsRequest, v1.ListLoopRunsResponse]
+	updateLoopRun                      *connect.Client[v1.UpdateLoopRunRequest, v1.UpdateLoopRunResponse]
+	pauseLoopRun                       *connect.Client[v1.PauseLoopRunRequest, v1.PauseLoopRunResponse]
+	resumeLoopRun                      *connect.Client[v1.ResumeLoopRunRequest, v1.ResumeLoopRunResponse]
+	stopLoopRun                        *connect.Client[v1.StopLoopRunRequest, v1.StopLoopRunResponse]
+	resetLoopRollout                   *connect.Client[v1.ResetLoopRolloutRequest, v1.ResetLoopRolloutResponse]
+	stepLoopRollout                    *connect.Client[v1.StepLoopRolloutRequest, v1.StepLoopRolloutResponse]
+	closeLoopRollout                   *connect.Client[v1.CloseLoopRolloutRequest, v1.CloseLoopRolloutResponse]
+	forkLoopRollout                    *connect.Client[v1.ForkLoopRolloutRequest, v1.ForkLoopRolloutResponse]
+	getLoopRollout                     *connect.Client[v1.GetLoopRolloutRequest, v1.GetLoopRolloutResponse]
+	listLoopRollouts                   *connect.Client[v1.ListLoopRolloutsRequest, v1.ListLoopRolloutsResponse]
+	listLoopRolloutGroups              *connect.Client[v1.ListLoopRolloutGroupsRequest, v1.ListLoopRolloutGroupsResponse]
+	getLoopRolloutChangeList           *connect.Client[v1.GetLoopRolloutChangeListRequest, v1.GetLoopRolloutChangeListResponse]
+	getLoopRolloutStats                *connect.Client[v1.GetLoopRolloutStatsRequest, v1.GetLoopRolloutStatsResponse]
+	listLoopRunSteps                   *connect.Client[v1.ListLoopRunStepsRequest, v1.ListLoopRunStepsResponse]
+	getLoopRolloutTrajectory           *connect.Client[v1.GetLoopRolloutTrajectoryRequest, v1.GetLoopRolloutTrajectoryResponse]
+	createLoopTrajectoryDatasetVersion *connect.Client[v1.CreateLoopTrajectoryDatasetVersionRequest, v1.CreateLoopTrajectoryDatasetVersionResponse]
+	listLoopDatasetVersionRollouts     *connect.Client[v1.ListLoopDatasetVersionRolloutsRequest, v1.ListLoopDatasetVersionRolloutsResponse]
+	setLoopDatasetVersionPinned        *connect.Client[v1.SetLoopDatasetVersionPinnedRequest, v1.SetLoopDatasetVersionPinnedResponse]
 }
 
 // CreateLoopRun calls o11y_one.agentic.v1.LoopRolloutService.CreateLoopRun.
@@ -365,6 +423,29 @@ func (c *loopRolloutServiceClient) ListLoopRunSteps(ctx context.Context, req *co
 	return c.listLoopRunSteps.CallUnary(ctx, req)
 }
 
+// GetLoopRolloutTrajectory calls o11y_one.agentic.v1.LoopRolloutService.GetLoopRolloutTrajectory.
+func (c *loopRolloutServiceClient) GetLoopRolloutTrajectory(ctx context.Context, req *connect.Request[v1.GetLoopRolloutTrajectoryRequest]) (*connect.Response[v1.GetLoopRolloutTrajectoryResponse], error) {
+	return c.getLoopRolloutTrajectory.CallUnary(ctx, req)
+}
+
+// CreateLoopTrajectoryDatasetVersion calls
+// o11y_one.agentic.v1.LoopRolloutService.CreateLoopTrajectoryDatasetVersion.
+func (c *loopRolloutServiceClient) CreateLoopTrajectoryDatasetVersion(ctx context.Context, req *connect.Request[v1.CreateLoopTrajectoryDatasetVersionRequest]) (*connect.Response[v1.CreateLoopTrajectoryDatasetVersionResponse], error) {
+	return c.createLoopTrajectoryDatasetVersion.CallUnary(ctx, req)
+}
+
+// ListLoopDatasetVersionRollouts calls
+// o11y_one.agentic.v1.LoopRolloutService.ListLoopDatasetVersionRollouts.
+func (c *loopRolloutServiceClient) ListLoopDatasetVersionRollouts(ctx context.Context, req *connect.Request[v1.ListLoopDatasetVersionRolloutsRequest]) (*connect.Response[v1.ListLoopDatasetVersionRolloutsResponse], error) {
+	return c.listLoopDatasetVersionRollouts.CallUnary(ctx, req)
+}
+
+// SetLoopDatasetVersionPinned calls
+// o11y_one.agentic.v1.LoopRolloutService.SetLoopDatasetVersionPinned.
+func (c *loopRolloutServiceClient) SetLoopDatasetVersionPinned(ctx context.Context, req *connect.Request[v1.SetLoopDatasetVersionPinnedRequest]) (*connect.Response[v1.SetLoopDatasetVersionPinnedResponse], error) {
+	return c.setLoopDatasetVersionPinned.CallUnary(ctx, req)
+}
+
 // LoopRolloutServiceHandler is an implementation of the o11y_one.agentic.v1.LoopRolloutService
 // service.
 type LoopRolloutServiceHandler interface {
@@ -398,11 +479,29 @@ type LoopRolloutServiceHandler interface {
 	ListLoopRollouts(context.Context, *connect.Request[v1.ListLoopRolloutsRequest]) (*connect.Response[v1.ListLoopRolloutsResponse], error)
 	// A run's groups, newest first.
 	ListLoopRolloutGroups(context.Context, *connect.Request[v1.ListLoopRolloutGroupsRequest]) (*connect.Response[v1.ListLoopRolloutGroupsResponse], error)
-	// The paths the rollout's verifier found changed in its final state.
+	// The paths the rollout's verifier found changed in its final state. A
+	// member's, never a viewer's (#726).
 	GetLoopRolloutChangeList(context.Context, *connect.Request[v1.GetLoopRolloutChangeListRequest]) (*connect.Response[v1.GetLoopRolloutChangeListResponse], error)
 	GetLoopRolloutStats(context.Context, *connect.Request[v1.GetLoopRolloutStatsRequest]) (*connect.Response[v1.GetLoopRolloutStatsResponse], error)
 	// A run's series by training step or by time.
 	ListLoopRunSteps(context.Context, *connect.Request[v1.ListLoopRunStepsRequest]) (*connect.Response[v1.ListLoopRunStepsResponse], error)
+	// ---- trajectories (#726) ----
+	// A page of a rollout's steps as they were kept: each step's calls, their
+	// results and the assistant message they came from, redacted. A member's,
+	// never a viewer's.
+	GetLoopRolloutTrajectory(context.Context, *connect.Request[v1.GetLoopRolloutTrajectoryRequest]) (*connect.Response[v1.GetLoopRolloutTrajectoryResponse], error)
+	// ---- end of trajectories ----
+	// ---- trajectory datasets (#726) ----
+	// A new version of a trajectory dataset holding the organization's ended
+	// rollouts whose steps are kept, pinned so retention keeps them; a repeat
+	// under the same `request_id` answers with the version the first created.
+	CreateLoopTrajectoryDatasetVersion(context.Context, *connect.Request[v1.CreateLoopTrajectoryDatasetVersionRequest]) (*connect.Response[v1.CreateLoopTrajectoryDatasetVersionResponse], error)
+	// A trajectory dataset version's rollouts, in order, each as it is now:
+	// its run, environment version, task, snapshots, group and parent.
+	ListLoopDatasetVersionRollouts(context.Context, *connect.Request[v1.ListLoopDatasetVersionRolloutsRequest]) (*connect.Response[v1.ListLoopDatasetVersionRolloutsResponse], error)
+	// Pins a trajectory dataset version, so retention keeps its rollouts'
+	// steps, or unpins it, so they go at their time.
+	SetLoopDatasetVersionPinned(context.Context, *connect.Request[v1.SetLoopDatasetVersionPinnedRequest]) (*connect.Response[v1.SetLoopDatasetVersionPinnedResponse], error)
 }
 
 // NewLoopRolloutServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -514,6 +613,30 @@ func NewLoopRolloutServiceHandler(svc LoopRolloutServiceHandler, opts ...connect
 		connect.WithSchema(loopRolloutServiceMethods.ByName("ListLoopRunSteps")),
 		connect.WithHandlerOptions(opts...),
 	)
+	loopRolloutServiceGetLoopRolloutTrajectoryHandler := connect.NewUnaryHandler(
+		LoopRolloutServiceGetLoopRolloutTrajectoryProcedure,
+		svc.GetLoopRolloutTrajectory,
+		connect.WithSchema(loopRolloutServiceMethods.ByName("GetLoopRolloutTrajectory")),
+		connect.WithHandlerOptions(opts...),
+	)
+	loopRolloutServiceCreateLoopTrajectoryDatasetVersionHandler := connect.NewUnaryHandler(
+		LoopRolloutServiceCreateLoopTrajectoryDatasetVersionProcedure,
+		svc.CreateLoopTrajectoryDatasetVersion,
+		connect.WithSchema(loopRolloutServiceMethods.ByName("CreateLoopTrajectoryDatasetVersion")),
+		connect.WithHandlerOptions(opts...),
+	)
+	loopRolloutServiceListLoopDatasetVersionRolloutsHandler := connect.NewUnaryHandler(
+		LoopRolloutServiceListLoopDatasetVersionRolloutsProcedure,
+		svc.ListLoopDatasetVersionRollouts,
+		connect.WithSchema(loopRolloutServiceMethods.ByName("ListLoopDatasetVersionRollouts")),
+		connect.WithHandlerOptions(opts...),
+	)
+	loopRolloutServiceSetLoopDatasetVersionPinnedHandler := connect.NewUnaryHandler(
+		LoopRolloutServiceSetLoopDatasetVersionPinnedProcedure,
+		svc.SetLoopDatasetVersionPinned,
+		connect.WithSchema(loopRolloutServiceMethods.ByName("SetLoopDatasetVersionPinned")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/o11y_one.agentic.v1.LoopRolloutService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case LoopRolloutServiceCreateLoopRunProcedure:
@@ -550,6 +673,14 @@ func NewLoopRolloutServiceHandler(svc LoopRolloutServiceHandler, opts ...connect
 			loopRolloutServiceGetLoopRolloutStatsHandler.ServeHTTP(w, r)
 		case LoopRolloutServiceListLoopRunStepsProcedure:
 			loopRolloutServiceListLoopRunStepsHandler.ServeHTTP(w, r)
+		case LoopRolloutServiceGetLoopRolloutTrajectoryProcedure:
+			loopRolloutServiceGetLoopRolloutTrajectoryHandler.ServeHTTP(w, r)
+		case LoopRolloutServiceCreateLoopTrajectoryDatasetVersionProcedure:
+			loopRolloutServiceCreateLoopTrajectoryDatasetVersionHandler.ServeHTTP(w, r)
+		case LoopRolloutServiceListLoopDatasetVersionRolloutsProcedure:
+			loopRolloutServiceListLoopDatasetVersionRolloutsHandler.ServeHTTP(w, r)
+		case LoopRolloutServiceSetLoopDatasetVersionPinnedProcedure:
+			loopRolloutServiceSetLoopDatasetVersionPinnedHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -625,4 +756,20 @@ func (UnimplementedLoopRolloutServiceHandler) GetLoopRolloutStats(context.Contex
 
 func (UnimplementedLoopRolloutServiceHandler) ListLoopRunSteps(context.Context, *connect.Request[v1.ListLoopRunStepsRequest]) (*connect.Response[v1.ListLoopRunStepsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.LoopRolloutService.ListLoopRunSteps is not implemented"))
+}
+
+func (UnimplementedLoopRolloutServiceHandler) GetLoopRolloutTrajectory(context.Context, *connect.Request[v1.GetLoopRolloutTrajectoryRequest]) (*connect.Response[v1.GetLoopRolloutTrajectoryResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.LoopRolloutService.GetLoopRolloutTrajectory is not implemented"))
+}
+
+func (UnimplementedLoopRolloutServiceHandler) CreateLoopTrajectoryDatasetVersion(context.Context, *connect.Request[v1.CreateLoopTrajectoryDatasetVersionRequest]) (*connect.Response[v1.CreateLoopTrajectoryDatasetVersionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.LoopRolloutService.CreateLoopTrajectoryDatasetVersion is not implemented"))
+}
+
+func (UnimplementedLoopRolloutServiceHandler) ListLoopDatasetVersionRollouts(context.Context, *connect.Request[v1.ListLoopDatasetVersionRolloutsRequest]) (*connect.Response[v1.ListLoopDatasetVersionRolloutsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.LoopRolloutService.ListLoopDatasetVersionRollouts is not implemented"))
+}
+
+func (UnimplementedLoopRolloutServiceHandler) SetLoopDatasetVersionPinned(context.Context, *connect.Request[v1.SetLoopDatasetVersionPinnedRequest]) (*connect.Response[v1.SetLoopDatasetVersionPinnedResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.LoopRolloutService.SetLoopDatasetVersionPinned is not implemented"))
 }

@@ -68,6 +68,18 @@ class LoopRolloutService(Protocol):
     async def list_loop_run_steps(self, request: o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.ListLoopRunStepsRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.ListLoopRunStepsResponse:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
+    async def get_loop_rollout_trajectory(self, request: o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.GetLoopRolloutTrajectoryRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.GetLoopRolloutTrajectoryResponse:
+        raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
+
+    async def create_loop_trajectory_dataset_version(self, request: o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.CreateLoopTrajectoryDatasetVersionRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.CreateLoopTrajectoryDatasetVersionResponse:
+        raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
+
+    async def list_loop_dataset_version_rollouts(self, request: o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.ListLoopDatasetVersionRolloutsRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.ListLoopDatasetVersionRolloutsResponse:
+        raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
+
+    async def set_loop_dataset_version_pinned(self, request: o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.SetLoopDatasetVersionPinnedRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.SetLoopDatasetVersionPinnedResponse:
+        raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
+
 
 class LoopRolloutServiceASGIApplication(ConnectASGIApplication[LoopRolloutService]):
     def __init__(self, service: LoopRolloutService | AsyncGenerator[LoopRolloutService], *, interceptors: Iterable[Interceptor]=(), read_max_bytes: int | None = None, compressions: Iterable[Compression] | None = None) -> None:
@@ -243,6 +255,46 @@ class LoopRolloutServiceASGIApplication(ConnectASGIApplication[LoopRolloutServic
                         idempotency_level=IdempotencyLevel.UNKNOWN,
                     ),
                     function=svc.list_loop_run_steps,
+                ),
+                "/o11y_one.agentic.v1.LoopRolloutService/GetLoopRolloutTrajectory": Endpoint.unary(
+                    method=MethodInfo(
+                        name="GetLoopRolloutTrajectory",
+                        service_name="o11y_one.agentic.v1.LoopRolloutService",
+                        input=o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.GetLoopRolloutTrajectoryRequest,
+                        output=o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.GetLoopRolloutTrajectoryResponse,
+                        idempotency_level=IdempotencyLevel.UNKNOWN,
+                    ),
+                    function=svc.get_loop_rollout_trajectory,
+                ),
+                "/o11y_one.agentic.v1.LoopRolloutService/CreateLoopTrajectoryDatasetVersion": Endpoint.unary(
+                    method=MethodInfo(
+                        name="CreateLoopTrajectoryDatasetVersion",
+                        service_name="o11y_one.agentic.v1.LoopRolloutService",
+                        input=o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.CreateLoopTrajectoryDatasetVersionRequest,
+                        output=o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.CreateLoopTrajectoryDatasetVersionResponse,
+                        idempotency_level=IdempotencyLevel.UNKNOWN,
+                    ),
+                    function=svc.create_loop_trajectory_dataset_version,
+                ),
+                "/o11y_one.agentic.v1.LoopRolloutService/ListLoopDatasetVersionRollouts": Endpoint.unary(
+                    method=MethodInfo(
+                        name="ListLoopDatasetVersionRollouts",
+                        service_name="o11y_one.agentic.v1.LoopRolloutService",
+                        input=o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.ListLoopDatasetVersionRolloutsRequest,
+                        output=o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.ListLoopDatasetVersionRolloutsResponse,
+                        idempotency_level=IdempotencyLevel.UNKNOWN,
+                    ),
+                    function=svc.list_loop_dataset_version_rollouts,
+                ),
+                "/o11y_one.agentic.v1.LoopRolloutService/SetLoopDatasetVersionPinned": Endpoint.unary(
+                    method=MethodInfo(
+                        name="SetLoopDatasetVersionPinned",
+                        service_name="o11y_one.agentic.v1.LoopRolloutService",
+                        input=o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.SetLoopDatasetVersionPinnedRequest,
+                        output=o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.SetLoopDatasetVersionPinnedResponse,
+                        idempotency_level=IdempotencyLevel.UNKNOWN,
+                    ),
+                    function=svc.set_loop_dataset_version_pinned,
                 ),
             },
             interceptors=interceptors,
@@ -597,6 +649,86 @@ class LoopRolloutServiceClient(ConnectClient):
             timeout_ms=timeout_ms,
         )
 
+    async def get_loop_rollout_trajectory(
+        self,
+        request: o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.GetLoopRolloutTrajectoryRequest,
+        *,
+        headers: Headers | Mapping[str, str] | None = None,
+        timeout_ms: int | None = None,
+    ) -> o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.GetLoopRolloutTrajectoryResponse:
+        return await self.execute_unary(
+            request=request,
+            method=MethodInfo(
+                name="GetLoopRolloutTrajectory",
+                service_name="o11y_one.agentic.v1.LoopRolloutService",
+                input=o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.GetLoopRolloutTrajectoryRequest,
+                output=o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.GetLoopRolloutTrajectoryResponse,
+                idempotency_level=IdempotencyLevel.UNKNOWN,
+            ),
+            headers=headers,
+            timeout_ms=timeout_ms,
+        )
+
+    async def create_loop_trajectory_dataset_version(
+        self,
+        request: o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.CreateLoopTrajectoryDatasetVersionRequest,
+        *,
+        headers: Headers | Mapping[str, str] | None = None,
+        timeout_ms: int | None = None,
+    ) -> o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.CreateLoopTrajectoryDatasetVersionResponse:
+        return await self.execute_unary(
+            request=request,
+            method=MethodInfo(
+                name="CreateLoopTrajectoryDatasetVersion",
+                service_name="o11y_one.agentic.v1.LoopRolloutService",
+                input=o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.CreateLoopTrajectoryDatasetVersionRequest,
+                output=o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.CreateLoopTrajectoryDatasetVersionResponse,
+                idempotency_level=IdempotencyLevel.UNKNOWN,
+            ),
+            headers=headers,
+            timeout_ms=timeout_ms,
+        )
+
+    async def list_loop_dataset_version_rollouts(
+        self,
+        request: o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.ListLoopDatasetVersionRolloutsRequest,
+        *,
+        headers: Headers | Mapping[str, str] | None = None,
+        timeout_ms: int | None = None,
+    ) -> o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.ListLoopDatasetVersionRolloutsResponse:
+        return await self.execute_unary(
+            request=request,
+            method=MethodInfo(
+                name="ListLoopDatasetVersionRollouts",
+                service_name="o11y_one.agentic.v1.LoopRolloutService",
+                input=o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.ListLoopDatasetVersionRolloutsRequest,
+                output=o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.ListLoopDatasetVersionRolloutsResponse,
+                idempotency_level=IdempotencyLevel.UNKNOWN,
+            ),
+            headers=headers,
+            timeout_ms=timeout_ms,
+        )
+
+    async def set_loop_dataset_version_pinned(
+        self,
+        request: o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.SetLoopDatasetVersionPinnedRequest,
+        *,
+        headers: Headers | Mapping[str, str] | None = None,
+        timeout_ms: int | None = None,
+    ) -> o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.SetLoopDatasetVersionPinnedResponse:
+        return await self.execute_unary(
+            request=request,
+            method=MethodInfo(
+                name="SetLoopDatasetVersionPinned",
+                service_name="o11y_one.agentic.v1.LoopRolloutService",
+                input=o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.SetLoopDatasetVersionPinnedRequest,
+                output=o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.SetLoopDatasetVersionPinnedResponse,
+                idempotency_level=IdempotencyLevel.UNKNOWN,
+            ),
+            headers=headers,
+            timeout_ms=timeout_ms,
+        )
+
 
 class LoopRolloutServiceSync(Protocol):
     def create_loop_run(self, request: o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.CreateLoopRunRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.CreateLoopRunResponse:
@@ -632,6 +764,14 @@ class LoopRolloutServiceSync(Protocol):
     def get_loop_rollout_stats(self, request: o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.GetLoopRolloutStatsRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.GetLoopRolloutStatsResponse:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
     def list_loop_run_steps(self, request: o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.ListLoopRunStepsRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.ListLoopRunStepsResponse:
+        raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
+    def get_loop_rollout_trajectory(self, request: o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.GetLoopRolloutTrajectoryRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.GetLoopRolloutTrajectoryResponse:
+        raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
+    def create_loop_trajectory_dataset_version(self, request: o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.CreateLoopTrajectoryDatasetVersionRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.CreateLoopTrajectoryDatasetVersionResponse:
+        raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
+    def list_loop_dataset_version_rollouts(self, request: o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.ListLoopDatasetVersionRolloutsRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.ListLoopDatasetVersionRolloutsResponse:
+        raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
+    def set_loop_dataset_version_pinned(self, request: o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.SetLoopDatasetVersionPinnedRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.SetLoopDatasetVersionPinnedResponse:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
 
@@ -808,6 +948,46 @@ class LoopRolloutServiceWSGIApplication(ConnectWSGIApplication):
                         idempotency_level=IdempotencyLevel.UNKNOWN,
                     ),
                     function=service.list_loop_run_steps,
+                ),
+                "/o11y_one.agentic.v1.LoopRolloutService/GetLoopRolloutTrajectory": EndpointSync.unary(
+                    method=MethodInfo(
+                        name="GetLoopRolloutTrajectory",
+                        service_name="o11y_one.agentic.v1.LoopRolloutService",
+                        input=o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.GetLoopRolloutTrajectoryRequest,
+                        output=o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.GetLoopRolloutTrajectoryResponse,
+                        idempotency_level=IdempotencyLevel.UNKNOWN,
+                    ),
+                    function=service.get_loop_rollout_trajectory,
+                ),
+                "/o11y_one.agentic.v1.LoopRolloutService/CreateLoopTrajectoryDatasetVersion": EndpointSync.unary(
+                    method=MethodInfo(
+                        name="CreateLoopTrajectoryDatasetVersion",
+                        service_name="o11y_one.agentic.v1.LoopRolloutService",
+                        input=o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.CreateLoopTrajectoryDatasetVersionRequest,
+                        output=o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.CreateLoopTrajectoryDatasetVersionResponse,
+                        idempotency_level=IdempotencyLevel.UNKNOWN,
+                    ),
+                    function=service.create_loop_trajectory_dataset_version,
+                ),
+                "/o11y_one.agentic.v1.LoopRolloutService/ListLoopDatasetVersionRollouts": EndpointSync.unary(
+                    method=MethodInfo(
+                        name="ListLoopDatasetVersionRollouts",
+                        service_name="o11y_one.agentic.v1.LoopRolloutService",
+                        input=o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.ListLoopDatasetVersionRolloutsRequest,
+                        output=o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.ListLoopDatasetVersionRolloutsResponse,
+                        idempotency_level=IdempotencyLevel.UNKNOWN,
+                    ),
+                    function=service.list_loop_dataset_version_rollouts,
+                ),
+                "/o11y_one.agentic.v1.LoopRolloutService/SetLoopDatasetVersionPinned": EndpointSync.unary(
+                    method=MethodInfo(
+                        name="SetLoopDatasetVersionPinned",
+                        service_name="o11y_one.agentic.v1.LoopRolloutService",
+                        input=o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.SetLoopDatasetVersionPinnedRequest,
+                        output=o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.SetLoopDatasetVersionPinnedResponse,
+                        idempotency_level=IdempotencyLevel.UNKNOWN,
+                    ),
+                    function=service.set_loop_dataset_version_pinned,
                 ),
             },
             interceptors=interceptors,
@@ -1156,6 +1336,86 @@ class LoopRolloutServiceClientSync(ConnectClientSync):
                 service_name="o11y_one.agentic.v1.LoopRolloutService",
                 input=o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.ListLoopRunStepsRequest,
                 output=o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.ListLoopRunStepsResponse,
+                idempotency_level=IdempotencyLevel.UNKNOWN,
+            ),
+            headers=headers,
+            timeout_ms=timeout_ms,
+        )
+
+    def get_loop_rollout_trajectory(
+        self,
+        request: o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.GetLoopRolloutTrajectoryRequest,
+        *,
+        headers: Headers | Mapping[str, str] | None = None,
+        timeout_ms: int | None = None,
+    ) -> o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.GetLoopRolloutTrajectoryResponse:
+        return self.execute_unary(
+            request=request,
+            method=MethodInfo(
+                name="GetLoopRolloutTrajectory",
+                service_name="o11y_one.agentic.v1.LoopRolloutService",
+                input=o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.GetLoopRolloutTrajectoryRequest,
+                output=o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.GetLoopRolloutTrajectoryResponse,
+                idempotency_level=IdempotencyLevel.UNKNOWN,
+            ),
+            headers=headers,
+            timeout_ms=timeout_ms,
+        )
+
+    def create_loop_trajectory_dataset_version(
+        self,
+        request: o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.CreateLoopTrajectoryDatasetVersionRequest,
+        *,
+        headers: Headers | Mapping[str, str] | None = None,
+        timeout_ms: int | None = None,
+    ) -> o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.CreateLoopTrajectoryDatasetVersionResponse:
+        return self.execute_unary(
+            request=request,
+            method=MethodInfo(
+                name="CreateLoopTrajectoryDatasetVersion",
+                service_name="o11y_one.agentic.v1.LoopRolloutService",
+                input=o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.CreateLoopTrajectoryDatasetVersionRequest,
+                output=o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.CreateLoopTrajectoryDatasetVersionResponse,
+                idempotency_level=IdempotencyLevel.UNKNOWN,
+            ),
+            headers=headers,
+            timeout_ms=timeout_ms,
+        )
+
+    def list_loop_dataset_version_rollouts(
+        self,
+        request: o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.ListLoopDatasetVersionRolloutsRequest,
+        *,
+        headers: Headers | Mapping[str, str] | None = None,
+        timeout_ms: int | None = None,
+    ) -> o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.ListLoopDatasetVersionRolloutsResponse:
+        return self.execute_unary(
+            request=request,
+            method=MethodInfo(
+                name="ListLoopDatasetVersionRollouts",
+                service_name="o11y_one.agentic.v1.LoopRolloutService",
+                input=o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.ListLoopDatasetVersionRolloutsRequest,
+                output=o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.ListLoopDatasetVersionRolloutsResponse,
+                idempotency_level=IdempotencyLevel.UNKNOWN,
+            ),
+            headers=headers,
+            timeout_ms=timeout_ms,
+        )
+
+    def set_loop_dataset_version_pinned(
+        self,
+        request: o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.SetLoopDatasetVersionPinnedRequest,
+        *,
+        headers: Headers | Mapping[str, str] | None = None,
+        timeout_ms: int | None = None,
+    ) -> o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.SetLoopDatasetVersionPinnedResponse:
+        return self.execute_unary(
+            request=request,
+            method=MethodInfo(
+                name="SetLoopDatasetVersionPinned",
+                service_name="o11y_one.agentic.v1.LoopRolloutService",
+                input=o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.SetLoopDatasetVersionPinnedRequest,
+                output=o11y__one_dot_agentic_dot_v1_dot_rollout__pb2.SetLoopDatasetVersionPinnedResponse,
                 idempotency_level=IdempotencyLevel.UNKNOWN,
             ),
             headers=headers,
