@@ -104,26 +104,35 @@ class LoopAgentInstance(AgentInstanceBase):
 
     async def step(self, states: dict, **kwargs: Any) -> dict:
         action, sample = states["action_text"], _sample.get()
-        found = _TOOL_CALL.findall(action)
-        if not found:
+        if not _TOOL_CALL.search(action):
             return {"rewards": torch.tensor(0.0), "environment_feedback": "", "done": True}
         texts: list[str | None] = []
-        calls = []
-        for raw in found:
+        calls, sent = [], []
+
+        def take(found: re.Match) -> str:
+            """A call that is stepped leaves the message's text for its tool_calls; any other
+            stays in the text as the model wrote it."""
             try:
-                parsed = json.loads(raw)
-                call = _core.to_call(parsed["name"], parsed.get("arguments", {}))
+                parsed = json.loads(found[1])
+                name, arguments = parsed["name"], parsed.get("arguments", {})
+                call = _core.to_call(name, arguments)
             except (ValueError, KeyError, TypeError, AttributeError):
                 texts.append("error: tool_call_invalid")
-                continue
+                return found[0]
             if len(calls) == _MAX_CALLS:
                 texts.append("error: too many tool calls in one turn")
-                continue
+                return found[0]
             texts.append(None)
             calls.append(call)
+            function = {"name": name, "arguments": json.dumps(arguments)}
+            sent.append({"type": "function", "function": function})
+            return ""
+
+        content = _TOOL_CALL.sub(take, action).strip()
         if calls:
-            message = json.dumps({"role": "assistant", "content": action})
-            results = iter((await sample.client.step(calls, model_message=message)).results)
+            message = {"role": "assistant", "content": content, "tool_calls": sent}
+            step = await sample.client.step(calls, model_message=json.dumps(message))
+            results = iter(step.results)
             texts = [text if text is not None else _core.render(next(results)) for text in texts]
         feedback = _tool_turn(sample.tokenizer, texts)
         return {"rewards": torch.tensor(0.0), "environment_feedback": feedback, "done": False}

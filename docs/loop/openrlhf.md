@@ -44,7 +44,9 @@ python -m openrlhf.cli.train_ppo_ray \
 - **The agent path** is the installed module's own file, never a copy. OpenRLHF executes
   whatever file the path names.
 - **Tool calls** are parsed in the Hermes `<tool_call>{json}</tool_call>` form, which Qwen3
-  emits. Each turn's calls (up to 16) go to Loop as one step, carrying the assistant message.
+  emits. Each turn's calls (up to 16) go to Loop as one step, carrying the assistant message:
+  the calls it ran as `tool_calls`, and the rest of its text as `content`. A call that did
+  not run (it didn't parse, names another tool, or is past 16) stays in `content` as written.
   The results come back as the chat template's own tool turn.
 - **A turn with no tool call ends the sample.**
 
