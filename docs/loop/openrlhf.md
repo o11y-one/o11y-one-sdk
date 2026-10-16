@@ -41,6 +41,7 @@ python -m openrlhf.cli.train_ppo_ray \
 
 - **`render_prompts`** renders each row's messages with the model's chat template and the
   tools `shell`, `read_file` and `write_file`. OpenRLHF itself never passes `tools=`.
+  Each reset names those tools, and a trajectory export of the run carries them.
 - **The agent path** is the installed module's own file, never a copy. OpenRLHF executes
   whatever file the path names.
 - **Tool calls** are parsed in the Hermes `<tool_call>{json}</tool_call>` form, which Qwen3

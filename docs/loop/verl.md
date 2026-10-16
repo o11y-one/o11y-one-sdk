@@ -38,7 +38,8 @@ This relies on verl 0.9's defaults: `data.return_raw_chat=True`, `rollout.mode=a
 - The agent-loop config (`verl.yaml`, shipped in the package) maps `loop` to `LoopAgentLoop`.
 - To use another endpoint, add `base_url: https://…` beside `_target_` in a copy of that file.
 - The tools are `shell`, `read_file` and `write_file`. Each tool call is one Loop step, and it
-  carries the assistant message that made it.
+  carries the assistant message that made it. Each reset names those tools, and a trajectory
+  export of the run carries them.
 
 ## Dataset
 

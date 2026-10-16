@@ -94,6 +94,7 @@ class LoopAgentLoop(ToolAgentLoop):
             "group_index": next(_counter(uid)) % n,
             "group_size": n,
             "experiment_name": self.config.trainer.get("experiment_name", ""),
+            "tools_json": _core.TOOLS_JSON,
         }
         loop = ((kwargs.get("extra_info") or {}).get("loop")) or {}
         if case := loop.get("case_revision_id"):

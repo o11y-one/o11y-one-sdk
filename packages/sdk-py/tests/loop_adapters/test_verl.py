@@ -19,7 +19,7 @@ import hydra  # noqa: E402
 import loop_exports  # noqa: E402
 from fake_loop import CONNECTS, CREDENTIAL, tiny_qwen3  # noqa: E402
 from o11y_one.agentic.v1.rollout_pb2 import LoopFailureClassV1  # noqa: E402
-from o11y_one.sdk.loop import RolloutRefused  # noqa: E402
+from o11y_one.sdk.loop import RolloutRefused, _core  # noqa: E402
 from o11y_one.sdk.loop import verl as adapter  # noqa: E402
 from omegaconf import OmegaConf  # noqa: E402
 from transformers import AutoTokenizer  # noqa: E402
@@ -124,6 +124,7 @@ def test_a_group_is_verls_uid_with_its_n_indices_and_the_rows_case(loop, tokeniz
         assert sorted(reset.group_index for reset in group) == list(range(N))
         assert {(reset.group_size, reset.case_revision_id) for reset in group} == {(N, case)}
     assert {reset.experiment_name for reset in resets} == {"pyfix-verl"}
+    assert [json.loads(reset.tools_json) for reset in resets] == [_core.TOOLS] * len(rows)
     clients = {(reset.client.adapter, reset.client.framework_version) for reset in resets}
     assert clients == {("o11y_one.sdk.loop.verl", adapter.verl.__version__)}
 

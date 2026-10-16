@@ -74,6 +74,7 @@ def test_a_group_is_n_rollouts_of_one_case_and_the_verifier_is_each_ones_whole_r
         (N, 3, "case-a")
     }
     assert {r.client.adapter for r in resets} == {"o11y_one.sdk.loop.tinker"}
+    assert [json.loads(r.tools_json) for r in resets] == [_core.TOOLS] * N  # what the model saw
     assert sorted(trajectories.get_total_rewards()) == [0.1, 0.2, 0.3, 0.4]
     assert {call.WhichOneof("call") for step in loop.sent("step") for call in step.calls} == {
         "shell"

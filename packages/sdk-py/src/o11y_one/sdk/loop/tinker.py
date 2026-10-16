@@ -165,6 +165,7 @@ class LoopEnvGroupBuilder(EnvGroupBuilder):
                 "group_size": self.group_size,
                 "trainer_step": self.trainer_step,
                 "trainer_total_steps": self.trainer_total_steps,
+                "tools_json": _core.TOOLS_JSON,
             }
             if self.case_revision_id:
                 fields["case_revision_id"] = self.case_revision_id

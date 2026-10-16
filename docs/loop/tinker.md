@@ -111,6 +111,8 @@ Then run it with `asyncio.run(train.main(config))`.
   the cookbook retries it up to three times (each after Loop's own wait), then drops the
   group.
 - **`run_paused`:** each reset waits up to 30 minutes for the run to resume.
+- **Tools** are `shell`, `read_file` and `write_file`. Each reset names those tools, and a
+  trajectory export of the run carries them.
 - **Tool calls** in one turn run in parallel in the cookbook, and reach Loop one at a time.
   Each one's step carries the assistant message it came from, as the renderer's
   `to_openai_message` writes it.

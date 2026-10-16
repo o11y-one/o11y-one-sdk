@@ -99,6 +99,7 @@ class LoopEnvironment:
             "trainer_step": _trainer.step,
             "trainer_total_steps": _trainer.total_steps,
             "experiment_name": _trainer.experiment,
+            "tools_json": _core.TOOLS_JSON,
         }
         if case:
             fields["case_revision_id"] = case
