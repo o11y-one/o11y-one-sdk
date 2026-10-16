@@ -26,7 +26,8 @@ openenv = ["openenv==0.8.0"]
 # TRL 1.15 (v1.15.0, dae7b6a): o11y_one.sdk.loop.trl is GRPOTrainer's environment_factory,
 # which needs transformers 5.2 or later. torch is TRL's own dependency, named here only so
 # the lock takes it from PyTorch's CPU index on Linux (tool.uv.sources), as CI runs it.
-trl = ["trl>=1.15,<1.16", "transformers>=5.2", "torch"]
+# datasets 5 reads the Json() columns of Loop's TRL trajectory export back as objects.
+trl = ["trl>=1.15,<1.16", "transformers>=5.2", "datasets>=5", "torch"]
 # verl 0.9 (v0.9.1, 1876b06): o11y_one.sdk.loop.verl is a ToolAgentLoop
 # that verl's agent_loop_config_path loads. verl's agent loop imports cachetools, fastapi and
 # uvicorn, which its own requirements leave to its verl-core extra. torch as for trl.
