@@ -82,6 +82,8 @@ Then run it with `asyncio.run(train.main(config))`.
   group.
 - **`run_paused`:** each reset waits up to 30 minutes for the run to resume.
 - **Tool calls** in one turn run in parallel in the cookbook, and reach Loop one at a time.
+  Each one's step carries the assistant message it came from, as the renderer's
+  `to_openai_message` writes it.
 
 ## Rewards
 
@@ -94,7 +96,6 @@ Then run it with `asyncio.run(train.main(config))`.
 - Our failure (`INFRASTRUCTURE`, never billed) raises `LoopInfrastructureFailure`. The group is
   then never scored: `rollout_error_tolerance=True` skips it, and the default strategy stops
   the run.
-- **Not sent:** `model_message`. The cookbook doesn't hand a tool the assistant message.
 
 ## Cost
 

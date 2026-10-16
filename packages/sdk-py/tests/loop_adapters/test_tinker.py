@@ -7,6 +7,8 @@ Needs the ``tinker`` extra; skipped without it. The tokenizer is TRL's tiny Qwen
 from __future__ import annotations
 
 import asyncio
+import dataclasses
+import json
 import pickle
 
 import pytest
@@ -81,6 +83,22 @@ def test_a_group_is_n_rollouts_of_one_case_and_the_verifier_is_each_ones_whole_r
         for _, request in loop.requests
         if TINKER_CANARY.encode() in request.SerializeToString()
     ]
+
+
+def test_each_step_carries_the_assistant_message_its_calls_came_from(loop) -> None:
+    read = '<tool_call>\n{"name": "read_file", "arguments": {"path": "/work/mod.py"}}\n</tool_call>'
+    group = dataclasses.replace(builder(loop), group_size=1)
+    rollout(group, Policy(action=f"Checking.\n{SHELL}\n{read}"))
+    steps = loop.sent("step")
+    assert len(steps) == 2  # one message's two calls: a step each, the same message on both
+    (message,) = {step.model_message_json for step in steps}
+    message = json.loads(message)
+    assert (message["role"], message["content"].strip()) == ("assistant", "Checking.")
+    calls = [
+        (call["function"]["name"], json.loads(call["function"]["arguments"]))
+        for call in message["tool_calls"]
+    ]
+    assert calls == [("shell", {"command": "pytest -q"}), ("read_file", {"path": "/work/mod.py"})]
 
 
 def test_making_the_envs_starts_no_rollout(loop) -> None:
