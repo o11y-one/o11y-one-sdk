@@ -166,6 +166,74 @@ TypeScript entry other than `score.ts`, raises `ValidationError` before the
 wire, and so does a language the capabilities serve no runtime for
 (`code_language_unsupported`).
 
+## Author a judge
+
+A judge is one model call that asks 1 to 16 typed questions, each its own
+scorer, keyed `{judge_key}.{question_key}`. `CreateEvaluationJudge` and
+`ArchiveEvaluationJudge` are a person's verbs: the server refuses a machine key,
+so each call carries the person's token. `GetEvaluationJudge` and
+`ListEvaluationModelRates` take a machine key with the `eval:read` scope. Call
+them on the generated client:
+
+```python
+import os
+
+from connectrpc.request import Headers
+from o11y_one.agentic.v1.evaluation_connect import AgenticEvaluationServiceClientSync
+from o11y_one.agentic.v1.evaluation_pb2 import (
+    JUDGE_ANSWER_KIND_V1_YES_NO,
+    JUDGE_MODE_V1_SYSTEM_ONE,
+    OPEN_AI_TEXT_MODEL_V1_GPT_6_LUNA,
+    CreateEvaluationJudgeRequest,
+    EvaluationJudgeQuestionSpecV1,
+    EvaluationJudgeSpecV1,
+    GetEvaluationJudgeRequest,
+    ProviderModelRefV1,
+)
+from o11y_one.sdk import O11yClient
+
+o11y = O11yClient(base_url="https://grpc.o11y.one", org_id=os.environ["O11Y_ORG_ID"])
+evals = o11y.service_sync(AgenticEvaluationServiceClientSync)
+me = Headers({"authorization": f"Bearer {os.environ['O11Y_USER_TOKEN']}"})
+created = evals.create_evaluation_judge(
+    CreateEvaluationJudgeRequest(
+        judge_key="support-reply",
+        name="Support reply",
+        idempotency_key="support-reply-v1",
+        spec=EvaluationJudgeSpecV1(
+            judge_mode=JUDGE_MODE_V1_SYSTEM_ONE,
+            model=ProviderModelRefV1(openai=OPEN_AI_TEXT_MODEL_V1_GPT_6_LUNA),
+            # the id RegisterEvaluationProviderCredential returned
+            credential_ref=os.environ["O11Y_OPENAI_CREDENTIAL_ID"],
+            rubric="The reply resolves the customer's issue.",
+            questions=[
+                EvaluationJudgeQuestionSpecV1(
+                    question_key="resolved",
+                    name="Resolved",
+                    metric_name="support.resolved",
+                    success_dimension="quality",
+                    answer_kind=JUDGE_ANSWER_KIND_V1_YES_NO,
+                    instructions="Does the reply resolve the customer's issue?",
+                    pass_threshold=0.5,  # a yes/no scores p(yes); absent, the bar is 1.0
+                ),
+            ],
+        ),
+    ),
+    headers=me,
+)
+
+ci = O11yClient(
+    base_url="https://grpc.o11y.one",
+    credential=os.environ["O11Y_API_KEY"],  # a machine key with eval:read
+    org_id=os.environ["O11Y_ORG_ID"],
+)
+judge = (
+    ci.service_sync(AgenticEvaluationServiceClientSync)
+    .get_evaluation_judge(GetEvaluationJudgeRequest(judge_key="support-reply"))
+    .judge
+)
+```
+
 ## Loop rollouts
 
 A person mints a Loop run in the web and hands the trainer two values: the run's

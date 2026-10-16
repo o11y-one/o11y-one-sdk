@@ -124,6 +124,61 @@ both are unsigned 64-bit integers, which a `number` rounds past 2^53. `score()`
 may be `async`. sdk-py's `create_code_scorer(language="typescript")` uploads the
 bundle.
 
+## Author a judge
+
+A judge is one model call that asks 1 to 16 typed questions, each its own
+scorer, keyed `{judge_key}.{question_key}`. `CreateEvaluationJudge` and
+`ArchiveEvaluationJudge` are a person's verbs: the server refuses a machine key,
+so each call carries the person's token. `GetEvaluationJudge` and
+`ListEvaluationModelRates` take a machine key with the `eval:read` scope. Call
+them on the generated client:
+
+```ts
+import { O11yClient } from "@o11y-one/sdk";
+import {
+  AgenticEvaluationService,
+  JudgeAnswerKindV1,
+  JudgeModeV1,
+  OpenAiTextModelV1,
+} from "@o11y-one/sdk/api";
+
+const baseUrl = "https://grpc.o11y.one";
+const orgId = process.env.O11Y_ORG_ID;
+
+const evals = new O11yClient({ baseUrl, orgId }).service(AgenticEvaluationService);
+const created = await evals.createEvaluationJudge(
+  {
+    judgeKey: "support-reply",
+    name: "Support reply",
+    idempotencyKey: "support-reply-v1",
+    spec: {
+      judgeMode: JudgeModeV1.SYSTEM_ONE,
+      model: { model: { case: "openai", value: OpenAiTextModelV1.GPT_6_LUNA } },
+      // the id RegisterEvaluationProviderCredential returned
+      credentialRef: process.env.O11Y_OPENAI_CREDENTIAL_ID,
+      rubric: "The reply resolves the customer's issue.",
+      questions: [
+        {
+          questionKey: "resolved",
+          name: "Resolved",
+          metricName: "support.resolved",
+          successDimension: "quality",
+          answerKind: JudgeAnswerKindV1.YES_NO,
+          instructions: "Does the reply resolve the customer's issue?",
+          passThreshold: 0.5, // a yes/no scores p(yes); absent, the bar is 1.0
+        },
+      ],
+    },
+  },
+  { headers: { authorization: `Bearer ${process.env.O11Y_USER_TOKEN}` } },
+);
+
+const ci = new O11yClient({ baseUrl, credential: process.env.O11Y_API_KEY, orgId }); // eval:read
+const { judge } = await ci
+  .service(AgenticEvaluationService)
+  .getEvaluationJudge({ identity: { case: "judgeKey", value: "support-reply" } });
+```
+
 ## Loop rollouts
 
 A person mints a Loop run in the web and hands the trainer two values: the run's
