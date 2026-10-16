@@ -18,6 +18,7 @@ import asyncio
 import contextlib
 import copy
 import importlib.metadata
+import json
 import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass, field
@@ -54,6 +55,10 @@ class _Rollout:
             **client,
         )
         self._fields, self._lock, self.started = fields, asyncio.Lock(), False
+        # The env's renderer and message env, once it is built: its history ends in the
+        # assistant message while that message's tools run.
+        self.renderer: Any = None
+        self.env: Any = None
 
     async def open(self) -> AsyncLoopClient:
         async with self._lock:
@@ -96,7 +101,8 @@ class _LoopTool:
         except (ValueError, KeyError, AttributeError) as error:
             return error_tool_result(str(error), call_id=call_id, name=self.name)
         client = await self.rollout.open()
-        (result,) = (await client.step([call])).results
+        sent = self.rollout.renderer.to_openai_message(self.rollout.env.history[-1])
+        (result,) = (await client.step([call], model_message=json.dumps(sent))).results
         message = {"role": "tool", "content": _core.render(result), "tool_call_id": call_id}
         return ToolResult(messages=[{**message, "name": self.name}])
 
@@ -160,6 +166,7 @@ class LoopEnvGroupBuilder(EnvGroupBuilder):
                 max_turns=self.max_turns,
                 failed_parse_reward=0.0,  # the verifier is the only score
             )
+            rollout.renderer, rollout.env = renderer, env.message_env
             self._rollouts[id(env)] = rollout
             envs.append(env)
         return envs
