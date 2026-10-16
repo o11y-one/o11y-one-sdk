@@ -1,9 +1,11 @@
 """What every trainer adapter shares: three tools, their Loop calls and results as
-text, and the reward rule. ``exec``, ``list``, ``patch`` and ``set_env`` are
-reachable through ``shell``."""
+text, the reward rule, and a trajectory export's messages as a chat template takes
+them. ``exec``, ``list``, ``patch`` and ``set_env`` are reachable through ``shell``."""
 
 from __future__ import annotations
 
+import contextlib
+import json
 from collections.abc import Mapping
 
 from o11y_one.agentic.v1.rollout_pb2 import (
@@ -82,6 +84,26 @@ def render(result: LoopToolResultV1) -> str:
     if result.truncated:
         lines.append("(truncated: the output stops short)")
     return "\n".join(lines)
+
+
+def sft_messages(messages: list[dict]) -> list[dict]:
+    """A trajectory export row's messages as a chat template takes them: each call's
+    ``arguments``, JSON text in the file, parsed (text that is not JSON stays text), and a
+    field a Parquet row holds as null left out, as the JSONL rows leave it."""
+    parsed = []
+    for message in messages:
+        message = {key: value for key, value in message.items() if value is not None}
+        if "tool_calls" in message:
+            message["tool_calls"] = [_parsed_call(call) for call in message["tool_calls"]]
+        parsed.append(message)
+    return parsed
+
+
+def _parsed_call(call: dict) -> dict:
+    function = dict(call["function"])
+    with contextlib.suppress(TypeError, ValueError):
+        function["arguments"] = json.loads(function["arguments"])
+    return {**call, "function": function}
 
 
 class LoopInfrastructureFailure(Exception):
