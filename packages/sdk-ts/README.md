@@ -165,7 +165,7 @@ const created = await evals.createEvaluationJudge(
           successDimension: "quality",
           answerKind: JudgeAnswerKindV1.YES_NO,
           instructions: "Does the reply resolve the customer's issue?",
-          passThreshold: 0.5, // a yes/no scores p(yes); absent, the bar is 1.0
+          passThreshold: 0.5, // a yes/no scores p(yes), so 1.0 would pass only a certain yes
         },
       ],
     },

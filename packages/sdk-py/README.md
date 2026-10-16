@@ -214,7 +214,7 @@ created = evals.create_evaluation_judge(
                     success_dimension="quality",
                     answer_kind=JUDGE_ANSWER_KIND_V1_YES_NO,
                     instructions="Does the reply resolve the customer's issue?",
-                    pass_threshold=0.5,  # a yes/no scores p(yes); absent, the bar is 1.0
+                    pass_threshold=0.5,  # a yes/no scores p(yes), so 1.0 would pass only a certain yes
                 ),
             ],
         ),
