@@ -89,8 +89,10 @@ torchrun -m verl.trainer.sft_trainer \
   ...
 ```
 
-- Qwen3's chat template adds an empty think block to the last assistant turn only, so verl's
-  per-turn check fails on it. Set `data.ignore_input_ids_mismatch=True` for Qwen3.
+- verl tokenizes each turn alone and checks the result against the whole conversation.
+  Qwen3's chat template fails that check: it adds an empty think block to the last assistant
+  turn only, and answers one message's parallel calls in a single tool block. Set
+  `data.ignore_input_ids_mismatch=True` for Qwen3.
 
 ## Region
 
