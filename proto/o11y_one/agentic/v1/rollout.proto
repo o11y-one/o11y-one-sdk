@@ -57,11 +57,30 @@ service LoopRolloutService {
   rpc ListLoopRollouts(ListLoopRolloutsRequest) returns (ListLoopRolloutsResponse);
   // A run's groups, newest first.
   rpc ListLoopRolloutGroups(ListLoopRolloutGroupsRequest) returns (ListLoopRolloutGroupsResponse);
-  // The paths the rollout's verifier found changed in its final state.
+  // The paths the rollout's verifier found changed in its final state. A
+  // member's, never a viewer's (#726).
   rpc GetLoopRolloutChangeList(GetLoopRolloutChangeListRequest) returns (GetLoopRolloutChangeListResponse);
   rpc GetLoopRolloutStats(GetLoopRolloutStatsRequest) returns (GetLoopRolloutStatsResponse);
   // A run's series by training step or by time.
   rpc ListLoopRunSteps(ListLoopRunStepsRequest) returns (ListLoopRunStepsResponse);
+  // ---- trajectories (#726) ----
+  // A page of a rollout's steps as they were kept: each step's calls, their
+  // results and the assistant message they came from, redacted. A member's,
+  // never a viewer's.
+  rpc GetLoopRolloutTrajectory(GetLoopRolloutTrajectoryRequest) returns (GetLoopRolloutTrajectoryResponse);
+  // ---- end of trajectories ----
+  // ---- trajectory datasets (#726) ----
+  // A new version of a trajectory dataset holding the organization's ended
+  // rollouts whose steps are kept, pinned so retention keeps them; a repeat
+  // under the same `request_id` answers with the version the first created.
+  rpc CreateLoopTrajectoryDatasetVersion(CreateLoopTrajectoryDatasetVersionRequest) returns (CreateLoopTrajectoryDatasetVersionResponse);
+  // A trajectory dataset version's rollouts, in order, each as it is now:
+  // its run, environment version, task, snapshots, group and parent.
+  rpc ListLoopDatasetVersionRollouts(ListLoopDatasetVersionRolloutsRequest) returns (ListLoopDatasetVersionRolloutsResponse);
+  // Pins a trajectory dataset version, so retention keeps its rollouts'
+  // steps, or unpins it, so they go at their time.
+  rpc SetLoopDatasetVersionPinned(SetLoopDatasetVersionPinnedRequest) returns (SetLoopDatasetVersionPinnedResponse);
+  // ---- end of trajectory datasets ----
 }
 
 enum LoopTrainerFrameworkV1 {
@@ -347,7 +366,8 @@ message LoopTaskV1 {
 message LoopFinalStateV1 {
   uint64 entries = 1;
   uint64 bytes = 2;
-  // Past the walk's bounds: the change list stops short.
+  // Past the walk's bounds, about 30k changed entries, 4 MiB or 60 s: the
+  // change list stops short. It feeds the scan's flags, never the hack gate.
   bool oversized = 3;
 }
 
@@ -399,6 +419,43 @@ message LoopRolloutV1 {
   // The key its reset came with, as its credential's `token_prefix` shows
   // it; empty for a person's reset.
   string credential_prefix = 29;
+  // ---- reward-hack flags (#725) ----
+  // What the reward-hack scan found, the tenant's alone. Absent until the
+  // scan has read the ended rollout, which it does within seconds of its end,
+  // so a client from before this field reads every rollout as unscanned. A
+  // rollout its environment's hack gate failed shows FAIL at its end, and the
+  // flag that explains it once the scan has read it.
+  LoopRolloutFlagsV1 flags = 30;
+  // ---- end of reward-hack flags ----
+}
+
+// What the reward-hack scan found of one ended rollout (#725). Flags are
+// evidence about the tenant's own policy and change no reward. Apart from
+// them, a gated environment fails a rollout whose protected paths or runner
+// configs were changed (the verifier restores them).
+message LoopRolloutFlagsV1 {
+  google.protobuf.Timestamp scanned_at = 1;
+  // One per detector that fired; empty when none did.
+  repeated LoopRolloutFlagV1 detected = 2;
+  // Some of the rollout's calls were kept only as what the detectors read of
+  // them (past 16 KiB a step or 256 KiB a rollout, up to 64 KiB more), or not
+  // at all, so the detectors read less of them: the policy's doing, a flag
+  // only.
+  bool evidence_incomplete = 3;
+  // ---- unsealed evidence (#725) ----
+  // Absent means false, as before it existed. Some of the rollout's calls
+  // were not kept for a reason of ours, so the detectors read less of them:
+  // ours, a flag only. Neither this nor `evidence_incomplete` changes a
+  // reward.
+  bool evidence_unsealed = 4;
+  // ---- end of unsealed evidence ----
+}
+
+message LoopRolloutFlagV1 {
+  // The detector that fired, e.g. `test_file_edit`.
+  string detector = 1;
+  // What it saw: paths and codes, never file content.
+  string explanation = 2;
 }
 
 // A command, run without a shell.
@@ -635,6 +692,13 @@ message ResetLoopRolloutRequest {
   // At most 128 bytes.
   string experiment_name = 9;
   LoopClientV1 client = 10;
+  // ---- the rollout's tools (#726) ----
+  // Absent means none were named, as before it existed. The tools the
+  // policy was given, as a JSON array of OpenAI function schemas, at most 64
+  // KiB; kept with the rollout's trajectory for training exports, and never
+  // read by Loop.
+  string tools_json = 11;
+  // ---- end of the rollout's tools ----
 }
 
 message ResetLoopRolloutResponse {
@@ -706,6 +770,15 @@ message ListLoopRolloutsRequest {
   LoopRolloutStateV1 state = 4;
   LoopFailureClassV1 failure_class = 5;
   o11y_one.common.v1.PageRequestV1 page = 6;
+  // ---- reward-hack flags (#725) ----
+  // Set, only the rollouts the scan has read that it flagged (true) or did not
+  // (false); absent, as a client from before this field sends it, every
+  // rollout.
+  optional bool flagged = 7;
+  // ---- end of reward-hack flags ----
+  // (#726) Set, only the run's rollouts forked from this one: its direct
+  // copies, never theirs. Absent, every rollout.
+  optional string parent_rollout_id = 8;
 }
 
 message ListLoopRolloutsResponse {
@@ -757,6 +830,47 @@ message LoopRolloutGroupV1 {
 message ListLoopRolloutGroupsResponse {
   repeated LoopRolloutGroupV1 groups = 1;
   o11y_one.common.v1.PageResponseV1 page = 2;
+}
+
+message GetLoopRolloutTrajectoryRequest {
+  string rollout_id = 1;
+  // 1 to 100 steps a page, within 4 MiB; absent takes 100. Its token is the
+  // first step of the next page.
+  o11y_one.common.v1.PageRequestV1 page = 2;
+}
+
+// A page of a rollout's trajectory. A rollout's steps are kept once it is
+// closed, so one still running has none yet, and says so with `pending`. Its
+// steps go when its organization's trace retention passes, after which a read
+// is refused with `trajectory_expired`.
+message GetLoopRolloutTrajectoryResponse {
+  repeated LoopTrajectoryStepV1 steps = 1;
+  o11y_one.common.v1.PageResponseV1 page = 2;
+  // The rollout has not ended, or its steps are not kept yet: read again.
+  bool pending = 3;
+  // The rollout ended and some of its steps were never kept: a process that
+  // served it was lost, or a write of them failed for good. Its kept steps
+  // are still answered; a trainer's export skips or flags such a trajectory.
+  bool incomplete = 4;
+}
+
+// One step of a rollout's trajectory, as Loop kept it: secrets in it are
+// replaced before it is stored.
+message LoopTrajectoryStepV1 {
+  // From 1.
+  uint32 step = 1;
+  // The assistant message the calls came from, as the step carried it.
+  string model_message_json = 2;
+  repeated LoopToolCallV1 calls = 3;
+  // One per call, in order, as the step answered them.
+  repeated LoopToolResultV1 results = 4;
+  // On the first step the rollout kept: the tools its reset named.
+  string tools_json = 5;
+  // The step was past what it may hold, 16 MiB kept or a page's 4 MiB
+  // answered, so its results' stdout, stderr, file bytes and listings, its
+  // calls' written bytes and, if it was still past it, its model message are
+  // left out.
+  bool cut = 6;
 }
 
 message GetLoopRolloutChangeListRequest {
@@ -868,6 +982,96 @@ message ListLoopRunStepsResponse {
   repeated LoopRunStepV1 steps = 1;
   o11y_one.common.v1.PageResponseV1 page = 2;
 }
+
+// ---- trajectory datasets (#726) ----
+
+// A version of a trajectory dataset. Its rollouts never change.
+message LoopTrajectoryDatasetVersionV1 {
+  string dataset_version_id = 1;
+  string dataset_collection_id = 2;
+  string dataset_name = 3;
+  uint32 version_number = 4;
+  string label = 5;
+  uint32 rollout_count = 6;
+  // Retention keeps its rollouts' steps.
+  bool pinned = 7;
+  google.protobuf.Timestamp created_at = 8;
+  // (#726) The version it extends: its rollouts come first, in their order.
+  // Empty for a version made from rollouts alone.
+  string base_dataset_version_id = 9;
+  // (#726) Set on ListLoopDatasetVersionRollouts alone: how many of its
+  // rollouts and their fork ancestors only this version pins, which return
+  // to retention when it is unpinned. 0 while it is unpinned.
+  optional uint32 sole_pin_rollouts = 10;
+}
+
+// A named reward's bounds, both inclusive; a rollout without the reward is
+// not taken.
+message LoopRewardRangeV1 {
+  string name = 1;
+  optional double min = 2;
+  optional double max = 3;
+}
+
+message CreateLoopTrajectoryDatasetVersionRequest {
+  // A UUID: a repeat under it answers with the version the first created.
+  string request_id = 1;
+  // The trajectory dataset to add the version to; empty, a new one named
+  // `dataset_name`.
+  string dataset_collection_id = 2;
+  string dataset_name = 3;
+  string label = 4;
+  // The rollouts, in order, each once: 1 to 10,000 of the organization's
+  // ended rollouts whose steps are kept, or the version is not created.
+  // Empty: those of `run_id`, oldest first, within `reward` when set.
+  repeated string rollout_ids = 5;
+  string run_id = 6;
+  LoopRewardRangeV1 reward = 7;
+  // (#726) A version of `dataset_collection_id` to extend: the new version
+  // holds its rollouts, in their order, then those above not already in it,
+  // at most 10,000 in all. It must be the dataset's latest version, or the
+  // create is refused as `dataset_version_stale`. Empty, none.
+  string base_dataset_version_id = 8;
+}
+
+message CreateLoopTrajectoryDatasetVersionResponse {
+  LoopTrajectoryDatasetVersionV1 version = 1;
+}
+
+message ListLoopDatasetVersionRolloutsRequest {
+  string dataset_version_id = 1;
+  o11y_one.common.v1.PageRequestV1 page = 2;
+}
+
+// A trajectory dataset version's rollout.
+message LoopDatasetVersionRolloutV1 {
+  uint32 ordinal = 1;
+  string rollout_id = 2;
+  // As it is now; absent once its run was deleted.
+  LoopRolloutV1 rollout = 3;
+  // Its steps went with the organization's trace retention, after every
+  // version holding it was unpinned.
+  bool expired = 4;
+}
+
+message ListLoopDatasetVersionRolloutsResponse {
+  LoopTrajectoryDatasetVersionV1 version = 1;
+  repeated LoopDatasetVersionRolloutV1 rollouts = 2;
+  o11y_one.common.v1.PageResponseV1 page = 3;
+}
+
+message SetLoopDatasetVersionPinnedRequest {
+  string dataset_version_id = 1;
+  bool pinned = 2;
+  // Why it is pinned; at most 256 bytes.
+  string reason = 3;
+}
+
+message SetLoopDatasetVersionPinnedResponse {
+  LoopTrajectoryDatasetVersionV1 version = 1;
+}
+
+// ---- end of trajectory datasets ----
 
 // The detail every LoopRolloutService refusal carries.
 message LoopRolloutRejectionV1 {

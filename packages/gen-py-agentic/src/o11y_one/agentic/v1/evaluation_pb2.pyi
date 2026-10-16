@@ -921,6 +921,10 @@ class EvaluationExportFormatV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper
     EVALUATION_EXPORT_FORMAT_V1_CSV: _ClassVar[EvaluationExportFormatV1]
     EVALUATION_EXPORT_FORMAT_V1_JSONL: _ClassVar[EvaluationExportFormatV1]
     EVALUATION_EXPORT_FORMAT_V1_PARQUET: _ClassVar[EvaluationExportFormatV1]
+    EVALUATION_EXPORT_FORMAT_V1_VERL_PARQUET: _ClassVar[EvaluationExportFormatV1]
+    EVALUATION_EXPORT_FORMAT_V1_TRL_PARQUET: _ClassVar[EvaluationExportFormatV1]
+    EVALUATION_EXPORT_FORMAT_V1_OPENRLHF_JSONL: _ClassVar[EvaluationExportFormatV1]
+    EVALUATION_EXPORT_FORMAT_V1_TINKER_JSONL: _ClassVar[EvaluationExportFormatV1]
 
 class EvaluationShareStateV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -1879,6 +1883,12 @@ class EvaluationScorerArchivedFilterV1(int, metaclass=_enum_type_wrapper.EnumTyp
     EVALUATION_SCORER_ARCHIVED_FILTER_V1_ARCHIVED_ONLY: _ClassVar[EvaluationScorerArchivedFilterV1]
     EVALUATION_SCORER_ARCHIVED_FILTER_V1_ALL: _ClassVar[EvaluationScorerArchivedFilterV1]
 
+class DatasetContentKindV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    DATASET_CONTENT_KIND_V1_UNSPECIFIED: _ClassVar[DatasetContentKindV1]
+    DATASET_CONTENT_KIND_V1_CASES: _ClassVar[DatasetContentKindV1]
+    DATASET_CONTENT_KIND_V1_TRAJECTORIES: _ClassVar[DatasetContentKindV1]
+
 class ProductionAttentionItemKindV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     PRODUCTION_ATTENTION_ITEM_KIND_V1_UNSPECIFIED: _ClassVar[ProductionAttentionItemKindV1]
@@ -2511,6 +2521,10 @@ EVALUATION_EXPORT_FORMAT_V1_UNSPECIFIED: EvaluationExportFormatV1
 EVALUATION_EXPORT_FORMAT_V1_CSV: EvaluationExportFormatV1
 EVALUATION_EXPORT_FORMAT_V1_JSONL: EvaluationExportFormatV1
 EVALUATION_EXPORT_FORMAT_V1_PARQUET: EvaluationExportFormatV1
+EVALUATION_EXPORT_FORMAT_V1_VERL_PARQUET: EvaluationExportFormatV1
+EVALUATION_EXPORT_FORMAT_V1_TRL_PARQUET: EvaluationExportFormatV1
+EVALUATION_EXPORT_FORMAT_V1_OPENRLHF_JSONL: EvaluationExportFormatV1
+EVALUATION_EXPORT_FORMAT_V1_TINKER_JSONL: EvaluationExportFormatV1
 EVALUATION_SHARE_STATE_V1_UNSPECIFIED: EvaluationShareStateV1
 EVALUATION_SHARE_STATE_V1_ACTIVE: EvaluationShareStateV1
 EVALUATION_SHARE_STATE_V1_REVOKED: EvaluationShareStateV1
@@ -3147,6 +3161,9 @@ EVALUATION_SCORER_ARCHIVED_FILTER_V1_UNSPECIFIED: EvaluationScorerArchivedFilter
 EVALUATION_SCORER_ARCHIVED_FILTER_V1_ACTIVE_ONLY: EvaluationScorerArchivedFilterV1
 EVALUATION_SCORER_ARCHIVED_FILTER_V1_ARCHIVED_ONLY: EvaluationScorerArchivedFilterV1
 EVALUATION_SCORER_ARCHIVED_FILTER_V1_ALL: EvaluationScorerArchivedFilterV1
+DATASET_CONTENT_KIND_V1_UNSPECIFIED: DatasetContentKindV1
+DATASET_CONTENT_KIND_V1_CASES: DatasetContentKindV1
+DATASET_CONTENT_KIND_V1_TRAJECTORIES: DatasetContentKindV1
 PRODUCTION_ATTENTION_ITEM_KIND_V1_UNSPECIFIED: ProductionAttentionItemKindV1
 PRODUCTION_ATTENTION_ITEM_KIND_V1_RELEASE_BLOCKING_REGRESSION: ProductionAttentionItemKindV1
 PRODUCTION_ATTENTION_ITEM_KIND_V1_REPEATED_CUSTOMER_IMPACTING_FAILURE: ProductionAttentionItemKindV1
@@ -7325,7 +7342,7 @@ class SubmitEvaluationReviewResponse(_message.Message):
     def __init__(self, submission: _Optional[_Union[EvaluationReviewSubmissionV1, _Mapping]] = ..., unit: _Optional[_Union[EvaluationReviewUnitV1, _Mapping]] = ..., field_errors: _Optional[_Iterable[_Union[EvaluationReviewRubricFieldErrorV1, _Mapping]]] = ..., idempotent_replay: _Optional[bool] = ..., unit_completed: _Optional[bool] = ..., run_review_completed: _Optional[bool] = ..., freshness: _Optional[_Union[EvaluationFreshnessV1, _Mapping]] = ..., capabilities: _Optional[_Union[AgenticEvaluationCapabilitiesV1, _Mapping]] = ...) -> None: ...
 
 class EvaluationExportV1(_message.Message):
-    __slots__ = ("export_id", "evaluation_run_id", "format", "state", "pinned_projection_version", "pinned_facts_watermark", "requested_by", "byte_size", "content_digest", "failure", "attempt_count", "created_at", "updated_at", "finished_at", "expires_at", "expired")
+    __slots__ = ("export_id", "evaluation_run_id", "format", "state", "pinned_projection_version", "pinned_facts_watermark", "requested_by", "byte_size", "content_digest", "failure", "attempt_count", "created_at", "updated_at", "finished_at", "expires_at", "expired", "dataset_version_id", "skipped_rows", "first_skipped_task_id")
     EXPORT_ID_FIELD_NUMBER: _ClassVar[int]
     EVALUATION_RUN_ID_FIELD_NUMBER: _ClassVar[int]
     FORMAT_FIELD_NUMBER: _ClassVar[int]
@@ -7342,6 +7359,9 @@ class EvaluationExportV1(_message.Message):
     FINISHED_AT_FIELD_NUMBER: _ClassVar[int]
     EXPIRES_AT_FIELD_NUMBER: _ClassVar[int]
     EXPIRED_FIELD_NUMBER: _ClassVar[int]
+    DATASET_VERSION_ID_FIELD_NUMBER: _ClassVar[int]
+    SKIPPED_ROWS_FIELD_NUMBER: _ClassVar[int]
+    FIRST_SKIPPED_TASK_ID_FIELD_NUMBER: _ClassVar[int]
     export_id: str
     evaluation_run_id: str
     format: EvaluationExportFormatV1
@@ -7358,19 +7378,26 @@ class EvaluationExportV1(_message.Message):
     finished_at: _timestamp_pb2.Timestamp
     expires_at: _timestamp_pb2.Timestamp
     expired: bool
-    def __init__(self, export_id: _Optional[str] = ..., evaluation_run_id: _Optional[str] = ..., format: _Optional[_Union[EvaluationExportFormatV1, str]] = ..., state: _Optional[_Union[EvaluationOperationStateV1, str]] = ..., pinned_projection_version: _Optional[int] = ..., pinned_facts_watermark: _Optional[str] = ..., requested_by: _Optional[_Union[PrincipalRefV1, _Mapping]] = ..., byte_size: _Optional[int] = ..., content_digest: _Optional[str] = ..., failure: _Optional[_Union[EvaluationFailureV1, _Mapping]] = ..., attempt_count: _Optional[int] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., updated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., finished_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., expires_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., expired: _Optional[bool] = ...) -> None: ...
+    dataset_version_id: str
+    skipped_rows: int
+    first_skipped_task_id: str
+    def __init__(self, export_id: _Optional[str] = ..., evaluation_run_id: _Optional[str] = ..., format: _Optional[_Union[EvaluationExportFormatV1, str]] = ..., state: _Optional[_Union[EvaluationOperationStateV1, str]] = ..., pinned_projection_version: _Optional[int] = ..., pinned_facts_watermark: _Optional[str] = ..., requested_by: _Optional[_Union[PrincipalRefV1, _Mapping]] = ..., byte_size: _Optional[int] = ..., content_digest: _Optional[str] = ..., failure: _Optional[_Union[EvaluationFailureV1, _Mapping]] = ..., attempt_count: _Optional[int] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., updated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., finished_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., expires_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., expired: _Optional[bool] = ..., dataset_version_id: _Optional[str] = ..., skipped_rows: _Optional[int] = ..., first_skipped_task_id: _Optional[str] = ...) -> None: ...
 
 class CreateEvaluationExportRequest(_message.Message):
-    __slots__ = ("evaluation_run_id", "format", "idempotency_key", "retention_hours")
+    __slots__ = ("evaluation_run_id", "format", "idempotency_key", "retention_hours", "dataset_version_id", "splits")
     EVALUATION_RUN_ID_FIELD_NUMBER: _ClassVar[int]
     FORMAT_FIELD_NUMBER: _ClassVar[int]
     IDEMPOTENCY_KEY_FIELD_NUMBER: _ClassVar[int]
     RETENTION_HOURS_FIELD_NUMBER: _ClassVar[int]
+    DATASET_VERSION_ID_FIELD_NUMBER: _ClassVar[int]
+    SPLITS_FIELD_NUMBER: _ClassVar[int]
     evaluation_run_id: str
     format: EvaluationExportFormatV1
     idempotency_key: str
     retention_hours: int
-    def __init__(self, evaluation_run_id: _Optional[str] = ..., format: _Optional[_Union[EvaluationExportFormatV1, str]] = ..., idempotency_key: _Optional[str] = ..., retention_hours: _Optional[int] = ...) -> None: ...
+    dataset_version_id: str
+    splits: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, evaluation_run_id: _Optional[str] = ..., format: _Optional[_Union[EvaluationExportFormatV1, str]] = ..., idempotency_key: _Optional[str] = ..., retention_hours: _Optional[int] = ..., dataset_version_id: _Optional[str] = ..., splits: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class CreateEvaluationExportResponse(_message.Message):
     __slots__ = ("export", "idempotent_replay", "capabilities")
@@ -7409,14 +7436,16 @@ class EvaluationExportListRowV1(_message.Message):
     def __init__(self, export: _Optional[_Union[EvaluationExportV1, _Mapping]] = ..., definition_display_name: _Optional[str] = ...) -> None: ...
 
 class ListEvaluationExportsRequest(_message.Message):
-    __slots__ = ("page", "evaluation_run_id", "states")
+    __slots__ = ("page", "evaluation_run_id", "states", "dataset_version_id")
     PAGE_FIELD_NUMBER: _ClassVar[int]
     EVALUATION_RUN_ID_FIELD_NUMBER: _ClassVar[int]
     STATES_FIELD_NUMBER: _ClassVar[int]
+    DATASET_VERSION_ID_FIELD_NUMBER: _ClassVar[int]
     page: _common_pb2.PageRequestV1
     evaluation_run_id: str
     states: _containers.RepeatedScalarFieldContainer[EvaluationOperationStateV1]
-    def __init__(self, page: _Optional[_Union[_common_pb2.PageRequestV1, _Mapping]] = ..., evaluation_run_id: _Optional[str] = ..., states: _Optional[_Iterable[_Union[EvaluationOperationStateV1, str]]] = ...) -> None: ...
+    dataset_version_id: str
+    def __init__(self, page: _Optional[_Union[_common_pb2.PageRequestV1, _Mapping]] = ..., evaluation_run_id: _Optional[str] = ..., states: _Optional[_Iterable[_Union[EvaluationOperationStateV1, str]]] = ..., dataset_version_id: _Optional[str] = ...) -> None: ...
 
 class ListEvaluationExportsResponse(_message.Message):
     __slots__ = ("exports", "page", "capabilities", "resync")
@@ -12083,10 +12112,12 @@ class GetDatasetCaseResponse(_message.Message):
     def __init__(self, dataset_case: _Optional[_Union[DatasetCaseV1, _Mapping]] = ..., freshness: _Optional[_Union[EvaluationFreshnessV1, _Mapping]] = ..., capabilities: _Optional[_Union[AgenticEvaluationCapabilitiesV1, _Mapping]] = ...) -> None: ...
 
 class GetDatasetOverviewRequest(_message.Message):
-    __slots__ = ("dataset_collection_id",)
+    __slots__ = ("dataset_collection_id", "content_kinds")
     DATASET_COLLECTION_ID_FIELD_NUMBER: _ClassVar[int]
+    CONTENT_KINDS_FIELD_NUMBER: _ClassVar[int]
     dataset_collection_id: str
-    def __init__(self, dataset_collection_id: _Optional[str] = ...) -> None: ...
+    content_kinds: _containers.RepeatedScalarFieldContainer[DatasetContentKindV1]
+    def __init__(self, dataset_collection_id: _Optional[str] = ..., content_kinds: _Optional[_Iterable[_Union[DatasetContentKindV1, str]]] = ...) -> None: ...
 
 class GetDatasetOverviewResponse(_message.Message):
     __slots__ = ("dataset_collection_id", "active_version", "active_version_availability", "schema_revision", "schema_availability", "quality", "quality_availability", "freshness", "capabilities", "name", "description", "created_at", "is_archived")
@@ -14111,7 +14142,7 @@ class ArchiveEvaluationScorerSuiteResponse(_message.Message):
     def __init__(self, scorer_suite: _Optional[_Union[EvaluationScorerSuiteSummaryV1, _Mapping]] = ..., already_archived: _Optional[bool] = ..., production_rule_count: _Optional[int] = ..., production_rule_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., capabilities: _Optional[_Union[AgenticEvaluationCapabilitiesV1, _Mapping]] = ...) -> None: ...
 
 class DatasetCollectionSummaryV1(_message.Message):
-    __slots__ = ("dataset_collection_id", "name", "description", "is_archived", "created_at", "updated_at", "active_version", "active_version_availability", "version_count", "open_changeset_count")
+    __slots__ = ("dataset_collection_id", "name", "description", "is_archived", "created_at", "updated_at", "active_version", "active_version_availability", "version_count", "open_changeset_count", "content_kind")
     DATASET_COLLECTION_ID_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
     DESCRIPTION_FIELD_NUMBER: _ClassVar[int]
@@ -14122,6 +14153,7 @@ class DatasetCollectionSummaryV1(_message.Message):
     ACTIVE_VERSION_AVAILABILITY_FIELD_NUMBER: _ClassVar[int]
     VERSION_COUNT_FIELD_NUMBER: _ClassVar[int]
     OPEN_CHANGESET_COUNT_FIELD_NUMBER: _ClassVar[int]
+    CONTENT_KIND_FIELD_NUMBER: _ClassVar[int]
     dataset_collection_id: str
     name: str
     description: str
@@ -14132,19 +14164,22 @@ class DatasetCollectionSummaryV1(_message.Message):
     active_version_availability: MetricAvailabilityV1
     version_count: int
     open_changeset_count: int
-    def __init__(self, dataset_collection_id: _Optional[str] = ..., name: _Optional[str] = ..., description: _Optional[str] = ..., is_archived: _Optional[bool] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., updated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., active_version: _Optional[_Union[DatasetVersionSummaryV1, _Mapping]] = ..., active_version_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., version_count: _Optional[int] = ..., open_changeset_count: _Optional[int] = ...) -> None: ...
+    content_kind: DatasetContentKindV1
+    def __init__(self, dataset_collection_id: _Optional[str] = ..., name: _Optional[str] = ..., description: _Optional[str] = ..., is_archived: _Optional[bool] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., updated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., active_version: _Optional[_Union[DatasetVersionSummaryV1, _Mapping]] = ..., active_version_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., version_count: _Optional[int] = ..., open_changeset_count: _Optional[int] = ..., content_kind: _Optional[_Union[DatasetContentKindV1, str]] = ...) -> None: ...
 
 class ListEvaluationDatasetCollectionsRequest(_message.Message):
-    __slots__ = ("page_token", "limit", "include_archived", "name_filter")
+    __slots__ = ("page_token", "limit", "include_archived", "name_filter", "content_kinds")
     PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
     LIMIT_FIELD_NUMBER: _ClassVar[int]
     INCLUDE_ARCHIVED_FIELD_NUMBER: _ClassVar[int]
     NAME_FILTER_FIELD_NUMBER: _ClassVar[int]
+    CONTENT_KINDS_FIELD_NUMBER: _ClassVar[int]
     page_token: str
     limit: int
     include_archived: bool
     name_filter: str
-    def __init__(self, page_token: _Optional[str] = ..., limit: _Optional[int] = ..., include_archived: _Optional[bool] = ..., name_filter: _Optional[str] = ...) -> None: ...
+    content_kinds: _containers.RepeatedScalarFieldContainer[DatasetContentKindV1]
+    def __init__(self, page_token: _Optional[str] = ..., limit: _Optional[int] = ..., include_archived: _Optional[bool] = ..., name_filter: _Optional[str] = ..., content_kinds: _Optional[_Iterable[_Union[DatasetContentKindV1, str]]] = ...) -> None: ...
 
 class ListEvaluationDatasetCollectionsResponse(_message.Message):
     __slots__ = ("collections", "total_count", "next_page_token", "freshness", "capabilities", "resync")

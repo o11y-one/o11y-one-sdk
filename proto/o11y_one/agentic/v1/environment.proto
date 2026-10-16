@@ -162,6 +162,39 @@ message LoopEnvironmentVerifierV1 {
   // or this. Finite, and inside every declared range.
   double failure_reward = 10;
   // ---- end of the reward contract ----
+
+  // ---- the reward gate (#725) ----
+  // Absent means none: no reward is gated. The detectors whose finding gates
+  // the reward. TEST_EDIT fails a rollout when a gated environment's
+  // protected paths or runner configs (conftest.py, pytest.ini and the like
+  // under the final-state paths) were changed; the verifier restores them
+  // before it runs. Each reward is then what a failed episode gives, its
+  // `min` or `failure_reward`, or what the verifier gave where that is less;
+  // the verdict is FAIL, and the rollout carries the flag that says why.
+  // GIT_HISTORY and OFFLINE_NETWORK do the same to a rollout whose episode
+  // read git's history files, or reached an address off the loopback, as the
+  // sandbox saw it, or blinded the sandbox's watch. Only TEST_EDIT,
+  // GIT_HISTORY and OFFLINE_NETWORK, each once; anything else is refused. Part
+  // of the version: a new version changes it.
+  repeated LoopEnvironmentHackDetectorV1 hack_gate = 11;
+  // ---- end of the reward gate ----
+}
+
+// A reward-hack detector (#725).
+enum LoopEnvironmentHackDetectorV1 {
+  LOOP_ENVIRONMENT_HACK_DETECTOR_V1_UNSPECIFIED = 0;
+  // A protected path or a test runner's config changed. May gate.
+  LOOP_ENVIRONMENT_HACK_DETECTOR_V1_TEST_EDIT = 1;
+  // History beyond the checkout read. May gate.
+  LOOP_ENVIRONMENT_HACK_DETECTOR_V1_GIT_HISTORY = 2;
+  // Refused in `hack_gate`.
+  LOOP_ENVIRONMENT_HACK_DETECTOR_V1_GRADER_READ = 3;
+  // A network reached for, offline. May gate.
+  LOOP_ENVIRONMENT_HACK_DETECTOR_V1_OFFLINE_NETWORK = 4;
+  // Refused in `hack_gate`.
+  LOOP_ENVIRONMENT_HACK_DETECTOR_V1_DODGE = 5;
+  // Refused in `hack_gate`.
+  LOOP_ENVIRONMENT_HACK_DETECTOR_V1_HARDCODED_OUTPUT = 6;
 }
 
 // A reward the verifier returns, a finite number.

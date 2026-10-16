@@ -1953,7 +1953,8 @@ type LoopFinalStateV1 struct {
 	state   protoimpl.MessageState `protogen:"open.v1"`
 	Entries uint64                 `protobuf:"varint,1,opt,name=entries,proto3" json:"entries,omitempty"`
 	Bytes   uint64                 `protobuf:"varint,2,opt,name=bytes,proto3" json:"bytes,omitempty"`
-	// Past the walk's bounds: the change list stops short.
+	// Past the walk's bounds, about 30k changed entries, 4 MiB or 60 s: the
+	// change list stops short. It feeds the scan's flags, never the hack gate.
 	Oversized     bool `protobuf:"varint,3,opt,name=oversized,proto3" json:"oversized,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -2059,8 +2060,15 @@ type LoopRolloutV1 struct {
 	// The key its reset came with, as its credential's `token_prefix` shows
 	// it; empty for a person's reset.
 	CredentialPrefix string `protobuf:"bytes,29,opt,name=credential_prefix,json=credentialPrefix,proto3" json:"credential_prefix,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// ---- reward-hack flags (#725) ----
+	// What the reward-hack scan found, the tenant's alone. Absent until the
+	// scan has read the ended rollout, which it does within seconds of its end,
+	// so a client from before this field reads every rollout as unscanned. A
+	// rollout its environment's hack gate failed shows FAIL at its end, and the
+	// flag that explains it once the scan has read it.
+	Flags         *LoopRolloutFlagsV1 `protobuf:"bytes,30,opt,name=flags,proto3" json:"flags,omitempty"` // ---- end of reward-hack flags ----
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *LoopRolloutV1) Reset() {
@@ -2296,6 +2304,149 @@ func (x *LoopRolloutV1) GetCredentialPrefix() string {
 	return ""
 }
 
+func (x *LoopRolloutV1) GetFlags() *LoopRolloutFlagsV1 {
+	if x != nil {
+		return x.Flags
+	}
+	return nil
+}
+
+// What the reward-hack scan found of one ended rollout (#725). Flags are
+// evidence about the tenant's own policy and change no reward. Apart from
+// them, a gated environment fails a rollout whose protected paths or runner
+// configs were changed (the verifier restores them).
+type LoopRolloutFlagsV1 struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	ScannedAt *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=scanned_at,json=scannedAt,proto3" json:"scanned_at,omitempty"`
+	// One per detector that fired; empty when none did.
+	Detected []*LoopRolloutFlagV1 `protobuf:"bytes,2,rep,name=detected,proto3" json:"detected,omitempty"`
+	// Some of the rollout's calls were kept only as what the detectors read of
+	// them (past 16 KiB a step or 256 KiB a rollout, up to 64 KiB more), or not
+	// at all, so the detectors read less of them: the policy's doing, a flag
+	// only.
+	EvidenceIncomplete bool `protobuf:"varint,3,opt,name=evidence_incomplete,json=evidenceIncomplete,proto3" json:"evidence_incomplete,omitempty"`
+	// ---- unsealed evidence (#725) ----
+	// Absent means false, as before it existed. Some of the rollout's calls
+	// were not kept for a reason of ours, so the detectors read less of them:
+	// ours, a flag only. Neither this nor `evidence_incomplete` changes a
+	// reward.
+	EvidenceUnsealed bool `protobuf:"varint,4,opt,name=evidence_unsealed,json=evidenceUnsealed,proto3" json:"evidence_unsealed,omitempty"` // ---- end of unsealed evidence ----
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *LoopRolloutFlagsV1) Reset() {
+	*x = LoopRolloutFlagsV1{}
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LoopRolloutFlagsV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LoopRolloutFlagsV1) ProtoMessage() {}
+
+func (x *LoopRolloutFlagsV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LoopRolloutFlagsV1.ProtoReflect.Descriptor instead.
+func (*LoopRolloutFlagsV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *LoopRolloutFlagsV1) GetScannedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ScannedAt
+	}
+	return nil
+}
+
+func (x *LoopRolloutFlagsV1) GetDetected() []*LoopRolloutFlagV1 {
+	if x != nil {
+		return x.Detected
+	}
+	return nil
+}
+
+func (x *LoopRolloutFlagsV1) GetEvidenceIncomplete() bool {
+	if x != nil {
+		return x.EvidenceIncomplete
+	}
+	return false
+}
+
+func (x *LoopRolloutFlagsV1) GetEvidenceUnsealed() bool {
+	if x != nil {
+		return x.EvidenceUnsealed
+	}
+	return false
+}
+
+type LoopRolloutFlagV1 struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The detector that fired, e.g. `test_file_edit`.
+	Detector string `protobuf:"bytes,1,opt,name=detector,proto3" json:"detector,omitempty"`
+	// What it saw: paths and codes, never file content.
+	Explanation   string `protobuf:"bytes,2,opt,name=explanation,proto3" json:"explanation,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LoopRolloutFlagV1) Reset() {
+	*x = LoopRolloutFlagV1{}
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LoopRolloutFlagV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LoopRolloutFlagV1) ProtoMessage() {}
+
+func (x *LoopRolloutFlagV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LoopRolloutFlagV1.ProtoReflect.Descriptor instead.
+func (*LoopRolloutFlagV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *LoopRolloutFlagV1) GetDetector() string {
+	if x != nil {
+		return x.Detector
+	}
+	return ""
+}
+
+func (x *LoopRolloutFlagV1) GetExplanation() string {
+	if x != nil {
+		return x.Explanation
+	}
+	return ""
+}
+
 // A command, run without a shell.
 type LoopToolExecV1 struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -2309,7 +2460,7 @@ type LoopToolExecV1 struct {
 
 func (x *LoopToolExecV1) Reset() {
 	*x = LoopToolExecV1{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[15]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2321,7 +2472,7 @@ func (x *LoopToolExecV1) String() string {
 func (*LoopToolExecV1) ProtoMessage() {}
 
 func (x *LoopToolExecV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[15]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2334,7 +2485,7 @@ func (x *LoopToolExecV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoopToolExecV1.ProtoReflect.Descriptor instead.
 func (*LoopToolExecV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{15}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *LoopToolExecV1) GetArgv() []string {
@@ -2363,7 +2514,7 @@ type LoopToolShellV1 struct {
 
 func (x *LoopToolShellV1) Reset() {
 	*x = LoopToolShellV1{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[16]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2375,7 +2526,7 @@ func (x *LoopToolShellV1) String() string {
 func (*LoopToolShellV1) ProtoMessage() {}
 
 func (x *LoopToolShellV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[16]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2388,7 +2539,7 @@ func (x *LoopToolShellV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoopToolShellV1.ProtoReflect.Descriptor instead.
 func (*LoopToolShellV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{16}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *LoopToolShellV1) GetScript() string {
@@ -2421,7 +2572,7 @@ type LoopToolReadFileV1 struct {
 
 func (x *LoopToolReadFileV1) Reset() {
 	*x = LoopToolReadFileV1{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[17]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2433,7 +2584,7 @@ func (x *LoopToolReadFileV1) String() string {
 func (*LoopToolReadFileV1) ProtoMessage() {}
 
 func (x *LoopToolReadFileV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[17]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2446,7 +2597,7 @@ func (x *LoopToolReadFileV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoopToolReadFileV1.ProtoReflect.Descriptor instead.
 func (*LoopToolReadFileV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{17}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *LoopToolReadFileV1) GetPath() string {
@@ -2484,7 +2635,7 @@ type LoopToolWriteFileV1 struct {
 
 func (x *LoopToolWriteFileV1) Reset() {
 	*x = LoopToolWriteFileV1{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[18]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2496,7 +2647,7 @@ func (x *LoopToolWriteFileV1) String() string {
 func (*LoopToolWriteFileV1) ProtoMessage() {}
 
 func (x *LoopToolWriteFileV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[18]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2509,7 +2660,7 @@ func (x *LoopToolWriteFileV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoopToolWriteFileV1.ProtoReflect.Descriptor instead.
 func (*LoopToolWriteFileV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{18}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *LoopToolWriteFileV1) GetPath() string {
@@ -2549,7 +2700,7 @@ type LoopToolPatchV1 struct {
 
 func (x *LoopToolPatchV1) Reset() {
 	*x = LoopToolPatchV1{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[19]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2561,7 +2712,7 @@ func (x *LoopToolPatchV1) String() string {
 func (*LoopToolPatchV1) ProtoMessage() {}
 
 func (x *LoopToolPatchV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[19]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2574,7 +2725,7 @@ func (x *LoopToolPatchV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoopToolPatchV1.ProtoReflect.Descriptor instead.
 func (*LoopToolPatchV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{19}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *LoopToolPatchV1) GetPath() string {
@@ -2615,7 +2766,7 @@ type LoopToolListV1 struct {
 
 func (x *LoopToolListV1) Reset() {
 	*x = LoopToolListV1{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[20]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2627,7 +2778,7 @@ func (x *LoopToolListV1) String() string {
 func (*LoopToolListV1) ProtoMessage() {}
 
 func (x *LoopToolListV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[20]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2640,7 +2791,7 @@ func (x *LoopToolListV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoopToolListV1.ProtoReflect.Descriptor instead.
 func (*LoopToolListV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{20}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *LoopToolListV1) GetPath() string {
@@ -2661,7 +2812,7 @@ type LoopToolSetEnvV1 struct {
 
 func (x *LoopToolSetEnvV1) Reset() {
 	*x = LoopToolSetEnvV1{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[21]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2673,7 +2824,7 @@ func (x *LoopToolSetEnvV1) String() string {
 func (*LoopToolSetEnvV1) ProtoMessage() {}
 
 func (x *LoopToolSetEnvV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[21]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2686,7 +2837,7 @@ func (x *LoopToolSetEnvV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoopToolSetEnvV1.ProtoReflect.Descriptor instead.
 func (*LoopToolSetEnvV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{21}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *LoopToolSetEnvV1) GetEnv() []string {
@@ -2718,7 +2869,7 @@ type LoopToolCallV1 struct {
 
 func (x *LoopToolCallV1) Reset() {
 	*x = LoopToolCallV1{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[22]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2730,7 +2881,7 @@ func (x *LoopToolCallV1) String() string {
 func (*LoopToolCallV1) ProtoMessage() {}
 
 func (x *LoopToolCallV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[22]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2743,7 +2894,7 @@ func (x *LoopToolCallV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoopToolCallV1.ProtoReflect.Descriptor instead.
 func (*LoopToolCallV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{22}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *LoopToolCallV1) GetTimeoutMillis() uint32 {
@@ -2888,7 +3039,7 @@ type LoopToolEntryV1 struct {
 
 func (x *LoopToolEntryV1) Reset() {
 	*x = LoopToolEntryV1{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[23]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2900,7 +3051,7 @@ func (x *LoopToolEntryV1) String() string {
 func (*LoopToolEntryV1) ProtoMessage() {}
 
 func (x *LoopToolEntryV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[23]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2913,7 +3064,7 @@ func (x *LoopToolEntryV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoopToolEntryV1.ProtoReflect.Descriptor instead.
 func (*LoopToolEntryV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{23}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *LoopToolEntryV1) GetName() string {
@@ -2969,7 +3120,7 @@ type LoopToolResultV1 struct {
 
 func (x *LoopToolResultV1) Reset() {
 	*x = LoopToolResultV1{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[24]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2981,7 +3132,7 @@ func (x *LoopToolResultV1) String() string {
 func (*LoopToolResultV1) ProtoMessage() {}
 
 func (x *LoopToolResultV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[24]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2994,7 +3145,7 @@ func (x *LoopToolResultV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoopToolResultV1.ProtoReflect.Descriptor instead.
 func (*LoopToolResultV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{24}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *LoopToolResultV1) GetOutcome() isLoopToolResultV1_Outcome {
@@ -3166,7 +3317,7 @@ type CreateLoopRunRequest struct {
 
 func (x *CreateLoopRunRequest) Reset() {
 	*x = CreateLoopRunRequest{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[25]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3178,7 +3329,7 @@ func (x *CreateLoopRunRequest) String() string {
 func (*CreateLoopRunRequest) ProtoMessage() {}
 
 func (x *CreateLoopRunRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[25]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3191,7 +3342,7 @@ func (x *CreateLoopRunRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateLoopRunRequest.ProtoReflect.Descriptor instead.
 func (*CreateLoopRunRequest) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{25}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *CreateLoopRunRequest) GetName() string {
@@ -3266,7 +3417,7 @@ type CreateLoopRunResponse struct {
 
 func (x *CreateLoopRunResponse) Reset() {
 	*x = CreateLoopRunResponse{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[26]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3278,7 +3429,7 @@ func (x *CreateLoopRunResponse) String() string {
 func (*CreateLoopRunResponse) ProtoMessage() {}
 
 func (x *CreateLoopRunResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[26]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3291,7 +3442,7 @@ func (x *CreateLoopRunResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateLoopRunResponse.ProtoReflect.Descriptor instead.
 func (*CreateLoopRunResponse) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{26}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *CreateLoopRunResponse) GetRun() *LoopRunV1 {
@@ -3310,7 +3461,7 @@ type GetLoopRunRequest struct {
 
 func (x *GetLoopRunRequest) Reset() {
 	*x = GetLoopRunRequest{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[27]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3322,7 +3473,7 @@ func (x *GetLoopRunRequest) String() string {
 func (*GetLoopRunRequest) ProtoMessage() {}
 
 func (x *GetLoopRunRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[27]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3335,7 +3486,7 @@ func (x *GetLoopRunRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLoopRunRequest.ProtoReflect.Descriptor instead.
 func (*GetLoopRunRequest) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{27}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *GetLoopRunRequest) GetRunId() string {
@@ -3356,7 +3507,7 @@ type GetLoopRunResponse struct {
 
 func (x *GetLoopRunResponse) Reset() {
 	*x = GetLoopRunResponse{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[28]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3368,7 +3519,7 @@ func (x *GetLoopRunResponse) String() string {
 func (*GetLoopRunResponse) ProtoMessage() {}
 
 func (x *GetLoopRunResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[28]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3381,7 +3532,7 @@ func (x *GetLoopRunResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLoopRunResponse.ProtoReflect.Descriptor instead.
 func (*GetLoopRunResponse) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{28}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *GetLoopRunResponse) GetRun() *LoopRunV1 {
@@ -3420,7 +3571,7 @@ type ListLoopRunsRequest struct {
 
 func (x *ListLoopRunsRequest) Reset() {
 	*x = ListLoopRunsRequest{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[29]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3432,7 +3583,7 @@ func (x *ListLoopRunsRequest) String() string {
 func (*ListLoopRunsRequest) ProtoMessage() {}
 
 func (x *ListLoopRunsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[29]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3445,7 +3596,7 @@ func (x *ListLoopRunsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListLoopRunsRequest.ProtoReflect.Descriptor instead.
 func (*ListLoopRunsRequest) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{29}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *ListLoopRunsRequest) GetPage() *v1.PageRequestV1 {
@@ -3486,7 +3637,7 @@ type LoopRunSummaryV1 struct {
 
 func (x *LoopRunSummaryV1) Reset() {
 	*x = LoopRunSummaryV1{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[30]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3498,7 +3649,7 @@ func (x *LoopRunSummaryV1) String() string {
 func (*LoopRunSummaryV1) ProtoMessage() {}
 
 func (x *LoopRunSummaryV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[30]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3511,7 +3662,7 @@ func (x *LoopRunSummaryV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoopRunSummaryV1.ProtoReflect.Descriptor instead.
 func (*LoopRunSummaryV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{30}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *LoopRunSummaryV1) GetRun() *LoopRunV1 {
@@ -3542,7 +3693,7 @@ type ListLoopRunsResponse struct {
 
 func (x *ListLoopRunsResponse) Reset() {
 	*x = ListLoopRunsResponse{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[31]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3554,7 +3705,7 @@ func (x *ListLoopRunsResponse) String() string {
 func (*ListLoopRunsResponse) ProtoMessage() {}
 
 func (x *ListLoopRunsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[31]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3567,7 +3718,7 @@ func (x *ListLoopRunsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListLoopRunsResponse.ProtoReflect.Descriptor instead.
 func (*ListLoopRunsResponse) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{31}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *ListLoopRunsResponse) GetRuns() []*LoopRunSummaryV1 {
@@ -3611,7 +3762,7 @@ type UpdateLoopRunRequest struct {
 
 func (x *UpdateLoopRunRequest) Reset() {
 	*x = UpdateLoopRunRequest{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[32]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3623,7 +3774,7 @@ func (x *UpdateLoopRunRequest) String() string {
 func (*UpdateLoopRunRequest) ProtoMessage() {}
 
 func (x *UpdateLoopRunRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[32]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3636,7 +3787,7 @@ func (x *UpdateLoopRunRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateLoopRunRequest.ProtoReflect.Descriptor instead.
 func (*UpdateLoopRunRequest) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{32}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *UpdateLoopRunRequest) GetRunId() string {
@@ -3669,7 +3820,7 @@ type UpdateLoopRunResponse struct {
 
 func (x *UpdateLoopRunResponse) Reset() {
 	*x = UpdateLoopRunResponse{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[33]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3681,7 +3832,7 @@ func (x *UpdateLoopRunResponse) String() string {
 func (*UpdateLoopRunResponse) ProtoMessage() {}
 
 func (x *UpdateLoopRunResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[33]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3694,7 +3845,7 @@ func (x *UpdateLoopRunResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateLoopRunResponse.ProtoReflect.Descriptor instead.
 func (*UpdateLoopRunResponse) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{33}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *UpdateLoopRunResponse) GetRun() *LoopRunV1 {
@@ -3713,7 +3864,7 @@ type PauseLoopRunRequest struct {
 
 func (x *PauseLoopRunRequest) Reset() {
 	*x = PauseLoopRunRequest{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[34]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3725,7 +3876,7 @@ func (x *PauseLoopRunRequest) String() string {
 func (*PauseLoopRunRequest) ProtoMessage() {}
 
 func (x *PauseLoopRunRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[34]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3738,7 +3889,7 @@ func (x *PauseLoopRunRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PauseLoopRunRequest.ProtoReflect.Descriptor instead.
 func (*PauseLoopRunRequest) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{34}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *PauseLoopRunRequest) GetRunId() string {
@@ -3757,7 +3908,7 @@ type PauseLoopRunResponse struct {
 
 func (x *PauseLoopRunResponse) Reset() {
 	*x = PauseLoopRunResponse{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[35]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3769,7 +3920,7 @@ func (x *PauseLoopRunResponse) String() string {
 func (*PauseLoopRunResponse) ProtoMessage() {}
 
 func (x *PauseLoopRunResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[35]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3782,7 +3933,7 @@ func (x *PauseLoopRunResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PauseLoopRunResponse.ProtoReflect.Descriptor instead.
 func (*PauseLoopRunResponse) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{35}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *PauseLoopRunResponse) GetRun() *LoopRunV1 {
@@ -3801,7 +3952,7 @@ type ResumeLoopRunRequest struct {
 
 func (x *ResumeLoopRunRequest) Reset() {
 	*x = ResumeLoopRunRequest{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[36]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3813,7 +3964,7 @@ func (x *ResumeLoopRunRequest) String() string {
 func (*ResumeLoopRunRequest) ProtoMessage() {}
 
 func (x *ResumeLoopRunRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[36]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3826,7 +3977,7 @@ func (x *ResumeLoopRunRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResumeLoopRunRequest.ProtoReflect.Descriptor instead.
 func (*ResumeLoopRunRequest) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{36}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *ResumeLoopRunRequest) GetRunId() string {
@@ -3845,7 +3996,7 @@ type ResumeLoopRunResponse struct {
 
 func (x *ResumeLoopRunResponse) Reset() {
 	*x = ResumeLoopRunResponse{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[37]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3857,7 +4008,7 @@ func (x *ResumeLoopRunResponse) String() string {
 func (*ResumeLoopRunResponse) ProtoMessage() {}
 
 func (x *ResumeLoopRunResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[37]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3870,7 +4021,7 @@ func (x *ResumeLoopRunResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResumeLoopRunResponse.ProtoReflect.Descriptor instead.
 func (*ResumeLoopRunResponse) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{37}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *ResumeLoopRunResponse) GetRun() *LoopRunV1 {
@@ -3892,7 +4043,7 @@ type StopLoopRunRequest struct {
 
 func (x *StopLoopRunRequest) Reset() {
 	*x = StopLoopRunRequest{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[38]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3904,7 +4055,7 @@ func (x *StopLoopRunRequest) String() string {
 func (*StopLoopRunRequest) ProtoMessage() {}
 
 func (x *StopLoopRunRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[38]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3917,7 +4068,7 @@ func (x *StopLoopRunRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StopLoopRunRequest.ProtoReflect.Descriptor instead.
 func (*StopLoopRunRequest) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{38}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *StopLoopRunRequest) GetRunId() string {
@@ -3943,7 +4094,7 @@ type StopLoopRunResponse struct {
 
 func (x *StopLoopRunResponse) Reset() {
 	*x = StopLoopRunResponse{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[39]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3955,7 +4106,7 @@ func (x *StopLoopRunResponse) String() string {
 func (*StopLoopRunResponse) ProtoMessage() {}
 
 func (x *StopLoopRunResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[39]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3968,7 +4119,7 @@ func (x *StopLoopRunResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StopLoopRunResponse.ProtoReflect.Descriptor instead.
 func (*StopLoopRunResponse) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{39}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *StopLoopRunResponse) GetRun() *LoopRunV1 {
@@ -3999,13 +4150,19 @@ type ResetLoopRolloutRequest struct {
 	// At most 128 bytes.
 	ExperimentName string        `protobuf:"bytes,9,opt,name=experiment_name,json=experimentName,proto3" json:"experiment_name,omitempty"`
 	Client         *LoopClientV1 `protobuf:"bytes,10,opt,name=client,proto3" json:"client,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// ---- the rollout's tools (#726) ----
+	// Absent means none were named, as before it existed. The tools the
+	// policy was given, as a JSON array of OpenAI function schemas, at most 64
+	// KiB; kept with the rollout's trajectory for training exports, and never
+	// read by Loop.
+	ToolsJson     string `protobuf:"bytes,11,opt,name=tools_json,json=toolsJson,proto3" json:"tools_json,omitempty"` // ---- end of the rollout's tools ----
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ResetLoopRolloutRequest) Reset() {
 	*x = ResetLoopRolloutRequest{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[40]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4017,7 +4174,7 @@ func (x *ResetLoopRolloutRequest) String() string {
 func (*ResetLoopRolloutRequest) ProtoMessage() {}
 
 func (x *ResetLoopRolloutRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[40]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4030,7 +4187,7 @@ func (x *ResetLoopRolloutRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResetLoopRolloutRequest.ProtoReflect.Descriptor instead.
 func (*ResetLoopRolloutRequest) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{40}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *ResetLoopRolloutRequest) GetRunId() string {
@@ -4103,6 +4260,13 @@ func (x *ResetLoopRolloutRequest) GetClient() *LoopClientV1 {
 	return nil
 }
 
+func (x *ResetLoopRolloutRequest) GetToolsJson() string {
+	if x != nil {
+		return x.ToolsJson
+	}
+	return ""
+}
+
 type ResetLoopRolloutResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Rollout       *LoopRolloutV1         `protobuf:"bytes,1,opt,name=rollout,proto3" json:"rollout,omitempty"`
@@ -4112,7 +4276,7 @@ type ResetLoopRolloutResponse struct {
 
 func (x *ResetLoopRolloutResponse) Reset() {
 	*x = ResetLoopRolloutResponse{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[41]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4124,7 +4288,7 @@ func (x *ResetLoopRolloutResponse) String() string {
 func (*ResetLoopRolloutResponse) ProtoMessage() {}
 
 func (x *ResetLoopRolloutResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[41]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4137,7 +4301,7 @@ func (x *ResetLoopRolloutResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResetLoopRolloutResponse.ProtoReflect.Descriptor instead.
 func (*ResetLoopRolloutResponse) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{41}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *ResetLoopRolloutResponse) GetRollout() *LoopRolloutV1 {
@@ -4164,7 +4328,7 @@ type StepLoopRolloutRequest struct {
 
 func (x *StepLoopRolloutRequest) Reset() {
 	*x = StepLoopRolloutRequest{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[42]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4176,7 +4340,7 @@ func (x *StepLoopRolloutRequest) String() string {
 func (*StepLoopRolloutRequest) ProtoMessage() {}
 
 func (x *StepLoopRolloutRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[42]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4189,7 +4353,7 @@ func (x *StepLoopRolloutRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StepLoopRolloutRequest.ProtoReflect.Descriptor instead.
 func (*StepLoopRolloutRequest) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{42}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *StepLoopRolloutRequest) GetRolloutId() string {
@@ -4229,7 +4393,7 @@ type StepLoopRolloutResponse struct {
 
 func (x *StepLoopRolloutResponse) Reset() {
 	*x = StepLoopRolloutResponse{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[43]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4241,7 +4405,7 @@ func (x *StepLoopRolloutResponse) String() string {
 func (*StepLoopRolloutResponse) ProtoMessage() {}
 
 func (x *StepLoopRolloutResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[43]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4254,7 +4418,7 @@ func (x *StepLoopRolloutResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StepLoopRolloutResponse.ProtoReflect.Descriptor instead.
 func (*StepLoopRolloutResponse) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{43}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *StepLoopRolloutResponse) GetStep() uint32 {
@@ -4280,7 +4444,7 @@ type CloseLoopRolloutRequest struct {
 
 func (x *CloseLoopRolloutRequest) Reset() {
 	*x = CloseLoopRolloutRequest{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[44]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4292,7 +4456,7 @@ func (x *CloseLoopRolloutRequest) String() string {
 func (*CloseLoopRolloutRequest) ProtoMessage() {}
 
 func (x *CloseLoopRolloutRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[44]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4305,7 +4469,7 @@ func (x *CloseLoopRolloutRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CloseLoopRolloutRequest.ProtoReflect.Descriptor instead.
 func (*CloseLoopRolloutRequest) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{44}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *CloseLoopRolloutRequest) GetRolloutId() string {
@@ -4327,7 +4491,7 @@ type CloseLoopRolloutResponse struct {
 
 func (x *CloseLoopRolloutResponse) Reset() {
 	*x = CloseLoopRolloutResponse{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[45]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4339,7 +4503,7 @@ func (x *CloseLoopRolloutResponse) String() string {
 func (*CloseLoopRolloutResponse) ProtoMessage() {}
 
 func (x *CloseLoopRolloutResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[45]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4352,7 +4516,7 @@ func (x *CloseLoopRolloutResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CloseLoopRolloutResponse.ProtoReflect.Descriptor instead.
 func (*CloseLoopRolloutResponse) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{45}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *CloseLoopRolloutResponse) GetRollout() *LoopRolloutV1 {
@@ -4383,7 +4547,7 @@ type ForkLoopRolloutRequest struct {
 
 func (x *ForkLoopRolloutRequest) Reset() {
 	*x = ForkLoopRolloutRequest{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[46]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4395,7 +4559,7 @@ func (x *ForkLoopRolloutRequest) String() string {
 func (*ForkLoopRolloutRequest) ProtoMessage() {}
 
 func (x *ForkLoopRolloutRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[46]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4408,7 +4572,7 @@ func (x *ForkLoopRolloutRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ForkLoopRolloutRequest.ProtoReflect.Descriptor instead.
 func (*ForkLoopRolloutRequest) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{46}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *ForkLoopRolloutRequest) GetRolloutId() string {
@@ -4443,7 +4607,7 @@ type ForkLoopRolloutResponse struct {
 
 func (x *ForkLoopRolloutResponse) Reset() {
 	*x = ForkLoopRolloutResponse{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[47]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4455,7 +4619,7 @@ func (x *ForkLoopRolloutResponse) String() string {
 func (*ForkLoopRolloutResponse) ProtoMessage() {}
 
 func (x *ForkLoopRolloutResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[47]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4468,7 +4632,7 @@ func (x *ForkLoopRolloutResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ForkLoopRolloutResponse.ProtoReflect.Descriptor instead.
 func (*ForkLoopRolloutResponse) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{47}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *ForkLoopRolloutResponse) GetRollouts() []*LoopRolloutV1 {
@@ -4487,7 +4651,7 @@ type GetLoopRolloutRequest struct {
 
 func (x *GetLoopRolloutRequest) Reset() {
 	*x = GetLoopRolloutRequest{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[48]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4499,7 +4663,7 @@ func (x *GetLoopRolloutRequest) String() string {
 func (*GetLoopRolloutRequest) ProtoMessage() {}
 
 func (x *GetLoopRolloutRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[48]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4512,7 +4676,7 @@ func (x *GetLoopRolloutRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLoopRolloutRequest.ProtoReflect.Descriptor instead.
 func (*GetLoopRolloutRequest) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{48}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *GetLoopRolloutRequest) GetRolloutId() string {
@@ -4531,7 +4695,7 @@ type GetLoopRolloutResponse struct {
 
 func (x *GetLoopRolloutResponse) Reset() {
 	*x = GetLoopRolloutResponse{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[49]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4543,7 +4707,7 @@ func (x *GetLoopRolloutResponse) String() string {
 func (*GetLoopRolloutResponse) ProtoMessage() {}
 
 func (x *GetLoopRolloutResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[49]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4556,7 +4720,7 @@ func (x *GetLoopRolloutResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLoopRolloutResponse.ProtoReflect.Descriptor instead.
 func (*GetLoopRolloutResponse) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{49}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *GetLoopRolloutResponse) GetRollout() *LoopRolloutV1 {
@@ -4570,18 +4734,27 @@ type ListLoopRolloutsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	RunId string                 `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
 	// Each filter set narrows; absent ones don't.
-	GroupId       string             `protobuf:"bytes,2,opt,name=group_id,json=groupId,proto3" json:"group_id,omitempty"`
-	TrainerStep   *uint32            `protobuf:"varint,3,opt,name=trainer_step,json=trainerStep,proto3,oneof" json:"trainer_step,omitempty"`
-	State         LoopRolloutStateV1 `protobuf:"varint,4,opt,name=state,proto3,enum=o11y_one.agentic.v1.LoopRolloutStateV1" json:"state,omitempty"`
-	FailureClass  LoopFailureClassV1 `protobuf:"varint,5,opt,name=failure_class,json=failureClass,proto3,enum=o11y_one.agentic.v1.LoopFailureClassV1" json:"failure_class,omitempty"`
-	Page          *v1.PageRequestV1  `protobuf:"bytes,6,opt,name=page,proto3" json:"page,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	GroupId      string             `protobuf:"bytes,2,opt,name=group_id,json=groupId,proto3" json:"group_id,omitempty"`
+	TrainerStep  *uint32            `protobuf:"varint,3,opt,name=trainer_step,json=trainerStep,proto3,oneof" json:"trainer_step,omitempty"`
+	State        LoopRolloutStateV1 `protobuf:"varint,4,opt,name=state,proto3,enum=o11y_one.agentic.v1.LoopRolloutStateV1" json:"state,omitempty"`
+	FailureClass LoopFailureClassV1 `protobuf:"varint,5,opt,name=failure_class,json=failureClass,proto3,enum=o11y_one.agentic.v1.LoopFailureClassV1" json:"failure_class,omitempty"`
+	Page         *v1.PageRequestV1  `protobuf:"bytes,6,opt,name=page,proto3" json:"page,omitempty"`
+	// ---- reward-hack flags (#725) ----
+	// Set, only the rollouts the scan has read that it flagged (true) or did not
+	// (false); absent, as a client from before this field sends it, every
+	// rollout.
+	Flagged *bool `protobuf:"varint,7,opt,name=flagged,proto3,oneof" json:"flagged,omitempty"`
+	// ---- end of reward-hack flags ----
+	// (#726) Set, only the run's rollouts forked from this one: its direct
+	// copies, never theirs. Absent, every rollout.
+	ParentRolloutId *string `protobuf:"bytes,8,opt,name=parent_rollout_id,json=parentRolloutId,proto3,oneof" json:"parent_rollout_id,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *ListLoopRolloutsRequest) Reset() {
 	*x = ListLoopRolloutsRequest{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[50]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4593,7 +4766,7 @@ func (x *ListLoopRolloutsRequest) String() string {
 func (*ListLoopRolloutsRequest) ProtoMessage() {}
 
 func (x *ListLoopRolloutsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[50]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4606,7 +4779,7 @@ func (x *ListLoopRolloutsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListLoopRolloutsRequest.ProtoReflect.Descriptor instead.
 func (*ListLoopRolloutsRequest) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{50}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *ListLoopRolloutsRequest) GetRunId() string {
@@ -4651,6 +4824,20 @@ func (x *ListLoopRolloutsRequest) GetPage() *v1.PageRequestV1 {
 	return nil
 }
 
+func (x *ListLoopRolloutsRequest) GetFlagged() bool {
+	if x != nil && x.Flagged != nil {
+		return *x.Flagged
+	}
+	return false
+}
+
+func (x *ListLoopRolloutsRequest) GetParentRolloutId() string {
+	if x != nil && x.ParentRolloutId != nil {
+		return *x.ParentRolloutId
+	}
+	return ""
+}
+
 type ListLoopRolloutsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Rollouts      []*LoopRolloutV1       `protobuf:"bytes,1,rep,name=rollouts,proto3" json:"rollouts,omitempty"`
@@ -4661,7 +4848,7 @@ type ListLoopRolloutsResponse struct {
 
 func (x *ListLoopRolloutsResponse) Reset() {
 	*x = ListLoopRolloutsResponse{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[51]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4673,7 +4860,7 @@ func (x *ListLoopRolloutsResponse) String() string {
 func (*ListLoopRolloutsResponse) ProtoMessage() {}
 
 func (x *ListLoopRolloutsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[51]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4686,7 +4873,7 @@ func (x *ListLoopRolloutsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListLoopRolloutsResponse.ProtoReflect.Descriptor instead.
 func (*ListLoopRolloutsResponse) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{51}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *ListLoopRolloutsResponse) GetRollouts() []*LoopRolloutV1 {
@@ -4714,7 +4901,7 @@ type ListLoopRolloutGroupsRequest struct {
 
 func (x *ListLoopRolloutGroupsRequest) Reset() {
 	*x = ListLoopRolloutGroupsRequest{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[52]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4726,7 +4913,7 @@ func (x *ListLoopRolloutGroupsRequest) String() string {
 func (*ListLoopRolloutGroupsRequest) ProtoMessage() {}
 
 func (x *ListLoopRolloutGroupsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[52]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4739,7 +4926,7 @@ func (x *ListLoopRolloutGroupsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListLoopRolloutGroupsRequest.ProtoReflect.Descriptor instead.
 func (*ListLoopRolloutGroupsRequest) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{52}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *ListLoopRolloutGroupsRequest) GetRunId() string {
@@ -4777,7 +4964,7 @@ type LoopRolloutBriefV1 struct {
 
 func (x *LoopRolloutBriefV1) Reset() {
 	*x = LoopRolloutBriefV1{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[53]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4789,7 +4976,7 @@ func (x *LoopRolloutBriefV1) String() string {
 func (*LoopRolloutBriefV1) ProtoMessage() {}
 
 func (x *LoopRolloutBriefV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[53]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4802,7 +4989,7 @@ func (x *LoopRolloutBriefV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoopRolloutBriefV1.ProtoReflect.Descriptor instead.
 func (*LoopRolloutBriefV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{53}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *LoopRolloutBriefV1) GetRolloutId() string {
@@ -4870,7 +5057,7 @@ type LoopRolloutGroupV1 struct {
 
 func (x *LoopRolloutGroupV1) Reset() {
 	*x = LoopRolloutGroupV1{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[54]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4882,7 +5069,7 @@ func (x *LoopRolloutGroupV1) String() string {
 func (*LoopRolloutGroupV1) ProtoMessage() {}
 
 func (x *LoopRolloutGroupV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[54]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4895,7 +5082,7 @@ func (x *LoopRolloutGroupV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoopRolloutGroupV1.ProtoReflect.Descriptor instead.
 func (*LoopRolloutGroupV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{54}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *LoopRolloutGroupV1) GetGroupId() string {
@@ -4985,7 +5172,7 @@ type ListLoopRolloutGroupsResponse struct {
 
 func (x *ListLoopRolloutGroupsResponse) Reset() {
 	*x = ListLoopRolloutGroupsResponse{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[55]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4997,7 +5184,7 @@ func (x *ListLoopRolloutGroupsResponse) String() string {
 func (*ListLoopRolloutGroupsResponse) ProtoMessage() {}
 
 func (x *ListLoopRolloutGroupsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[55]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5010,7 +5197,7 @@ func (x *ListLoopRolloutGroupsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListLoopRolloutGroupsResponse.ProtoReflect.Descriptor instead.
 func (*ListLoopRolloutGroupsResponse) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{55}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *ListLoopRolloutGroupsResponse) GetGroups() []*LoopRolloutGroupV1 {
@@ -5027,6 +5214,230 @@ func (x *ListLoopRolloutGroupsResponse) GetPage() *v1.PageResponseV1 {
 	return nil
 }
 
+type GetLoopRolloutTrajectoryRequest struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	RolloutId string                 `protobuf:"bytes,1,opt,name=rollout_id,json=rolloutId,proto3" json:"rollout_id,omitempty"`
+	// 1 to 100 steps a page, within 4 MiB; absent takes 100. Its token is the
+	// first step of the next page.
+	Page          *v1.PageRequestV1 `protobuf:"bytes,2,opt,name=page,proto3" json:"page,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetLoopRolloutTrajectoryRequest) Reset() {
+	*x = GetLoopRolloutTrajectoryRequest{}
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[58]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetLoopRolloutTrajectoryRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetLoopRolloutTrajectoryRequest) ProtoMessage() {}
+
+func (x *GetLoopRolloutTrajectoryRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[58]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetLoopRolloutTrajectoryRequest.ProtoReflect.Descriptor instead.
+func (*GetLoopRolloutTrajectoryRequest) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{58}
+}
+
+func (x *GetLoopRolloutTrajectoryRequest) GetRolloutId() string {
+	if x != nil {
+		return x.RolloutId
+	}
+	return ""
+}
+
+func (x *GetLoopRolloutTrajectoryRequest) GetPage() *v1.PageRequestV1 {
+	if x != nil {
+		return x.Page
+	}
+	return nil
+}
+
+// A page of a rollout's trajectory. A rollout's steps are kept once it is
+// closed, so one still running has none yet, and says so with `pending`. Its
+// steps go when its organization's trace retention passes, after which a read
+// is refused with `trajectory_expired`.
+type GetLoopRolloutTrajectoryResponse struct {
+	state protoimpl.MessageState  `protogen:"open.v1"`
+	Steps []*LoopTrajectoryStepV1 `protobuf:"bytes,1,rep,name=steps,proto3" json:"steps,omitempty"`
+	Page  *v1.PageResponseV1      `protobuf:"bytes,2,opt,name=page,proto3" json:"page,omitempty"`
+	// The rollout has not ended, or its steps are not kept yet: read again.
+	Pending bool `protobuf:"varint,3,opt,name=pending,proto3" json:"pending,omitempty"`
+	// The rollout ended and some of its steps were never kept: a process that
+	// served it was lost, or a write of them failed for good. Its kept steps
+	// are still answered; a trainer's export skips or flags such a trajectory.
+	Incomplete    bool `protobuf:"varint,4,opt,name=incomplete,proto3" json:"incomplete,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetLoopRolloutTrajectoryResponse) Reset() {
+	*x = GetLoopRolloutTrajectoryResponse{}
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[59]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetLoopRolloutTrajectoryResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetLoopRolloutTrajectoryResponse) ProtoMessage() {}
+
+func (x *GetLoopRolloutTrajectoryResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[59]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetLoopRolloutTrajectoryResponse.ProtoReflect.Descriptor instead.
+func (*GetLoopRolloutTrajectoryResponse) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{59}
+}
+
+func (x *GetLoopRolloutTrajectoryResponse) GetSteps() []*LoopTrajectoryStepV1 {
+	if x != nil {
+		return x.Steps
+	}
+	return nil
+}
+
+func (x *GetLoopRolloutTrajectoryResponse) GetPage() *v1.PageResponseV1 {
+	if x != nil {
+		return x.Page
+	}
+	return nil
+}
+
+func (x *GetLoopRolloutTrajectoryResponse) GetPending() bool {
+	if x != nil {
+		return x.Pending
+	}
+	return false
+}
+
+func (x *GetLoopRolloutTrajectoryResponse) GetIncomplete() bool {
+	if x != nil {
+		return x.Incomplete
+	}
+	return false
+}
+
+// One step of a rollout's trajectory, as Loop kept it: secrets in it are
+// replaced before it is stored.
+type LoopTrajectoryStepV1 struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// From 1.
+	Step uint32 `protobuf:"varint,1,opt,name=step,proto3" json:"step,omitempty"`
+	// The assistant message the calls came from, as the step carried it.
+	ModelMessageJson string            `protobuf:"bytes,2,opt,name=model_message_json,json=modelMessageJson,proto3" json:"model_message_json,omitempty"`
+	Calls            []*LoopToolCallV1 `protobuf:"bytes,3,rep,name=calls,proto3" json:"calls,omitempty"`
+	// One per call, in order, as the step answered them.
+	Results []*LoopToolResultV1 `protobuf:"bytes,4,rep,name=results,proto3" json:"results,omitempty"`
+	// On the first step the rollout kept: the tools its reset named.
+	ToolsJson string `protobuf:"bytes,5,opt,name=tools_json,json=toolsJson,proto3" json:"tools_json,omitempty"`
+	// The step was past what it may hold, 16 MiB kept or a page's 4 MiB
+	// answered, so its results' stdout, stderr, file bytes and listings, its
+	// calls' written bytes and, if it was still past it, its model message are
+	// left out.
+	Cut           bool `protobuf:"varint,6,opt,name=cut,proto3" json:"cut,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LoopTrajectoryStepV1) Reset() {
+	*x = LoopTrajectoryStepV1{}
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[60]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LoopTrajectoryStepV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LoopTrajectoryStepV1) ProtoMessage() {}
+
+func (x *LoopTrajectoryStepV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[60]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LoopTrajectoryStepV1.ProtoReflect.Descriptor instead.
+func (*LoopTrajectoryStepV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{60}
+}
+
+func (x *LoopTrajectoryStepV1) GetStep() uint32 {
+	if x != nil {
+		return x.Step
+	}
+	return 0
+}
+
+func (x *LoopTrajectoryStepV1) GetModelMessageJson() string {
+	if x != nil {
+		return x.ModelMessageJson
+	}
+	return ""
+}
+
+func (x *LoopTrajectoryStepV1) GetCalls() []*LoopToolCallV1 {
+	if x != nil {
+		return x.Calls
+	}
+	return nil
+}
+
+func (x *LoopTrajectoryStepV1) GetResults() []*LoopToolResultV1 {
+	if x != nil {
+		return x.Results
+	}
+	return nil
+}
+
+func (x *LoopTrajectoryStepV1) GetToolsJson() string {
+	if x != nil {
+		return x.ToolsJson
+	}
+	return ""
+}
+
+func (x *LoopTrajectoryStepV1) GetCut() bool {
+	if x != nil {
+		return x.Cut
+	}
+	return false
+}
+
 type GetLoopRolloutChangeListRequest struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
 	RolloutId string                 `protobuf:"bytes,1,opt,name=rollout_id,json=rolloutId,proto3" json:"rollout_id,omitempty"`
@@ -5038,7 +5449,7 @@ type GetLoopRolloutChangeListRequest struct {
 
 func (x *GetLoopRolloutChangeListRequest) Reset() {
 	*x = GetLoopRolloutChangeListRequest{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[56]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5050,7 +5461,7 @@ func (x *GetLoopRolloutChangeListRequest) String() string {
 func (*GetLoopRolloutChangeListRequest) ProtoMessage() {}
 
 func (x *GetLoopRolloutChangeListRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[56]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5063,7 +5474,7 @@ func (x *GetLoopRolloutChangeListRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLoopRolloutChangeListRequest.ProtoReflect.Descriptor instead.
 func (*GetLoopRolloutChangeListRequest) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{56}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{61}
 }
 
 func (x *GetLoopRolloutChangeListRequest) GetRolloutId() string {
@@ -5096,7 +5507,7 @@ type LoopChangeEntryV1 struct {
 
 func (x *LoopChangeEntryV1) Reset() {
 	*x = LoopChangeEntryV1{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[57]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5108,7 +5519,7 @@ func (x *LoopChangeEntryV1) String() string {
 func (*LoopChangeEntryV1) ProtoMessage() {}
 
 func (x *LoopChangeEntryV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[57]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5121,7 +5532,7 @@ func (x *LoopChangeEntryV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoopChangeEntryV1.ProtoReflect.Descriptor instead.
 func (*LoopChangeEntryV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{57}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{62}
 }
 
 func (x *LoopChangeEntryV1) GetPath() []byte {
@@ -5182,7 +5593,7 @@ type GetLoopRolloutChangeListResponse struct {
 
 func (x *GetLoopRolloutChangeListResponse) Reset() {
 	*x = GetLoopRolloutChangeListResponse{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[58]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[63]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5194,7 +5605,7 @@ func (x *GetLoopRolloutChangeListResponse) String() string {
 func (*GetLoopRolloutChangeListResponse) ProtoMessage() {}
 
 func (x *GetLoopRolloutChangeListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[58]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[63]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5207,7 +5618,7 @@ func (x *GetLoopRolloutChangeListResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLoopRolloutChangeListResponse.ProtoReflect.Descriptor instead.
 func (*GetLoopRolloutChangeListResponse) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{58}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{63}
 }
 
 func (x *GetLoopRolloutChangeListResponse) GetEntries() []*LoopChangeEntryV1 {
@@ -5255,7 +5666,7 @@ type LoopEnvironmentVersionRefV1 struct {
 
 func (x *LoopEnvironmentVersionRefV1) Reset() {
 	*x = LoopEnvironmentVersionRefV1{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[59]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[64]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5267,7 +5678,7 @@ func (x *LoopEnvironmentVersionRefV1) String() string {
 func (*LoopEnvironmentVersionRefV1) ProtoMessage() {}
 
 func (x *LoopEnvironmentVersionRefV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[59]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[64]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5280,7 +5691,7 @@ func (x *LoopEnvironmentVersionRefV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoopEnvironmentVersionRefV1.ProtoReflect.Descriptor instead.
 func (*LoopEnvironmentVersionRefV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{59}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{64}
 }
 
 func (x *LoopEnvironmentVersionRefV1) GetEnvironmentId() string {
@@ -5312,7 +5723,7 @@ type GetLoopRolloutStatsRequest struct {
 
 func (x *GetLoopRolloutStatsRequest) Reset() {
 	*x = GetLoopRolloutStatsRequest{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[60]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[65]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5324,7 +5735,7 @@ func (x *GetLoopRolloutStatsRequest) String() string {
 func (*GetLoopRolloutStatsRequest) ProtoMessage() {}
 
 func (x *GetLoopRolloutStatsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[60]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[65]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5337,7 +5748,7 @@ func (x *GetLoopRolloutStatsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLoopRolloutStatsRequest.ProtoReflect.Descriptor instead.
 func (*GetLoopRolloutStatsRequest) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{60}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{65}
 }
 
 func (x *GetLoopRolloutStatsRequest) GetScope() isGetLoopRolloutStatsRequest_Scope {
@@ -5397,7 +5808,7 @@ type GetLoopRolloutStatsResponse struct {
 
 func (x *GetLoopRolloutStatsResponse) Reset() {
 	*x = GetLoopRolloutStatsResponse{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[61]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[66]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5409,7 +5820,7 @@ func (x *GetLoopRolloutStatsResponse) String() string {
 func (*GetLoopRolloutStatsResponse) ProtoMessage() {}
 
 func (x *GetLoopRolloutStatsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[61]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[66]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5422,7 +5833,7 @@ func (x *GetLoopRolloutStatsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLoopRolloutStatsResponse.ProtoReflect.Descriptor instead.
 func (*GetLoopRolloutStatsResponse) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{61}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{66}
 }
 
 func (x *GetLoopRolloutStatsResponse) GetStats() *LoopRolloutStatsV1 {
@@ -5445,7 +5856,7 @@ type ListLoopRunStepsRequest struct {
 
 func (x *ListLoopRunStepsRequest) Reset() {
 	*x = ListLoopRunStepsRequest{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[62]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[67]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5457,7 +5868,7 @@ func (x *ListLoopRunStepsRequest) String() string {
 func (*ListLoopRunStepsRequest) ProtoMessage() {}
 
 func (x *ListLoopRunStepsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[62]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[67]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5470,7 +5881,7 @@ func (x *ListLoopRunStepsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListLoopRunStepsRequest.ProtoReflect.Descriptor instead.
 func (*ListLoopRunStepsRequest) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{62}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{67}
 }
 
 func (x *ListLoopRunStepsRequest) GetRunId() string {
@@ -5536,7 +5947,7 @@ type LoopRunStepV1 struct {
 
 func (x *LoopRunStepV1) Reset() {
 	*x = LoopRunStepV1{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[63]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[68]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5548,7 +5959,7 @@ func (x *LoopRunStepV1) String() string {
 func (*LoopRunStepV1) ProtoMessage() {}
 
 func (x *LoopRunStepV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[63]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[68]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5561,7 +5972,7 @@ func (x *LoopRunStepV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoopRunStepV1.ProtoReflect.Descriptor instead.
 func (*LoopRunStepV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{63}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{68}
 }
 
 func (x *LoopRunStepV1) GetTrainerStep() uint32 {
@@ -5700,7 +6111,7 @@ type ListLoopRunStepsResponse struct {
 
 func (x *ListLoopRunStepsResponse) Reset() {
 	*x = ListLoopRunStepsResponse{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[64]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[69]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5712,7 +6123,7 @@ func (x *ListLoopRunStepsResponse) String() string {
 func (*ListLoopRunStepsResponse) ProtoMessage() {}
 
 func (x *ListLoopRunStepsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[64]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[69]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5725,7 +6136,7 @@ func (x *ListLoopRunStepsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListLoopRunStepsResponse.ProtoReflect.Descriptor instead.
 func (*ListLoopRunStepsResponse) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{64}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{69}
 }
 
 func (x *ListLoopRunStepsResponse) GetSteps() []*LoopRunStepV1 {
@@ -5738,6 +6149,634 @@ func (x *ListLoopRunStepsResponse) GetSteps() []*LoopRunStepV1 {
 func (x *ListLoopRunStepsResponse) GetPage() *v1.PageResponseV1 {
 	if x != nil {
 		return x.Page
+	}
+	return nil
+}
+
+// A version of a trajectory dataset. Its rollouts never change.
+type LoopTrajectoryDatasetVersionV1 struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	DatasetVersionId    string                 `protobuf:"bytes,1,opt,name=dataset_version_id,json=datasetVersionId,proto3" json:"dataset_version_id,omitempty"`
+	DatasetCollectionId string                 `protobuf:"bytes,2,opt,name=dataset_collection_id,json=datasetCollectionId,proto3" json:"dataset_collection_id,omitempty"`
+	DatasetName         string                 `protobuf:"bytes,3,opt,name=dataset_name,json=datasetName,proto3" json:"dataset_name,omitempty"`
+	VersionNumber       uint32                 `protobuf:"varint,4,opt,name=version_number,json=versionNumber,proto3" json:"version_number,omitempty"`
+	Label               string                 `protobuf:"bytes,5,opt,name=label,proto3" json:"label,omitempty"`
+	RolloutCount        uint32                 `protobuf:"varint,6,opt,name=rollout_count,json=rolloutCount,proto3" json:"rollout_count,omitempty"`
+	// Retention keeps its rollouts' steps.
+	Pinned    bool                   `protobuf:"varint,7,opt,name=pinned,proto3" json:"pinned,omitempty"`
+	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// (#726) The version it extends: its rollouts come first, in their order.
+	// Empty for a version made from rollouts alone.
+	BaseDatasetVersionId string `protobuf:"bytes,9,opt,name=base_dataset_version_id,json=baseDatasetVersionId,proto3" json:"base_dataset_version_id,omitempty"`
+	// (#726) Set on ListLoopDatasetVersionRollouts alone: how many of its
+	// rollouts and their fork ancestors only this version pins, which return
+	// to retention when it is unpinned. 0 while it is unpinned.
+	SolePinRollouts *uint32 `protobuf:"varint,10,opt,name=sole_pin_rollouts,json=solePinRollouts,proto3,oneof" json:"sole_pin_rollouts,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *LoopTrajectoryDatasetVersionV1) Reset() {
+	*x = LoopTrajectoryDatasetVersionV1{}
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[70]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LoopTrajectoryDatasetVersionV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LoopTrajectoryDatasetVersionV1) ProtoMessage() {}
+
+func (x *LoopTrajectoryDatasetVersionV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[70]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LoopTrajectoryDatasetVersionV1.ProtoReflect.Descriptor instead.
+func (*LoopTrajectoryDatasetVersionV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{70}
+}
+
+func (x *LoopTrajectoryDatasetVersionV1) GetDatasetVersionId() string {
+	if x != nil {
+		return x.DatasetVersionId
+	}
+	return ""
+}
+
+func (x *LoopTrajectoryDatasetVersionV1) GetDatasetCollectionId() string {
+	if x != nil {
+		return x.DatasetCollectionId
+	}
+	return ""
+}
+
+func (x *LoopTrajectoryDatasetVersionV1) GetDatasetName() string {
+	if x != nil {
+		return x.DatasetName
+	}
+	return ""
+}
+
+func (x *LoopTrajectoryDatasetVersionV1) GetVersionNumber() uint32 {
+	if x != nil {
+		return x.VersionNumber
+	}
+	return 0
+}
+
+func (x *LoopTrajectoryDatasetVersionV1) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *LoopTrajectoryDatasetVersionV1) GetRolloutCount() uint32 {
+	if x != nil {
+		return x.RolloutCount
+	}
+	return 0
+}
+
+func (x *LoopTrajectoryDatasetVersionV1) GetPinned() bool {
+	if x != nil {
+		return x.Pinned
+	}
+	return false
+}
+
+func (x *LoopTrajectoryDatasetVersionV1) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *LoopTrajectoryDatasetVersionV1) GetBaseDatasetVersionId() string {
+	if x != nil {
+		return x.BaseDatasetVersionId
+	}
+	return ""
+}
+
+func (x *LoopTrajectoryDatasetVersionV1) GetSolePinRollouts() uint32 {
+	if x != nil && x.SolePinRollouts != nil {
+		return *x.SolePinRollouts
+	}
+	return 0
+}
+
+// A named reward's bounds, both inclusive; a rollout without the reward is
+// not taken.
+type LoopRewardRangeV1 struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Min           *float64               `protobuf:"fixed64,2,opt,name=min,proto3,oneof" json:"min,omitempty"`
+	Max           *float64               `protobuf:"fixed64,3,opt,name=max,proto3,oneof" json:"max,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LoopRewardRangeV1) Reset() {
+	*x = LoopRewardRangeV1{}
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[71]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LoopRewardRangeV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LoopRewardRangeV1) ProtoMessage() {}
+
+func (x *LoopRewardRangeV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[71]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LoopRewardRangeV1.ProtoReflect.Descriptor instead.
+func (*LoopRewardRangeV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{71}
+}
+
+func (x *LoopRewardRangeV1) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *LoopRewardRangeV1) GetMin() float64 {
+	if x != nil && x.Min != nil {
+		return *x.Min
+	}
+	return 0
+}
+
+func (x *LoopRewardRangeV1) GetMax() float64 {
+	if x != nil && x.Max != nil {
+		return *x.Max
+	}
+	return 0
+}
+
+type CreateLoopTrajectoryDatasetVersionRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// A UUID: a repeat under it answers with the version the first created.
+	RequestId string `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	// The trajectory dataset to add the version to; empty, a new one named
+	// `dataset_name`.
+	DatasetCollectionId string `protobuf:"bytes,2,opt,name=dataset_collection_id,json=datasetCollectionId,proto3" json:"dataset_collection_id,omitempty"`
+	DatasetName         string `protobuf:"bytes,3,opt,name=dataset_name,json=datasetName,proto3" json:"dataset_name,omitempty"`
+	Label               string `protobuf:"bytes,4,opt,name=label,proto3" json:"label,omitempty"`
+	// The rollouts, in order, each once: 1 to 10,000 of the organization's
+	// ended rollouts whose steps are kept, or the version is not created.
+	// Empty: those of `run_id`, oldest first, within `reward` when set.
+	RolloutIds []string           `protobuf:"bytes,5,rep,name=rollout_ids,json=rolloutIds,proto3" json:"rollout_ids,omitempty"`
+	RunId      string             `protobuf:"bytes,6,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
+	Reward     *LoopRewardRangeV1 `protobuf:"bytes,7,opt,name=reward,proto3" json:"reward,omitempty"`
+	// (#726) A version of `dataset_collection_id` to extend: the new version
+	// holds its rollouts, in their order, then those above not already in it,
+	// at most 10,000 in all. It must be the dataset's latest version, or the
+	// create is refused as `dataset_version_stale`. Empty, none.
+	BaseDatasetVersionId string `protobuf:"bytes,8,opt,name=base_dataset_version_id,json=baseDatasetVersionId,proto3" json:"base_dataset_version_id,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *CreateLoopTrajectoryDatasetVersionRequest) Reset() {
+	*x = CreateLoopTrajectoryDatasetVersionRequest{}
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[72]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateLoopTrajectoryDatasetVersionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateLoopTrajectoryDatasetVersionRequest) ProtoMessage() {}
+
+func (x *CreateLoopTrajectoryDatasetVersionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[72]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateLoopTrajectoryDatasetVersionRequest.ProtoReflect.Descriptor instead.
+func (*CreateLoopTrajectoryDatasetVersionRequest) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{72}
+}
+
+func (x *CreateLoopTrajectoryDatasetVersionRequest) GetRequestId() string {
+	if x != nil {
+		return x.RequestId
+	}
+	return ""
+}
+
+func (x *CreateLoopTrajectoryDatasetVersionRequest) GetDatasetCollectionId() string {
+	if x != nil {
+		return x.DatasetCollectionId
+	}
+	return ""
+}
+
+func (x *CreateLoopTrajectoryDatasetVersionRequest) GetDatasetName() string {
+	if x != nil {
+		return x.DatasetName
+	}
+	return ""
+}
+
+func (x *CreateLoopTrajectoryDatasetVersionRequest) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *CreateLoopTrajectoryDatasetVersionRequest) GetRolloutIds() []string {
+	if x != nil {
+		return x.RolloutIds
+	}
+	return nil
+}
+
+func (x *CreateLoopTrajectoryDatasetVersionRequest) GetRunId() string {
+	if x != nil {
+		return x.RunId
+	}
+	return ""
+}
+
+func (x *CreateLoopTrajectoryDatasetVersionRequest) GetReward() *LoopRewardRangeV1 {
+	if x != nil {
+		return x.Reward
+	}
+	return nil
+}
+
+func (x *CreateLoopTrajectoryDatasetVersionRequest) GetBaseDatasetVersionId() string {
+	if x != nil {
+		return x.BaseDatasetVersionId
+	}
+	return ""
+}
+
+type CreateLoopTrajectoryDatasetVersionResponse struct {
+	state         protoimpl.MessageState          `protogen:"open.v1"`
+	Version       *LoopTrajectoryDatasetVersionV1 `protobuf:"bytes,1,opt,name=version,proto3" json:"version,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateLoopTrajectoryDatasetVersionResponse) Reset() {
+	*x = CreateLoopTrajectoryDatasetVersionResponse{}
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[73]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateLoopTrajectoryDatasetVersionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateLoopTrajectoryDatasetVersionResponse) ProtoMessage() {}
+
+func (x *CreateLoopTrajectoryDatasetVersionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[73]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateLoopTrajectoryDatasetVersionResponse.ProtoReflect.Descriptor instead.
+func (*CreateLoopTrajectoryDatasetVersionResponse) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{73}
+}
+
+func (x *CreateLoopTrajectoryDatasetVersionResponse) GetVersion() *LoopTrajectoryDatasetVersionV1 {
+	if x != nil {
+		return x.Version
+	}
+	return nil
+}
+
+type ListLoopDatasetVersionRolloutsRequest struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	DatasetVersionId string                 `protobuf:"bytes,1,opt,name=dataset_version_id,json=datasetVersionId,proto3" json:"dataset_version_id,omitempty"`
+	Page             *v1.PageRequestV1      `protobuf:"bytes,2,opt,name=page,proto3" json:"page,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *ListLoopDatasetVersionRolloutsRequest) Reset() {
+	*x = ListLoopDatasetVersionRolloutsRequest{}
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[74]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListLoopDatasetVersionRolloutsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListLoopDatasetVersionRolloutsRequest) ProtoMessage() {}
+
+func (x *ListLoopDatasetVersionRolloutsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[74]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListLoopDatasetVersionRolloutsRequest.ProtoReflect.Descriptor instead.
+func (*ListLoopDatasetVersionRolloutsRequest) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{74}
+}
+
+func (x *ListLoopDatasetVersionRolloutsRequest) GetDatasetVersionId() string {
+	if x != nil {
+		return x.DatasetVersionId
+	}
+	return ""
+}
+
+func (x *ListLoopDatasetVersionRolloutsRequest) GetPage() *v1.PageRequestV1 {
+	if x != nil {
+		return x.Page
+	}
+	return nil
+}
+
+// A trajectory dataset version's rollout.
+type LoopDatasetVersionRolloutV1 struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Ordinal   uint32                 `protobuf:"varint,1,opt,name=ordinal,proto3" json:"ordinal,omitempty"`
+	RolloutId string                 `protobuf:"bytes,2,opt,name=rollout_id,json=rolloutId,proto3" json:"rollout_id,omitempty"`
+	// As it is now; absent once its run was deleted.
+	Rollout *LoopRolloutV1 `protobuf:"bytes,3,opt,name=rollout,proto3" json:"rollout,omitempty"`
+	// Its steps went with the organization's trace retention, after every
+	// version holding it was unpinned.
+	Expired       bool `protobuf:"varint,4,opt,name=expired,proto3" json:"expired,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LoopDatasetVersionRolloutV1) Reset() {
+	*x = LoopDatasetVersionRolloutV1{}
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[75]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LoopDatasetVersionRolloutV1) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LoopDatasetVersionRolloutV1) ProtoMessage() {}
+
+func (x *LoopDatasetVersionRolloutV1) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[75]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LoopDatasetVersionRolloutV1.ProtoReflect.Descriptor instead.
+func (*LoopDatasetVersionRolloutV1) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{75}
+}
+
+func (x *LoopDatasetVersionRolloutV1) GetOrdinal() uint32 {
+	if x != nil {
+		return x.Ordinal
+	}
+	return 0
+}
+
+func (x *LoopDatasetVersionRolloutV1) GetRolloutId() string {
+	if x != nil {
+		return x.RolloutId
+	}
+	return ""
+}
+
+func (x *LoopDatasetVersionRolloutV1) GetRollout() *LoopRolloutV1 {
+	if x != nil {
+		return x.Rollout
+	}
+	return nil
+}
+
+func (x *LoopDatasetVersionRolloutV1) GetExpired() bool {
+	if x != nil {
+		return x.Expired
+	}
+	return false
+}
+
+type ListLoopDatasetVersionRolloutsResponse struct {
+	state         protoimpl.MessageState          `protogen:"open.v1"`
+	Version       *LoopTrajectoryDatasetVersionV1 `protobuf:"bytes,1,opt,name=version,proto3" json:"version,omitempty"`
+	Rollouts      []*LoopDatasetVersionRolloutV1  `protobuf:"bytes,2,rep,name=rollouts,proto3" json:"rollouts,omitempty"`
+	Page          *v1.PageResponseV1              `protobuf:"bytes,3,opt,name=page,proto3" json:"page,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListLoopDatasetVersionRolloutsResponse) Reset() {
+	*x = ListLoopDatasetVersionRolloutsResponse{}
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[76]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListLoopDatasetVersionRolloutsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListLoopDatasetVersionRolloutsResponse) ProtoMessage() {}
+
+func (x *ListLoopDatasetVersionRolloutsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[76]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListLoopDatasetVersionRolloutsResponse.ProtoReflect.Descriptor instead.
+func (*ListLoopDatasetVersionRolloutsResponse) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{76}
+}
+
+func (x *ListLoopDatasetVersionRolloutsResponse) GetVersion() *LoopTrajectoryDatasetVersionV1 {
+	if x != nil {
+		return x.Version
+	}
+	return nil
+}
+
+func (x *ListLoopDatasetVersionRolloutsResponse) GetRollouts() []*LoopDatasetVersionRolloutV1 {
+	if x != nil {
+		return x.Rollouts
+	}
+	return nil
+}
+
+func (x *ListLoopDatasetVersionRolloutsResponse) GetPage() *v1.PageResponseV1 {
+	if x != nil {
+		return x.Page
+	}
+	return nil
+}
+
+type SetLoopDatasetVersionPinnedRequest struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	DatasetVersionId string                 `protobuf:"bytes,1,opt,name=dataset_version_id,json=datasetVersionId,proto3" json:"dataset_version_id,omitempty"`
+	Pinned           bool                   `protobuf:"varint,2,opt,name=pinned,proto3" json:"pinned,omitempty"`
+	// Why it is pinned; at most 256 bytes.
+	Reason        string `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetLoopDatasetVersionPinnedRequest) Reset() {
+	*x = SetLoopDatasetVersionPinnedRequest{}
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[77]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetLoopDatasetVersionPinnedRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetLoopDatasetVersionPinnedRequest) ProtoMessage() {}
+
+func (x *SetLoopDatasetVersionPinnedRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[77]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetLoopDatasetVersionPinnedRequest.ProtoReflect.Descriptor instead.
+func (*SetLoopDatasetVersionPinnedRequest) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{77}
+}
+
+func (x *SetLoopDatasetVersionPinnedRequest) GetDatasetVersionId() string {
+	if x != nil {
+		return x.DatasetVersionId
+	}
+	return ""
+}
+
+func (x *SetLoopDatasetVersionPinnedRequest) GetPinned() bool {
+	if x != nil {
+		return x.Pinned
+	}
+	return false
+}
+
+func (x *SetLoopDatasetVersionPinnedRequest) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+type SetLoopDatasetVersionPinnedResponse struct {
+	state         protoimpl.MessageState          `protogen:"open.v1"`
+	Version       *LoopTrajectoryDatasetVersionV1 `protobuf:"bytes,1,opt,name=version,proto3" json:"version,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetLoopDatasetVersionPinnedResponse) Reset() {
+	*x = SetLoopDatasetVersionPinnedResponse{}
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[78]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetLoopDatasetVersionPinnedResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetLoopDatasetVersionPinnedResponse) ProtoMessage() {}
+
+func (x *SetLoopDatasetVersionPinnedResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[78]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetLoopDatasetVersionPinnedResponse.ProtoReflect.Descriptor instead.
+func (*SetLoopDatasetVersionPinnedResponse) Descriptor() ([]byte, []int) {
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{78}
+}
+
+func (x *SetLoopDatasetVersionPinnedResponse) GetVersion() *LoopTrajectoryDatasetVersionV1 {
+	if x != nil {
+		return x.Version
 	}
 	return nil
 }
@@ -5758,7 +6797,7 @@ type LoopRolloutRejectionV1 struct {
 
 func (x *LoopRolloutRejectionV1) Reset() {
 	*x = LoopRolloutRejectionV1{}
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[65]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[79]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5770,7 +6809,7 @@ func (x *LoopRolloutRejectionV1) String() string {
 func (*LoopRolloutRejectionV1) ProtoMessage() {}
 
 func (x *LoopRolloutRejectionV1) ProtoReflect() protoreflect.Message {
-	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[65]
+	mi := &file_o11y_one_agentic_v1_rollout_proto_msgTypes[79]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5783,7 +6822,7 @@ func (x *LoopRolloutRejectionV1) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoopRolloutRejectionV1.ProtoReflect.Descriptor instead.
 func (*LoopRolloutRejectionV1) Descriptor() ([]byte, []int) {
-	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{65}
+	return file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP(), []int{79}
 }
 
 func (x *LoopRolloutRejectionV1) GetReasonCode() string {
@@ -5947,7 +6986,7 @@ const file_o11y_one_agentic_v1_rollout_proto_rawDesc = "" +
 	"\x10LoopFinalStateV1\x12\x18\n" +
 	"\aentries\x18\x01 \x01(\x04R\aentries\x12\x14\n" +
 	"\x05bytes\x18\x02 \x01(\x04R\x05bytes\x12\x1c\n" +
-	"\toversized\x18\x03 \x01(\bR\toversized\"\xbc\v\n" +
+	"\toversized\x18\x03 \x01(\bR\toversized\"\xfb\v\n" +
 	"\rLoopRolloutV1\x12\x1d\n" +
 	"\n" +
 	"rollout_id\x18\x01 \x01(\tR\trolloutId\x12\x15\n" +
@@ -5985,8 +7024,18 @@ const file_o11y_one_agentic_v1_rollout_proto_rawDesc = "" +
 	"\tclosed_at\x18\x1a \x01(\v2\x1a.google.protobuf.TimestampR\bclosedAt\x12J\n" +
 	"\x13verifier_started_at\x18\x1b \x01(\v2\x1a.google.protobuf.TimestampR\x11verifierStartedAt\x125\n" +
 	"\bended_at\x18\x1c \x01(\v2\x1a.google.protobuf.TimestampR\aendedAt\x12+\n" +
-	"\x11credential_prefix\x18\x1d \x01(\tR\x10credentialPrefixB\x0f\n" +
-	"\r_trainer_step\"N\n" +
+	"\x11credential_prefix\x18\x1d \x01(\tR\x10credentialPrefix\x12=\n" +
+	"\x05flags\x18\x1e \x01(\v2'.o11y_one.agentic.v1.LoopRolloutFlagsV1R\x05flagsB\x0f\n" +
+	"\r_trainer_step\"\xf1\x01\n" +
+	"\x12LoopRolloutFlagsV1\x129\n" +
+	"\n" +
+	"scanned_at\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\tscannedAt\x12B\n" +
+	"\bdetected\x18\x02 \x03(\v2&.o11y_one.agentic.v1.LoopRolloutFlagV1R\bdetected\x12/\n" +
+	"\x13evidence_incomplete\x18\x03 \x01(\bR\x12evidenceIncomplete\x12+\n" +
+	"\x11evidence_unsealed\x18\x04 \x01(\bR\x10evidenceUnsealed\"Q\n" +
+	"\x11LoopRolloutFlagV1\x12\x1a\n" +
+	"\bdetector\x18\x01 \x01(\tR\bdetector\x12 \n" +
+	"\vexplanation\x18\x02 \x01(\tR\vexplanation\"N\n" +
 	"\x0eLoopToolExecV1\x12\x12\n" +
 	"\x04argv\x18\x01 \x03(\tR\x04argv\x12(\n" +
 	"\x10output_cap_bytes\x18\x02 \x01(\rR\x0eoutputCapBytes\"S\n" +
@@ -6099,7 +7148,7 @@ const file_o11y_one_agentic_v1_rollout_proto_rawDesc = "" +
 	"\x06run_id\x18\x01 \x01(\tR\x05runId\x12&\n" +
 	"\x0fclose_in_flight\x18\x02 \x01(\bR\rcloseInFlight\"G\n" +
 	"\x13StopLoopRunResponse\x120\n" +
-	"\x03run\x18\x01 \x01(\v2\x1e.o11y_one.agentic.v1.LoopRunV1R\x03run\"\xbe\x03\n" +
+	"\x03run\x18\x01 \x01(\v2\x1e.o11y_one.agentic.v1.LoopRunV1R\x03run\"\xdd\x03\n" +
 	"\x17ResetLoopRolloutRequest\x12\x15\n" +
 	"\x06run_id\x18\x01 \x01(\tR\x05runId\x12\x1d\n" +
 	"\n" +
@@ -6114,7 +7163,9 @@ const file_o11y_one_agentic_v1_rollout_proto_rawDesc = "" +
 	"\x13trainer_total_steps\x18\b \x01(\rH\x01R\x11trainerTotalSteps\x88\x01\x01\x12'\n" +
 	"\x0fexperiment_name\x18\t \x01(\tR\x0eexperimentName\x129\n" +
 	"\x06client\x18\n" +
-	" \x01(\v2!.o11y_one.agentic.v1.LoopClientV1R\x06clientB\x0f\n" +
+	" \x01(\v2!.o11y_one.agentic.v1.LoopClientV1R\x06client\x12\x1d\n" +
+	"\n" +
+	"tools_json\x18\v \x01(\tR\ttoolsJsonB\x0f\n" +
 	"\r_trainer_stepB\x16\n" +
 	"\x14_trainer_total_steps\"X\n" +
 	"\x18ResetLoopRolloutResponse\x12<\n" +
@@ -6145,15 +7196,20 @@ const file_o11y_one_agentic_v1_rollout_proto_rawDesc = "" +
 	"\n" +
 	"rollout_id\x18\x01 \x01(\tR\trolloutId\"V\n" +
 	"\x16GetLoopRolloutResponse\x12<\n" +
-	"\arollout\x18\x01 \x01(\v2\".o11y_one.agentic.v1.LoopRolloutV1R\arollout\"\xc8\x02\n" +
+	"\arollout\x18\x01 \x01(\v2\".o11y_one.agentic.v1.LoopRolloutV1R\arollout\"\xba\x03\n" +
 	"\x17ListLoopRolloutsRequest\x12\x15\n" +
 	"\x06run_id\x18\x01 \x01(\tR\x05runId\x12\x19\n" +
 	"\bgroup_id\x18\x02 \x01(\tR\agroupId\x12&\n" +
 	"\ftrainer_step\x18\x03 \x01(\rH\x00R\vtrainerStep\x88\x01\x01\x12=\n" +
 	"\x05state\x18\x04 \x01(\x0e2'.o11y_one.agentic.v1.LoopRolloutStateV1R\x05state\x12L\n" +
 	"\rfailure_class\x18\x05 \x01(\x0e2'.o11y_one.agentic.v1.LoopFailureClassV1R\ffailureClass\x125\n" +
-	"\x04page\x18\x06 \x01(\v2!.o11y_one.common.v1.PageRequestV1R\x04pageB\x0f\n" +
-	"\r_trainer_step\"\x92\x01\n" +
+	"\x04page\x18\x06 \x01(\v2!.o11y_one.common.v1.PageRequestV1R\x04page\x12\x1d\n" +
+	"\aflagged\x18\a \x01(\bH\x01R\aflagged\x88\x01\x01\x12/\n" +
+	"\x11parent_rollout_id\x18\b \x01(\tH\x02R\x0fparentRolloutId\x88\x01\x01B\x0f\n" +
+	"\r_trainer_stepB\n" +
+	"\n" +
+	"\b_flaggedB\x14\n" +
+	"\x12_parent_rollout_id\"\x92\x01\n" +
 	"\x18ListLoopRolloutsResponse\x12>\n" +
 	"\brollouts\x18\x01 \x03(\v2\".o11y_one.agentic.v1.LoopRolloutV1R\brollouts\x126\n" +
 	"\x04page\x18\x02 \x01(\v2\".o11y_one.common.v1.PageResponseV1R\x04page\"\xb3\x01\n" +
@@ -6192,6 +7248,25 @@ const file_o11y_one_agentic_v1_rollout_proto_rawDesc = "" +
 	"\x1dListLoopRolloutGroupsResponse\x12?\n" +
 	"\x06groups\x18\x01 \x03(\v2'.o11y_one.agentic.v1.LoopRolloutGroupV1R\x06groups\x126\n" +
 	"\x04page\x18\x02 \x01(\v2\".o11y_one.common.v1.PageResponseV1R\x04page\"w\n" +
+	"\x1fGetLoopRolloutTrajectoryRequest\x12\x1d\n" +
+	"\n" +
+	"rollout_id\x18\x01 \x01(\tR\trolloutId\x125\n" +
+	"\x04page\x18\x02 \x01(\v2!.o11y_one.common.v1.PageRequestV1R\x04page\"\xd5\x01\n" +
+	" GetLoopRolloutTrajectoryResponse\x12?\n" +
+	"\x05steps\x18\x01 \x03(\v2).o11y_one.agentic.v1.LoopTrajectoryStepV1R\x05steps\x126\n" +
+	"\x04page\x18\x02 \x01(\v2\".o11y_one.common.v1.PageResponseV1R\x04page\x12\x18\n" +
+	"\apending\x18\x03 \x01(\bR\apending\x12\x1e\n" +
+	"\n" +
+	"incomplete\x18\x04 \x01(\bR\n" +
+	"incomplete\"\x85\x02\n" +
+	"\x14LoopTrajectoryStepV1\x12\x12\n" +
+	"\x04step\x18\x01 \x01(\rR\x04step\x12,\n" +
+	"\x12model_message_json\x18\x02 \x01(\tR\x10modelMessageJson\x129\n" +
+	"\x05calls\x18\x03 \x03(\v2#.o11y_one.agentic.v1.LoopToolCallV1R\x05calls\x12?\n" +
+	"\aresults\x18\x04 \x03(\v2%.o11y_one.agentic.v1.LoopToolResultV1R\aresults\x12\x1d\n" +
+	"\n" +
+	"tools_json\x18\x05 \x01(\tR\ttoolsJson\x12\x10\n" +
+	"\x03cut\x18\x06 \x01(\bR\x03cut\"w\n" +
 	"\x1fGetLoopRolloutChangeListRequest\x12\x1d\n" +
 	"\n" +
 	"rollout_id\x18\x01 \x01(\tR\trolloutId\x125\n" +
@@ -6255,7 +7330,59 @@ const file_o11y_one_agentic_v1_rollout_proto_rawDesc = "" +
 	"\x10_best_group_mean\"\x8c\x01\n" +
 	"\x18ListLoopRunStepsResponse\x128\n" +
 	"\x05steps\x18\x01 \x03(\v2\".o11y_one.agentic.v1.LoopRunStepV1R\x05steps\x126\n" +
-	"\x04page\x18\x02 \x01(\v2\".o11y_one.common.v1.PageResponseV1R\x04page\"\xa8\x01\n" +
+	"\x04page\x18\x02 \x01(\v2\".o11y_one.common.v1.PageResponseV1R\x04page\"\xd8\x03\n" +
+	"\x1eLoopTrajectoryDatasetVersionV1\x12,\n" +
+	"\x12dataset_version_id\x18\x01 \x01(\tR\x10datasetVersionId\x122\n" +
+	"\x15dataset_collection_id\x18\x02 \x01(\tR\x13datasetCollectionId\x12!\n" +
+	"\fdataset_name\x18\x03 \x01(\tR\vdatasetName\x12%\n" +
+	"\x0eversion_number\x18\x04 \x01(\rR\rversionNumber\x12\x14\n" +
+	"\x05label\x18\x05 \x01(\tR\x05label\x12#\n" +
+	"\rrollout_count\x18\x06 \x01(\rR\frolloutCount\x12\x16\n" +
+	"\x06pinned\x18\a \x01(\bR\x06pinned\x129\n" +
+	"\n" +
+	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x125\n" +
+	"\x17base_dataset_version_id\x18\t \x01(\tR\x14baseDatasetVersionId\x12/\n" +
+	"\x11sole_pin_rollouts\x18\n" +
+	" \x01(\rH\x00R\x0fsolePinRollouts\x88\x01\x01B\x14\n" +
+	"\x12_sole_pin_rollouts\"e\n" +
+	"\x11LoopRewardRangeV1\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x15\n" +
+	"\x03min\x18\x02 \x01(\x01H\x00R\x03min\x88\x01\x01\x12\x15\n" +
+	"\x03max\x18\x03 \x01(\x01H\x01R\x03max\x88\x01\x01B\x06\n" +
+	"\x04_minB\x06\n" +
+	"\x04_max\"\xe6\x02\n" +
+	")CreateLoopTrajectoryDatasetVersionRequest\x12\x1d\n" +
+	"\n" +
+	"request_id\x18\x01 \x01(\tR\trequestId\x122\n" +
+	"\x15dataset_collection_id\x18\x02 \x01(\tR\x13datasetCollectionId\x12!\n" +
+	"\fdataset_name\x18\x03 \x01(\tR\vdatasetName\x12\x14\n" +
+	"\x05label\x18\x04 \x01(\tR\x05label\x12\x1f\n" +
+	"\vrollout_ids\x18\x05 \x03(\tR\n" +
+	"rolloutIds\x12\x15\n" +
+	"\x06run_id\x18\x06 \x01(\tR\x05runId\x12>\n" +
+	"\x06reward\x18\a \x01(\v2&.o11y_one.agentic.v1.LoopRewardRangeV1R\x06reward\x125\n" +
+	"\x17base_dataset_version_id\x18\b \x01(\tR\x14baseDatasetVersionId\"{\n" +
+	"*CreateLoopTrajectoryDatasetVersionResponse\x12M\n" +
+	"\aversion\x18\x01 \x01(\v23.o11y_one.agentic.v1.LoopTrajectoryDatasetVersionV1R\aversion\"\x8c\x01\n" +
+	"%ListLoopDatasetVersionRolloutsRequest\x12,\n" +
+	"\x12dataset_version_id\x18\x01 \x01(\tR\x10datasetVersionId\x125\n" +
+	"\x04page\x18\x02 \x01(\v2!.o11y_one.common.v1.PageRequestV1R\x04page\"\xae\x01\n" +
+	"\x1bLoopDatasetVersionRolloutV1\x12\x18\n" +
+	"\aordinal\x18\x01 \x01(\rR\aordinal\x12\x1d\n" +
+	"\n" +
+	"rollout_id\x18\x02 \x01(\tR\trolloutId\x12<\n" +
+	"\arollout\x18\x03 \x01(\v2\".o11y_one.agentic.v1.LoopRolloutV1R\arollout\x12\x18\n" +
+	"\aexpired\x18\x04 \x01(\bR\aexpired\"\xfd\x01\n" +
+	"&ListLoopDatasetVersionRolloutsResponse\x12M\n" +
+	"\aversion\x18\x01 \x01(\v23.o11y_one.agentic.v1.LoopTrajectoryDatasetVersionV1R\aversion\x12L\n" +
+	"\brollouts\x18\x02 \x03(\v20.o11y_one.agentic.v1.LoopDatasetVersionRolloutV1R\brollouts\x126\n" +
+	"\x04page\x18\x03 \x01(\v2\".o11y_one.common.v1.PageResponseV1R\x04page\"\x82\x01\n" +
+	"\"SetLoopDatasetVersionPinnedRequest\x12,\n" +
+	"\x12dataset_version_id\x18\x01 \x01(\tR\x10datasetVersionId\x12\x16\n" +
+	"\x06pinned\x18\x02 \x01(\bR\x06pinned\x12\x16\n" +
+	"\x06reason\x18\x03 \x01(\tR\x06reason\"t\n" +
+	"#SetLoopDatasetVersionPinnedResponse\x12M\n" +
+	"\aversion\x18\x01 \x01(\v23.o11y_one.agentic.v1.LoopTrajectoryDatasetVersionV1R\aversion\"\xa8\x01\n" +
 	"\x16LoopRolloutRejectionV1\x12\x1f\n" +
 	"\vreason_code\x18\x01 \x01(\tR\n" +
 	"reasonCode\x121\n" +
@@ -6329,7 +7456,7 @@ const file_o11y_one_agentic_v1_rollout_proto_rawDesc = "" +
 	"#LOOP_RUN_STEP_BUCKET_V1_UNSPECIFIED\x10\x00\x12(\n" +
 	"$LOOP_RUN_STEP_BUCKET_V1_TRAINER_STEP\x10\x01\x12\"\n" +
 	"\x1eLOOP_RUN_STEP_BUCKET_V1_MINUTE\x10\x02\x12(\n" +
-	"$LOOP_RUN_STEP_BUCKET_V1_FIVE_MINUTES\x10\x032\xe6\x0e\n" +
+	"$LOOP_RUN_STEP_BUCKET_V1_FIVE_MINUTES\x10\x032\xc7\x13\n" +
 	"\x12LoopRolloutService\x12f\n" +
 	"\rCreateLoopRun\x12).o11y_one.agentic.v1.CreateLoopRunRequest\x1a*.o11y_one.agentic.v1.CreateLoopRunResponse\x12]\n" +
 	"\n" +
@@ -6348,7 +7475,11 @@ const file_o11y_one_agentic_v1_rollout_proto_rawDesc = "" +
 	"\x15ListLoopRolloutGroups\x121.o11y_one.agentic.v1.ListLoopRolloutGroupsRequest\x1a2.o11y_one.agentic.v1.ListLoopRolloutGroupsResponse\x12\x87\x01\n" +
 	"\x18GetLoopRolloutChangeList\x124.o11y_one.agentic.v1.GetLoopRolloutChangeListRequest\x1a5.o11y_one.agentic.v1.GetLoopRolloutChangeListResponse\x12x\n" +
 	"\x13GetLoopRolloutStats\x12/.o11y_one.agentic.v1.GetLoopRolloutStatsRequest\x1a0.o11y_one.agentic.v1.GetLoopRolloutStatsResponse\x12o\n" +
-	"\x10ListLoopRunSteps\x12,.o11y_one.agentic.v1.ListLoopRunStepsRequest\x1a-.o11y_one.agentic.v1.ListLoopRunStepsResponseB\xd8\x01\n" +
+	"\x10ListLoopRunSteps\x12,.o11y_one.agentic.v1.ListLoopRunStepsRequest\x1a-.o11y_one.agentic.v1.ListLoopRunStepsResponse\x12\x87\x01\n" +
+	"\x18GetLoopRolloutTrajectory\x124.o11y_one.agentic.v1.GetLoopRolloutTrajectoryRequest\x1a5.o11y_one.agentic.v1.GetLoopRolloutTrajectoryResponse\x12\xa5\x01\n" +
+	"\"CreateLoopTrajectoryDatasetVersion\x12>.o11y_one.agentic.v1.CreateLoopTrajectoryDatasetVersionRequest\x1a?.o11y_one.agentic.v1.CreateLoopTrajectoryDatasetVersionResponse\x12\x99\x01\n" +
+	"\x1eListLoopDatasetVersionRollouts\x12:.o11y_one.agentic.v1.ListLoopDatasetVersionRolloutsRequest\x1a;.o11y_one.agentic.v1.ListLoopDatasetVersionRolloutsResponse\x12\x90\x01\n" +
+	"\x1bSetLoopDatasetVersionPinned\x127.o11y_one.agentic.v1.SetLoopDatasetVersionPinnedRequest\x1a8.o11y_one.agentic.v1.SetLoopDatasetVersionPinnedResponseB\xd8\x01\n" +
 	"\x17com.o11y_one.agentic.v1B\fRolloutProtoP\x01ZEgithub.com/o11y-one/o11y-one-sdk/gen/go/o11y_one/agentic/v1;agenticv1\xa2\x02\x03OAX\xaa\x02\x12O11yOne.Agentic.V1\xca\x02\x12O11yOne\\Agentic\\V1\xe2\x02\x1eO11yOne\\Agentic\\V1\\GPBMetadata\xea\x02\x14O11yOne::Agentic::V1b\x06proto3"
 
 var (
@@ -6364,222 +7495,261 @@ func file_o11y_one_agentic_v1_rollout_proto_rawDescGZIP() []byte {
 }
 
 var file_o11y_one_agentic_v1_rollout_proto_enumTypes = make([]protoimpl.EnumInfo, 10)
-var file_o11y_one_agentic_v1_rollout_proto_msgTypes = make([]protoimpl.MessageInfo, 66)
+var file_o11y_one_agentic_v1_rollout_proto_msgTypes = make([]protoimpl.MessageInfo, 80)
 var file_o11y_one_agentic_v1_rollout_proto_goTypes = []any{
-	(LoopTrainerFrameworkV1)(0),              // 0: o11y_one.agentic.v1.LoopTrainerFrameworkV1
-	(LoopRunStateV1)(0),                      // 1: o11y_one.agentic.v1.LoopRunStateV1
-	(LoopFailureClassV1)(0),                  // 2: o11y_one.agentic.v1.LoopFailureClassV1
-	(LoopVerdictV1)(0),                       // 3: o11y_one.agentic.v1.LoopVerdictV1
-	(LoopRewardDeterminismV1)(0),             // 4: o11y_one.agentic.v1.LoopRewardDeterminismV1
-	(LoopRolloutStateV1)(0),                  // 5: o11y_one.agentic.v1.LoopRolloutStateV1
-	(LoopToolEntryKindV1)(0),                 // 6: o11y_one.agentic.v1.LoopToolEntryKindV1
-	(LoopRolloutGroupFilterV1)(0),            // 7: o11y_one.agentic.v1.LoopRolloutGroupFilterV1
-	(LoopChangeKindV1)(0),                    // 8: o11y_one.agentic.v1.LoopChangeKindV1
-	(LoopRunStepBucketV1)(0),                 // 9: o11y_one.agentic.v1.LoopRunStepBucketV1
-	(*LoopClientV1)(nil),                     // 10: o11y_one.agentic.v1.LoopClientV1
-	(*LoopRunV1)(nil),                        // 11: o11y_one.agentic.v1.LoopRunV1
-	(*LoopEnvironmentUsageV1)(nil),           // 12: o11y_one.agentic.v1.LoopEnvironmentUsageV1
-	(*LoopRolloutFailureV1)(nil),             // 13: o11y_one.agentic.v1.LoopRolloutFailureV1
-	(*LoopFailureCountsV1)(nil),              // 14: o11y_one.agentic.v1.LoopFailureCountsV1
-	(*LoopFailureCodeCountV1)(nil),           // 15: o11y_one.agentic.v1.LoopFailureCodeCountV1
-	(*LoopRewardV1)(nil),                     // 16: o11y_one.agentic.v1.LoopRewardV1
-	(*LoopHistogramV1)(nil),                  // 17: o11y_one.agentic.v1.LoopHistogramV1
-	(*LoopRewardStatsV1)(nil),                // 18: o11y_one.agentic.v1.LoopRewardStatsV1
-	(*LoopLatencyV1)(nil),                    // 19: o11y_one.agentic.v1.LoopLatencyV1
-	(*LoopTimeSplitV1)(nil),                  // 20: o11y_one.agentic.v1.LoopTimeSplitV1
-	(*LoopRolloutStatsV1)(nil),               // 21: o11y_one.agentic.v1.LoopRolloutStatsV1
-	(*LoopTaskV1)(nil),                       // 22: o11y_one.agentic.v1.LoopTaskV1
-	(*LoopFinalStateV1)(nil),                 // 23: o11y_one.agentic.v1.LoopFinalStateV1
-	(*LoopRolloutV1)(nil),                    // 24: o11y_one.agentic.v1.LoopRolloutV1
-	(*LoopToolExecV1)(nil),                   // 25: o11y_one.agentic.v1.LoopToolExecV1
-	(*LoopToolShellV1)(nil),                  // 26: o11y_one.agentic.v1.LoopToolShellV1
-	(*LoopToolReadFileV1)(nil),               // 27: o11y_one.agentic.v1.LoopToolReadFileV1
-	(*LoopToolWriteFileV1)(nil),              // 28: o11y_one.agentic.v1.LoopToolWriteFileV1
-	(*LoopToolPatchV1)(nil),                  // 29: o11y_one.agentic.v1.LoopToolPatchV1
-	(*LoopToolListV1)(nil),                   // 30: o11y_one.agentic.v1.LoopToolListV1
-	(*LoopToolSetEnvV1)(nil),                 // 31: o11y_one.agentic.v1.LoopToolSetEnvV1
-	(*LoopToolCallV1)(nil),                   // 32: o11y_one.agentic.v1.LoopToolCallV1
-	(*LoopToolEntryV1)(nil),                  // 33: o11y_one.agentic.v1.LoopToolEntryV1
-	(*LoopToolResultV1)(nil),                 // 34: o11y_one.agentic.v1.LoopToolResultV1
-	(*CreateLoopRunRequest)(nil),             // 35: o11y_one.agentic.v1.CreateLoopRunRequest
-	(*CreateLoopRunResponse)(nil),            // 36: o11y_one.agentic.v1.CreateLoopRunResponse
-	(*GetLoopRunRequest)(nil),                // 37: o11y_one.agentic.v1.GetLoopRunRequest
-	(*GetLoopRunResponse)(nil),               // 38: o11y_one.agentic.v1.GetLoopRunResponse
-	(*ListLoopRunsRequest)(nil),              // 39: o11y_one.agentic.v1.ListLoopRunsRequest
-	(*LoopRunSummaryV1)(nil),                 // 40: o11y_one.agentic.v1.LoopRunSummaryV1
-	(*ListLoopRunsResponse)(nil),             // 41: o11y_one.agentic.v1.ListLoopRunsResponse
-	(*UpdateLoopRunRequest)(nil),             // 42: o11y_one.agentic.v1.UpdateLoopRunRequest
-	(*UpdateLoopRunResponse)(nil),            // 43: o11y_one.agentic.v1.UpdateLoopRunResponse
-	(*PauseLoopRunRequest)(nil),              // 44: o11y_one.agentic.v1.PauseLoopRunRequest
-	(*PauseLoopRunResponse)(nil),             // 45: o11y_one.agentic.v1.PauseLoopRunResponse
-	(*ResumeLoopRunRequest)(nil),             // 46: o11y_one.agentic.v1.ResumeLoopRunRequest
-	(*ResumeLoopRunResponse)(nil),            // 47: o11y_one.agentic.v1.ResumeLoopRunResponse
-	(*StopLoopRunRequest)(nil),               // 48: o11y_one.agentic.v1.StopLoopRunRequest
-	(*StopLoopRunResponse)(nil),              // 49: o11y_one.agentic.v1.StopLoopRunResponse
-	(*ResetLoopRolloutRequest)(nil),          // 50: o11y_one.agentic.v1.ResetLoopRolloutRequest
-	(*ResetLoopRolloutResponse)(nil),         // 51: o11y_one.agentic.v1.ResetLoopRolloutResponse
-	(*StepLoopRolloutRequest)(nil),           // 52: o11y_one.agentic.v1.StepLoopRolloutRequest
-	(*StepLoopRolloutResponse)(nil),          // 53: o11y_one.agentic.v1.StepLoopRolloutResponse
-	(*CloseLoopRolloutRequest)(nil),          // 54: o11y_one.agentic.v1.CloseLoopRolloutRequest
-	(*CloseLoopRolloutResponse)(nil),         // 55: o11y_one.agentic.v1.CloseLoopRolloutResponse
-	(*ForkLoopRolloutRequest)(nil),           // 56: o11y_one.agentic.v1.ForkLoopRolloutRequest
-	(*ForkLoopRolloutResponse)(nil),          // 57: o11y_one.agentic.v1.ForkLoopRolloutResponse
-	(*GetLoopRolloutRequest)(nil),            // 58: o11y_one.agentic.v1.GetLoopRolloutRequest
-	(*GetLoopRolloutResponse)(nil),           // 59: o11y_one.agentic.v1.GetLoopRolloutResponse
-	(*ListLoopRolloutsRequest)(nil),          // 60: o11y_one.agentic.v1.ListLoopRolloutsRequest
-	(*ListLoopRolloutsResponse)(nil),         // 61: o11y_one.agentic.v1.ListLoopRolloutsResponse
-	(*ListLoopRolloutGroupsRequest)(nil),     // 62: o11y_one.agentic.v1.ListLoopRolloutGroupsRequest
-	(*LoopRolloutBriefV1)(nil),               // 63: o11y_one.agentic.v1.LoopRolloutBriefV1
-	(*LoopRolloutGroupV1)(nil),               // 64: o11y_one.agentic.v1.LoopRolloutGroupV1
-	(*ListLoopRolloutGroupsResponse)(nil),    // 65: o11y_one.agentic.v1.ListLoopRolloutGroupsResponse
-	(*GetLoopRolloutChangeListRequest)(nil),  // 66: o11y_one.agentic.v1.GetLoopRolloutChangeListRequest
-	(*LoopChangeEntryV1)(nil),                // 67: o11y_one.agentic.v1.LoopChangeEntryV1
-	(*GetLoopRolloutChangeListResponse)(nil), // 68: o11y_one.agentic.v1.GetLoopRolloutChangeListResponse
-	(*LoopEnvironmentVersionRefV1)(nil),      // 69: o11y_one.agentic.v1.LoopEnvironmentVersionRefV1
-	(*GetLoopRolloutStatsRequest)(nil),       // 70: o11y_one.agentic.v1.GetLoopRolloutStatsRequest
-	(*GetLoopRolloutStatsResponse)(nil),      // 71: o11y_one.agentic.v1.GetLoopRolloutStatsResponse
-	(*ListLoopRunStepsRequest)(nil),          // 72: o11y_one.agentic.v1.ListLoopRunStepsRequest
-	(*LoopRunStepV1)(nil),                    // 73: o11y_one.agentic.v1.LoopRunStepV1
-	(*ListLoopRunStepsResponse)(nil),         // 74: o11y_one.agentic.v1.ListLoopRunStepsResponse
-	(*LoopRolloutRejectionV1)(nil),           // 75: o11y_one.agentic.v1.LoopRolloutRejectionV1
-	(*timestamppb.Timestamp)(nil),            // 76: google.protobuf.Timestamp
-	(*LoopEnvironmentProfileRefV1)(nil),      // 77: o11y_one.agentic.v1.LoopEnvironmentProfileRefV1
-	(*v1.PageRequestV1)(nil),                 // 78: o11y_one.common.v1.PageRequestV1
-	(*v1.PageResponseV1)(nil),                // 79: o11y_one.common.v1.PageResponseV1
+	(LoopTrainerFrameworkV1)(0),                        // 0: o11y_one.agentic.v1.LoopTrainerFrameworkV1
+	(LoopRunStateV1)(0),                                // 1: o11y_one.agentic.v1.LoopRunStateV1
+	(LoopFailureClassV1)(0),                            // 2: o11y_one.agentic.v1.LoopFailureClassV1
+	(LoopVerdictV1)(0),                                 // 3: o11y_one.agentic.v1.LoopVerdictV1
+	(LoopRewardDeterminismV1)(0),                       // 4: o11y_one.agentic.v1.LoopRewardDeterminismV1
+	(LoopRolloutStateV1)(0),                            // 5: o11y_one.agentic.v1.LoopRolloutStateV1
+	(LoopToolEntryKindV1)(0),                           // 6: o11y_one.agentic.v1.LoopToolEntryKindV1
+	(LoopRolloutGroupFilterV1)(0),                      // 7: o11y_one.agentic.v1.LoopRolloutGroupFilterV1
+	(LoopChangeKindV1)(0),                              // 8: o11y_one.agentic.v1.LoopChangeKindV1
+	(LoopRunStepBucketV1)(0),                           // 9: o11y_one.agentic.v1.LoopRunStepBucketV1
+	(*LoopClientV1)(nil),                               // 10: o11y_one.agentic.v1.LoopClientV1
+	(*LoopRunV1)(nil),                                  // 11: o11y_one.agentic.v1.LoopRunV1
+	(*LoopEnvironmentUsageV1)(nil),                     // 12: o11y_one.agentic.v1.LoopEnvironmentUsageV1
+	(*LoopRolloutFailureV1)(nil),                       // 13: o11y_one.agentic.v1.LoopRolloutFailureV1
+	(*LoopFailureCountsV1)(nil),                        // 14: o11y_one.agentic.v1.LoopFailureCountsV1
+	(*LoopFailureCodeCountV1)(nil),                     // 15: o11y_one.agentic.v1.LoopFailureCodeCountV1
+	(*LoopRewardV1)(nil),                               // 16: o11y_one.agentic.v1.LoopRewardV1
+	(*LoopHistogramV1)(nil),                            // 17: o11y_one.agentic.v1.LoopHistogramV1
+	(*LoopRewardStatsV1)(nil),                          // 18: o11y_one.agentic.v1.LoopRewardStatsV1
+	(*LoopLatencyV1)(nil),                              // 19: o11y_one.agentic.v1.LoopLatencyV1
+	(*LoopTimeSplitV1)(nil),                            // 20: o11y_one.agentic.v1.LoopTimeSplitV1
+	(*LoopRolloutStatsV1)(nil),                         // 21: o11y_one.agentic.v1.LoopRolloutStatsV1
+	(*LoopTaskV1)(nil),                                 // 22: o11y_one.agentic.v1.LoopTaskV1
+	(*LoopFinalStateV1)(nil),                           // 23: o11y_one.agentic.v1.LoopFinalStateV1
+	(*LoopRolloutV1)(nil),                              // 24: o11y_one.agentic.v1.LoopRolloutV1
+	(*LoopRolloutFlagsV1)(nil),                         // 25: o11y_one.agentic.v1.LoopRolloutFlagsV1
+	(*LoopRolloutFlagV1)(nil),                          // 26: o11y_one.agentic.v1.LoopRolloutFlagV1
+	(*LoopToolExecV1)(nil),                             // 27: o11y_one.agentic.v1.LoopToolExecV1
+	(*LoopToolShellV1)(nil),                            // 28: o11y_one.agentic.v1.LoopToolShellV1
+	(*LoopToolReadFileV1)(nil),                         // 29: o11y_one.agentic.v1.LoopToolReadFileV1
+	(*LoopToolWriteFileV1)(nil),                        // 30: o11y_one.agentic.v1.LoopToolWriteFileV1
+	(*LoopToolPatchV1)(nil),                            // 31: o11y_one.agentic.v1.LoopToolPatchV1
+	(*LoopToolListV1)(nil),                             // 32: o11y_one.agentic.v1.LoopToolListV1
+	(*LoopToolSetEnvV1)(nil),                           // 33: o11y_one.agentic.v1.LoopToolSetEnvV1
+	(*LoopToolCallV1)(nil),                             // 34: o11y_one.agentic.v1.LoopToolCallV1
+	(*LoopToolEntryV1)(nil),                            // 35: o11y_one.agentic.v1.LoopToolEntryV1
+	(*LoopToolResultV1)(nil),                           // 36: o11y_one.agentic.v1.LoopToolResultV1
+	(*CreateLoopRunRequest)(nil),                       // 37: o11y_one.agentic.v1.CreateLoopRunRequest
+	(*CreateLoopRunResponse)(nil),                      // 38: o11y_one.agentic.v1.CreateLoopRunResponse
+	(*GetLoopRunRequest)(nil),                          // 39: o11y_one.agentic.v1.GetLoopRunRequest
+	(*GetLoopRunResponse)(nil),                         // 40: o11y_one.agentic.v1.GetLoopRunResponse
+	(*ListLoopRunsRequest)(nil),                        // 41: o11y_one.agentic.v1.ListLoopRunsRequest
+	(*LoopRunSummaryV1)(nil),                           // 42: o11y_one.agentic.v1.LoopRunSummaryV1
+	(*ListLoopRunsResponse)(nil),                       // 43: o11y_one.agentic.v1.ListLoopRunsResponse
+	(*UpdateLoopRunRequest)(nil),                       // 44: o11y_one.agentic.v1.UpdateLoopRunRequest
+	(*UpdateLoopRunResponse)(nil),                      // 45: o11y_one.agentic.v1.UpdateLoopRunResponse
+	(*PauseLoopRunRequest)(nil),                        // 46: o11y_one.agentic.v1.PauseLoopRunRequest
+	(*PauseLoopRunResponse)(nil),                       // 47: o11y_one.agentic.v1.PauseLoopRunResponse
+	(*ResumeLoopRunRequest)(nil),                       // 48: o11y_one.agentic.v1.ResumeLoopRunRequest
+	(*ResumeLoopRunResponse)(nil),                      // 49: o11y_one.agentic.v1.ResumeLoopRunResponse
+	(*StopLoopRunRequest)(nil),                         // 50: o11y_one.agentic.v1.StopLoopRunRequest
+	(*StopLoopRunResponse)(nil),                        // 51: o11y_one.agentic.v1.StopLoopRunResponse
+	(*ResetLoopRolloutRequest)(nil),                    // 52: o11y_one.agentic.v1.ResetLoopRolloutRequest
+	(*ResetLoopRolloutResponse)(nil),                   // 53: o11y_one.agentic.v1.ResetLoopRolloutResponse
+	(*StepLoopRolloutRequest)(nil),                     // 54: o11y_one.agentic.v1.StepLoopRolloutRequest
+	(*StepLoopRolloutResponse)(nil),                    // 55: o11y_one.agentic.v1.StepLoopRolloutResponse
+	(*CloseLoopRolloutRequest)(nil),                    // 56: o11y_one.agentic.v1.CloseLoopRolloutRequest
+	(*CloseLoopRolloutResponse)(nil),                   // 57: o11y_one.agentic.v1.CloseLoopRolloutResponse
+	(*ForkLoopRolloutRequest)(nil),                     // 58: o11y_one.agentic.v1.ForkLoopRolloutRequest
+	(*ForkLoopRolloutResponse)(nil),                    // 59: o11y_one.agentic.v1.ForkLoopRolloutResponse
+	(*GetLoopRolloutRequest)(nil),                      // 60: o11y_one.agentic.v1.GetLoopRolloutRequest
+	(*GetLoopRolloutResponse)(nil),                     // 61: o11y_one.agentic.v1.GetLoopRolloutResponse
+	(*ListLoopRolloutsRequest)(nil),                    // 62: o11y_one.agentic.v1.ListLoopRolloutsRequest
+	(*ListLoopRolloutsResponse)(nil),                   // 63: o11y_one.agentic.v1.ListLoopRolloutsResponse
+	(*ListLoopRolloutGroupsRequest)(nil),               // 64: o11y_one.agentic.v1.ListLoopRolloutGroupsRequest
+	(*LoopRolloutBriefV1)(nil),                         // 65: o11y_one.agentic.v1.LoopRolloutBriefV1
+	(*LoopRolloutGroupV1)(nil),                         // 66: o11y_one.agentic.v1.LoopRolloutGroupV1
+	(*ListLoopRolloutGroupsResponse)(nil),              // 67: o11y_one.agentic.v1.ListLoopRolloutGroupsResponse
+	(*GetLoopRolloutTrajectoryRequest)(nil),            // 68: o11y_one.agentic.v1.GetLoopRolloutTrajectoryRequest
+	(*GetLoopRolloutTrajectoryResponse)(nil),           // 69: o11y_one.agentic.v1.GetLoopRolloutTrajectoryResponse
+	(*LoopTrajectoryStepV1)(nil),                       // 70: o11y_one.agentic.v1.LoopTrajectoryStepV1
+	(*GetLoopRolloutChangeListRequest)(nil),            // 71: o11y_one.agentic.v1.GetLoopRolloutChangeListRequest
+	(*LoopChangeEntryV1)(nil),                          // 72: o11y_one.agentic.v1.LoopChangeEntryV1
+	(*GetLoopRolloutChangeListResponse)(nil),           // 73: o11y_one.agentic.v1.GetLoopRolloutChangeListResponse
+	(*LoopEnvironmentVersionRefV1)(nil),                // 74: o11y_one.agentic.v1.LoopEnvironmentVersionRefV1
+	(*GetLoopRolloutStatsRequest)(nil),                 // 75: o11y_one.agentic.v1.GetLoopRolloutStatsRequest
+	(*GetLoopRolloutStatsResponse)(nil),                // 76: o11y_one.agentic.v1.GetLoopRolloutStatsResponse
+	(*ListLoopRunStepsRequest)(nil),                    // 77: o11y_one.agentic.v1.ListLoopRunStepsRequest
+	(*LoopRunStepV1)(nil),                              // 78: o11y_one.agentic.v1.LoopRunStepV1
+	(*ListLoopRunStepsResponse)(nil),                   // 79: o11y_one.agentic.v1.ListLoopRunStepsResponse
+	(*LoopTrajectoryDatasetVersionV1)(nil),             // 80: o11y_one.agentic.v1.LoopTrajectoryDatasetVersionV1
+	(*LoopRewardRangeV1)(nil),                          // 81: o11y_one.agentic.v1.LoopRewardRangeV1
+	(*CreateLoopTrajectoryDatasetVersionRequest)(nil),  // 82: o11y_one.agentic.v1.CreateLoopTrajectoryDatasetVersionRequest
+	(*CreateLoopTrajectoryDatasetVersionResponse)(nil), // 83: o11y_one.agentic.v1.CreateLoopTrajectoryDatasetVersionResponse
+	(*ListLoopDatasetVersionRolloutsRequest)(nil),      // 84: o11y_one.agentic.v1.ListLoopDatasetVersionRolloutsRequest
+	(*LoopDatasetVersionRolloutV1)(nil),                // 85: o11y_one.agentic.v1.LoopDatasetVersionRolloutV1
+	(*ListLoopDatasetVersionRolloutsResponse)(nil),     // 86: o11y_one.agentic.v1.ListLoopDatasetVersionRolloutsResponse
+	(*SetLoopDatasetVersionPinnedRequest)(nil),         // 87: o11y_one.agentic.v1.SetLoopDatasetVersionPinnedRequest
+	(*SetLoopDatasetVersionPinnedResponse)(nil),        // 88: o11y_one.agentic.v1.SetLoopDatasetVersionPinnedResponse
+	(*LoopRolloutRejectionV1)(nil),                     // 89: o11y_one.agentic.v1.LoopRolloutRejectionV1
+	(*timestamppb.Timestamp)(nil),                      // 90: google.protobuf.Timestamp
+	(*LoopEnvironmentProfileRefV1)(nil),                // 91: o11y_one.agentic.v1.LoopEnvironmentProfileRefV1
+	(*v1.PageRequestV1)(nil),                           // 92: o11y_one.common.v1.PageRequestV1
+	(*v1.PageResponseV1)(nil),                          // 93: o11y_one.common.v1.PageResponseV1
 }
 var file_o11y_one_agentic_v1_rollout_proto_depIdxs = []int32{
 	0,   // 0: o11y_one.agentic.v1.LoopRunV1.framework:type_name -> o11y_one.agentic.v1.LoopTrainerFrameworkV1
 	1,   // 1: o11y_one.agentic.v1.LoopRunV1.state:type_name -> o11y_one.agentic.v1.LoopRunStateV1
 	10,  // 2: o11y_one.agentic.v1.LoopRunV1.client:type_name -> o11y_one.agentic.v1.LoopClientV1
-	76,  // 3: o11y_one.agentic.v1.LoopRunV1.created_at:type_name -> google.protobuf.Timestamp
-	76,  // 4: o11y_one.agentic.v1.LoopRunV1.first_reset_at:type_name -> google.protobuf.Timestamp
-	76,  // 5: o11y_one.agentic.v1.LoopRunV1.first_reward_at:type_name -> google.protobuf.Timestamp
-	76,  // 6: o11y_one.agentic.v1.LoopRunV1.last_call_at:type_name -> google.protobuf.Timestamp
-	76,  // 7: o11y_one.agentic.v1.LoopRunV1.paused_at:type_name -> google.protobuf.Timestamp
-	76,  // 8: o11y_one.agentic.v1.LoopRunV1.ended_at:type_name -> google.protobuf.Timestamp
+	90,  // 3: o11y_one.agentic.v1.LoopRunV1.created_at:type_name -> google.protobuf.Timestamp
+	90,  // 4: o11y_one.agentic.v1.LoopRunV1.first_reset_at:type_name -> google.protobuf.Timestamp
+	90,  // 5: o11y_one.agentic.v1.LoopRunV1.first_reward_at:type_name -> google.protobuf.Timestamp
+	90,  // 6: o11y_one.agentic.v1.LoopRunV1.last_call_at:type_name -> google.protobuf.Timestamp
+	90,  // 7: o11y_one.agentic.v1.LoopRunV1.paused_at:type_name -> google.protobuf.Timestamp
+	90,  // 8: o11y_one.agentic.v1.LoopRunV1.ended_at:type_name -> google.protobuf.Timestamp
 	2,   // 9: o11y_one.agentic.v1.LoopRolloutFailureV1.failure_class:type_name -> o11y_one.agentic.v1.LoopFailureClassV1
 	2,   // 10: o11y_one.agentic.v1.LoopFailureCodeCountV1.failure_class:type_name -> o11y_one.agentic.v1.LoopFailureClassV1
 	4,   // 11: o11y_one.agentic.v1.LoopRewardStatsV1.determinism:type_name -> o11y_one.agentic.v1.LoopRewardDeterminismV1
 	17,  // 12: o11y_one.agentic.v1.LoopRewardStatsV1.histogram:type_name -> o11y_one.agentic.v1.LoopHistogramV1
-	76,  // 13: o11y_one.agentic.v1.LoopRolloutStatsV1.computed_at:type_name -> google.protobuf.Timestamp
+	90,  // 13: o11y_one.agentic.v1.LoopRolloutStatsV1.computed_at:type_name -> google.protobuf.Timestamp
 	14,  // 14: o11y_one.agentic.v1.LoopRolloutStatsV1.failures:type_name -> o11y_one.agentic.v1.LoopFailureCountsV1
 	15,  // 15: o11y_one.agentic.v1.LoopRolloutStatsV1.failures_by_code:type_name -> o11y_one.agentic.v1.LoopFailureCodeCountV1
 	18,  // 16: o11y_one.agentic.v1.LoopRolloutStatsV1.rewards:type_name -> o11y_one.agentic.v1.LoopRewardStatsV1
 	19,  // 17: o11y_one.agentic.v1.LoopRolloutStatsV1.latency:type_name -> o11y_one.agentic.v1.LoopLatencyV1
 	20,  // 18: o11y_one.agentic.v1.LoopRolloutStatsV1.time_split:type_name -> o11y_one.agentic.v1.LoopTimeSplitV1
-	76,  // 19: o11y_one.agentic.v1.LoopRolloutStatsV1.cap_reached_at:type_name -> google.protobuf.Timestamp
+	90,  // 19: o11y_one.agentic.v1.LoopRolloutStatsV1.cap_reached_at:type_name -> google.protobuf.Timestamp
 	22,  // 20: o11y_one.agentic.v1.LoopRolloutV1.task:type_name -> o11y_one.agentic.v1.LoopTaskV1
 	5,   // 21: o11y_one.agentic.v1.LoopRolloutV1.state:type_name -> o11y_one.agentic.v1.LoopRolloutStateV1
 	13,  // 22: o11y_one.agentic.v1.LoopRolloutV1.failure:type_name -> o11y_one.agentic.v1.LoopRolloutFailureV1
 	16,  // 23: o11y_one.agentic.v1.LoopRolloutV1.rewards:type_name -> o11y_one.agentic.v1.LoopRewardV1
 	3,   // 24: o11y_one.agentic.v1.LoopRolloutV1.verdict:type_name -> o11y_one.agentic.v1.LoopVerdictV1
 	4,   // 25: o11y_one.agentic.v1.LoopRolloutV1.determinism:type_name -> o11y_one.agentic.v1.LoopRewardDeterminismV1
-	77,  // 26: o11y_one.agentic.v1.LoopRolloutV1.profile:type_name -> o11y_one.agentic.v1.LoopEnvironmentProfileRefV1
+	91,  // 26: o11y_one.agentic.v1.LoopRolloutV1.profile:type_name -> o11y_one.agentic.v1.LoopEnvironmentProfileRefV1
 	23,  // 27: o11y_one.agentic.v1.LoopRolloutV1.final_state:type_name -> o11y_one.agentic.v1.LoopFinalStateV1
-	76,  // 28: o11y_one.agentic.v1.LoopRolloutV1.created_at:type_name -> google.protobuf.Timestamp
-	76,  // 29: o11y_one.agentic.v1.LoopRolloutV1.ready_at:type_name -> google.protobuf.Timestamp
-	76,  // 30: o11y_one.agentic.v1.LoopRolloutV1.closed_at:type_name -> google.protobuf.Timestamp
-	76,  // 31: o11y_one.agentic.v1.LoopRolloutV1.verifier_started_at:type_name -> google.protobuf.Timestamp
-	76,  // 32: o11y_one.agentic.v1.LoopRolloutV1.ended_at:type_name -> google.protobuf.Timestamp
-	25,  // 33: o11y_one.agentic.v1.LoopToolCallV1.exec:type_name -> o11y_one.agentic.v1.LoopToolExecV1
-	26,  // 34: o11y_one.agentic.v1.LoopToolCallV1.shell:type_name -> o11y_one.agentic.v1.LoopToolShellV1
-	27,  // 35: o11y_one.agentic.v1.LoopToolCallV1.read_file:type_name -> o11y_one.agentic.v1.LoopToolReadFileV1
-	28,  // 36: o11y_one.agentic.v1.LoopToolCallV1.write_file:type_name -> o11y_one.agentic.v1.LoopToolWriteFileV1
-	29,  // 37: o11y_one.agentic.v1.LoopToolCallV1.patch:type_name -> o11y_one.agentic.v1.LoopToolPatchV1
-	30,  // 38: o11y_one.agentic.v1.LoopToolCallV1.list:type_name -> o11y_one.agentic.v1.LoopToolListV1
-	31,  // 39: o11y_one.agentic.v1.LoopToolCallV1.set_env:type_name -> o11y_one.agentic.v1.LoopToolSetEnvV1
-	6,   // 40: o11y_one.agentic.v1.LoopToolEntryV1.kind:type_name -> o11y_one.agentic.v1.LoopToolEntryKindV1
-	33,  // 41: o11y_one.agentic.v1.LoopToolResultV1.entries:type_name -> o11y_one.agentic.v1.LoopToolEntryV1
-	0,   // 42: o11y_one.agentic.v1.CreateLoopRunRequest.framework:type_name -> o11y_one.agentic.v1.LoopTrainerFrameworkV1
-	11,  // 43: o11y_one.agentic.v1.CreateLoopRunResponse.run:type_name -> o11y_one.agentic.v1.LoopRunV1
-	11,  // 44: o11y_one.agentic.v1.GetLoopRunResponse.run:type_name -> o11y_one.agentic.v1.LoopRunV1
-	21,  // 45: o11y_one.agentic.v1.GetLoopRunResponse.stats:type_name -> o11y_one.agentic.v1.LoopRolloutStatsV1
-	12,  // 46: o11y_one.agentic.v1.GetLoopRunResponse.usage:type_name -> o11y_one.agentic.v1.LoopEnvironmentUsageV1
-	78,  // 47: o11y_one.agentic.v1.ListLoopRunsRequest.page:type_name -> o11y_one.common.v1.PageRequestV1
-	76,  // 48: o11y_one.agentic.v1.ListLoopRunsRequest.since:type_name -> google.protobuf.Timestamp
-	11,  // 49: o11y_one.agentic.v1.LoopRunSummaryV1.run:type_name -> o11y_one.agentic.v1.LoopRunV1
-	21,  // 50: o11y_one.agentic.v1.LoopRunSummaryV1.stats:type_name -> o11y_one.agentic.v1.LoopRolloutStatsV1
-	40,  // 51: o11y_one.agentic.v1.ListLoopRunsResponse.runs:type_name -> o11y_one.agentic.v1.LoopRunSummaryV1
-	79,  // 52: o11y_one.agentic.v1.ListLoopRunsResponse.page:type_name -> o11y_one.common.v1.PageResponseV1
-	12,  // 53: o11y_one.agentic.v1.ListLoopRunsResponse.usage:type_name -> o11y_one.agentic.v1.LoopEnvironmentUsageV1
-	11,  // 54: o11y_one.agentic.v1.UpdateLoopRunResponse.run:type_name -> o11y_one.agentic.v1.LoopRunV1
-	11,  // 55: o11y_one.agentic.v1.PauseLoopRunResponse.run:type_name -> o11y_one.agentic.v1.LoopRunV1
-	11,  // 56: o11y_one.agentic.v1.ResumeLoopRunResponse.run:type_name -> o11y_one.agentic.v1.LoopRunV1
-	11,  // 57: o11y_one.agentic.v1.StopLoopRunResponse.run:type_name -> o11y_one.agentic.v1.LoopRunV1
-	10,  // 58: o11y_one.agentic.v1.ResetLoopRolloutRequest.client:type_name -> o11y_one.agentic.v1.LoopClientV1
-	24,  // 59: o11y_one.agentic.v1.ResetLoopRolloutResponse.rollout:type_name -> o11y_one.agentic.v1.LoopRolloutV1
-	32,  // 60: o11y_one.agentic.v1.StepLoopRolloutRequest.calls:type_name -> o11y_one.agentic.v1.LoopToolCallV1
-	34,  // 61: o11y_one.agentic.v1.StepLoopRolloutResponse.results:type_name -> o11y_one.agentic.v1.LoopToolResultV1
-	24,  // 62: o11y_one.agentic.v1.CloseLoopRolloutResponse.rollout:type_name -> o11y_one.agentic.v1.LoopRolloutV1
-	24,  // 63: o11y_one.agentic.v1.ForkLoopRolloutResponse.rollouts:type_name -> o11y_one.agentic.v1.LoopRolloutV1
-	24,  // 64: o11y_one.agentic.v1.GetLoopRolloutResponse.rollout:type_name -> o11y_one.agentic.v1.LoopRolloutV1
-	5,   // 65: o11y_one.agentic.v1.ListLoopRolloutsRequest.state:type_name -> o11y_one.agentic.v1.LoopRolloutStateV1
-	2,   // 66: o11y_one.agentic.v1.ListLoopRolloutsRequest.failure_class:type_name -> o11y_one.agentic.v1.LoopFailureClassV1
-	78,  // 67: o11y_one.agentic.v1.ListLoopRolloutsRequest.page:type_name -> o11y_one.common.v1.PageRequestV1
-	24,  // 68: o11y_one.agentic.v1.ListLoopRolloutsResponse.rollouts:type_name -> o11y_one.agentic.v1.LoopRolloutV1
-	79,  // 69: o11y_one.agentic.v1.ListLoopRolloutsResponse.page:type_name -> o11y_one.common.v1.PageResponseV1
-	7,   // 70: o11y_one.agentic.v1.ListLoopRolloutGroupsRequest.filter:type_name -> o11y_one.agentic.v1.LoopRolloutGroupFilterV1
-	78,  // 71: o11y_one.agentic.v1.ListLoopRolloutGroupsRequest.page:type_name -> o11y_one.common.v1.PageRequestV1
-	5,   // 72: o11y_one.agentic.v1.LoopRolloutBriefV1.state:type_name -> o11y_one.agentic.v1.LoopRolloutStateV1
-	2,   // 73: o11y_one.agentic.v1.LoopRolloutBriefV1.failure_class:type_name -> o11y_one.agentic.v1.LoopFailureClassV1
-	22,  // 74: o11y_one.agentic.v1.LoopRolloutGroupV1.task:type_name -> o11y_one.agentic.v1.LoopTaskV1
-	76,  // 75: o11y_one.agentic.v1.LoopRolloutGroupV1.created_at:type_name -> google.protobuf.Timestamp
-	63,  // 76: o11y_one.agentic.v1.LoopRolloutGroupV1.rollouts:type_name -> o11y_one.agentic.v1.LoopRolloutBriefV1
-	64,  // 77: o11y_one.agentic.v1.ListLoopRolloutGroupsResponse.groups:type_name -> o11y_one.agentic.v1.LoopRolloutGroupV1
-	79,  // 78: o11y_one.agentic.v1.ListLoopRolloutGroupsResponse.page:type_name -> o11y_one.common.v1.PageResponseV1
-	78,  // 79: o11y_one.agentic.v1.GetLoopRolloutChangeListRequest.page:type_name -> o11y_one.common.v1.PageRequestV1
-	8,   // 80: o11y_one.agentic.v1.LoopChangeEntryV1.kind:type_name -> o11y_one.agentic.v1.LoopChangeKindV1
-	67,  // 81: o11y_one.agentic.v1.GetLoopRolloutChangeListResponse.entries:type_name -> o11y_one.agentic.v1.LoopChangeEntryV1
-	79,  // 82: o11y_one.agentic.v1.GetLoopRolloutChangeListResponse.page:type_name -> o11y_one.common.v1.PageResponseV1
-	69,  // 83: o11y_one.agentic.v1.GetLoopRolloutStatsRequest.environment_version:type_name -> o11y_one.agentic.v1.LoopEnvironmentVersionRefV1
-	76,  // 84: o11y_one.agentic.v1.GetLoopRolloutStatsRequest.since:type_name -> google.protobuf.Timestamp
-	21,  // 85: o11y_one.agentic.v1.GetLoopRolloutStatsResponse.stats:type_name -> o11y_one.agentic.v1.LoopRolloutStatsV1
-	9,   // 86: o11y_one.agentic.v1.ListLoopRunStepsRequest.bucket:type_name -> o11y_one.agentic.v1.LoopRunStepBucketV1
-	76,  // 87: o11y_one.agentic.v1.ListLoopRunStepsRequest.since:type_name -> google.protobuf.Timestamp
-	78,  // 88: o11y_one.agentic.v1.ListLoopRunStepsRequest.page:type_name -> o11y_one.common.v1.PageRequestV1
-	76,  // 89: o11y_one.agentic.v1.LoopRunStepV1.start:type_name -> google.protobuf.Timestamp
-	14,  // 90: o11y_one.agentic.v1.LoopRunStepV1.failures:type_name -> o11y_one.agentic.v1.LoopFailureCountsV1
-	73,  // 91: o11y_one.agentic.v1.ListLoopRunStepsResponse.steps:type_name -> o11y_one.agentic.v1.LoopRunStepV1
-	79,  // 92: o11y_one.agentic.v1.ListLoopRunStepsResponse.page:type_name -> o11y_one.common.v1.PageResponseV1
-	35,  // 93: o11y_one.agentic.v1.LoopRolloutService.CreateLoopRun:input_type -> o11y_one.agentic.v1.CreateLoopRunRequest
-	37,  // 94: o11y_one.agentic.v1.LoopRolloutService.GetLoopRun:input_type -> o11y_one.agentic.v1.GetLoopRunRequest
-	39,  // 95: o11y_one.agentic.v1.LoopRolloutService.ListLoopRuns:input_type -> o11y_one.agentic.v1.ListLoopRunsRequest
-	42,  // 96: o11y_one.agentic.v1.LoopRolloutService.UpdateLoopRun:input_type -> o11y_one.agentic.v1.UpdateLoopRunRequest
-	44,  // 97: o11y_one.agentic.v1.LoopRolloutService.PauseLoopRun:input_type -> o11y_one.agentic.v1.PauseLoopRunRequest
-	46,  // 98: o11y_one.agentic.v1.LoopRolloutService.ResumeLoopRun:input_type -> o11y_one.agentic.v1.ResumeLoopRunRequest
-	48,  // 99: o11y_one.agentic.v1.LoopRolloutService.StopLoopRun:input_type -> o11y_one.agentic.v1.StopLoopRunRequest
-	50,  // 100: o11y_one.agentic.v1.LoopRolloutService.ResetLoopRollout:input_type -> o11y_one.agentic.v1.ResetLoopRolloutRequest
-	52,  // 101: o11y_one.agentic.v1.LoopRolloutService.StepLoopRollout:input_type -> o11y_one.agentic.v1.StepLoopRolloutRequest
-	54,  // 102: o11y_one.agentic.v1.LoopRolloutService.CloseLoopRollout:input_type -> o11y_one.agentic.v1.CloseLoopRolloutRequest
-	56,  // 103: o11y_one.agentic.v1.LoopRolloutService.ForkLoopRollout:input_type -> o11y_one.agentic.v1.ForkLoopRolloutRequest
-	58,  // 104: o11y_one.agentic.v1.LoopRolloutService.GetLoopRollout:input_type -> o11y_one.agentic.v1.GetLoopRolloutRequest
-	60,  // 105: o11y_one.agentic.v1.LoopRolloutService.ListLoopRollouts:input_type -> o11y_one.agentic.v1.ListLoopRolloutsRequest
-	62,  // 106: o11y_one.agentic.v1.LoopRolloutService.ListLoopRolloutGroups:input_type -> o11y_one.agentic.v1.ListLoopRolloutGroupsRequest
-	66,  // 107: o11y_one.agentic.v1.LoopRolloutService.GetLoopRolloutChangeList:input_type -> o11y_one.agentic.v1.GetLoopRolloutChangeListRequest
-	70,  // 108: o11y_one.agentic.v1.LoopRolloutService.GetLoopRolloutStats:input_type -> o11y_one.agentic.v1.GetLoopRolloutStatsRequest
-	72,  // 109: o11y_one.agentic.v1.LoopRolloutService.ListLoopRunSteps:input_type -> o11y_one.agentic.v1.ListLoopRunStepsRequest
-	36,  // 110: o11y_one.agentic.v1.LoopRolloutService.CreateLoopRun:output_type -> o11y_one.agentic.v1.CreateLoopRunResponse
-	38,  // 111: o11y_one.agentic.v1.LoopRolloutService.GetLoopRun:output_type -> o11y_one.agentic.v1.GetLoopRunResponse
-	41,  // 112: o11y_one.agentic.v1.LoopRolloutService.ListLoopRuns:output_type -> o11y_one.agentic.v1.ListLoopRunsResponse
-	43,  // 113: o11y_one.agentic.v1.LoopRolloutService.UpdateLoopRun:output_type -> o11y_one.agentic.v1.UpdateLoopRunResponse
-	45,  // 114: o11y_one.agentic.v1.LoopRolloutService.PauseLoopRun:output_type -> o11y_one.agentic.v1.PauseLoopRunResponse
-	47,  // 115: o11y_one.agentic.v1.LoopRolloutService.ResumeLoopRun:output_type -> o11y_one.agentic.v1.ResumeLoopRunResponse
-	49,  // 116: o11y_one.agentic.v1.LoopRolloutService.StopLoopRun:output_type -> o11y_one.agentic.v1.StopLoopRunResponse
-	51,  // 117: o11y_one.agentic.v1.LoopRolloutService.ResetLoopRollout:output_type -> o11y_one.agentic.v1.ResetLoopRolloutResponse
-	53,  // 118: o11y_one.agentic.v1.LoopRolloutService.StepLoopRollout:output_type -> o11y_one.agentic.v1.StepLoopRolloutResponse
-	55,  // 119: o11y_one.agentic.v1.LoopRolloutService.CloseLoopRollout:output_type -> o11y_one.agentic.v1.CloseLoopRolloutResponse
-	57,  // 120: o11y_one.agentic.v1.LoopRolloutService.ForkLoopRollout:output_type -> o11y_one.agentic.v1.ForkLoopRolloutResponse
-	59,  // 121: o11y_one.agentic.v1.LoopRolloutService.GetLoopRollout:output_type -> o11y_one.agentic.v1.GetLoopRolloutResponse
-	61,  // 122: o11y_one.agentic.v1.LoopRolloutService.ListLoopRollouts:output_type -> o11y_one.agentic.v1.ListLoopRolloutsResponse
-	65,  // 123: o11y_one.agentic.v1.LoopRolloutService.ListLoopRolloutGroups:output_type -> o11y_one.agentic.v1.ListLoopRolloutGroupsResponse
-	68,  // 124: o11y_one.agentic.v1.LoopRolloutService.GetLoopRolloutChangeList:output_type -> o11y_one.agentic.v1.GetLoopRolloutChangeListResponse
-	71,  // 125: o11y_one.agentic.v1.LoopRolloutService.GetLoopRolloutStats:output_type -> o11y_one.agentic.v1.GetLoopRolloutStatsResponse
-	74,  // 126: o11y_one.agentic.v1.LoopRolloutService.ListLoopRunSteps:output_type -> o11y_one.agentic.v1.ListLoopRunStepsResponse
-	110, // [110:127] is the sub-list for method output_type
-	93,  // [93:110] is the sub-list for method input_type
-	93,  // [93:93] is the sub-list for extension type_name
-	93,  // [93:93] is the sub-list for extension extendee
-	0,   // [0:93] is the sub-list for field type_name
+	90,  // 28: o11y_one.agentic.v1.LoopRolloutV1.created_at:type_name -> google.protobuf.Timestamp
+	90,  // 29: o11y_one.agentic.v1.LoopRolloutV1.ready_at:type_name -> google.protobuf.Timestamp
+	90,  // 30: o11y_one.agentic.v1.LoopRolloutV1.closed_at:type_name -> google.protobuf.Timestamp
+	90,  // 31: o11y_one.agentic.v1.LoopRolloutV1.verifier_started_at:type_name -> google.protobuf.Timestamp
+	90,  // 32: o11y_one.agentic.v1.LoopRolloutV1.ended_at:type_name -> google.protobuf.Timestamp
+	25,  // 33: o11y_one.agentic.v1.LoopRolloutV1.flags:type_name -> o11y_one.agentic.v1.LoopRolloutFlagsV1
+	90,  // 34: o11y_one.agentic.v1.LoopRolloutFlagsV1.scanned_at:type_name -> google.protobuf.Timestamp
+	26,  // 35: o11y_one.agentic.v1.LoopRolloutFlagsV1.detected:type_name -> o11y_one.agentic.v1.LoopRolloutFlagV1
+	27,  // 36: o11y_one.agentic.v1.LoopToolCallV1.exec:type_name -> o11y_one.agentic.v1.LoopToolExecV1
+	28,  // 37: o11y_one.agentic.v1.LoopToolCallV1.shell:type_name -> o11y_one.agentic.v1.LoopToolShellV1
+	29,  // 38: o11y_one.agentic.v1.LoopToolCallV1.read_file:type_name -> o11y_one.agentic.v1.LoopToolReadFileV1
+	30,  // 39: o11y_one.agentic.v1.LoopToolCallV1.write_file:type_name -> o11y_one.agentic.v1.LoopToolWriteFileV1
+	31,  // 40: o11y_one.agentic.v1.LoopToolCallV1.patch:type_name -> o11y_one.agentic.v1.LoopToolPatchV1
+	32,  // 41: o11y_one.agentic.v1.LoopToolCallV1.list:type_name -> o11y_one.agentic.v1.LoopToolListV1
+	33,  // 42: o11y_one.agentic.v1.LoopToolCallV1.set_env:type_name -> o11y_one.agentic.v1.LoopToolSetEnvV1
+	6,   // 43: o11y_one.agentic.v1.LoopToolEntryV1.kind:type_name -> o11y_one.agentic.v1.LoopToolEntryKindV1
+	35,  // 44: o11y_one.agentic.v1.LoopToolResultV1.entries:type_name -> o11y_one.agentic.v1.LoopToolEntryV1
+	0,   // 45: o11y_one.agentic.v1.CreateLoopRunRequest.framework:type_name -> o11y_one.agentic.v1.LoopTrainerFrameworkV1
+	11,  // 46: o11y_one.agentic.v1.CreateLoopRunResponse.run:type_name -> o11y_one.agentic.v1.LoopRunV1
+	11,  // 47: o11y_one.agentic.v1.GetLoopRunResponse.run:type_name -> o11y_one.agentic.v1.LoopRunV1
+	21,  // 48: o11y_one.agentic.v1.GetLoopRunResponse.stats:type_name -> o11y_one.agentic.v1.LoopRolloutStatsV1
+	12,  // 49: o11y_one.agentic.v1.GetLoopRunResponse.usage:type_name -> o11y_one.agentic.v1.LoopEnvironmentUsageV1
+	92,  // 50: o11y_one.agentic.v1.ListLoopRunsRequest.page:type_name -> o11y_one.common.v1.PageRequestV1
+	90,  // 51: o11y_one.agentic.v1.ListLoopRunsRequest.since:type_name -> google.protobuf.Timestamp
+	11,  // 52: o11y_one.agentic.v1.LoopRunSummaryV1.run:type_name -> o11y_one.agentic.v1.LoopRunV1
+	21,  // 53: o11y_one.agentic.v1.LoopRunSummaryV1.stats:type_name -> o11y_one.agentic.v1.LoopRolloutStatsV1
+	42,  // 54: o11y_one.agentic.v1.ListLoopRunsResponse.runs:type_name -> o11y_one.agentic.v1.LoopRunSummaryV1
+	93,  // 55: o11y_one.agentic.v1.ListLoopRunsResponse.page:type_name -> o11y_one.common.v1.PageResponseV1
+	12,  // 56: o11y_one.agentic.v1.ListLoopRunsResponse.usage:type_name -> o11y_one.agentic.v1.LoopEnvironmentUsageV1
+	11,  // 57: o11y_one.agentic.v1.UpdateLoopRunResponse.run:type_name -> o11y_one.agentic.v1.LoopRunV1
+	11,  // 58: o11y_one.agentic.v1.PauseLoopRunResponse.run:type_name -> o11y_one.agentic.v1.LoopRunV1
+	11,  // 59: o11y_one.agentic.v1.ResumeLoopRunResponse.run:type_name -> o11y_one.agentic.v1.LoopRunV1
+	11,  // 60: o11y_one.agentic.v1.StopLoopRunResponse.run:type_name -> o11y_one.agentic.v1.LoopRunV1
+	10,  // 61: o11y_one.agentic.v1.ResetLoopRolloutRequest.client:type_name -> o11y_one.agentic.v1.LoopClientV1
+	24,  // 62: o11y_one.agentic.v1.ResetLoopRolloutResponse.rollout:type_name -> o11y_one.agentic.v1.LoopRolloutV1
+	34,  // 63: o11y_one.agentic.v1.StepLoopRolloutRequest.calls:type_name -> o11y_one.agentic.v1.LoopToolCallV1
+	36,  // 64: o11y_one.agentic.v1.StepLoopRolloutResponse.results:type_name -> o11y_one.agentic.v1.LoopToolResultV1
+	24,  // 65: o11y_one.agentic.v1.CloseLoopRolloutResponse.rollout:type_name -> o11y_one.agentic.v1.LoopRolloutV1
+	24,  // 66: o11y_one.agentic.v1.ForkLoopRolloutResponse.rollouts:type_name -> o11y_one.agentic.v1.LoopRolloutV1
+	24,  // 67: o11y_one.agentic.v1.GetLoopRolloutResponse.rollout:type_name -> o11y_one.agentic.v1.LoopRolloutV1
+	5,   // 68: o11y_one.agentic.v1.ListLoopRolloutsRequest.state:type_name -> o11y_one.agentic.v1.LoopRolloutStateV1
+	2,   // 69: o11y_one.agentic.v1.ListLoopRolloutsRequest.failure_class:type_name -> o11y_one.agentic.v1.LoopFailureClassV1
+	92,  // 70: o11y_one.agentic.v1.ListLoopRolloutsRequest.page:type_name -> o11y_one.common.v1.PageRequestV1
+	24,  // 71: o11y_one.agentic.v1.ListLoopRolloutsResponse.rollouts:type_name -> o11y_one.agentic.v1.LoopRolloutV1
+	93,  // 72: o11y_one.agentic.v1.ListLoopRolloutsResponse.page:type_name -> o11y_one.common.v1.PageResponseV1
+	7,   // 73: o11y_one.agentic.v1.ListLoopRolloutGroupsRequest.filter:type_name -> o11y_one.agentic.v1.LoopRolloutGroupFilterV1
+	92,  // 74: o11y_one.agentic.v1.ListLoopRolloutGroupsRequest.page:type_name -> o11y_one.common.v1.PageRequestV1
+	5,   // 75: o11y_one.agentic.v1.LoopRolloutBriefV1.state:type_name -> o11y_one.agentic.v1.LoopRolloutStateV1
+	2,   // 76: o11y_one.agentic.v1.LoopRolloutBriefV1.failure_class:type_name -> o11y_one.agentic.v1.LoopFailureClassV1
+	22,  // 77: o11y_one.agentic.v1.LoopRolloutGroupV1.task:type_name -> o11y_one.agentic.v1.LoopTaskV1
+	90,  // 78: o11y_one.agentic.v1.LoopRolloutGroupV1.created_at:type_name -> google.protobuf.Timestamp
+	65,  // 79: o11y_one.agentic.v1.LoopRolloutGroupV1.rollouts:type_name -> o11y_one.agentic.v1.LoopRolloutBriefV1
+	66,  // 80: o11y_one.agentic.v1.ListLoopRolloutGroupsResponse.groups:type_name -> o11y_one.agentic.v1.LoopRolloutGroupV1
+	93,  // 81: o11y_one.agentic.v1.ListLoopRolloutGroupsResponse.page:type_name -> o11y_one.common.v1.PageResponseV1
+	92,  // 82: o11y_one.agentic.v1.GetLoopRolloutTrajectoryRequest.page:type_name -> o11y_one.common.v1.PageRequestV1
+	70,  // 83: o11y_one.agentic.v1.GetLoopRolloutTrajectoryResponse.steps:type_name -> o11y_one.agentic.v1.LoopTrajectoryStepV1
+	93,  // 84: o11y_one.agentic.v1.GetLoopRolloutTrajectoryResponse.page:type_name -> o11y_one.common.v1.PageResponseV1
+	34,  // 85: o11y_one.agentic.v1.LoopTrajectoryStepV1.calls:type_name -> o11y_one.agentic.v1.LoopToolCallV1
+	36,  // 86: o11y_one.agentic.v1.LoopTrajectoryStepV1.results:type_name -> o11y_one.agentic.v1.LoopToolResultV1
+	92,  // 87: o11y_one.agentic.v1.GetLoopRolloutChangeListRequest.page:type_name -> o11y_one.common.v1.PageRequestV1
+	8,   // 88: o11y_one.agentic.v1.LoopChangeEntryV1.kind:type_name -> o11y_one.agentic.v1.LoopChangeKindV1
+	72,  // 89: o11y_one.agentic.v1.GetLoopRolloutChangeListResponse.entries:type_name -> o11y_one.agentic.v1.LoopChangeEntryV1
+	93,  // 90: o11y_one.agentic.v1.GetLoopRolloutChangeListResponse.page:type_name -> o11y_one.common.v1.PageResponseV1
+	74,  // 91: o11y_one.agentic.v1.GetLoopRolloutStatsRequest.environment_version:type_name -> o11y_one.agentic.v1.LoopEnvironmentVersionRefV1
+	90,  // 92: o11y_one.agentic.v1.GetLoopRolloutStatsRequest.since:type_name -> google.protobuf.Timestamp
+	21,  // 93: o11y_one.agentic.v1.GetLoopRolloutStatsResponse.stats:type_name -> o11y_one.agentic.v1.LoopRolloutStatsV1
+	9,   // 94: o11y_one.agentic.v1.ListLoopRunStepsRequest.bucket:type_name -> o11y_one.agentic.v1.LoopRunStepBucketV1
+	90,  // 95: o11y_one.agentic.v1.ListLoopRunStepsRequest.since:type_name -> google.protobuf.Timestamp
+	92,  // 96: o11y_one.agentic.v1.ListLoopRunStepsRequest.page:type_name -> o11y_one.common.v1.PageRequestV1
+	90,  // 97: o11y_one.agentic.v1.LoopRunStepV1.start:type_name -> google.protobuf.Timestamp
+	14,  // 98: o11y_one.agentic.v1.LoopRunStepV1.failures:type_name -> o11y_one.agentic.v1.LoopFailureCountsV1
+	78,  // 99: o11y_one.agentic.v1.ListLoopRunStepsResponse.steps:type_name -> o11y_one.agentic.v1.LoopRunStepV1
+	93,  // 100: o11y_one.agentic.v1.ListLoopRunStepsResponse.page:type_name -> o11y_one.common.v1.PageResponseV1
+	90,  // 101: o11y_one.agentic.v1.LoopTrajectoryDatasetVersionV1.created_at:type_name -> google.protobuf.Timestamp
+	81,  // 102: o11y_one.agentic.v1.CreateLoopTrajectoryDatasetVersionRequest.reward:type_name -> o11y_one.agentic.v1.LoopRewardRangeV1
+	80,  // 103: o11y_one.agentic.v1.CreateLoopTrajectoryDatasetVersionResponse.version:type_name -> o11y_one.agentic.v1.LoopTrajectoryDatasetVersionV1
+	92,  // 104: o11y_one.agentic.v1.ListLoopDatasetVersionRolloutsRequest.page:type_name -> o11y_one.common.v1.PageRequestV1
+	24,  // 105: o11y_one.agentic.v1.LoopDatasetVersionRolloutV1.rollout:type_name -> o11y_one.agentic.v1.LoopRolloutV1
+	80,  // 106: o11y_one.agentic.v1.ListLoopDatasetVersionRolloutsResponse.version:type_name -> o11y_one.agentic.v1.LoopTrajectoryDatasetVersionV1
+	85,  // 107: o11y_one.agentic.v1.ListLoopDatasetVersionRolloutsResponse.rollouts:type_name -> o11y_one.agentic.v1.LoopDatasetVersionRolloutV1
+	93,  // 108: o11y_one.agentic.v1.ListLoopDatasetVersionRolloutsResponse.page:type_name -> o11y_one.common.v1.PageResponseV1
+	80,  // 109: o11y_one.agentic.v1.SetLoopDatasetVersionPinnedResponse.version:type_name -> o11y_one.agentic.v1.LoopTrajectoryDatasetVersionV1
+	37,  // 110: o11y_one.agentic.v1.LoopRolloutService.CreateLoopRun:input_type -> o11y_one.agentic.v1.CreateLoopRunRequest
+	39,  // 111: o11y_one.agentic.v1.LoopRolloutService.GetLoopRun:input_type -> o11y_one.agentic.v1.GetLoopRunRequest
+	41,  // 112: o11y_one.agentic.v1.LoopRolloutService.ListLoopRuns:input_type -> o11y_one.agentic.v1.ListLoopRunsRequest
+	44,  // 113: o11y_one.agentic.v1.LoopRolloutService.UpdateLoopRun:input_type -> o11y_one.agentic.v1.UpdateLoopRunRequest
+	46,  // 114: o11y_one.agentic.v1.LoopRolloutService.PauseLoopRun:input_type -> o11y_one.agentic.v1.PauseLoopRunRequest
+	48,  // 115: o11y_one.agentic.v1.LoopRolloutService.ResumeLoopRun:input_type -> o11y_one.agentic.v1.ResumeLoopRunRequest
+	50,  // 116: o11y_one.agentic.v1.LoopRolloutService.StopLoopRun:input_type -> o11y_one.agentic.v1.StopLoopRunRequest
+	52,  // 117: o11y_one.agentic.v1.LoopRolloutService.ResetLoopRollout:input_type -> o11y_one.agentic.v1.ResetLoopRolloutRequest
+	54,  // 118: o11y_one.agentic.v1.LoopRolloutService.StepLoopRollout:input_type -> o11y_one.agentic.v1.StepLoopRolloutRequest
+	56,  // 119: o11y_one.agentic.v1.LoopRolloutService.CloseLoopRollout:input_type -> o11y_one.agentic.v1.CloseLoopRolloutRequest
+	58,  // 120: o11y_one.agentic.v1.LoopRolloutService.ForkLoopRollout:input_type -> o11y_one.agentic.v1.ForkLoopRolloutRequest
+	60,  // 121: o11y_one.agentic.v1.LoopRolloutService.GetLoopRollout:input_type -> o11y_one.agentic.v1.GetLoopRolloutRequest
+	62,  // 122: o11y_one.agentic.v1.LoopRolloutService.ListLoopRollouts:input_type -> o11y_one.agentic.v1.ListLoopRolloutsRequest
+	64,  // 123: o11y_one.agentic.v1.LoopRolloutService.ListLoopRolloutGroups:input_type -> o11y_one.agentic.v1.ListLoopRolloutGroupsRequest
+	71,  // 124: o11y_one.agentic.v1.LoopRolloutService.GetLoopRolloutChangeList:input_type -> o11y_one.agentic.v1.GetLoopRolloutChangeListRequest
+	75,  // 125: o11y_one.agentic.v1.LoopRolloutService.GetLoopRolloutStats:input_type -> o11y_one.agentic.v1.GetLoopRolloutStatsRequest
+	77,  // 126: o11y_one.agentic.v1.LoopRolloutService.ListLoopRunSteps:input_type -> o11y_one.agentic.v1.ListLoopRunStepsRequest
+	68,  // 127: o11y_one.agentic.v1.LoopRolloutService.GetLoopRolloutTrajectory:input_type -> o11y_one.agentic.v1.GetLoopRolloutTrajectoryRequest
+	82,  // 128: o11y_one.agentic.v1.LoopRolloutService.CreateLoopTrajectoryDatasetVersion:input_type -> o11y_one.agentic.v1.CreateLoopTrajectoryDatasetVersionRequest
+	84,  // 129: o11y_one.agentic.v1.LoopRolloutService.ListLoopDatasetVersionRollouts:input_type -> o11y_one.agentic.v1.ListLoopDatasetVersionRolloutsRequest
+	87,  // 130: o11y_one.agentic.v1.LoopRolloutService.SetLoopDatasetVersionPinned:input_type -> o11y_one.agentic.v1.SetLoopDatasetVersionPinnedRequest
+	38,  // 131: o11y_one.agentic.v1.LoopRolloutService.CreateLoopRun:output_type -> o11y_one.agentic.v1.CreateLoopRunResponse
+	40,  // 132: o11y_one.agentic.v1.LoopRolloutService.GetLoopRun:output_type -> o11y_one.agentic.v1.GetLoopRunResponse
+	43,  // 133: o11y_one.agentic.v1.LoopRolloutService.ListLoopRuns:output_type -> o11y_one.agentic.v1.ListLoopRunsResponse
+	45,  // 134: o11y_one.agentic.v1.LoopRolloutService.UpdateLoopRun:output_type -> o11y_one.agentic.v1.UpdateLoopRunResponse
+	47,  // 135: o11y_one.agentic.v1.LoopRolloutService.PauseLoopRun:output_type -> o11y_one.agentic.v1.PauseLoopRunResponse
+	49,  // 136: o11y_one.agentic.v1.LoopRolloutService.ResumeLoopRun:output_type -> o11y_one.agentic.v1.ResumeLoopRunResponse
+	51,  // 137: o11y_one.agentic.v1.LoopRolloutService.StopLoopRun:output_type -> o11y_one.agentic.v1.StopLoopRunResponse
+	53,  // 138: o11y_one.agentic.v1.LoopRolloutService.ResetLoopRollout:output_type -> o11y_one.agentic.v1.ResetLoopRolloutResponse
+	55,  // 139: o11y_one.agentic.v1.LoopRolloutService.StepLoopRollout:output_type -> o11y_one.agentic.v1.StepLoopRolloutResponse
+	57,  // 140: o11y_one.agentic.v1.LoopRolloutService.CloseLoopRollout:output_type -> o11y_one.agentic.v1.CloseLoopRolloutResponse
+	59,  // 141: o11y_one.agentic.v1.LoopRolloutService.ForkLoopRollout:output_type -> o11y_one.agentic.v1.ForkLoopRolloutResponse
+	61,  // 142: o11y_one.agentic.v1.LoopRolloutService.GetLoopRollout:output_type -> o11y_one.agentic.v1.GetLoopRolloutResponse
+	63,  // 143: o11y_one.agentic.v1.LoopRolloutService.ListLoopRollouts:output_type -> o11y_one.agentic.v1.ListLoopRolloutsResponse
+	67,  // 144: o11y_one.agentic.v1.LoopRolloutService.ListLoopRolloutGroups:output_type -> o11y_one.agentic.v1.ListLoopRolloutGroupsResponse
+	73,  // 145: o11y_one.agentic.v1.LoopRolloutService.GetLoopRolloutChangeList:output_type -> o11y_one.agentic.v1.GetLoopRolloutChangeListResponse
+	76,  // 146: o11y_one.agentic.v1.LoopRolloutService.GetLoopRolloutStats:output_type -> o11y_one.agentic.v1.GetLoopRolloutStatsResponse
+	79,  // 147: o11y_one.agentic.v1.LoopRolloutService.ListLoopRunSteps:output_type -> o11y_one.agentic.v1.ListLoopRunStepsResponse
+	69,  // 148: o11y_one.agentic.v1.LoopRolloutService.GetLoopRolloutTrajectory:output_type -> o11y_one.agentic.v1.GetLoopRolloutTrajectoryResponse
+	83,  // 149: o11y_one.agentic.v1.LoopRolloutService.CreateLoopTrajectoryDatasetVersion:output_type -> o11y_one.agentic.v1.CreateLoopTrajectoryDatasetVersionResponse
+	86,  // 150: o11y_one.agentic.v1.LoopRolloutService.ListLoopDatasetVersionRollouts:output_type -> o11y_one.agentic.v1.ListLoopDatasetVersionRolloutsResponse
+	88,  // 151: o11y_one.agentic.v1.LoopRolloutService.SetLoopDatasetVersionPinned:output_type -> o11y_one.agentic.v1.SetLoopDatasetVersionPinnedResponse
+	131, // [131:152] is the sub-list for method output_type
+	110, // [110:131] is the sub-list for method input_type
+	110, // [110:110] is the sub-list for extension type_name
+	110, // [110:110] is the sub-list for extension extendee
+	0,   // [0:110] is the sub-list for field type_name
 }
 
 func init() { file_o11y_one_agentic_v1_rollout_proto_init() }
@@ -6591,7 +7761,7 @@ func file_o11y_one_agentic_v1_rollout_proto_init() {
 	file_o11y_one_agentic_v1_rollout_proto_msgTypes[1].OneofWrappers = []any{}
 	file_o11y_one_agentic_v1_rollout_proto_msgTypes[11].OneofWrappers = []any{}
 	file_o11y_one_agentic_v1_rollout_proto_msgTypes[14].OneofWrappers = []any{}
-	file_o11y_one_agentic_v1_rollout_proto_msgTypes[22].OneofWrappers = []any{
+	file_o11y_one_agentic_v1_rollout_proto_msgTypes[24].OneofWrappers = []any{
 		(*LoopToolCallV1_Exec)(nil),
 		(*LoopToolCallV1_Shell)(nil),
 		(*LoopToolCallV1_ReadFile)(nil),
@@ -6600,31 +7770,33 @@ func file_o11y_one_agentic_v1_rollout_proto_init() {
 		(*LoopToolCallV1_List)(nil),
 		(*LoopToolCallV1_SetEnv)(nil),
 	}
-	file_o11y_one_agentic_v1_rollout_proto_msgTypes[24].OneofWrappers = []any{
+	file_o11y_one_agentic_v1_rollout_proto_msgTypes[26].OneofWrappers = []any{
 		(*LoopToolResultV1_ExitCode)(nil),
 		(*LoopToolResultV1_Signal)(nil),
 		(*LoopToolResultV1_Done)(nil),
 		(*LoopToolResultV1_Error)(nil),
 	}
-	file_o11y_one_agentic_v1_rollout_proto_msgTypes[25].OneofWrappers = []any{}
-	file_o11y_one_agentic_v1_rollout_proto_msgTypes[32].OneofWrappers = []any{}
-	file_o11y_one_agentic_v1_rollout_proto_msgTypes[40].OneofWrappers = []any{}
-	file_o11y_one_agentic_v1_rollout_proto_msgTypes[50].OneofWrappers = []any{}
-	file_o11y_one_agentic_v1_rollout_proto_msgTypes[53].OneofWrappers = []any{}
-	file_o11y_one_agentic_v1_rollout_proto_msgTypes[54].OneofWrappers = []any{}
-	file_o11y_one_agentic_v1_rollout_proto_msgTypes[60].OneofWrappers = []any{
+	file_o11y_one_agentic_v1_rollout_proto_msgTypes[27].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_rollout_proto_msgTypes[34].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_rollout_proto_msgTypes[42].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_rollout_proto_msgTypes[52].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_rollout_proto_msgTypes[55].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_rollout_proto_msgTypes[56].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_rollout_proto_msgTypes[65].OneofWrappers = []any{
 		(*GetLoopRolloutStatsRequest_RunId)(nil),
 		(*GetLoopRolloutStatsRequest_EnvironmentVersion)(nil),
 	}
-	file_o11y_one_agentic_v1_rollout_proto_msgTypes[63].OneofWrappers = []any{}
-	file_o11y_one_agentic_v1_rollout_proto_msgTypes[65].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_rollout_proto_msgTypes[68].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_rollout_proto_msgTypes[70].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_rollout_proto_msgTypes[71].OneofWrappers = []any{}
+	file_o11y_one_agentic_v1_rollout_proto_msgTypes[79].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_o11y_one_agentic_v1_rollout_proto_rawDesc), len(file_o11y_one_agentic_v1_rollout_proto_rawDesc)),
 			NumEnums:      10,
-			NumMessages:   66,
+			NumMessages:   80,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

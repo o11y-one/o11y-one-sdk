@@ -23,6 +23,16 @@ class LoopEnvironmentNetworkModeV1(int, metaclass=_enum_type_wrapper.EnumTypeWra
     LOOP_ENVIRONMENT_NETWORK_MODE_V1_UNSPECIFIED: _ClassVar[LoopEnvironmentNetworkModeV1]
     LOOP_ENVIRONMENT_NETWORK_MODE_V1_OFFLINE: _ClassVar[LoopEnvironmentNetworkModeV1]
 
+class LoopEnvironmentHackDetectorV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    LOOP_ENVIRONMENT_HACK_DETECTOR_V1_UNSPECIFIED: _ClassVar[LoopEnvironmentHackDetectorV1]
+    LOOP_ENVIRONMENT_HACK_DETECTOR_V1_TEST_EDIT: _ClassVar[LoopEnvironmentHackDetectorV1]
+    LOOP_ENVIRONMENT_HACK_DETECTOR_V1_GIT_HISTORY: _ClassVar[LoopEnvironmentHackDetectorV1]
+    LOOP_ENVIRONMENT_HACK_DETECTOR_V1_GRADER_READ: _ClassVar[LoopEnvironmentHackDetectorV1]
+    LOOP_ENVIRONMENT_HACK_DETECTOR_V1_OFFLINE_NETWORK: _ClassVar[LoopEnvironmentHackDetectorV1]
+    LOOP_ENVIRONMENT_HACK_DETECTOR_V1_DODGE: _ClassVar[LoopEnvironmentHackDetectorV1]
+    LOOP_ENVIRONMENT_HACK_DETECTOR_V1_HARDCODED_OUTPUT: _ClassVar[LoopEnvironmentHackDetectorV1]
+
 class LoopEnvironmentVersionStateV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     LOOP_ENVIRONMENT_VERSION_STATE_V1_UNSPECIFIED: _ClassVar[LoopEnvironmentVersionStateV1]
@@ -42,6 +52,13 @@ LOOP_ENVIRONMENT_PROFILE_V1_MEDIUM: LoopEnvironmentProfileV1
 LOOP_ENVIRONMENT_PROFILE_V1_LARGE: LoopEnvironmentProfileV1
 LOOP_ENVIRONMENT_NETWORK_MODE_V1_UNSPECIFIED: LoopEnvironmentNetworkModeV1
 LOOP_ENVIRONMENT_NETWORK_MODE_V1_OFFLINE: LoopEnvironmentNetworkModeV1
+LOOP_ENVIRONMENT_HACK_DETECTOR_V1_UNSPECIFIED: LoopEnvironmentHackDetectorV1
+LOOP_ENVIRONMENT_HACK_DETECTOR_V1_TEST_EDIT: LoopEnvironmentHackDetectorV1
+LOOP_ENVIRONMENT_HACK_DETECTOR_V1_GIT_HISTORY: LoopEnvironmentHackDetectorV1
+LOOP_ENVIRONMENT_HACK_DETECTOR_V1_GRADER_READ: LoopEnvironmentHackDetectorV1
+LOOP_ENVIRONMENT_HACK_DETECTOR_V1_OFFLINE_NETWORK: LoopEnvironmentHackDetectorV1
+LOOP_ENVIRONMENT_HACK_DETECTOR_V1_DODGE: LoopEnvironmentHackDetectorV1
+LOOP_ENVIRONMENT_HACK_DETECTOR_V1_HARDCODED_OUTPUT: LoopEnvironmentHackDetectorV1
 LOOP_ENVIRONMENT_VERSION_STATE_V1_UNSPECIFIED: LoopEnvironmentVersionStateV1
 LOOP_ENVIRONMENT_VERSION_STATE_V1_IMPORTING: LoopEnvironmentVersionStateV1
 LOOP_ENVIRONMENT_VERSION_STATE_V1_PUBLISHED: LoopEnvironmentVersionStateV1
@@ -132,7 +149,7 @@ class LoopEnvironmentFileV1(_message.Message):
     def __init__(self, path: _Optional[str] = ..., content: _Optional[bytes] = ...) -> None: ...
 
 class LoopEnvironmentVerifierV1(_message.Message):
-    __slots__ = ("files", "argv", "bundle_sha256", "final_state_paths", "protected_paths", "start", "timeout_millis", "run_as_uid", "rewards", "failure_reward")
+    __slots__ = ("files", "argv", "bundle_sha256", "final_state_paths", "protected_paths", "start", "timeout_millis", "run_as_uid", "rewards", "failure_reward", "hack_gate")
     FILES_FIELD_NUMBER: _ClassVar[int]
     ARGV_FIELD_NUMBER: _ClassVar[int]
     BUNDLE_SHA256_FIELD_NUMBER: _ClassVar[int]
@@ -143,6 +160,7 @@ class LoopEnvironmentVerifierV1(_message.Message):
     RUN_AS_UID_FIELD_NUMBER: _ClassVar[int]
     REWARDS_FIELD_NUMBER: _ClassVar[int]
     FAILURE_REWARD_FIELD_NUMBER: _ClassVar[int]
+    HACK_GATE_FIELD_NUMBER: _ClassVar[int]
     files: _containers.RepeatedCompositeFieldContainer[LoopEnvironmentFileV1]
     argv: _containers.RepeatedScalarFieldContainer[str]
     bundle_sha256: bytes
@@ -153,7 +171,8 @@ class LoopEnvironmentVerifierV1(_message.Message):
     run_as_uid: int
     rewards: _containers.RepeatedCompositeFieldContainer[LoopEnvironmentRewardDeclV1]
     failure_reward: float
-    def __init__(self, files: _Optional[_Iterable[_Union[LoopEnvironmentFileV1, _Mapping]]] = ..., argv: _Optional[_Iterable[str]] = ..., bundle_sha256: _Optional[bytes] = ..., final_state_paths: _Optional[_Iterable[str]] = ..., protected_paths: _Optional[_Iterable[str]] = ..., start: _Optional[_Iterable[_Union[LoopEnvironmentExecStepV1, _Mapping]]] = ..., timeout_millis: _Optional[int] = ..., run_as_uid: _Optional[int] = ..., rewards: _Optional[_Iterable[_Union[LoopEnvironmentRewardDeclV1, _Mapping]]] = ..., failure_reward: _Optional[float] = ...) -> None: ...
+    hack_gate: _containers.RepeatedScalarFieldContainer[LoopEnvironmentHackDetectorV1]
+    def __init__(self, files: _Optional[_Iterable[_Union[LoopEnvironmentFileV1, _Mapping]]] = ..., argv: _Optional[_Iterable[str]] = ..., bundle_sha256: _Optional[bytes] = ..., final_state_paths: _Optional[_Iterable[str]] = ..., protected_paths: _Optional[_Iterable[str]] = ..., start: _Optional[_Iterable[_Union[LoopEnvironmentExecStepV1, _Mapping]]] = ..., timeout_millis: _Optional[int] = ..., run_as_uid: _Optional[int] = ..., rewards: _Optional[_Iterable[_Union[LoopEnvironmentRewardDeclV1, _Mapping]]] = ..., failure_reward: _Optional[float] = ..., hack_gate: _Optional[_Iterable[_Union[LoopEnvironmentHackDetectorV1, str]]] = ...) -> None: ...
 
 class LoopEnvironmentRewardDeclV1(_message.Message):
     __slots__ = ("name", "min", "max")
