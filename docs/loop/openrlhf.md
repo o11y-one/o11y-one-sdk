@@ -55,6 +55,26 @@ python -m openrlhf.cli.train_ppo_ray \
 - **Not sent:** `group_id` and `trainer_step`. OpenRLHF's executor gets neither, so each
   sample is its own group on the boards, and its series run by time, not by step.
 
+## Fine-tuning on trajectories
+
+Loop's OpenRLHF trajectory export is JSONL, one row of `messages` per rollout, with each
+call's `arguments` as JSON text. `sft_dataset` parses them and writes a Parquet file that
+OpenRLHF's SFT trainer reads, each row as it was written:
+
+```sh
+python -c 'import sys, o11y_one.sdk.loop.openrlhf as m; m.sft_dataset(sys.argv[1], sys.argv[2])' \
+  trajectories.jsonl trajectories.parquet
+
+python -m openrlhf.cli.train_sft \
+  --data.dataset trajectories.parquet --data.input_key messages \
+  --data.multiturn --data.apply_chat_template \
+  ...
+```
+
+- It needs `datasets` 5 or later, whose `Json()` type keeps each row's arguments its own.
+- OpenRLHF's SFT trainer renders the chat template without `tools=`, so the tool schemas the
+  policy saw are not in its prompt.
+
 ## Concurrency
 
 - **Rollouts open at once** = `rollout.vllm_generate_batch_size` (by default

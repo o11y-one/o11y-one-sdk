@@ -9,7 +9,8 @@ set when its rollout closes. A task's or verifier's failure keeps its value; our
 (``INFRASTRUCTURE``) re-runs the sample once.
 
 The prompts carry the tool schemas: render them with :func:`render_prompts` and train
-without ``--data.apply_chat_template``. OpenRLHF has no extra (its wheel pins CUDA builds);
+without ``--data.apply_chat_template``. :func:`sft_dataset` readies Loop's trajectory export
+for OpenRLHF's SFT trainer. OpenRLHF has no extra (its wheel pins CUDA builds);
 this module checks the installed release instead.
 """
 
@@ -37,7 +38,7 @@ import torch  # noqa: E402
 from o11y_one.sdk.loop import _SDK_VERSION, AsyncLoopClient, _core  # noqa: E402
 from openrlhf.utils.agent import AgentInstanceBase, MultiTurnAgentExecutor  # noqa: E402
 
-__all__ = ["AgentExecutor", "LoopAgentInstance", "render_prompts"]
+__all__ = ["AgentExecutor", "LoopAgentInstance", "render_prompts", "sft_dataset"]
 
 _TOOL_CALL = re.compile(r"<tool_call>(.*?)</tool_call>", re.DOTALL)
 _MARK = "<<o11y-loop-turn>>"
@@ -56,6 +57,20 @@ def render_prompts(rows: Path, out: Path, tokenizer: Any) -> None:
                 row["prompt"], tools=_core.TOOLS, add_generation_prompt=True, tokenize=False
             )
             written.write(json.dumps(row) + "\n")
+
+
+def sft_dataset(rows: Path, out: Path) -> None:
+    """Loop's OpenRLHF trajectory export (JSONL) as a Parquet file for OpenRLHF's SFT trainer
+    (``--data.dataset out.parquet --data.input_key messages --data.multiturn
+    --data.apply_chat_template``): each call's ``arguments``, JSON text in the export, parsed.
+    The messages are stored as ``datasets`` 5's ``Json()``, so each row reads back as written,
+    never with another row's argument names merged in."""
+    from datasets import Dataset, Features, Json
+
+    with Path(rows).open() as lines:
+        messages = [_core.sft_messages(json.loads(line)["messages"]) for line in lines]
+    features = Features({"messages": Json()})
+    Dataset.from_dict({"messages": messages}, features=features).to_parquet(str(out))
 
 
 def _tool_turn(tokenizer: Any, texts: list[str]) -> str:
