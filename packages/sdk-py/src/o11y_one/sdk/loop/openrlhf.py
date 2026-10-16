@@ -99,7 +99,8 @@ class LoopAgentInstance(AgentInstanceBase):
             adapter_version=_SDK_VERSION,
             framework_version=_installed,
         )
-        await sample.client.reset(**({"case_revision_id": case} if case else {}))
+        fields = {"tools_json": _core.TOOLS_JSON, **({"case_revision_id": case} if case else {})}
+        await sample.client.reset(**fields)
         return {"observation": states["observation"]}
 
     async def step(self, states: dict, **kwargs: Any) -> dict:

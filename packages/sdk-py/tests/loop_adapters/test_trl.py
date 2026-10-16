@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import functools
 import inspect
+import json
 import logging
 import threading
 import time
@@ -151,6 +152,7 @@ def test_a_group_is_its_step_and_case_in_every_process(loop) -> None:
     assert {(request.trainer_total_steps, request.experiment_name) for request in first} == {
         (30, "pyfix-trl")
     }
+    assert [json.loads(request.tools_json) for request in first] == [_core.TOOLS] * len(first)
     client = first[0].client
     assert (client.adapter, client.framework_version) == (
         "o11y_one.sdk.loop.trl",

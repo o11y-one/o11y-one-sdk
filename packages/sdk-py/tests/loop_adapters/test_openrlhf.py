@@ -96,6 +96,7 @@ def test_each_sample_is_a_rollout_of_the_labels_case_rewarded_at_its_close(loop,
     assert set(CONNECTS) <= {("127.0.0.1", int(loop.url.rsplit(":", 1)[1]))}  # no Python egress
     assert {reset.case_revision_id for reset in loop.sent("reset")} == {"case-a"}
     assert {reset.client.adapter for reset in loop.sent("reset")} == {"o11y_one.sdk.loop.openrlhf"}
+    assert [json.loads(reset.tools_json) for reset in loop.sent("reset")] == [_core.TOOLS] * 4
     closed = sorted(close.rollout_id for close in loop.sent("close"))
     assert closed == ["r-1", "r-2", "r-3", "r-4"]
     assert sorted(response["reward"] for response in responses) == [0.1, 0.2, 0.3, 0.4]

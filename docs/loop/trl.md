@@ -39,6 +39,7 @@ trainer.train()
 ```
 
 - Each rollout is a `LoopEnvironment`. Its tools are `shell`, `read_file` and `write_file`.
+  Each reset names those tools, and a trajectory export of the run carries them.
 - `loop_reward` closes the batch's rollouts all at once, and scores each with the verifier's
   primary reward.
 - `LoopCallback` tells the environments the group size and the training step.

@@ -50,6 +50,9 @@ TOOLS = [
     ),
 ]
 
+#: :data:`TOOLS` as the JSON text each adapter's reset names, the tools the policy is given.
+TOOLS_JSON = json.dumps(TOOLS)
+
 _CALLS = {
     "shell": lambda args: LoopToolShellV1(script=args["command"]),
     "read_file": lambda args: LoopToolReadFileV1(path=args["path"]),
