@@ -177,6 +177,15 @@ const (
 	// AgenticEvaluationServiceCreateEvaluationScorerConfigProcedure is the fully-qualified name of the
 	// AgenticEvaluationService's CreateEvaluationScorerConfig RPC.
 	AgenticEvaluationServiceCreateEvaluationScorerConfigProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/CreateEvaluationScorerConfig"
+	// AgenticEvaluationServiceCreateEvaluationJudgeProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's CreateEvaluationJudge RPC.
+	AgenticEvaluationServiceCreateEvaluationJudgeProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/CreateEvaluationJudge"
+	// AgenticEvaluationServiceGetEvaluationJudgeProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's GetEvaluationJudge RPC.
+	AgenticEvaluationServiceGetEvaluationJudgeProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/GetEvaluationJudge"
+	// AgenticEvaluationServiceArchiveEvaluationJudgeProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's ArchiveEvaluationJudge RPC.
+	AgenticEvaluationServiceArchiveEvaluationJudgeProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/ArchiveEvaluationJudge"
 	// AgenticEvaluationServicePreviewEvaluationScorerProcedure is the fully-qualified name of the
 	// AgenticEvaluationService's PreviewEvaluationScorer RPC.
 	AgenticEvaluationServicePreviewEvaluationScorerProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/PreviewEvaluationScorer"
@@ -469,6 +478,9 @@ const (
 	// AgenticEvaluationServiceGetEvaluationScorerSourceSnapshotProcedure is the fully-qualified name of
 	// the AgenticEvaluationService's GetEvaluationScorerSourceSnapshot RPC.
 	AgenticEvaluationServiceGetEvaluationScorerSourceSnapshotProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/GetEvaluationScorerSourceSnapshot"
+	// AgenticEvaluationServiceListEvaluationModelRatesProcedure is the fully-qualified name of the
+	// AgenticEvaluationService's ListEvaluationModelRates RPC.
+	AgenticEvaluationServiceListEvaluationModelRatesProcedure = "/o11y_one.agentic.v1.AgenticEvaluationService/ListEvaluationModelRates"
 )
 
 // AgenticEvaluationServiceClient is a client for the o11y_one.agentic.v1.AgenticEvaluationService
@@ -537,6 +549,13 @@ type AgenticEvaluationServiceClient interface {
 	// draft.
 	RegisterEvaluationProviderCredential(context.Context, *connect.Request[v1.RegisterEvaluationProviderCredentialRequest]) (*connect.Response[v1.RegisterEvaluationProviderCredentialResponse], error)
 	CreateEvaluationScorerConfig(context.Context, *connect.Request[v1.CreateEvaluationScorerConfigRequest]) (*connect.Response[v1.CreateEvaluationScorerConfigResponse], error)
+	// #1110. A judge that asks 1 to 16 typed questions in one call, each its own
+	// score configuration. Authoring an existing key revises it in one
+	// transaction, refused whole when a run pinned any question; archiving it
+	// archives every question.
+	CreateEvaluationJudge(context.Context, *connect.Request[v1.CreateEvaluationJudgeRequest]) (*connect.Response[v1.CreateEvaluationJudgeResponse], error)
+	GetEvaluationJudge(context.Context, *connect.Request[v1.GetEvaluationJudgeRequest]) (*connect.Response[v1.GetEvaluationJudgeResponse], error)
+	ArchiveEvaluationJudge(context.Context, *connect.Request[v1.ArchiveEvaluationJudgeRequest]) (*connect.Response[v1.ArchiveEvaluationJudgeResponse], error)
 	// #618. A deterministic scorer spec run on one sample through the real
 	// compile and scoring path. Stores nothing.
 	PreviewEvaluationScorer(context.Context, *connect.Request[v1.PreviewEvaluationScorerRequest]) (*connect.Response[v1.PreviewEvaluationScorerResponse], error)
@@ -812,6 +831,11 @@ type AgenticEvaluationServiceClient interface {
 	// There is no unarchive verb and no idempotency key: a monotone state flip is
 	// replayable by construction, and `already_archived` rides back on the
 	// response rather than being an error.
+	//
+	// #1110: the one refusal is a question its judge still asks,
+	// KIND_SPEC_MISMATCH `scorer_config_belongs_to_judge`, since the judge would
+	// revive it on its next revision; ArchiveEvaluationJudge archives every
+	// question. One a revision dropped is already archived and answers so.
 	ArchiveEvaluationScorerConfig(context.Context, *connect.Request[v1.ArchiveEvaluationScorerConfigRequest]) (*connect.Response[v1.ArchiveEvaluationScorerConfigResponse], error)
 	// `MUTATION_ACK`. Same semantics, and NO launched-run refusal: a launched run
 	// froze its suite, so archiving cannot change it.
@@ -873,6 +897,10 @@ type AgenticEvaluationServiceClient interface {
 	// (#611) A saved version's source, unsealed for this read, for members and
 	// admins; a viewer is refused PERMISSION_DENIED.
 	GetEvaluationScorerSourceSnapshot(context.Context, *connect.Request[v1.GetEvaluationScorerSourceSnapshotRequest]) (*connect.Response[v1.GetEvaluationScorerSourceSnapshotResponse], error)
+	// #1123. The rate registry's rows and its freshness, for a picker's prices
+	// and a scorer's per-call estimate. Reads the build's registry and stores
+	// nothing.
+	ListEvaluationModelRates(context.Context, *connect.Request[v1.ListEvaluationModelRatesRequest]) (*connect.Response[v1.ListEvaluationModelRatesResponse], error)
 }
 
 // NewAgenticEvaluationServiceClient constructs a client for the
@@ -1155,6 +1183,24 @@ func NewAgenticEvaluationServiceClient(httpClient connect.HTTPClient, baseURL st
 			httpClient,
 			baseURL+AgenticEvaluationServiceCreateEvaluationScorerConfigProcedure,
 			connect.WithSchema(agenticEvaluationServiceMethods.ByName("CreateEvaluationScorerConfig")),
+			connect.WithClientOptions(opts...),
+		),
+		createEvaluationJudge: connect.NewClient[v1.CreateEvaluationJudgeRequest, v1.CreateEvaluationJudgeResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceCreateEvaluationJudgeProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("CreateEvaluationJudge")),
+			connect.WithClientOptions(opts...),
+		),
+		getEvaluationJudge: connect.NewClient[v1.GetEvaluationJudgeRequest, v1.GetEvaluationJudgeResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceGetEvaluationJudgeProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("GetEvaluationJudge")),
+			connect.WithClientOptions(opts...),
+		),
+		archiveEvaluationJudge: connect.NewClient[v1.ArchiveEvaluationJudgeRequest, v1.ArchiveEvaluationJudgeResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceArchiveEvaluationJudgeProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("ArchiveEvaluationJudge")),
 			connect.WithClientOptions(opts...),
 		),
 		previewEvaluationScorer: connect.NewClient[v1.PreviewEvaluationScorerRequest, v1.PreviewEvaluationScorerResponse](
@@ -1739,6 +1785,12 @@ func NewAgenticEvaluationServiceClient(httpClient connect.HTTPClient, baseURL st
 			connect.WithSchema(agenticEvaluationServiceMethods.ByName("GetEvaluationScorerSourceSnapshot")),
 			connect.WithClientOptions(opts...),
 		),
+		listEvaluationModelRates: connect.NewClient[v1.ListEvaluationModelRatesRequest, v1.ListEvaluationModelRatesResponse](
+			httpClient,
+			baseURL+AgenticEvaluationServiceListEvaluationModelRatesProcedure,
+			connect.WithSchema(agenticEvaluationServiceMethods.ByName("ListEvaluationModelRates")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -1789,6 +1841,9 @@ type agenticEvaluationServiceClient struct {
 	captureEvaluationCase                      *connect.Client[v1.CaptureEvaluationCaseRequest, v1.CaptureEvaluationCaseResponse]
 	registerEvaluationProviderCredential       *connect.Client[v1.RegisterEvaluationProviderCredentialRequest, v1.RegisterEvaluationProviderCredentialResponse]
 	createEvaluationScorerConfig               *connect.Client[v1.CreateEvaluationScorerConfigRequest, v1.CreateEvaluationScorerConfigResponse]
+	createEvaluationJudge                      *connect.Client[v1.CreateEvaluationJudgeRequest, v1.CreateEvaluationJudgeResponse]
+	getEvaluationJudge                         *connect.Client[v1.GetEvaluationJudgeRequest, v1.GetEvaluationJudgeResponse]
+	archiveEvaluationJudge                     *connect.Client[v1.ArchiveEvaluationJudgeRequest, v1.ArchiveEvaluationJudgeResponse]
 	previewEvaluationScorer                    *connect.Client[v1.PreviewEvaluationScorerRequest, v1.PreviewEvaluationScorerResponse]
 	checkEvaluationScorerAgainstRun            *connect.Client[v1.CheckEvaluationScorerAgainstRunRequest, v1.CheckEvaluationScorerAgainstRunResponse]
 	createEvaluationDatasetVersion             *connect.Client[v1.CreateEvaluationDatasetVersionRequest, v1.CreateEvaluationDatasetVersionResponse]
@@ -1886,6 +1941,7 @@ type agenticEvaluationServiceClient struct {
 	setLoopOverageCap                          *connect.Client[v1.SetLoopOverageCapRequest, v1.SetLoopOverageCapResponse]
 	getLoopOverageCap                          *connect.Client[v1.GetLoopOverageCapRequest, v1.GetLoopOverageCapResponse]
 	getEvaluationScorerSourceSnapshot          *connect.Client[v1.GetEvaluationScorerSourceSnapshotRequest, v1.GetEvaluationScorerSourceSnapshotResponse]
+	listEvaluationModelRates                   *connect.Client[v1.ListEvaluationModelRatesRequest, v1.ListEvaluationModelRatesResponse]
 }
 
 // CreateEvaluationDefinition calls
@@ -2142,6 +2198,21 @@ func (c *agenticEvaluationServiceClient) RegisterEvaluationProviderCredential(ct
 // o11y_one.agentic.v1.AgenticEvaluationService.CreateEvaluationScorerConfig.
 func (c *agenticEvaluationServiceClient) CreateEvaluationScorerConfig(ctx context.Context, req *connect.Request[v1.CreateEvaluationScorerConfigRequest]) (*connect.Response[v1.CreateEvaluationScorerConfigResponse], error) {
 	return c.createEvaluationScorerConfig.CallUnary(ctx, req)
+}
+
+// CreateEvaluationJudge calls o11y_one.agentic.v1.AgenticEvaluationService.CreateEvaluationJudge.
+func (c *agenticEvaluationServiceClient) CreateEvaluationJudge(ctx context.Context, req *connect.Request[v1.CreateEvaluationJudgeRequest]) (*connect.Response[v1.CreateEvaluationJudgeResponse], error) {
+	return c.createEvaluationJudge.CallUnary(ctx, req)
+}
+
+// GetEvaluationJudge calls o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationJudge.
+func (c *agenticEvaluationServiceClient) GetEvaluationJudge(ctx context.Context, req *connect.Request[v1.GetEvaluationJudgeRequest]) (*connect.Response[v1.GetEvaluationJudgeResponse], error) {
+	return c.getEvaluationJudge.CallUnary(ctx, req)
+}
+
+// ArchiveEvaluationJudge calls o11y_one.agentic.v1.AgenticEvaluationService.ArchiveEvaluationJudge.
+func (c *agenticEvaluationServiceClient) ArchiveEvaluationJudge(ctx context.Context, req *connect.Request[v1.ArchiveEvaluationJudgeRequest]) (*connect.Response[v1.ArchiveEvaluationJudgeResponse], error) {
+	return c.archiveEvaluationJudge.CallUnary(ctx, req)
 }
 
 // PreviewEvaluationScorer calls
@@ -2686,6 +2757,12 @@ func (c *agenticEvaluationServiceClient) GetEvaluationScorerSourceSnapshot(ctx c
 	return c.getEvaluationScorerSourceSnapshot.CallUnary(ctx, req)
 }
 
+// ListEvaluationModelRates calls
+// o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationModelRates.
+func (c *agenticEvaluationServiceClient) ListEvaluationModelRates(ctx context.Context, req *connect.Request[v1.ListEvaluationModelRatesRequest]) (*connect.Response[v1.ListEvaluationModelRatesResponse], error) {
+	return c.listEvaluationModelRates.CallUnary(ctx, req)
+}
+
 // AgenticEvaluationServiceHandler is an implementation of the
 // o11y_one.agentic.v1.AgenticEvaluationService service.
 type AgenticEvaluationServiceHandler interface {
@@ -2752,6 +2829,13 @@ type AgenticEvaluationServiceHandler interface {
 	// draft.
 	RegisterEvaluationProviderCredential(context.Context, *connect.Request[v1.RegisterEvaluationProviderCredentialRequest]) (*connect.Response[v1.RegisterEvaluationProviderCredentialResponse], error)
 	CreateEvaluationScorerConfig(context.Context, *connect.Request[v1.CreateEvaluationScorerConfigRequest]) (*connect.Response[v1.CreateEvaluationScorerConfigResponse], error)
+	// #1110. A judge that asks 1 to 16 typed questions in one call, each its own
+	// score configuration. Authoring an existing key revises it in one
+	// transaction, refused whole when a run pinned any question; archiving it
+	// archives every question.
+	CreateEvaluationJudge(context.Context, *connect.Request[v1.CreateEvaluationJudgeRequest]) (*connect.Response[v1.CreateEvaluationJudgeResponse], error)
+	GetEvaluationJudge(context.Context, *connect.Request[v1.GetEvaluationJudgeRequest]) (*connect.Response[v1.GetEvaluationJudgeResponse], error)
+	ArchiveEvaluationJudge(context.Context, *connect.Request[v1.ArchiveEvaluationJudgeRequest]) (*connect.Response[v1.ArchiveEvaluationJudgeResponse], error)
 	// #618. A deterministic scorer spec run on one sample through the real
 	// compile and scoring path. Stores nothing.
 	PreviewEvaluationScorer(context.Context, *connect.Request[v1.PreviewEvaluationScorerRequest]) (*connect.Response[v1.PreviewEvaluationScorerResponse], error)
@@ -3027,6 +3111,11 @@ type AgenticEvaluationServiceHandler interface {
 	// There is no unarchive verb and no idempotency key: a monotone state flip is
 	// replayable by construction, and `already_archived` rides back on the
 	// response rather than being an error.
+	//
+	// #1110: the one refusal is a question its judge still asks,
+	// KIND_SPEC_MISMATCH `scorer_config_belongs_to_judge`, since the judge would
+	// revive it on its next revision; ArchiveEvaluationJudge archives every
+	// question. One a revision dropped is already archived and answers so.
 	ArchiveEvaluationScorerConfig(context.Context, *connect.Request[v1.ArchiveEvaluationScorerConfigRequest]) (*connect.Response[v1.ArchiveEvaluationScorerConfigResponse], error)
 	// `MUTATION_ACK`. Same semantics, and NO launched-run refusal: a launched run
 	// froze its suite, so archiving cannot change it.
@@ -3088,6 +3177,10 @@ type AgenticEvaluationServiceHandler interface {
 	// (#611) A saved version's source, unsealed for this read, for members and
 	// admins; a viewer is refused PERMISSION_DENIED.
 	GetEvaluationScorerSourceSnapshot(context.Context, *connect.Request[v1.GetEvaluationScorerSourceSnapshotRequest]) (*connect.Response[v1.GetEvaluationScorerSourceSnapshotResponse], error)
+	// #1123. The rate registry's rows and its freshness, for a picker's prices
+	// and a scorer's per-call estimate. Reads the build's registry and stores
+	// nothing.
+	ListEvaluationModelRates(context.Context, *connect.Request[v1.ListEvaluationModelRatesRequest]) (*connect.Response[v1.ListEvaluationModelRatesResponse], error)
 }
 
 // NewAgenticEvaluationServiceHandler builds an HTTP handler from the service implementation. It
@@ -3365,6 +3458,24 @@ func NewAgenticEvaluationServiceHandler(svc AgenticEvaluationServiceHandler, opt
 		AgenticEvaluationServiceCreateEvaluationScorerConfigProcedure,
 		svc.CreateEvaluationScorerConfig,
 		connect.WithSchema(agenticEvaluationServiceMethods.ByName("CreateEvaluationScorerConfig")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceCreateEvaluationJudgeHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceCreateEvaluationJudgeProcedure,
+		svc.CreateEvaluationJudge,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("CreateEvaluationJudge")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceGetEvaluationJudgeHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceGetEvaluationJudgeProcedure,
+		svc.GetEvaluationJudge,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("GetEvaluationJudge")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agenticEvaluationServiceArchiveEvaluationJudgeHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceArchiveEvaluationJudgeProcedure,
+		svc.ArchiveEvaluationJudge,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("ArchiveEvaluationJudge")),
 		connect.WithHandlerOptions(opts...),
 	)
 	agenticEvaluationServicePreviewEvaluationScorerHandler := connect.NewUnaryHandler(
@@ -3949,6 +4060,12 @@ func NewAgenticEvaluationServiceHandler(svc AgenticEvaluationServiceHandler, opt
 		connect.WithSchema(agenticEvaluationServiceMethods.ByName("GetEvaluationScorerSourceSnapshot")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agenticEvaluationServiceListEvaluationModelRatesHandler := connect.NewUnaryHandler(
+		AgenticEvaluationServiceListEvaluationModelRatesProcedure,
+		svc.ListEvaluationModelRates,
+		connect.WithSchema(agenticEvaluationServiceMethods.ByName("ListEvaluationModelRates")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/o11y_one.agentic.v1.AgenticEvaluationService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgenticEvaluationServiceCreateEvaluationDefinitionProcedure:
@@ -4041,6 +4158,12 @@ func NewAgenticEvaluationServiceHandler(svc AgenticEvaluationServiceHandler, opt
 			agenticEvaluationServiceRegisterEvaluationProviderCredentialHandler.ServeHTTP(w, r)
 		case AgenticEvaluationServiceCreateEvaluationScorerConfigProcedure:
 			agenticEvaluationServiceCreateEvaluationScorerConfigHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceCreateEvaluationJudgeProcedure:
+			agenticEvaluationServiceCreateEvaluationJudgeHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceGetEvaluationJudgeProcedure:
+			agenticEvaluationServiceGetEvaluationJudgeHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceArchiveEvaluationJudgeProcedure:
+			agenticEvaluationServiceArchiveEvaluationJudgeHandler.ServeHTTP(w, r)
 		case AgenticEvaluationServicePreviewEvaluationScorerProcedure:
 			agenticEvaluationServicePreviewEvaluationScorerHandler.ServeHTTP(w, r)
 		case AgenticEvaluationServiceCheckEvaluationScorerAgainstRunProcedure:
@@ -4235,6 +4358,8 @@ func NewAgenticEvaluationServiceHandler(svc AgenticEvaluationServiceHandler, opt
 			agenticEvaluationServiceGetLoopOverageCapHandler.ServeHTTP(w, r)
 		case AgenticEvaluationServiceGetEvaluationScorerSourceSnapshotProcedure:
 			agenticEvaluationServiceGetEvaluationScorerSourceSnapshotHandler.ServeHTTP(w, r)
+		case AgenticEvaluationServiceListEvaluationModelRatesProcedure:
+			agenticEvaluationServiceListEvaluationModelRatesHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -4422,6 +4547,18 @@ func (UnimplementedAgenticEvaluationServiceHandler) RegisterEvaluationProviderCr
 
 func (UnimplementedAgenticEvaluationServiceHandler) CreateEvaluationScorerConfig(context.Context, *connect.Request[v1.CreateEvaluationScorerConfigRequest]) (*connect.Response[v1.CreateEvaluationScorerConfigResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.CreateEvaluationScorerConfig is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) CreateEvaluationJudge(context.Context, *connect.Request[v1.CreateEvaluationJudgeRequest]) (*connect.Response[v1.CreateEvaluationJudgeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.CreateEvaluationJudge is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) GetEvaluationJudge(context.Context, *connect.Request[v1.GetEvaluationJudgeRequest]) (*connect.Response[v1.GetEvaluationJudgeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationJudge is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) ArchiveEvaluationJudge(context.Context, *connect.Request[v1.ArchiveEvaluationJudgeRequest]) (*connect.Response[v1.ArchiveEvaluationJudgeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.ArchiveEvaluationJudge is not implemented"))
 }
 
 func (UnimplementedAgenticEvaluationServiceHandler) PreviewEvaluationScorer(context.Context, *connect.Request[v1.PreviewEvaluationScorerRequest]) (*connect.Response[v1.PreviewEvaluationScorerResponse], error) {
@@ -4810,4 +4947,8 @@ func (UnimplementedAgenticEvaluationServiceHandler) GetLoopOverageCap(context.Co
 
 func (UnimplementedAgenticEvaluationServiceHandler) GetEvaluationScorerSourceSnapshot(context.Context, *connect.Request[v1.GetEvaluationScorerSourceSnapshotRequest]) (*connect.Response[v1.GetEvaluationScorerSourceSnapshotResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.GetEvaluationScorerSourceSnapshot is not implemented"))
+}
+
+func (UnimplementedAgenticEvaluationServiceHandler) ListEvaluationModelRates(context.Context, *connect.Request[v1.ListEvaluationModelRatesRequest]) (*connect.Response[v1.ListEvaluationModelRatesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("o11y_one.agentic.v1.AgenticEvaluationService.ListEvaluationModelRates is not implemented"))
 }

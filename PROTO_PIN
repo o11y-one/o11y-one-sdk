@@ -5,17 +5,14 @@
 #
 # source_repo:   o11y-api  (private; local checkouts are commonly ../o11y-api)
 # source_path:   proto/o11y_one/
-# source_branch: ahead of main, on the change that adds trajectory dataset
-#                versions and their exports, rollout steps and change lists,
-#                and the tools a reset names. The snapshot carries the agentic
-#                evaluation surface (AgenticEvaluationService), Loop
-#                environments (LoopEnvironmentService), and Loop runs and
-#                rollouts (LoopRolloutService: the trainer verbs Reset, Step,
-#                Close and Fork, and the run and rollout reads).
-#                Do not release from this pin until that change reaches main.
+# source_branch: main. The snapshot carries the agentic evaluation surface
+#                (AgenticEvaluationService), Loop environments
+#                (LoopEnvironmentService), and Loop runs and rollouts
+#                (LoopRolloutService: the trainer verbs Reset, Step, Close and
+#                Fork, and the run and rollout reads).
 #
 # Regenerate with:
 #   ./tools/sync-proto.sh ../o11y-api
 # which verifies the checkout is at the commit below, re-vendors proto/o11y_one/,
 # and re-runs `buf generate`. Generated code is committed.
-50fa050ce90583288d376e093cf73c1269abf56c
+6ffb26f185a4494c593ccc2aa11cda4fc46d2031

@@ -537,6 +537,45 @@ message AgenticEvaluationCapabilitiesV1 {
   // (#611) The runtimes a code scorer is authored against, in the full set
   // only, as `postures` are: an embedded copy carries none.
   repeated EvaluationScorerRuntimeV1 scorer_runtimes = 4;
+  // #1122. Whether each provider trains on what a call sends it, in the full
+  // set only, as `scorer_runtimes` is.
+  repeated EvaluationProviderDataUseV1 provider_data_use = 5;
+}
+
+// #1122. Whether a provider may train on a call's inputs, as its own terms say.
+enum ProviderTrainsOnInputsV1 {
+  PROVIDER_TRAINS_ON_INPUTS_V1_UNSPECIFIED = 0;
+  PROVIDER_TRAINS_ON_INPUTS_V1_YES = 1;
+  PROVIDER_TRAINS_ON_INPUTS_V1_NO = 2;
+  // The answer turns on something this build cannot see, named by
+  // `reason_code`.
+  PROVIDER_TRAINS_ON_INPUTS_V1_UNKNOWN = 3;
+}
+
+// #1122. What a provider's model is used as.
+enum EvaluationProviderUseV1 {
+  EVALUATION_PROVIDER_USE_V1_UNSPECIFIED = 0;
+  EVALUATION_PROVIDER_USE_V1_CANDIDATE = 1;
+  EVALUATION_PROVIDER_USE_V1_TEXT_JUDGE = 2;
+  EVALUATION_PROVIDER_USE_V1_SYSTEM_ONE_JUDGE = 3;
+}
+
+// #1122. One provider's data use, read from the vendor's own page.
+message EvaluationProviderDataUseV1 {
+  ProviderNameV1 provider = 1;
+  // Absent: every model of the provider that has no entry of its own.
+  optional string model_id = 2;
+  ProviderTrainsOnInputsV1 trains_on_inputs = 3;
+  // The vendor's page the answer was read from.
+  string source_url = 4;
+  // The ISO-8601 date the page was read.
+  string checked_on = 5;
+  // Why the answer is UNKNOWN, e.g.
+  // `provider_trains_on_unbilled_keys_outside_eea_ch_uk`.
+  optional string reason_code = 6;
+  // Absent: every use. OpenRouter's entries differ by use, because a judge
+  // call tells the router no upstream that collects data may serve it.
+  optional EvaluationProviderUseV1 provider_use = 7;
 }
 
 // One language runtime a code scorer can be authored against.
@@ -1308,7 +1347,13 @@ message EvaluationBuilderModelOptionV1 {
   ProviderModelRefV1 model = 1;
   ProviderNameV1 provider = 2;
   string display_label = 3;
+  // The model as a candidate.
   CapabilityPostureV1 posture = 4;
+  // #1115. The model as a text judge and as a system-one judge. Authoring
+  // refuses only UNAVAILABLE: a DEGRADED model is authorable and not yet
+  // live-verified.
+  CapabilityPostureV1 text_judge_posture = 5;
+  CapabilityPostureV1 system_one_judge_posture = 6;
 }
 
 message EvaluationBuilderCandidateSourcesV1 {
@@ -1366,6 +1411,10 @@ message EvaluationBuilderCredentialRefV1 {
   // `credential_disabled_by_org` exactly when `enabled` is false. Absent
   // otherwise — a usable credential has no posture to report.
   optional string posture_code = 6;
+  // #1117. The Cloudflare account this credential calls under, as registered.
+  // Absent for every other provider, and for a Cloudflare credential
+  // registered before the account moved onto the credential.
+  optional string account_id = 7;
 }
 
 message EvaluationBuilderExecutionDefaultsV1 {
@@ -2060,6 +2109,14 @@ message EvaluationFrozenEvaluatorRefV1 {
   // `model_rate` is, so its quote and its calls price both steps. Absent for
   // every other judge, and for a step the registry cannot price.
   optional EvaluationModelRateV1 system_one_model_rate = 13;
+  // #1106. Resolved from `provider_execution_json` at launch, as `provider`
+  // is. UNSPECIFIED for an evaluator that is no judge, and on a ref frozen
+  // before #1106, whose `provider_execution_json` still says how it runs.
+  JudgeModeV1 judge_mode = 14;
+  // #1110. Resolved at launch from `evaluator_config_json`'s `question` and
+  // `provider_execution_json`'s `judge_id`: present exactly when the scorer is
+  // a question of a judge authored through CreateEvaluationJudge.
+  optional EvaluationJudgeQuestionRefV1 judge_question = 15;
 }
 
 // ===========================================================================
@@ -2855,10 +2912,12 @@ message ProviderUsageRecordV1 {
   // "standard".
   optional string echoed_service_tier = 10;
   // O11Y-538. Set when the provider's terms let it train on this call's inputs
-  // (DeepSeek; Meta's contributor tier). Absent for every other attempt.
+  // (DeepSeek; Meta's contributor tier; #1122: Moonshot). Absent for every
+  // other attempt.
   optional bool provider_trains_on_inputs = 11;
   // Set beside the above when the tenant recorded its acknowledgement. A
-  // DeepSeek call is refused before it is made without one.
+  // DeepSeek call is refused before it is made without one. #1115: so is a
+  // candidate call on any such model, and a judge call on one is refused.
   optional bool provider_terms_acknowledged = 12;
 }
 
@@ -2985,6 +3044,8 @@ message ExecutionMetricsV1 {
   CostBreakdownV1 cost = 3;
   LatencyMetricsV1 latency = 4;
   uint32 retry_count = 5;
+  // On EVALUATOR_EXECUTION, 0 when provider_status is NOT_APPLICABLE: a judge
+  // stopped before any call reached a provider made no call (#1132).
   uint32 attempt_count = 6;
   ProviderStatusV1 provider_status = 7;
   optional string execution_trace_id = 8;
@@ -4222,6 +4283,15 @@ message EvaluationMatrixCellV1 {
   // result yet, and on a scorer authored outside
   // `CreateEvaluationScorerConfig`.
   EvaluationScorerKindV1 scorer_kind = 16;
+  // #1106. The cell's judge's mode, read beside `scorer_kind`. UNSPECIFIED
+  // wherever `scorer_kind` is, and for every scorer that is no judge.
+  JudgeModeV1 judge_mode = 17;
+  // #1108. The judge's typed answer in about 10 B: the chosen label's or
+  // level's index, as `EvaluationJudgeAnswerV1.label_index`, and its
+  // confidence. Absent wherever that message's are, and for a result with no
+  // typed answer. The cell's evidence carries the rest.
+  optional uint32 answer_label_index = 18;
+  optional float answer_confidence = 19;
 }
 
 // #840. The first line of one candidate's output on one matrix row, so the grid
@@ -4512,6 +4582,27 @@ message EvaluationScorerEvidenceV1 {
   // (#611) Present on a code scorer's evidence: its job's result and typed
   // failure stage.
   optional EvaluationCodeScorerResultV1 code = 17;
+  // #1108. The judge's typed answer. Absent for every scorer that answered no
+  // typed question, and on an ERROR result.
+  optional EvaluationJudgeAnswerV1 judge_answer = 18;
+  // #1106. The scorer's judge mode, as on its matrix cell. UNSPECIFIED for
+  // every scorer that is no judge, and for one authored outside
+  // `CreateEvaluationScorerConfig`.
+  JudgeModeV1 judge_mode = 19;
+  // #1111. The score config whose evidence on this cell carries the judge
+  // call that also answered this scorer's question. Set when one call
+  // answered several questions and this is not the question its spend sits
+  // on: field 13 then states `judge_call_billed_on_carrier` rather than any
+  // spend, so summing field 13 over a cell counts the call once. Absent on the
+  // carrier, and on every scorer that shared no call.
+  optional string evaluator_shared_with_score_config_id = 20;
+  // #1114. A chained judge's two calls apart, which field 13 sums: its text
+  // judge's call, the sum less its step's, and its system-one step's. Both
+  // `scope = EVALUATOR_EXECUTION`. Absent on every scorer that made no step
+  // call: every other judge, a chain whose text judge failed before its step
+  // was asked, and a question whose call another carries.
+  ExecutionMetricsV1 chain_text_judge_execution = 21;
+  ExecutionMetricsV1 chain_system_one_step_execution = 22;
 }
 
 // Which plane recorded one scorer attempt.
@@ -4558,6 +4649,10 @@ message EvaluationScorerAttemptEconomicsV1 {
   // an adjudication, an attempt recorded before this build measured grading at
   // all, and a regrade that has not yet reached a provider.
   MetricAvailabilityV1 economics_availability = 6;
+  // #1114. Field 5's two calls apart, for a chained judge's attempt, as
+  // `EvaluationScorerEvidenceV1` fields 21 and 22.
+  ExecutionMetricsV1 chain_text_judge_execution = 7;
+  ExecutionMetricsV1 chain_system_one_step_execution = 8;
 }
 
 // An artifact this cell produced, as metadata. The body is a separate
@@ -6065,6 +6160,27 @@ message VoidEvaluationOrgNegotiatedRateResponse {
   AgenticEvaluationCapabilitiesV1 capabilities = 3;
 }
 
+// #1123. An empty filter matches every row; two filters match a row both match.
+message ListEvaluationModelRatesRequest {
+  repeated ProviderNameV1 providers = 1;
+  // Wire model ids, matched exactly.
+  repeated string model_ids = 2;
+}
+
+// The checked-in registry as a preview reads it now. `pricing_source.model_rates`
+// holds one row per matching model, with `candidate_key` empty, composed as a
+// quote at this instant composes it; the version, date, digest, age, staleness,
+// threshold and provenance are the whole registry's. Org negotiated rates are
+// not folded in: `ListEvaluationOrgNegotiatedRates` serves them.
+//
+// A row is the model's rate for every use. A system-one call bills no output
+// (#1000), so a client quoting a system-one judge prices input alone, even on
+// `gpt-6-luna`, whose row carries its text output rate.
+message ListEvaluationModelRatesResponse {
+  EvaluationPricingSourceV1 pricing_source = 1;
+  AgenticEvaluationCapabilitiesV1 capabilities = 2;
+}
+
 // ===========================================================================
 // Score series as a platform signal
 //
@@ -6606,6 +6722,11 @@ message EvaluationProviderCredentialV1 {
   // switch event ledger, not these fields.
   optional google.protobuf.Timestamp disabled_at = 8;
   optional string disabled_reason = 9;
+  // #1117. The Cloudflare account this credential calls under, as registered.
+  // An identifier, not a secret. Absent for every other provider, and for a
+  // Cloudflare credential registered before the account moved onto the
+  // credential.
+  optional string account_id = 10;
 }
 
 enum EvaluationProviderCredentialRejectionKindV1 {
@@ -6617,6 +6738,12 @@ enum EvaluationProviderCredentialRejectionKindV1 {
   // The provider is unspecified or is not a kind this build mints credentials
   // for. Refused before anything is written.
   EVALUATION_PROVIDER_CREDENTIAL_REJECTION_KIND_V1_INVALID_PROVIDER = 3;
+  // #1117. `account_id` is wrong for this provider: absent on a Cloudflare
+  // credential (`provider_account_id_required`), not 32 letters or digits
+  // (`provider_account_id_malformed`), or sent for a provider that has no
+  // account (`provider_account_id_not_applicable`). Its own kind so a form can
+  // put the error on the account field.
+  EVALUATION_PROVIDER_CREDENTIAL_REJECTION_KIND_V1_INVALID_ACCOUNT = 4;
 }
 
 message EvaluationProviderCredentialRejectionV1 {
@@ -6645,6 +6772,11 @@ message RegisterEvaluationProviderCredentialRequest {
   string key_material = 3;
   bool is_default = 4;
   string idempotency_key = 5;
+  // #1117. The Cloudflare account the key calls Workers AI under: 32 letters or
+  // digits, as the Cloudflare dashboard shows it. Required for a Cloudflare
+  // credential and refused for any other provider. Fixed for the credential's
+  // life; another account is another credential.
+  optional string account_id = 6;
 }
 
 message RegisterEvaluationProviderCredentialResponse {
@@ -6811,13 +6943,19 @@ message EvaluationScorerConfigV1 {
 enum EvaluationScorerConfigRejectionKindV1 {
   EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_UNSPECIFIED = 0;
   // The config key is taken by a scorer this org cannot revise through this
-  // verb (one authored outside it).
+  // verb (one authored outside it). #1110: or by a judge's question, or, on
+  // CreateEvaluationJudge, a question's key is held by a scorer that is not
+  // that judge's.
   EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_DUPLICATE_CONFIG_KEY = 1;
   // A run's frozen manifest pins this configuration. Revising it would change
   // what a launched run is measuring, so it is refused and the runs are named.
   EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_PINNED_BY_RUN = 2;
   // `kind` and the spec block disagree: a deterministic scorer with a review
   // policy, a human scorer with an evaluator, or a kind with neither.
+  //
+  // #1110: also an LLM_JUDGE sent to CreateEvaluationScorerConfig, and a
+  // judge's question sent to ArchiveEvaluationScorerConfig. A judge is
+  // authored and archived through its own verbs.
   EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_KIND_SPEC_MISMATCH = 3;
   // The evaluator is unspecified, or names a comparison this build does not
   // retain.
@@ -6844,6 +6982,10 @@ enum EvaluationScorerConfigRejectionKindV1 {
   // pin, and the template has changed since the client read it. Refused rather
   // than copied, so "copy from the template as you last saw it" is a keepable
   // promise.
+  //
+  // #1110: no longer returned. A judge carries its own rubric through
+  // CreateEvaluationJudge, and CreateEvaluationScorerConfig refuses a judge
+  // before it reads any template.
   EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_JUDGE_TEMPLATE_MOVED = 8;
   // The evaluator's config block cannot run as written: absent for a built-in
   // that needs one, present on an evaluator that takes none, belonging to
@@ -6865,6 +7007,10 @@ enum EvaluationScorerConfigRejectionKindV1 {
   // (#611) A preview input or a smoke input the sandbox would refuse, or a
   // publish without 1 to 3 smoke inputs. `reason_code` says which.
   EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_CODE_INPUT_INVALID = 13;
+  // #1110. CreateEvaluationJudge's `expected_version_discriminator` is not the
+  // judge's current version, or names a judge that does not exist. Re-read it
+  // with GetEvaluationJudge and author against what it says now.
+  EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_JUDGE_VERSION_MOVED = 14;
 }
 
 message EvaluationScorerConfigRejectionV1 {
@@ -6894,6 +7040,10 @@ message EvaluationScorerConfigRejectionV1 {
   // named, so a client can render the refusal against the same provider cell
   // the capability set already published a posture for.
   optional ProviderNameV1 judge_provider = 10;
+  // #1110. The question a CreateEvaluationJudge refusal is about, as sent:
+  // present exactly when one question failed, or its config key was taken,
+  // and on ArchiveEvaluationScorerConfig's `scorer_config_belongs_to_judge`.
+  optional string question_key = 11;
 }
 
 // ---- judge authoring ----
@@ -6960,7 +7110,9 @@ message EvaluationScorerJudgeTemplateRefV1 {
 // #1004. How a judge reaches its verdict: a mode of the one judge kind, stored
 // and frozen with the rest of its provider execution.
 enum JudgeModeV1 {
-  // The text judge: the model answers in the verdict JSON contract.
+  // #1106. Refused JUDGE_SPEC_INVALID `judge_mode_unspecified`: every judge
+  // states its mode. A judge authored or frozen before #1106 names none, and
+  // still runs as a TEXT judge.
   JUDGE_MODE_V1_UNSPECIFIED = 0;
   // A system-one model answers one typed question built from the rubric: a
   // choice over the verdict mapping labels, or a yes/no when there are none.
@@ -6972,6 +7124,46 @@ enum JudgeModeV1 {
   // asks the question SYSTEM_ONE would, under the same single-mapping rule.
   // The text judge's answer need not parse: the second answer is the verdict.
   JUDGE_MODE_V1_TEXT_THEN_SYSTEM_ONE = 2;
+  // #1106. The text judge: the model answers in the verdict JSON contract.
+  JUDGE_MODE_V1_TEXT = 3;
+}
+
+// #1108. What a judge's question asks for.
+enum JudgeAnswerKindV1 {
+  JUDGE_ANSWER_KIND_V1_UNSPECIFIED = 0;
+  // The probability that the question holds.
+  JUDGE_ANSWER_KIND_V1_YES_NO = 1;
+  // One of the question's labels.
+  JUDGE_ANSWER_KIND_V1_CHOICE = 2;
+  // One of the question's levels, lowest first.
+  JUDGE_ANSWER_KIND_V1_SCALE = 3;
+}
+
+// #1108. What a judge answered on one cell, kept as numbers. The labels are
+// the frozen scorer config's: no model text is stored or served.
+message EvaluationJudgeAnswerV1 {
+  JudgeAnswerKindV1 kind = 1;
+  // The chosen label or level, 0-based into `option_labels`. Absent for
+  // YES_NO, and for a SCALE whose vendor sent no probabilities, whose most
+  // probable level is then unknown.
+  optional uint32 label_index = 2;
+  // `option_labels[label_index]`. Absent with `label_index`, and for a run
+  // frozen without its scorer's config.
+  optional string label = 3;
+  // One per entry of `option_labels`, in its order, or [p(yes)] for YES_NO.
+  repeated float probabilities = 4;
+  // AVAILABLE when `probabilities` holds the vendor's. NOT_OBSERVED
+  // `vendor_sent_no_probabilities` for a Jev or Clef answer that carried
+  // none, and NOT_SUPPORTED `text_judge_states_no_probabilities` for a text
+  // judge's label.
+  MetricAvailabilityV1 probabilities_availability = 5;
+  // The probability the judge gave the answer it returned: max(p, 1 - p) for
+  // YES_NO, else `probabilities[label_index]`, else the vendor's own
+  // confidence. Absent for a text judge's label.
+  optional float confidence = 6;
+  // The labels of a CHOICE or the levels of a SCALE, in the order the
+  // question offered them, from the frozen scorer config. Empty for YES_NO.
+  repeated string option_labels = 7;
 }
 
 // #1005. The system-one model a TEXT_THEN_SYSTEM_ONE judge hands its text
@@ -6982,8 +7174,7 @@ message SystemOneStepV1 {
   ProviderModelRefV1 model = 1;
   // Credential BY REFERENCE, as `credential_ref` on the judge.
   string credential_ref = 2;
-  // As `provider_endpoint_ref` on the judge. Cloudflare requires its
-  // account's `…/ai/run`.
+  // As `provider_endpoint_ref` on the judge.
   optional string provider_endpoint_ref = 3;
 }
 
@@ -7008,18 +7199,22 @@ message EvaluationScorerJudgeProviderExecutionV1 {
   // Base URL of a gateway this judge is proxied through. Absent means the
   // provider's own public base. Same name and same semantics as
   // `ProviderPromptCandidateV1.provider_endpoint_ref`, because it is the same
-  // knob.
+  // knob. #1118: for Cloudflare, absent means the credential's account's
+  // `…/ai/run`, and the judge is refused JUDGE_SPEC_INVALID
+  // `provider_credential_account_absent` when the credential has no account;
+  // one that is given must be an account's `…/ai/run`.
   optional string provider_endpoint_ref = 4;
   // Whether the judge is asked to reason before answering. UNSPECIFIED and
   // NONE both leave reasoning off, which is the executor's own default: a
   // reasoning budget the manifest did not freeze is spend the customer did not
   // authorise.
   ProviderReasoningEffortV1 reasoning_effort = 5;
-  // #1004. UNSPECIFIED is the text judge, which every judge authored before
-  // this field is. SYSTEM_ONE needs a model with a system-one wire, or the spec
-  // is refused JUDGE_SPEC_INVALID; it is also what admits a decision-only
-  // provider, whose cell is DEGRADED for every text call. A system-one judge
-  // sends no reasoning effort or output budget.
+  // #1004. #1106: REQUIRED, and UNSPECIFIED is refused; TEXT is the text
+  // judge, which every judge authored before this field is. SYSTEM_ONE needs a
+  // model with a system-one wire, or the spec is refused JUDGE_SPEC_INVALID; it
+  // is also what admits a decision-only provider, whose cell is DEGRADED for
+  // every text call. A system-one judge sends no reasoning effort or output
+  // budget.
   JudgeModeV1 judge_mode = 6;
   // #1005. Required for TEXT_THEN_SYSTEM_ONE and refused for every other
   // mode, each JUDGE_SPEC_INVALID. The fields above stay the text judge, so a
@@ -7067,7 +7262,11 @@ message CreateEvaluationScorerConfigRequest {
   optional EvaluationScorerReviewPolicySpecV1 review_policy = 10;
   string idempotency_key = 11;
   // Present exactly when `kind` is LLM_JUDGE.
-  optional EvaluationScorerJudgeSpecV1 judge = 12;
+  //
+  // #1110: an LLM_JUDGE is refused KIND_SPEC_MISMATCH
+  // `judge_authored_through_create_evaluation_judge`; author it through
+  // CreateEvaluationJudge. Kept, deprecated, so the wire does not break.
+  optional EvaluationScorerJudgeSpecV1 judge = 12 [deprecated = true];
   // (#611) Present exactly when `kind` is CODE.
   optional EvaluationScorerCodeSpecV1 code = 13;
 }
@@ -7077,6 +7276,195 @@ message CreateEvaluationScorerConfigResponse {
   bool idempotent_replay = 2;
   AgenticEvaluationCapabilitiesV1 capabilities = 3;
 }
+
+// ---- a judge and its typed questions (#1110) ----
+//
+// A judge asks 1 to 16 typed questions in one call, and each question is its
+// own score configuration: its own metric, threshold, weight, gate and unsure
+// line. Everything downstream already keys on `score_config_id`, so a question
+// is a scorer to the matrix, the gates, the exports, the regrade and the
+// freeze. A question's config key is `{judge_key}.{question_key}`.
+
+// One label a CHOICE question offers, and what choosing it scores.
+message EvaluationJudgeLabelV1 {
+  // 1 to `max_judge_label_bytes`, unique within its question.
+  string label = 1;
+  // What the label means, shown to a system-one model beside it; a text
+  // judge is shown each label with its score. At most
+  // `max_judge_question_instructions_bytes`.
+  optional string description = 2;
+  // Finite, in the closed unit interval.
+  double score = 3;
+}
+
+// One question, as authored.
+message EvaluationJudgeQuestionSpecV1 {
+  // `[a-z0-9_]{1,40}`, unique within the judge: the name the question is asked
+  // under on the wire.
+  string question_key = 1;
+  string name = 2;
+  string metric_name = 3;
+  string success_dimension = 4;
+  JudgeAnswerKindV1 answer_kind = 5;
+  // What the question asks, 1 to `max_judge_question_instructions_bytes`.
+  string instructions = 6;
+  // CHOICE only, `min_choice_labels` to `max_verdict_mappings`.
+  repeated EvaluationJudgeLabelV1 labels = 7;
+  // SCALE only, lowest first, `min_scale_levels` to `max_scale_levels`, each
+  // 1 to `max_judge_label_bytes`. A scale scores its expected level over its
+  // top level.
+  repeated string scale_levels = 8;
+  // Absent keeps this build's default of 1.0.
+  optional double pass_threshold = 9;
+  optional double weight = 10;
+  bool is_blocking_gate = 11;
+  // An answer whose confidence is below this line is held for a person. A
+  // SYSTEM_ONE or TEXT_THEN_SYSTEM_ONE judge only: a text judge states no
+  // confidence. Stored and validated now; no answer is held on it yet.
+  optional float review_below_confidence = 12;
+}
+
+// Everything a judge is authored with: the one call every question shares,
+// and the questions.
+message EvaluationJudgeSpecV1 {
+  // As on `EvaluationScorerJudgeProviderExecutionV1`, and refused the same
+  // way: UNSPECIFIED, a model no system-one wire serves for SYSTEM_ONE, and a
+  // step on any mode but TEXT_THEN_SYSTEM_ONE.
+  JudgeModeV1 judge_mode = 1;
+  ProviderModelRefV1 model = 2;
+  string credential_ref = 3;
+  optional string provider_endpoint_ref = 4;
+  // The text call's only: a system-one call sends neither.
+  optional ProviderRequestSettingsV1 request_settings = 5;
+  ProviderReasoningEffortV1 reasoning_effort = 6;
+  // TEXT_THEN_SYSTEM_ONE only.
+  SystemOneStepV1 system_one = 7;
+  // What the judge grades, at most `max_rubric_bytes`.
+  string rubric = 8;
+  // The text judge's system instructions. Refused on a SYSTEM_ONE judge,
+  // whose call sends none.
+  optional string instructions = 9;
+  optional string subject_path = 10;
+  // 1 to `max_judge_questions`, in the order they are asked. A TEXT judge asks
+  // exactly one, YES_NO or CHOICE.
+  repeated EvaluationJudgeQuestionSpecV1 questions = 11;
+}
+
+// One question of a judge, with the score configuration that keeps its
+// answers.
+message EvaluationJudgeMemberV1 {
+  EvaluationJudgeQuestionSpecV1 question = 1;
+  string score_config_id = 2;
+  // `{judge_key}.{question_key}`.
+  string config_key = 3;
+  // 0-based, in the order the judge asks its questions.
+  uint32 ordinal = 4;
+  // The configuration's own `v{n}`, as `EvaluationScorerConfigV1` carries it.
+  string version_discriminator = 5;
+}
+
+// One judge, read back whole from its current version.
+message EvaluationJudgeV1 {
+  string judge_id = 1;
+  string judge_key = 2;
+  string name = 3;
+  optional string description = 4;
+  // `v0` on first authorship and `v{n+1}` on each revision: what
+  // `expected_version_discriminator` is compared with.
+  string version_discriminator = 5;
+  JudgeModeV1 judge_mode = 6;
+  // The call every question shares, as it will execute, read from the
+  // members' template as `EvaluationScorerJudgeDetailV1` reads it: the
+  // provider, model id, credential, endpoint, whether it reasons, its
+  // effective request settings and a chain's step. Not the typed request,
+  // whose reasoning level and settings are stored as less than were sent.
+  EvaluationScorerJudgeResolvedExecutionV1 execution = 7;
+  string rubric = 8;
+  optional string instructions = 9;
+  optional string subject_path = 10;
+  // The questions the current version asks, in ordinal order. A question
+  // dropped by a revision is archived and no longer listed.
+  repeated EvaluationJudgeMemberV1 members = 11;
+  // An archived judge's members are archived with it. Authoring it again
+  // revives it.
+  bool is_archived = 12;
+  optional google.protobuf.Timestamp archived_at = 13;
+  google.protobuf.Timestamp created_at = 14;
+  google.protobuf.Timestamp updated_at = 15;
+  // A user, as on `EvaluationScorerConfigSummaryV1.created_by`.
+  optional PrincipalRefV1 created_by = 16;
+}
+
+// Which question of which judge a score configuration is, as a library row,
+// its detail and a frozen ref carry it.
+message EvaluationJudgeQuestionRefV1 {
+  string judge_id = 1;
+  string question_key = 2;
+  uint32 ordinal = 3;
+  JudgeAnswerKindV1 answer_kind = 4;
+}
+
+// What one question asks, as the template of one version holds it.
+message EvaluationJudgeQuestionV1 {
+  string question_key = 1;
+  uint32 ordinal = 2;
+  JudgeAnswerKindV1 answer_kind = 3;
+  string instructions = 4;
+  repeated EvaluationJudgeLabelV1 labels = 5;
+  repeated string scale_levels = 6;
+  optional float review_below_confidence = 7;
+}
+
+message CreateEvaluationJudgeRequest {
+  // 1 to `max_judge_key_bytes`. Authoring an existing key revises that judge:
+  // every question is re-minted at the next version, a dropped one is
+  // archived, and a run that pinned any of them refuses the whole judge.
+  string judge_key = 1;
+  string name = 2;
+  optional string description = 3;
+  EvaluationJudgeSpecV1 spec = 4;
+  string idempotency_key = 5;
+  // The `version_discriminator` the caller last read. Present and not the
+  // judge's current version, or naming a judge that does not exist, is
+  // refused JUDGE_VERSION_MOVED. Absent authors over whatever is there.
+  optional string expected_version_discriminator = 6;
+}
+
+message CreateEvaluationJudgeResponse {
+  EvaluationJudgeV1 judge = 1;
+  bool idempotent_replay = 2;
+  AgenticEvaluationCapabilitiesV1 capabilities = 3;
+}
+
+message GetEvaluationJudgeRequest {
+  oneof identity {
+    string judge_id = 1;
+    string judge_key = 2;
+  }
+}
+
+message GetEvaluationJudgeResponse {
+  EvaluationJudgeV1 judge = 1;
+  EvaluationFreshnessV1 freshness = 2;
+  AgenticEvaluationCapabilitiesV1 capabilities = 3;
+}
+
+message ArchiveEvaluationJudgeRequest {
+  oneof identity {
+    string judge_id = 1;
+    string judge_key = 2;
+  }
+}
+
+message ArchiveEvaluationJudgeResponse {
+  EvaluationJudgeV1 judge = 1;
+  // TRUE when it was already archived. Not an error, as on
+  // `ArchiveEvaluationScorerConfigResponse`.
+  bool already_archived = 2;
+  AgenticEvaluationCapabilitiesV1 capabilities = 3;
+}
+
+// ---- end of a judge and its typed questions ----
 
 // #618. A deterministic spec run once on a sample, nothing stored. The spec
 // compiles as publication compiles it, so a spec publication would refuse is
@@ -8912,6 +9300,13 @@ service AgenticEvaluationService {
   // draft.
   rpc RegisterEvaluationProviderCredential(RegisterEvaluationProviderCredentialRequest) returns (RegisterEvaluationProviderCredentialResponse);
   rpc CreateEvaluationScorerConfig(CreateEvaluationScorerConfigRequest) returns (CreateEvaluationScorerConfigResponse);
+  // #1110. A judge that asks 1 to 16 typed questions in one call, each its own
+  // score configuration. Authoring an existing key revises it in one
+  // transaction, refused whole when a run pinned any question; archiving it
+  // archives every question.
+  rpc CreateEvaluationJudge(CreateEvaluationJudgeRequest) returns (CreateEvaluationJudgeResponse);
+  rpc GetEvaluationJudge(GetEvaluationJudgeRequest) returns (GetEvaluationJudgeResponse);
+  rpc ArchiveEvaluationJudge(ArchiveEvaluationJudgeRequest) returns (ArchiveEvaluationJudgeResponse);
   // #618. A deterministic scorer spec run on one sample through the real
   // compile and scoring path. Stores nothing.
   rpc PreviewEvaluationScorer(PreviewEvaluationScorerRequest) returns (PreviewEvaluationScorerResponse);
@@ -9266,6 +9661,11 @@ service AgenticEvaluationService {
   // There is no unarchive verb and no idempotency key: a monotone state flip is
   // replayable by construction, and `already_archived` rides back on the
   // response rather than being an error.
+  //
+  // #1110: the one refusal is a question its judge still asks,
+  // KIND_SPEC_MISMATCH `scorer_config_belongs_to_judge`, since the judge would
+  // revive it on its next revision; ArchiveEvaluationJudge archives every
+  // question. One a revision dropped is already archived and answers so.
   rpc ArchiveEvaluationScorerConfig(ArchiveEvaluationScorerConfigRequest) returns (ArchiveEvaluationScorerConfigResponse);
 
   // `MUTATION_ACK`. Same semantics, and NO launched-run refusal: a launched run
@@ -9336,6 +9736,10 @@ service AgenticEvaluationService {
   // admins; a viewer is refused PERMISSION_DENIED.
   rpc GetEvaluationScorerSourceSnapshot(GetEvaluationScorerSourceSnapshotRequest)
       returns (GetEvaluationScorerSourceSnapshotResponse);
+  // #1123. The rate registry's rows and its freshness, for a picker's prices
+  // and a scorer's per-call estimate. Reads the build's registry and stores
+  // nothing.
+  rpc ListEvaluationModelRates(ListEvaluationModelRatesRequest) returns (ListEvaluationModelRatesResponse);
 }
 
 // ===========================================================================
@@ -14083,6 +14487,12 @@ message EvaluationScorerConfigSummaryV1 {
   // (#611) Present exactly when `kind` is CODE, read from the same row, so the
   // library shows a publication with no read per scorer.
   optional EvaluationScorerCodeSummaryV1 code = 19;
+  // #1106. A judge's mode, read from the authoring record. UNSPECIFIED exactly
+  // when `kind` is not LLM_JUDGE.
+  JudgeModeV1 judge_mode = 20;
+  // #1110. Present exactly when the scorer is a question of a judge: read from
+  // the authoring record, so a library can group a judge's questions.
+  optional EvaluationJudgeQuestionRefV1 judge_question = 21;
   // NOTE — there is deliberately no `updated_by`. The authoring record carries
   // `updated_at` and no updater column, and inventing one from `created_by`
   // would attribute a revision to whoever authored `v0`.
@@ -14114,11 +14524,16 @@ message ListEvaluationScorerConfigsResponse {
 // NOT `ProviderRequestSettingsV1`. That message has twenty-eight fields and a
 // judge stores four of them; a four-field message named *effective* says what
 // is true: these are what the judge will be called with.
+//
+// #1110: O11Y-592's `seed` is stored too, so it is the fifth.
 message EvaluationScorerJudgeEffectiveSettingsV1 {
   optional uint32 max_output_tokens = 1;
   optional double temperature = 2;
   optional double top_p = 3;
   optional string anthropic_version = 4;
+  // #1110. Sent only by the adapters that take one, as on
+  // `ProviderRequestSettingsV1.seed`; served so a revision does not drop it.
+  optional uint32 seed = 5;
 }
 
 // What will actually execute, resolved.
@@ -14127,8 +14542,8 @@ message EvaluationScorerJudgeEffectiveSettingsV1 {
 // `ProviderModelRefV1` the caller SENT. This is the provider execution the run
 // will use, as resolved at attempt time.
 //
-// Except the judge mode, which is not rendered: a TEXT_THEN_SYSTEM_ONE judge
-// (#1005) shows its text judge here, and not the system-one step it also calls.
+// A TEXT_THEN_SYSTEM_ONE judge (#1005) shows its text judge in fields 1-6 and
+// the system-one step it also calls in `system_one` (#1106).
 message EvaluationScorerJudgeResolvedExecutionV1 {
   ProviderNameV1 provider = 1;
   // The resolved catalog model id, as the executor reads it.
@@ -14143,6 +14558,21 @@ message EvaluationScorerJudgeResolvedExecutionV1 {
   // steps here would invent four states no row ever held.
   bool reasoning_enabled = 5;
   optional EvaluationScorerJudgeEffectiveSettingsV1 effective_request_settings = 6;
+  // #1106. The mode the judge names. TEXT for a judge authored before #1106,
+  // which names none; UNSPECIFIED only for a mode this build does not run.
+  JudgeModeV1 judge_mode = 7;
+  // #1106. Present exactly when `judge_mode` is TEXT_THEN_SYSTEM_ONE.
+  optional EvaluationScorerJudgeResolvedStepV1 system_one = 8;
+}
+
+// #1106. A chain's system-one step as it will execute, resolved as the
+// executor resolves it.
+message EvaluationScorerJudgeResolvedStepV1 {
+  ProviderNameV1 provider = 1;
+  string model_id = 2;
+  // BY REFERENCE, as on the judge.
+  string credential_ref = 3;
+  optional string provider_endpoint_ref = 4;
 }
 
 // A judge's authored content, WHOLE.
@@ -14163,6 +14593,9 @@ message EvaluationScorerJudgeDetailV1 {
   // revision path updates it in place, so only the current version's is
   // knowable. See `EvaluationScorerConfigVersionV1`.
   optional double pass_threshold = 3;
+  // #1110. What this version's question asks, read from its template's
+  // `question`. Absent for a judge that is no judge's question.
+  optional EvaluationJudgeQuestionV1 question = 4;
 }
 
 // One authored scorer, whole.
@@ -14228,6 +14661,14 @@ message EvaluationScorerConfigDetailV1 {
   // one can run. A historic version's source reads through
   // GetEvaluationScorerSourceSnapshot, and its digest through the version list.
   optional EvaluationScorerCodeConfigV1 code = 26;
+  // #1106. The mode THIS version's template names, as
+  // `judge.provider_execution.judge_mode` does. UNSPECIFIED when that template
+  // is no judge; a judge authored outside `CreateEvaluationScorerConfig` reads
+  // TEXT here while its `kind` and its summary's `judge_mode` are UNSPECIFIED.
+  JudgeModeV1 judge_mode = 27;
+  // #1110. Which question of which judge THIS version's template asks, as
+  // `judge_mode` is read. Absent when that template is no judge's question.
+  optional EvaluationJudgeQuestionRefV1 judge_question = 28;
 }
 
 // Who depends on this scorer.

@@ -152,6 +152,15 @@ class AgenticEvaluationService(Protocol):
     async def create_evaluation_scorer_config(self, request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.CreateEvaluationScorerConfigRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.CreateEvaluationScorerConfigResponse:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
+    async def create_evaluation_judge(self, request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.CreateEvaluationJudgeRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.CreateEvaluationJudgeResponse:
+        raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
+
+    async def get_evaluation_judge(self, request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.GetEvaluationJudgeRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.GetEvaluationJudgeResponse:
+        raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
+
+    async def archive_evaluation_judge(self, request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.ArchiveEvaluationJudgeRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.ArchiveEvaluationJudgeResponse:
+        raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
+
     async def preview_evaluation_scorer(self, request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.PreviewEvaluationScorerRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.PreviewEvaluationScorerResponse:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
@@ -441,6 +450,9 @@ class AgenticEvaluationService(Protocol):
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
     async def get_evaluation_scorer_source_snapshot(self, request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.GetEvaluationScorerSourceSnapshotRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.GetEvaluationScorerSourceSnapshotResponse:
+        raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
+
+    async def list_evaluation_model_rates(self, request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.ListEvaluationModelRatesRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.ListEvaluationModelRatesResponse:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
 
@@ -898,6 +910,36 @@ class AgenticEvaluationServiceASGIApplication(ConnectASGIApplication[AgenticEval
                         idempotency_level=IdempotencyLevel.UNKNOWN,
                     ),
                     function=svc.create_evaluation_scorer_config,
+                ),
+                "/o11y_one.agentic.v1.AgenticEvaluationService/CreateEvaluationJudge": Endpoint.unary(
+                    method=MethodInfo(
+                        name="CreateEvaluationJudge",
+                        service_name="o11y_one.agentic.v1.AgenticEvaluationService",
+                        input=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.CreateEvaluationJudgeRequest,
+                        output=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.CreateEvaluationJudgeResponse,
+                        idempotency_level=IdempotencyLevel.UNKNOWN,
+                    ),
+                    function=svc.create_evaluation_judge,
+                ),
+                "/o11y_one.agentic.v1.AgenticEvaluationService/GetEvaluationJudge": Endpoint.unary(
+                    method=MethodInfo(
+                        name="GetEvaluationJudge",
+                        service_name="o11y_one.agentic.v1.AgenticEvaluationService",
+                        input=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.GetEvaluationJudgeRequest,
+                        output=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.GetEvaluationJudgeResponse,
+                        idempotency_level=IdempotencyLevel.UNKNOWN,
+                    ),
+                    function=svc.get_evaluation_judge,
+                ),
+                "/o11y_one.agentic.v1.AgenticEvaluationService/ArchiveEvaluationJudge": Endpoint.unary(
+                    method=MethodInfo(
+                        name="ArchiveEvaluationJudge",
+                        service_name="o11y_one.agentic.v1.AgenticEvaluationService",
+                        input=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.ArchiveEvaluationJudgeRequest,
+                        output=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.ArchiveEvaluationJudgeResponse,
+                        idempotency_level=IdempotencyLevel.UNKNOWN,
+                    ),
+                    function=svc.archive_evaluation_judge,
                 ),
                 "/o11y_one.agentic.v1.AgenticEvaluationService/PreviewEvaluationScorer": Endpoint.unary(
                     method=MethodInfo(
@@ -1869,6 +1911,16 @@ class AgenticEvaluationServiceASGIApplication(ConnectASGIApplication[AgenticEval
                     ),
                     function=svc.get_evaluation_scorer_source_snapshot,
                 ),
+                "/o11y_one.agentic.v1.AgenticEvaluationService/ListEvaluationModelRates": Endpoint.unary(
+                    method=MethodInfo(
+                        name="ListEvaluationModelRates",
+                        service_name="o11y_one.agentic.v1.AgenticEvaluationService",
+                        input=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.ListEvaluationModelRatesRequest,
+                        output=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.ListEvaluationModelRatesResponse,
+                        idempotency_level=IdempotencyLevel.UNKNOWN,
+                    ),
+                    function=svc.list_evaluation_model_rates,
+                ),
             },
             interceptors=interceptors,
             read_max_bytes=read_max_bytes,
@@ -2776,6 +2828,66 @@ class AgenticEvaluationServiceClient(ConnectClient):
                 service_name="o11y_one.agentic.v1.AgenticEvaluationService",
                 input=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.CreateEvaluationScorerConfigRequest,
                 output=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.CreateEvaluationScorerConfigResponse,
+                idempotency_level=IdempotencyLevel.UNKNOWN,
+            ),
+            headers=headers,
+            timeout_ms=timeout_ms,
+        )
+
+    async def create_evaluation_judge(
+        self,
+        request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.CreateEvaluationJudgeRequest,
+        *,
+        headers: Headers | Mapping[str, str] | None = None,
+        timeout_ms: int | None = None,
+    ) -> o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.CreateEvaluationJudgeResponse:
+        return await self.execute_unary(
+            request=request,
+            method=MethodInfo(
+                name="CreateEvaluationJudge",
+                service_name="o11y_one.agentic.v1.AgenticEvaluationService",
+                input=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.CreateEvaluationJudgeRequest,
+                output=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.CreateEvaluationJudgeResponse,
+                idempotency_level=IdempotencyLevel.UNKNOWN,
+            ),
+            headers=headers,
+            timeout_ms=timeout_ms,
+        )
+
+    async def get_evaluation_judge(
+        self,
+        request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.GetEvaluationJudgeRequest,
+        *,
+        headers: Headers | Mapping[str, str] | None = None,
+        timeout_ms: int | None = None,
+    ) -> o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.GetEvaluationJudgeResponse:
+        return await self.execute_unary(
+            request=request,
+            method=MethodInfo(
+                name="GetEvaluationJudge",
+                service_name="o11y_one.agentic.v1.AgenticEvaluationService",
+                input=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.GetEvaluationJudgeRequest,
+                output=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.GetEvaluationJudgeResponse,
+                idempotency_level=IdempotencyLevel.UNKNOWN,
+            ),
+            headers=headers,
+            timeout_ms=timeout_ms,
+        )
+
+    async def archive_evaluation_judge(
+        self,
+        request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.ArchiveEvaluationJudgeRequest,
+        *,
+        headers: Headers | Mapping[str, str] | None = None,
+        timeout_ms: int | None = None,
+    ) -> o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.ArchiveEvaluationJudgeResponse:
+        return await self.execute_unary(
+            request=request,
+            method=MethodInfo(
+                name="ArchiveEvaluationJudge",
+                service_name="o11y_one.agentic.v1.AgenticEvaluationService",
+                input=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.ArchiveEvaluationJudgeRequest,
+                output=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.ArchiveEvaluationJudgeResponse,
                 idempotency_level=IdempotencyLevel.UNKNOWN,
             ),
             headers=headers,
@@ -4722,6 +4834,26 @@ class AgenticEvaluationServiceClient(ConnectClient):
             timeout_ms=timeout_ms,
         )
 
+    async def list_evaluation_model_rates(
+        self,
+        request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.ListEvaluationModelRatesRequest,
+        *,
+        headers: Headers | Mapping[str, str] | None = None,
+        timeout_ms: int | None = None,
+    ) -> o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.ListEvaluationModelRatesResponse:
+        return await self.execute_unary(
+            request=request,
+            method=MethodInfo(
+                name="ListEvaluationModelRates",
+                service_name="o11y_one.agentic.v1.AgenticEvaluationService",
+                input=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.ListEvaluationModelRatesRequest,
+                output=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.ListEvaluationModelRatesResponse,
+                idempotency_level=IdempotencyLevel.UNKNOWN,
+            ),
+            headers=headers,
+            timeout_ms=timeout_ms,
+        )
+
 
 class AgenticEvaluationServiceSync(Protocol):
     def create_evaluation_definition(self, request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.CreateEvaluationDefinitionRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.CreateEvaluationDefinitionResponse:
@@ -4813,6 +4945,12 @@ class AgenticEvaluationServiceSync(Protocol):
     def register_evaluation_provider_credential(self, request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.RegisterEvaluationProviderCredentialRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.RegisterEvaluationProviderCredentialResponse:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
     def create_evaluation_scorer_config(self, request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.CreateEvaluationScorerConfigRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.CreateEvaluationScorerConfigResponse:
+        raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
+    def create_evaluation_judge(self, request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.CreateEvaluationJudgeRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.CreateEvaluationJudgeResponse:
+        raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
+    def get_evaluation_judge(self, request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.GetEvaluationJudgeRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.GetEvaluationJudgeResponse:
+        raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
+    def archive_evaluation_judge(self, request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.ArchiveEvaluationJudgeRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.ArchiveEvaluationJudgeResponse:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
     def preview_evaluation_scorer(self, request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.PreviewEvaluationScorerRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.PreviewEvaluationScorerResponse:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
@@ -5007,6 +5145,8 @@ class AgenticEvaluationServiceSync(Protocol):
     def get_loop_overage_cap(self, request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.GetLoopOverageCapRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.GetLoopOverageCapResponse:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
     def get_evaluation_scorer_source_snapshot(self, request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.GetEvaluationScorerSourceSnapshotRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.GetEvaluationScorerSourceSnapshotResponse:
+        raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
+    def list_evaluation_model_rates(self, request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.ListEvaluationModelRatesRequest, ctx: RequestContext) -> o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.ListEvaluationModelRatesResponse:
         raise ConnectError(Code.UNIMPLEMENTED, "Not implemented")
 
 
@@ -5463,6 +5603,36 @@ class AgenticEvaluationServiceWSGIApplication(ConnectWSGIApplication):
                         idempotency_level=IdempotencyLevel.UNKNOWN,
                     ),
                     function=service.create_evaluation_scorer_config,
+                ),
+                "/o11y_one.agentic.v1.AgenticEvaluationService/CreateEvaluationJudge": EndpointSync.unary(
+                    method=MethodInfo(
+                        name="CreateEvaluationJudge",
+                        service_name="o11y_one.agentic.v1.AgenticEvaluationService",
+                        input=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.CreateEvaluationJudgeRequest,
+                        output=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.CreateEvaluationJudgeResponse,
+                        idempotency_level=IdempotencyLevel.UNKNOWN,
+                    ),
+                    function=service.create_evaluation_judge,
+                ),
+                "/o11y_one.agentic.v1.AgenticEvaluationService/GetEvaluationJudge": EndpointSync.unary(
+                    method=MethodInfo(
+                        name="GetEvaluationJudge",
+                        service_name="o11y_one.agentic.v1.AgenticEvaluationService",
+                        input=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.GetEvaluationJudgeRequest,
+                        output=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.GetEvaluationJudgeResponse,
+                        idempotency_level=IdempotencyLevel.UNKNOWN,
+                    ),
+                    function=service.get_evaluation_judge,
+                ),
+                "/o11y_one.agentic.v1.AgenticEvaluationService/ArchiveEvaluationJudge": EndpointSync.unary(
+                    method=MethodInfo(
+                        name="ArchiveEvaluationJudge",
+                        service_name="o11y_one.agentic.v1.AgenticEvaluationService",
+                        input=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.ArchiveEvaluationJudgeRequest,
+                        output=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.ArchiveEvaluationJudgeResponse,
+                        idempotency_level=IdempotencyLevel.UNKNOWN,
+                    ),
+                    function=service.archive_evaluation_judge,
                 ),
                 "/o11y_one.agentic.v1.AgenticEvaluationService/PreviewEvaluationScorer": EndpointSync.unary(
                     method=MethodInfo(
@@ -6434,6 +6604,16 @@ class AgenticEvaluationServiceWSGIApplication(ConnectWSGIApplication):
                     ),
                     function=service.get_evaluation_scorer_source_snapshot,
                 ),
+                "/o11y_one.agentic.v1.AgenticEvaluationService/ListEvaluationModelRates": EndpointSync.unary(
+                    method=MethodInfo(
+                        name="ListEvaluationModelRates",
+                        service_name="o11y_one.agentic.v1.AgenticEvaluationService",
+                        input=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.ListEvaluationModelRatesRequest,
+                        output=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.ListEvaluationModelRatesResponse,
+                        idempotency_level=IdempotencyLevel.UNKNOWN,
+                    ),
+                    function=service.list_evaluation_model_rates,
+                ),
             },
             interceptors=interceptors,
             read_max_bytes=read_max_bytes,
@@ -7341,6 +7521,66 @@ class AgenticEvaluationServiceClientSync(ConnectClientSync):
                 service_name="o11y_one.agentic.v1.AgenticEvaluationService",
                 input=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.CreateEvaluationScorerConfigRequest,
                 output=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.CreateEvaluationScorerConfigResponse,
+                idempotency_level=IdempotencyLevel.UNKNOWN,
+            ),
+            headers=headers,
+            timeout_ms=timeout_ms,
+        )
+
+    def create_evaluation_judge(
+        self,
+        request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.CreateEvaluationJudgeRequest,
+        *,
+        headers: Headers | Mapping[str, str] | None = None,
+        timeout_ms: int | None = None,
+    ) -> o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.CreateEvaluationJudgeResponse:
+        return self.execute_unary(
+            request=request,
+            method=MethodInfo(
+                name="CreateEvaluationJudge",
+                service_name="o11y_one.agentic.v1.AgenticEvaluationService",
+                input=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.CreateEvaluationJudgeRequest,
+                output=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.CreateEvaluationJudgeResponse,
+                idempotency_level=IdempotencyLevel.UNKNOWN,
+            ),
+            headers=headers,
+            timeout_ms=timeout_ms,
+        )
+
+    def get_evaluation_judge(
+        self,
+        request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.GetEvaluationJudgeRequest,
+        *,
+        headers: Headers | Mapping[str, str] | None = None,
+        timeout_ms: int | None = None,
+    ) -> o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.GetEvaluationJudgeResponse:
+        return self.execute_unary(
+            request=request,
+            method=MethodInfo(
+                name="GetEvaluationJudge",
+                service_name="o11y_one.agentic.v1.AgenticEvaluationService",
+                input=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.GetEvaluationJudgeRequest,
+                output=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.GetEvaluationJudgeResponse,
+                idempotency_level=IdempotencyLevel.UNKNOWN,
+            ),
+            headers=headers,
+            timeout_ms=timeout_ms,
+        )
+
+    def archive_evaluation_judge(
+        self,
+        request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.ArchiveEvaluationJudgeRequest,
+        *,
+        headers: Headers | Mapping[str, str] | None = None,
+        timeout_ms: int | None = None,
+    ) -> o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.ArchiveEvaluationJudgeResponse:
+        return self.execute_unary(
+            request=request,
+            method=MethodInfo(
+                name="ArchiveEvaluationJudge",
+                service_name="o11y_one.agentic.v1.AgenticEvaluationService",
+                input=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.ArchiveEvaluationJudgeRequest,
+                output=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.ArchiveEvaluationJudgeResponse,
                 idempotency_level=IdempotencyLevel.UNKNOWN,
             ),
             headers=headers,
@@ -9281,6 +9521,26 @@ class AgenticEvaluationServiceClientSync(ConnectClientSync):
                 service_name="o11y_one.agentic.v1.AgenticEvaluationService",
                 input=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.GetEvaluationScorerSourceSnapshotRequest,
                 output=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.GetEvaluationScorerSourceSnapshotResponse,
+                idempotency_level=IdempotencyLevel.UNKNOWN,
+            ),
+            headers=headers,
+            timeout_ms=timeout_ms,
+        )
+
+    def list_evaluation_model_rates(
+        self,
+        request: o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.ListEvaluationModelRatesRequest,
+        *,
+        headers: Headers | Mapping[str, str] | None = None,
+        timeout_ms: int | None = None,
+    ) -> o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.ListEvaluationModelRatesResponse:
+        return self.execute_unary(
+            request=request,
+            method=MethodInfo(
+                name="ListEvaluationModelRates",
+                service_name="o11y_one.agentic.v1.AgenticEvaluationService",
+                input=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.ListEvaluationModelRatesRequest,
+                output=o11y__one_dot_agentic_dot_v1_dot_evaluation__pb2.ListEvaluationModelRatesResponse,
                 idempotency_level=IdempotencyLevel.UNKNOWN,
             ),
             headers=headers,
