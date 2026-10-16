@@ -273,6 +273,20 @@ class CapabilityStateV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     CAPABILITY_STATE_V1_DEGRADED: _ClassVar[CapabilityStateV1]
     CAPABILITY_STATE_V1_NOT_LICENSED: _ClassVar[CapabilityStateV1]
 
+class ProviderTrainsOnInputsV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    PROVIDER_TRAINS_ON_INPUTS_V1_UNSPECIFIED: _ClassVar[ProviderTrainsOnInputsV1]
+    PROVIDER_TRAINS_ON_INPUTS_V1_YES: _ClassVar[ProviderTrainsOnInputsV1]
+    PROVIDER_TRAINS_ON_INPUTS_V1_NO: _ClassVar[ProviderTrainsOnInputsV1]
+    PROVIDER_TRAINS_ON_INPUTS_V1_UNKNOWN: _ClassVar[ProviderTrainsOnInputsV1]
+
+class EvaluationProviderUseV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    EVALUATION_PROVIDER_USE_V1_UNSPECIFIED: _ClassVar[EvaluationProviderUseV1]
+    EVALUATION_PROVIDER_USE_V1_CANDIDATE: _ClassVar[EvaluationProviderUseV1]
+    EVALUATION_PROVIDER_USE_V1_TEXT_JUDGE: _ClassVar[EvaluationProviderUseV1]
+    EVALUATION_PROVIDER_USE_V1_SYSTEM_ONE_JUDGE: _ClassVar[EvaluationProviderUseV1]
+
 class EvaluationDefinitionStateV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     EVALUATION_DEFINITION_STATE_V1_UNSPECIFIED: _ClassVar[EvaluationDefinitionStateV1]
@@ -1048,6 +1062,7 @@ class EvaluationProviderCredentialRejectionKindV1(int, metaclass=_enum_type_wrap
     EVALUATION_PROVIDER_CREDENTIAL_REJECTION_KIND_V1_CAP_EXCEEDED: _ClassVar[EvaluationProviderCredentialRejectionKindV1]
     EVALUATION_PROVIDER_CREDENTIAL_REJECTION_KIND_V1_DUPLICATE_KEY_NAME: _ClassVar[EvaluationProviderCredentialRejectionKindV1]
     EVALUATION_PROVIDER_CREDENTIAL_REJECTION_KIND_V1_INVALID_PROVIDER: _ClassVar[EvaluationProviderCredentialRejectionKindV1]
+    EVALUATION_PROVIDER_CREDENTIAL_REJECTION_KIND_V1_INVALID_ACCOUNT: _ClassVar[EvaluationProviderCredentialRejectionKindV1]
 
 class EvaluationScorerKindV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -1085,12 +1100,21 @@ class EvaluationScorerConfigRejectionKindV1(int, metaclass=_enum_type_wrapper.En
     EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_CODE_SPEC_INVALID: _ClassVar[EvaluationScorerConfigRejectionKindV1]
     EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_CODE_VERSION_IMMUTABLE: _ClassVar[EvaluationScorerConfigRejectionKindV1]
     EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_CODE_INPUT_INVALID: _ClassVar[EvaluationScorerConfigRejectionKindV1]
+    EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_JUDGE_VERSION_MOVED: _ClassVar[EvaluationScorerConfigRejectionKindV1]
 
 class JudgeModeV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     JUDGE_MODE_V1_UNSPECIFIED: _ClassVar[JudgeModeV1]
     JUDGE_MODE_V1_SYSTEM_ONE: _ClassVar[JudgeModeV1]
     JUDGE_MODE_V1_TEXT_THEN_SYSTEM_ONE: _ClassVar[JudgeModeV1]
+    JUDGE_MODE_V1_TEXT: _ClassVar[JudgeModeV1]
+
+class JudgeAnswerKindV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    JUDGE_ANSWER_KIND_V1_UNSPECIFIED: _ClassVar[JudgeAnswerKindV1]
+    JUDGE_ANSWER_KIND_V1_YES_NO: _ClassVar[JudgeAnswerKindV1]
+    JUDGE_ANSWER_KIND_V1_CHOICE: _ClassVar[JudgeAnswerKindV1]
+    JUDGE_ANSWER_KIND_V1_SCALE: _ClassVar[JudgeAnswerKindV1]
 
 class EvaluationScorerPreviewVerdictV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -2094,6 +2118,14 @@ CAPABILITY_STATE_V1_AVAILABLE: CapabilityStateV1
 CAPABILITY_STATE_V1_UNAVAILABLE: CapabilityStateV1
 CAPABILITY_STATE_V1_DEGRADED: CapabilityStateV1
 CAPABILITY_STATE_V1_NOT_LICENSED: CapabilityStateV1
+PROVIDER_TRAINS_ON_INPUTS_V1_UNSPECIFIED: ProviderTrainsOnInputsV1
+PROVIDER_TRAINS_ON_INPUTS_V1_YES: ProviderTrainsOnInputsV1
+PROVIDER_TRAINS_ON_INPUTS_V1_NO: ProviderTrainsOnInputsV1
+PROVIDER_TRAINS_ON_INPUTS_V1_UNKNOWN: ProviderTrainsOnInputsV1
+EVALUATION_PROVIDER_USE_V1_UNSPECIFIED: EvaluationProviderUseV1
+EVALUATION_PROVIDER_USE_V1_CANDIDATE: EvaluationProviderUseV1
+EVALUATION_PROVIDER_USE_V1_TEXT_JUDGE: EvaluationProviderUseV1
+EVALUATION_PROVIDER_USE_V1_SYSTEM_ONE_JUDGE: EvaluationProviderUseV1
 EVALUATION_DEFINITION_STATE_V1_UNSPECIFIED: EvaluationDefinitionStateV1
 EVALUATION_DEFINITION_STATE_V1_ACTIVE: EvaluationDefinitionStateV1
 EVALUATION_DEFINITION_STATE_V1_ARCHIVED: EvaluationDefinitionStateV1
@@ -2606,6 +2638,7 @@ EVALUATION_PROVIDER_CREDENTIAL_REJECTION_KIND_V1_UNSPECIFIED: EvaluationProvider
 EVALUATION_PROVIDER_CREDENTIAL_REJECTION_KIND_V1_CAP_EXCEEDED: EvaluationProviderCredentialRejectionKindV1
 EVALUATION_PROVIDER_CREDENTIAL_REJECTION_KIND_V1_DUPLICATE_KEY_NAME: EvaluationProviderCredentialRejectionKindV1
 EVALUATION_PROVIDER_CREDENTIAL_REJECTION_KIND_V1_INVALID_PROVIDER: EvaluationProviderCredentialRejectionKindV1
+EVALUATION_PROVIDER_CREDENTIAL_REJECTION_KIND_V1_INVALID_ACCOUNT: EvaluationProviderCredentialRejectionKindV1
 EVALUATION_SCORER_KIND_V1_UNSPECIFIED: EvaluationScorerKindV1
 EVALUATION_SCORER_KIND_V1_DETERMINISTIC: EvaluationScorerKindV1
 EVALUATION_SCORER_KIND_V1_HUMAN: EvaluationScorerKindV1
@@ -2634,9 +2667,15 @@ EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_SANDBOX_UNAVAILABLE: EvaluationScorer
 EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_CODE_SPEC_INVALID: EvaluationScorerConfigRejectionKindV1
 EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_CODE_VERSION_IMMUTABLE: EvaluationScorerConfigRejectionKindV1
 EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_CODE_INPUT_INVALID: EvaluationScorerConfigRejectionKindV1
+EVALUATION_SCORER_CONFIG_REJECTION_KIND_V1_JUDGE_VERSION_MOVED: EvaluationScorerConfigRejectionKindV1
 JUDGE_MODE_V1_UNSPECIFIED: JudgeModeV1
 JUDGE_MODE_V1_SYSTEM_ONE: JudgeModeV1
 JUDGE_MODE_V1_TEXT_THEN_SYSTEM_ONE: JudgeModeV1
+JUDGE_MODE_V1_TEXT: JudgeModeV1
+JUDGE_ANSWER_KIND_V1_UNSPECIFIED: JudgeAnswerKindV1
+JUDGE_ANSWER_KIND_V1_YES_NO: JudgeAnswerKindV1
+JUDGE_ANSWER_KIND_V1_CHOICE: JudgeAnswerKindV1
+JUDGE_ANSWER_KIND_V1_SCALE: JudgeAnswerKindV1
 EVALUATION_SCORER_PREVIEW_VERDICT_V1_UNSPECIFIED: EvaluationScorerPreviewVerdictV1
 EVALUATION_SCORER_PREVIEW_VERDICT_V1_PASS: EvaluationScorerPreviewVerdictV1
 EVALUATION_SCORER_PREVIEW_VERDICT_V1_FAIL: EvaluationScorerPreviewVerdictV1
@@ -3438,16 +3477,36 @@ class CapabilityPostureV1(_message.Message):
     def __init__(self, capability_key: _Optional[str] = ..., state: _Optional[_Union[CapabilityStateV1, str]] = ..., limits: _Optional[_Iterable[_Union[CapabilityLimitV1, _Mapping]]] = ..., unavailable_reason_code: _Optional[str] = ...) -> None: ...
 
 class AgenticEvaluationCapabilitiesV1(_message.Message):
-    __slots__ = ("capability_set_version", "postures", "checked_at", "scorer_runtimes")
+    __slots__ = ("capability_set_version", "postures", "checked_at", "scorer_runtimes", "provider_data_use")
     CAPABILITY_SET_VERSION_FIELD_NUMBER: _ClassVar[int]
     POSTURES_FIELD_NUMBER: _ClassVar[int]
     CHECKED_AT_FIELD_NUMBER: _ClassVar[int]
     SCORER_RUNTIMES_FIELD_NUMBER: _ClassVar[int]
+    PROVIDER_DATA_USE_FIELD_NUMBER: _ClassVar[int]
     capability_set_version: int
     postures: _containers.RepeatedCompositeFieldContainer[CapabilityPostureV1]
     checked_at: _timestamp_pb2.Timestamp
     scorer_runtimes: _containers.RepeatedCompositeFieldContainer[EvaluationScorerRuntimeV1]
-    def __init__(self, capability_set_version: _Optional[int] = ..., postures: _Optional[_Iterable[_Union[CapabilityPostureV1, _Mapping]]] = ..., checked_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., scorer_runtimes: _Optional[_Iterable[_Union[EvaluationScorerRuntimeV1, _Mapping]]] = ...) -> None: ...
+    provider_data_use: _containers.RepeatedCompositeFieldContainer[EvaluationProviderDataUseV1]
+    def __init__(self, capability_set_version: _Optional[int] = ..., postures: _Optional[_Iterable[_Union[CapabilityPostureV1, _Mapping]]] = ..., checked_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., scorer_runtimes: _Optional[_Iterable[_Union[EvaluationScorerRuntimeV1, _Mapping]]] = ..., provider_data_use: _Optional[_Iterable[_Union[EvaluationProviderDataUseV1, _Mapping]]] = ...) -> None: ...
+
+class EvaluationProviderDataUseV1(_message.Message):
+    __slots__ = ("provider", "model_id", "trains_on_inputs", "source_url", "checked_on", "reason_code", "provider_use")
+    PROVIDER_FIELD_NUMBER: _ClassVar[int]
+    MODEL_ID_FIELD_NUMBER: _ClassVar[int]
+    TRAINS_ON_INPUTS_FIELD_NUMBER: _ClassVar[int]
+    SOURCE_URL_FIELD_NUMBER: _ClassVar[int]
+    CHECKED_ON_FIELD_NUMBER: _ClassVar[int]
+    REASON_CODE_FIELD_NUMBER: _ClassVar[int]
+    PROVIDER_USE_FIELD_NUMBER: _ClassVar[int]
+    provider: ProviderNameV1
+    model_id: str
+    trains_on_inputs: ProviderTrainsOnInputsV1
+    source_url: str
+    checked_on: str
+    reason_code: str
+    provider_use: EvaluationProviderUseV1
+    def __init__(self, provider: _Optional[_Union[ProviderNameV1, str]] = ..., model_id: _Optional[str] = ..., trains_on_inputs: _Optional[_Union[ProviderTrainsOnInputsV1, str]] = ..., source_url: _Optional[str] = ..., checked_on: _Optional[str] = ..., reason_code: _Optional[str] = ..., provider_use: _Optional[_Union[EvaluationProviderUseV1, str]] = ...) -> None: ...
 
 class EvaluationScorerRuntimeV1(_message.Message):
     __slots__ = ("profile", "language", "language_version", "is_default")
@@ -4228,16 +4287,20 @@ class EvaluationBuilderDatasetOptionV1(_message.Message):
     def __init__(self, dataset_collection_id: _Optional[str] = ..., name: _Optional[str] = ..., description: _Optional[str] = ..., versions: _Optional[_Iterable[_Union[EvaluationBuilderDatasetVersionOptionV1, _Mapping]]] = ..., updated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
 
 class EvaluationBuilderModelOptionV1(_message.Message):
-    __slots__ = ("model", "provider", "display_label", "posture")
+    __slots__ = ("model", "provider", "display_label", "posture", "text_judge_posture", "system_one_judge_posture")
     MODEL_FIELD_NUMBER: _ClassVar[int]
     PROVIDER_FIELD_NUMBER: _ClassVar[int]
     DISPLAY_LABEL_FIELD_NUMBER: _ClassVar[int]
     POSTURE_FIELD_NUMBER: _ClassVar[int]
+    TEXT_JUDGE_POSTURE_FIELD_NUMBER: _ClassVar[int]
+    SYSTEM_ONE_JUDGE_POSTURE_FIELD_NUMBER: _ClassVar[int]
     model: ProviderModelRefV1
     provider: ProviderNameV1
     display_label: str
     posture: CapabilityPostureV1
-    def __init__(self, model: _Optional[_Union[ProviderModelRefV1, _Mapping]] = ..., provider: _Optional[_Union[ProviderNameV1, str]] = ..., display_label: _Optional[str] = ..., posture: _Optional[_Union[CapabilityPostureV1, _Mapping]] = ...) -> None: ...
+    text_judge_posture: CapabilityPostureV1
+    system_one_judge_posture: CapabilityPostureV1
+    def __init__(self, model: _Optional[_Union[ProviderModelRefV1, _Mapping]] = ..., provider: _Optional[_Union[ProviderNameV1, str]] = ..., display_label: _Optional[str] = ..., posture: _Optional[_Union[CapabilityPostureV1, _Mapping]] = ..., text_judge_posture: _Optional[_Union[CapabilityPostureV1, _Mapping]] = ..., system_one_judge_posture: _Optional[_Union[CapabilityPostureV1, _Mapping]] = ...) -> None: ...
 
 class EvaluationBuilderCandidateSourcesV1(_message.Message):
     __slots__ = ("models", "agent_endpoints", "release_revisions", "recorded_outputs")
@@ -4296,20 +4359,22 @@ class EvaluationBuilderScorecardRecommendationV1(_message.Message):
     def __init__(self, measures: _Optional[_Iterable[_Union[EvaluationBuilderRecommendedMeasureV1, _Mapping]]] = ..., availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ...) -> None: ...
 
 class EvaluationBuilderCredentialRefV1(_message.Message):
-    __slots__ = ("credential_id", "credential_key", "provider", "is_default", "enabled", "posture_code")
+    __slots__ = ("credential_id", "credential_key", "provider", "is_default", "enabled", "posture_code", "account_id")
     CREDENTIAL_ID_FIELD_NUMBER: _ClassVar[int]
     CREDENTIAL_KEY_FIELD_NUMBER: _ClassVar[int]
     PROVIDER_FIELD_NUMBER: _ClassVar[int]
     IS_DEFAULT_FIELD_NUMBER: _ClassVar[int]
     ENABLED_FIELD_NUMBER: _ClassVar[int]
     POSTURE_CODE_FIELD_NUMBER: _ClassVar[int]
+    ACCOUNT_ID_FIELD_NUMBER: _ClassVar[int]
     credential_id: str
     credential_key: str
     provider: ProviderNameV1
     is_default: bool
     enabled: bool
     posture_code: str
-    def __init__(self, credential_id: _Optional[str] = ..., credential_key: _Optional[str] = ..., provider: _Optional[_Union[ProviderNameV1, str]] = ..., is_default: _Optional[bool] = ..., enabled: _Optional[bool] = ..., posture_code: _Optional[str] = ...) -> None: ...
+    account_id: str
+    def __init__(self, credential_id: _Optional[str] = ..., credential_key: _Optional[str] = ..., provider: _Optional[_Union[ProviderNameV1, str]] = ..., is_default: _Optional[bool] = ..., enabled: _Optional[bool] = ..., posture_code: _Optional[str] = ..., account_id: _Optional[str] = ...) -> None: ...
 
 class EvaluationBuilderExecutionDefaultsV1(_message.Message):
     __slots__ = ("execution_policy", "budget", "default_trials", "max_cohorts", "max_candidates", "max_scorers", "max_trials")
@@ -4734,7 +4799,7 @@ class EvaluationHarnessManifestV1(_message.Message):
     def __init__(self, candidates: _Optional[_Iterable[_Union[EvaluationCandidateHarnessV1, _Mapping]]] = ...) -> None: ...
 
 class EvaluationFrozenEvaluatorRefV1(_message.Message):
-    __slots__ = ("score_config_id", "config_key", "evaluator_template_id", "template_version_discriminator", "evaluator_kind", "execution_mode", "evaluator_config_json", "provider_execution_json", "provider", "model_id", "provider_credential_id", "model_rate", "system_one_model_rate")
+    __slots__ = ("score_config_id", "config_key", "evaluator_template_id", "template_version_discriminator", "evaluator_kind", "execution_mode", "evaluator_config_json", "provider_execution_json", "provider", "model_id", "provider_credential_id", "model_rate", "system_one_model_rate", "judge_mode", "judge_question")
     SCORE_CONFIG_ID_FIELD_NUMBER: _ClassVar[int]
     CONFIG_KEY_FIELD_NUMBER: _ClassVar[int]
     EVALUATOR_TEMPLATE_ID_FIELD_NUMBER: _ClassVar[int]
@@ -4748,6 +4813,8 @@ class EvaluationFrozenEvaluatorRefV1(_message.Message):
     PROVIDER_CREDENTIAL_ID_FIELD_NUMBER: _ClassVar[int]
     MODEL_RATE_FIELD_NUMBER: _ClassVar[int]
     SYSTEM_ONE_MODEL_RATE_FIELD_NUMBER: _ClassVar[int]
+    JUDGE_MODE_FIELD_NUMBER: _ClassVar[int]
+    JUDGE_QUESTION_FIELD_NUMBER: _ClassVar[int]
     score_config_id: str
     config_key: str
     evaluator_template_id: str
@@ -4761,7 +4828,9 @@ class EvaluationFrozenEvaluatorRefV1(_message.Message):
     provider_credential_id: str
     model_rate: EvaluationModelRateV1
     system_one_model_rate: EvaluationModelRateV1
-    def __init__(self, score_config_id: _Optional[str] = ..., config_key: _Optional[str] = ..., evaluator_template_id: _Optional[str] = ..., template_version_discriminator: _Optional[str] = ..., evaluator_kind: _Optional[str] = ..., execution_mode: _Optional[str] = ..., evaluator_config_json: _Optional[str] = ..., provider_execution_json: _Optional[str] = ..., provider: _Optional[_Union[ProviderNameV1, str]] = ..., model_id: _Optional[str] = ..., provider_credential_id: _Optional[str] = ..., model_rate: _Optional[_Union[EvaluationModelRateV1, _Mapping]] = ..., system_one_model_rate: _Optional[_Union[EvaluationModelRateV1, _Mapping]] = ...) -> None: ...
+    judge_mode: JudgeModeV1
+    judge_question: EvaluationJudgeQuestionRefV1
+    def __init__(self, score_config_id: _Optional[str] = ..., config_key: _Optional[str] = ..., evaluator_template_id: _Optional[str] = ..., template_version_discriminator: _Optional[str] = ..., evaluator_kind: _Optional[str] = ..., execution_mode: _Optional[str] = ..., evaluator_config_json: _Optional[str] = ..., provider_execution_json: _Optional[str] = ..., provider: _Optional[_Union[ProviderNameV1, str]] = ..., model_id: _Optional[str] = ..., provider_credential_id: _Optional[str] = ..., model_rate: _Optional[_Union[EvaluationModelRateV1, _Mapping]] = ..., system_one_model_rate: _Optional[_Union[EvaluationModelRateV1, _Mapping]] = ..., judge_mode: _Optional[_Union[JudgeModeV1, str]] = ..., judge_question: _Optional[_Union[EvaluationJudgeQuestionRefV1, _Mapping]] = ...) -> None: ...
 
 class EvaluationRunProgressV1(_message.Message):
     __slots__ = ("expected_cell_count", "prepared_cell_count", "queued_cell_count", "cancelled_cell_count", "completed_shard_count", "total_shard_count", "execution_progress_availability", "executed_cell_count", "succeeded_cell_count", "failed_cell_count", "scorer_result_count", "awaiting_review_cell_count", "skipped_cell_count", "superseded_result_count", "pending_code_scorer_count", "scoring_in_sandbox_cell_count")
@@ -6388,7 +6457,7 @@ class EvaluationMatrixFilterV1(_message.Message):
     def __init__(self, cohort_keys: _Optional[_Iterable[str]] = ..., candidate_keys: _Optional[_Iterable[str]] = ..., score_config_ids: _Optional[_Iterable[str]] = ..., verdicts: _Optional[_Iterable[_Union[EvaluationVerdictV1, str]]] = ..., decision_impacts: _Optional[_Iterable[_Union[EvaluationMatrixDecisionImpactV1, str]]] = ..., evidence_states: _Optional[_Iterable[_Union[EvaluationMatrixEvidenceStateV1, str]]] = ..., trial: _Optional[int] = ..., blocking_gates_only: _Optional[bool] = ...) -> None: ...
 
 class EvaluationMatrixCellV1(_message.Message):
-    __slots__ = ("candidate_key", "score_config_id", "config_key", "verdict", "score", "score_availability", "reference_verdict", "reference_score", "score_delta", "decision_impact", "evidence_state", "candidate_failure_code", "scorer_failure_code", "attempt_generation", "is_blocking_gate", "scorer_kind")
+    __slots__ = ("candidate_key", "score_config_id", "config_key", "verdict", "score", "score_availability", "reference_verdict", "reference_score", "score_delta", "decision_impact", "evidence_state", "candidate_failure_code", "scorer_failure_code", "attempt_generation", "is_blocking_gate", "scorer_kind", "judge_mode", "answer_label_index", "answer_confidence")
     CANDIDATE_KEY_FIELD_NUMBER: _ClassVar[int]
     SCORE_CONFIG_ID_FIELD_NUMBER: _ClassVar[int]
     CONFIG_KEY_FIELD_NUMBER: _ClassVar[int]
@@ -6405,6 +6474,9 @@ class EvaluationMatrixCellV1(_message.Message):
     ATTEMPT_GENERATION_FIELD_NUMBER: _ClassVar[int]
     IS_BLOCKING_GATE_FIELD_NUMBER: _ClassVar[int]
     SCORER_KIND_FIELD_NUMBER: _ClassVar[int]
+    JUDGE_MODE_FIELD_NUMBER: _ClassVar[int]
+    ANSWER_LABEL_INDEX_FIELD_NUMBER: _ClassVar[int]
+    ANSWER_CONFIDENCE_FIELD_NUMBER: _ClassVar[int]
     candidate_key: str
     score_config_id: str
     config_key: str
@@ -6421,7 +6493,10 @@ class EvaluationMatrixCellV1(_message.Message):
     attempt_generation: int
     is_blocking_gate: bool
     scorer_kind: EvaluationScorerKindV1
-    def __init__(self, candidate_key: _Optional[str] = ..., score_config_id: _Optional[str] = ..., config_key: _Optional[str] = ..., verdict: _Optional[_Union[EvaluationVerdictV1, str]] = ..., score: _Optional[float] = ..., score_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., reference_verdict: _Optional[_Union[EvaluationVerdictV1, str]] = ..., reference_score: _Optional[float] = ..., score_delta: _Optional[float] = ..., decision_impact: _Optional[_Union[EvaluationMatrixDecisionImpactV1, str]] = ..., evidence_state: _Optional[_Union[EvaluationMatrixEvidenceStateV1, str]] = ..., candidate_failure_code: _Optional[str] = ..., scorer_failure_code: _Optional[str] = ..., attempt_generation: _Optional[int] = ..., is_blocking_gate: _Optional[bool] = ..., scorer_kind: _Optional[_Union[EvaluationScorerKindV1, str]] = ...) -> None: ...
+    judge_mode: JudgeModeV1
+    answer_label_index: int
+    answer_confidence: float
+    def __init__(self, candidate_key: _Optional[str] = ..., score_config_id: _Optional[str] = ..., config_key: _Optional[str] = ..., verdict: _Optional[_Union[EvaluationVerdictV1, str]] = ..., score: _Optional[float] = ..., score_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., reference_verdict: _Optional[_Union[EvaluationVerdictV1, str]] = ..., reference_score: _Optional[float] = ..., score_delta: _Optional[float] = ..., decision_impact: _Optional[_Union[EvaluationMatrixDecisionImpactV1, str]] = ..., evidence_state: _Optional[_Union[EvaluationMatrixEvidenceStateV1, str]] = ..., candidate_failure_code: _Optional[str] = ..., scorer_failure_code: _Optional[str] = ..., attempt_generation: _Optional[int] = ..., is_blocking_gate: _Optional[bool] = ..., scorer_kind: _Optional[_Union[EvaluationScorerKindV1, str]] = ..., judge_mode: _Optional[_Union[JudgeModeV1, str]] = ..., answer_label_index: _Optional[int] = ..., answer_confidence: _Optional[float] = ...) -> None: ...
 
 class EvaluationMatrixOutputPreviewV1(_message.Message):
     __slots__ = ("candidate_key", "first_line", "availability")
@@ -6608,7 +6683,7 @@ class EvaluationCandidateExecutionDetailV1(_message.Message):
     def __init__(self, candidate_key: _Optional[str] = ..., candidate_source: _Optional[_Union[EvaluationCandidateSourceV1, str]] = ..., state: _Optional[_Union[EvaluationExecutionStateV1, str]] = ..., attempts: _Optional[_Iterable[_Union[EvaluationCandidateAttemptDetailV1, _Mapping]]] = ..., attempt_generation: _Optional[int] = ..., failure: _Optional[_Union[EvaluationFailureV1, _Mapping]] = ..., metrics: _Optional[_Union[ExecutionMetricsV1, _Mapping]] = ..., availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ...) -> None: ...
 
 class EvaluationScorerEvidenceV1(_message.Message):
-    __slots__ = ("score_config_id", "config_key", "metric_name", "verdict", "score", "score_availability", "score_reason_code", "is_blocking_gate", "failure", "duration_micros", "attempt_generation", "is_superseded", "evaluator_execution", "attempt_economics", "attempt_economics_total", "attempt_economics_availability", "code")
+    __slots__ = ("score_config_id", "config_key", "metric_name", "verdict", "score", "score_availability", "score_reason_code", "is_blocking_gate", "failure", "duration_micros", "attempt_generation", "is_superseded", "evaluator_execution", "attempt_economics", "attempt_economics_total", "attempt_economics_availability", "code", "judge_answer", "judge_mode", "evaluator_shared_with_score_config_id", "chain_text_judge_execution", "chain_system_one_step_execution")
     SCORE_CONFIG_ID_FIELD_NUMBER: _ClassVar[int]
     CONFIG_KEY_FIELD_NUMBER: _ClassVar[int]
     METRIC_NAME_FIELD_NUMBER: _ClassVar[int]
@@ -6626,6 +6701,11 @@ class EvaluationScorerEvidenceV1(_message.Message):
     ATTEMPT_ECONOMICS_TOTAL_FIELD_NUMBER: _ClassVar[int]
     ATTEMPT_ECONOMICS_AVAILABILITY_FIELD_NUMBER: _ClassVar[int]
     CODE_FIELD_NUMBER: _ClassVar[int]
+    JUDGE_ANSWER_FIELD_NUMBER: _ClassVar[int]
+    JUDGE_MODE_FIELD_NUMBER: _ClassVar[int]
+    EVALUATOR_SHARED_WITH_SCORE_CONFIG_ID_FIELD_NUMBER: _ClassVar[int]
+    CHAIN_TEXT_JUDGE_EXECUTION_FIELD_NUMBER: _ClassVar[int]
+    CHAIN_SYSTEM_ONE_STEP_EXECUTION_FIELD_NUMBER: _ClassVar[int]
     score_config_id: str
     config_key: str
     metric_name: str
@@ -6643,23 +6723,32 @@ class EvaluationScorerEvidenceV1(_message.Message):
     attempt_economics_total: CostAmountV1
     attempt_economics_availability: MetricAvailabilityV1
     code: EvaluationCodeScorerResultV1
-    def __init__(self, score_config_id: _Optional[str] = ..., config_key: _Optional[str] = ..., metric_name: _Optional[str] = ..., verdict: _Optional[_Union[EvaluationVerdictV1, str]] = ..., score: _Optional[float] = ..., score_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., score_reason_code: _Optional[str] = ..., is_blocking_gate: _Optional[bool] = ..., failure: _Optional[_Union[EvaluationFailureV1, _Mapping]] = ..., duration_micros: _Optional[int] = ..., attempt_generation: _Optional[int] = ..., is_superseded: _Optional[bool] = ..., evaluator_execution: _Optional[_Union[ExecutionMetricsV1, _Mapping]] = ..., attempt_economics: _Optional[_Iterable[_Union[EvaluationScorerAttemptEconomicsV1, _Mapping]]] = ..., attempt_economics_total: _Optional[_Union[CostAmountV1, _Mapping]] = ..., attempt_economics_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., code: _Optional[_Union[EvaluationCodeScorerResultV1, _Mapping]] = ...) -> None: ...
+    judge_answer: EvaluationJudgeAnswerV1
+    judge_mode: JudgeModeV1
+    evaluator_shared_with_score_config_id: str
+    chain_text_judge_execution: ExecutionMetricsV1
+    chain_system_one_step_execution: ExecutionMetricsV1
+    def __init__(self, score_config_id: _Optional[str] = ..., config_key: _Optional[str] = ..., metric_name: _Optional[str] = ..., verdict: _Optional[_Union[EvaluationVerdictV1, str]] = ..., score: _Optional[float] = ..., score_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., score_reason_code: _Optional[str] = ..., is_blocking_gate: _Optional[bool] = ..., failure: _Optional[_Union[EvaluationFailureV1, _Mapping]] = ..., duration_micros: _Optional[int] = ..., attempt_generation: _Optional[int] = ..., is_superseded: _Optional[bool] = ..., evaluator_execution: _Optional[_Union[ExecutionMetricsV1, _Mapping]] = ..., attempt_economics: _Optional[_Iterable[_Union[EvaluationScorerAttemptEconomicsV1, _Mapping]]] = ..., attempt_economics_total: _Optional[_Union[CostAmountV1, _Mapping]] = ..., attempt_economics_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., code: _Optional[_Union[EvaluationCodeScorerResultV1, _Mapping]] = ..., judge_answer: _Optional[_Union[EvaluationJudgeAnswerV1, _Mapping]] = ..., judge_mode: _Optional[_Union[JudgeModeV1, str]] = ..., evaluator_shared_with_score_config_id: _Optional[str] = ..., chain_text_judge_execution: _Optional[_Union[ExecutionMetricsV1, _Mapping]] = ..., chain_system_one_step_execution: _Optional[_Union[ExecutionMetricsV1, _Mapping]] = ...) -> None: ...
 
 class EvaluationScorerAttemptEconomicsV1(_message.Message):
-    __slots__ = ("scorer_attempt", "origin", "regrade_job_id", "is_superseded", "evaluator_execution", "economics_availability")
+    __slots__ = ("scorer_attempt", "origin", "regrade_job_id", "is_superseded", "evaluator_execution", "economics_availability", "chain_text_judge_execution", "chain_system_one_step_execution")
     SCORER_ATTEMPT_FIELD_NUMBER: _ClassVar[int]
     ORIGIN_FIELD_NUMBER: _ClassVar[int]
     REGRADE_JOB_ID_FIELD_NUMBER: _ClassVar[int]
     IS_SUPERSEDED_FIELD_NUMBER: _ClassVar[int]
     EVALUATOR_EXECUTION_FIELD_NUMBER: _ClassVar[int]
     ECONOMICS_AVAILABILITY_FIELD_NUMBER: _ClassVar[int]
+    CHAIN_TEXT_JUDGE_EXECUTION_FIELD_NUMBER: _ClassVar[int]
+    CHAIN_SYSTEM_ONE_STEP_EXECUTION_FIELD_NUMBER: _ClassVar[int]
     scorer_attempt: int
     origin: EvaluationScorerAttemptOriginV1
     regrade_job_id: str
     is_superseded: bool
     evaluator_execution: ExecutionMetricsV1
     economics_availability: MetricAvailabilityV1
-    def __init__(self, scorer_attempt: _Optional[int] = ..., origin: _Optional[_Union[EvaluationScorerAttemptOriginV1, str]] = ..., regrade_job_id: _Optional[str] = ..., is_superseded: _Optional[bool] = ..., evaluator_execution: _Optional[_Union[ExecutionMetricsV1, _Mapping]] = ..., economics_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ...) -> None: ...
+    chain_text_judge_execution: ExecutionMetricsV1
+    chain_system_one_step_execution: ExecutionMetricsV1
+    def __init__(self, scorer_attempt: _Optional[int] = ..., origin: _Optional[_Union[EvaluationScorerAttemptOriginV1, str]] = ..., regrade_job_id: _Optional[str] = ..., is_superseded: _Optional[bool] = ..., evaluator_execution: _Optional[_Union[ExecutionMetricsV1, _Mapping]] = ..., economics_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., chain_text_judge_execution: _Optional[_Union[ExecutionMetricsV1, _Mapping]] = ..., chain_system_one_step_execution: _Optional[_Union[ExecutionMetricsV1, _Mapping]] = ...) -> None: ...
 
 class EvaluationArtifactSummaryV1(_message.Message):
     __slots__ = ("artifact_id", "media_type", "byte_size", "content_digest", "content_availability")
@@ -7921,6 +8010,22 @@ class VoidEvaluationOrgNegotiatedRateResponse(_message.Message):
     capabilities: AgenticEvaluationCapabilitiesV1
     def __init__(self, negotiated_rate: _Optional[_Union[EvaluationOrgNegotiatedRateV1, _Mapping]] = ..., idempotent_replay: _Optional[bool] = ..., capabilities: _Optional[_Union[AgenticEvaluationCapabilitiesV1, _Mapping]] = ...) -> None: ...
 
+class ListEvaluationModelRatesRequest(_message.Message):
+    __slots__ = ("providers", "model_ids")
+    PROVIDERS_FIELD_NUMBER: _ClassVar[int]
+    MODEL_IDS_FIELD_NUMBER: _ClassVar[int]
+    providers: _containers.RepeatedScalarFieldContainer[ProviderNameV1]
+    model_ids: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, providers: _Optional[_Iterable[_Union[ProviderNameV1, str]]] = ..., model_ids: _Optional[_Iterable[str]] = ...) -> None: ...
+
+class ListEvaluationModelRatesResponse(_message.Message):
+    __slots__ = ("pricing_source", "capabilities")
+    PRICING_SOURCE_FIELD_NUMBER: _ClassVar[int]
+    CAPABILITIES_FIELD_NUMBER: _ClassVar[int]
+    pricing_source: EvaluationPricingSourceV1
+    capabilities: AgenticEvaluationCapabilitiesV1
+    def __init__(self, pricing_source: _Optional[_Union[EvaluationPricingSourceV1, _Mapping]] = ..., capabilities: _Optional[_Union[AgenticEvaluationCapabilitiesV1, _Mapping]] = ...) -> None: ...
+
 class EvaluationSeriesKeyV1(_message.Message):
     __slots__ = ("definition_id", "candidate_key", "cohort_key", "score_config_id", "metric_name")
     DEFINITION_ID_FIELD_NUMBER: _ClassVar[int]
@@ -8262,7 +8367,7 @@ class PreviewEvaluationCaseCaptureResponse(_message.Message):
     def __init__(self, provenance: _Optional[_Union[EvaluationCaptureProvenanceV1, _Mapping]] = ..., fields: _Optional[_Iterable[_Union[EvaluationCapturePreviewFieldV1, _Mapping]]] = ..., selections: _Optional[_Iterable[_Union[EvaluationCaptureFieldSelectionV1, _Mapping]]] = ..., content_hydration: _Optional[_Iterable[_Union[EvaluationSpanContentHydrationV1, _Mapping]]] = ..., content_digest: _Optional[str] = ..., capture_allowed: _Optional[bool] = ..., refusal: _Optional[_Union[EvaluationCaptureRefusalV1, _Mapping]] = ..., capabilities: _Optional[_Union[AgenticEvaluationCapabilitiesV1, _Mapping]] = ..., freshness: _Optional[_Union[EvaluationFreshnessV1, _Mapping]] = ..., quality: _Optional[_Union[DatasetCaseQualitySignalsV1, _Mapping]] = ...) -> None: ...
 
 class EvaluationProviderCredentialV1(_message.Message):
-    __slots__ = ("credential_id", "credential_key", "provider", "is_default", "created_at", "secret_version_number", "enabled", "disabled_at", "disabled_reason")
+    __slots__ = ("credential_id", "credential_key", "provider", "is_default", "created_at", "secret_version_number", "enabled", "disabled_at", "disabled_reason", "account_id")
     CREDENTIAL_ID_FIELD_NUMBER: _ClassVar[int]
     CREDENTIAL_KEY_FIELD_NUMBER: _ClassVar[int]
     PROVIDER_FIELD_NUMBER: _ClassVar[int]
@@ -8272,6 +8377,7 @@ class EvaluationProviderCredentialV1(_message.Message):
     ENABLED_FIELD_NUMBER: _ClassVar[int]
     DISABLED_AT_FIELD_NUMBER: _ClassVar[int]
     DISABLED_REASON_FIELD_NUMBER: _ClassVar[int]
+    ACCOUNT_ID_FIELD_NUMBER: _ClassVar[int]
     credential_id: str
     credential_key: str
     provider: ProviderNameV1
@@ -8281,7 +8387,8 @@ class EvaluationProviderCredentialV1(_message.Message):
     enabled: bool
     disabled_at: _timestamp_pb2.Timestamp
     disabled_reason: str
-    def __init__(self, credential_id: _Optional[str] = ..., credential_key: _Optional[str] = ..., provider: _Optional[_Union[ProviderNameV1, str]] = ..., is_default: _Optional[bool] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., secret_version_number: _Optional[int] = ..., enabled: _Optional[bool] = ..., disabled_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., disabled_reason: _Optional[str] = ...) -> None: ...
+    account_id: str
+    def __init__(self, credential_id: _Optional[str] = ..., credential_key: _Optional[str] = ..., provider: _Optional[_Union[ProviderNameV1, str]] = ..., is_default: _Optional[bool] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., secret_version_number: _Optional[int] = ..., enabled: _Optional[bool] = ..., disabled_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., disabled_reason: _Optional[str] = ..., account_id: _Optional[str] = ...) -> None: ...
 
 class EvaluationProviderCredentialRejectionV1(_message.Message):
     __slots__ = ("kind", "reason_code", "registered_credential_count", "max_credential_count", "detail", "recovery")
@@ -8300,18 +8407,20 @@ class EvaluationProviderCredentialRejectionV1(_message.Message):
     def __init__(self, kind: _Optional[_Union[EvaluationProviderCredentialRejectionKindV1, str]] = ..., reason_code: _Optional[str] = ..., registered_credential_count: _Optional[int] = ..., max_credential_count: _Optional[int] = ..., detail: _Optional[str] = ..., recovery: _Optional[_Union[RecoveryActionV1, str]] = ...) -> None: ...
 
 class RegisterEvaluationProviderCredentialRequest(_message.Message):
-    __slots__ = ("credential_key", "provider", "key_material", "is_default", "idempotency_key")
+    __slots__ = ("credential_key", "provider", "key_material", "is_default", "idempotency_key", "account_id")
     CREDENTIAL_KEY_FIELD_NUMBER: _ClassVar[int]
     PROVIDER_FIELD_NUMBER: _ClassVar[int]
     KEY_MATERIAL_FIELD_NUMBER: _ClassVar[int]
     IS_DEFAULT_FIELD_NUMBER: _ClassVar[int]
     IDEMPOTENCY_KEY_FIELD_NUMBER: _ClassVar[int]
+    ACCOUNT_ID_FIELD_NUMBER: _ClassVar[int]
     credential_key: str
     provider: ProviderNameV1
     key_material: str
     is_default: bool
     idempotency_key: str
-    def __init__(self, credential_key: _Optional[str] = ..., provider: _Optional[_Union[ProviderNameV1, str]] = ..., key_material: _Optional[str] = ..., is_default: _Optional[bool] = ..., idempotency_key: _Optional[str] = ...) -> None: ...
+    account_id: str
+    def __init__(self, credential_key: _Optional[str] = ..., provider: _Optional[_Union[ProviderNameV1, str]] = ..., key_material: _Optional[str] = ..., is_default: _Optional[bool] = ..., idempotency_key: _Optional[str] = ..., account_id: _Optional[str] = ...) -> None: ...
 
 class RegisterEvaluationProviderCredentialResponse(_message.Message):
     __slots__ = ("credential", "idempotent_replay", "capabilities")
@@ -8422,7 +8531,7 @@ class EvaluationScorerConfigV1(_message.Message):
     def __init__(self, score_config_id: _Optional[str] = ..., config_key: _Optional[str] = ..., name: _Optional[str] = ..., description: _Optional[str] = ..., metric_name: _Optional[str] = ..., success_dimension: _Optional[str] = ..., version_discriminator: _Optional[str] = ..., kind: _Optional[_Union[EvaluationScorerKindV1, str]] = ..., weight: _Optional[float] = ..., is_blocking_gate: _Optional[bool] = ..., deterministic: _Optional[_Union[EvaluationScorerDeterministicSpecV1, _Mapping]] = ..., review_policy: _Optional[_Union[EvaluationScorerReviewPolicySpecV1, _Mapping]] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., judge: _Optional[_Union[EvaluationScorerJudgeSpecV1, _Mapping]] = ..., code: _Optional[_Union[EvaluationScorerCodeConfigV1, _Mapping]] = ...) -> None: ...
 
 class EvaluationScorerConfigRejectionV1(_message.Message):
-    __slots__ = ("kind", "reason_code", "pinned_run_count", "pinned_run_ids", "detail", "recovery", "review_policy_field", "review_policy_observed_value", "review_policy_bound", "judge_provider")
+    __slots__ = ("kind", "reason_code", "pinned_run_count", "pinned_run_ids", "detail", "recovery", "review_policy_field", "review_policy_observed_value", "review_policy_bound", "judge_provider", "question_key")
     KIND_FIELD_NUMBER: _ClassVar[int]
     REASON_CODE_FIELD_NUMBER: _ClassVar[int]
     PINNED_RUN_COUNT_FIELD_NUMBER: _ClassVar[int]
@@ -8433,6 +8542,7 @@ class EvaluationScorerConfigRejectionV1(_message.Message):
     REVIEW_POLICY_OBSERVED_VALUE_FIELD_NUMBER: _ClassVar[int]
     REVIEW_POLICY_BOUND_FIELD_NUMBER: _ClassVar[int]
     JUDGE_PROVIDER_FIELD_NUMBER: _ClassVar[int]
+    QUESTION_KEY_FIELD_NUMBER: _ClassVar[int]
     kind: EvaluationScorerConfigRejectionKindV1
     reason_code: str
     pinned_run_count: int
@@ -8443,7 +8553,8 @@ class EvaluationScorerConfigRejectionV1(_message.Message):
     review_policy_observed_value: int
     review_policy_bound: int
     judge_provider: ProviderNameV1
-    def __init__(self, kind: _Optional[_Union[EvaluationScorerConfigRejectionKindV1, str]] = ..., reason_code: _Optional[str] = ..., pinned_run_count: _Optional[int] = ..., pinned_run_ids: _Optional[_Iterable[str]] = ..., detail: _Optional[str] = ..., recovery: _Optional[_Union[RecoveryActionV1, str]] = ..., review_policy_field: _Optional[str] = ..., review_policy_observed_value: _Optional[int] = ..., review_policy_bound: _Optional[int] = ..., judge_provider: _Optional[_Union[ProviderNameV1, str]] = ...) -> None: ...
+    question_key: str
+    def __init__(self, kind: _Optional[_Union[EvaluationScorerConfigRejectionKindV1, str]] = ..., reason_code: _Optional[str] = ..., pinned_run_count: _Optional[int] = ..., pinned_run_ids: _Optional[_Iterable[str]] = ..., detail: _Optional[str] = ..., recovery: _Optional[_Union[RecoveryActionV1, str]] = ..., review_policy_field: _Optional[str] = ..., review_policy_observed_value: _Optional[int] = ..., review_policy_bound: _Optional[int] = ..., judge_provider: _Optional[_Union[ProviderNameV1, str]] = ..., question_key: _Optional[str] = ...) -> None: ...
 
 class EvaluationScorerJudgeVerdictMappingV1(_message.Message):
     __slots__ = ("verdict", "mapped_score")
@@ -8472,6 +8583,24 @@ class EvaluationScorerJudgeTemplateRefV1(_message.Message):
     evaluator_template_id: str
     template_version_discriminator: str
     def __init__(self, evaluator_template_id: _Optional[str] = ..., template_version_discriminator: _Optional[str] = ...) -> None: ...
+
+class EvaluationJudgeAnswerV1(_message.Message):
+    __slots__ = ("kind", "label_index", "label", "probabilities", "probabilities_availability", "confidence", "option_labels")
+    KIND_FIELD_NUMBER: _ClassVar[int]
+    LABEL_INDEX_FIELD_NUMBER: _ClassVar[int]
+    LABEL_FIELD_NUMBER: _ClassVar[int]
+    PROBABILITIES_FIELD_NUMBER: _ClassVar[int]
+    PROBABILITIES_AVAILABILITY_FIELD_NUMBER: _ClassVar[int]
+    CONFIDENCE_FIELD_NUMBER: _ClassVar[int]
+    OPTION_LABELS_FIELD_NUMBER: _ClassVar[int]
+    kind: JudgeAnswerKindV1
+    label_index: int
+    label: str
+    probabilities: _containers.RepeatedScalarFieldContainer[float]
+    probabilities_availability: MetricAvailabilityV1
+    confidence: float
+    option_labels: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, kind: _Optional[_Union[JudgeAnswerKindV1, str]] = ..., label_index: _Optional[int] = ..., label: _Optional[str] = ..., probabilities: _Optional[_Iterable[float]] = ..., probabilities_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., confidence: _Optional[float] = ..., option_labels: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class SystemOneStepV1(_message.Message):
     __slots__ = ("model", "credential_ref", "provider_endpoint_ref")
@@ -8552,6 +8681,212 @@ class CreateEvaluationScorerConfigResponse(_message.Message):
     idempotent_replay: bool
     capabilities: AgenticEvaluationCapabilitiesV1
     def __init__(self, scorer_config: _Optional[_Union[EvaluationScorerConfigV1, _Mapping]] = ..., idempotent_replay: _Optional[bool] = ..., capabilities: _Optional[_Union[AgenticEvaluationCapabilitiesV1, _Mapping]] = ...) -> None: ...
+
+class EvaluationJudgeLabelV1(_message.Message):
+    __slots__ = ("label", "description", "score")
+    LABEL_FIELD_NUMBER: _ClassVar[int]
+    DESCRIPTION_FIELD_NUMBER: _ClassVar[int]
+    SCORE_FIELD_NUMBER: _ClassVar[int]
+    label: str
+    description: str
+    score: float
+    def __init__(self, label: _Optional[str] = ..., description: _Optional[str] = ..., score: _Optional[float] = ...) -> None: ...
+
+class EvaluationJudgeQuestionSpecV1(_message.Message):
+    __slots__ = ("question_key", "name", "metric_name", "success_dimension", "answer_kind", "instructions", "labels", "scale_levels", "pass_threshold", "weight", "is_blocking_gate", "review_below_confidence")
+    QUESTION_KEY_FIELD_NUMBER: _ClassVar[int]
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    METRIC_NAME_FIELD_NUMBER: _ClassVar[int]
+    SUCCESS_DIMENSION_FIELD_NUMBER: _ClassVar[int]
+    ANSWER_KIND_FIELD_NUMBER: _ClassVar[int]
+    INSTRUCTIONS_FIELD_NUMBER: _ClassVar[int]
+    LABELS_FIELD_NUMBER: _ClassVar[int]
+    SCALE_LEVELS_FIELD_NUMBER: _ClassVar[int]
+    PASS_THRESHOLD_FIELD_NUMBER: _ClassVar[int]
+    WEIGHT_FIELD_NUMBER: _ClassVar[int]
+    IS_BLOCKING_GATE_FIELD_NUMBER: _ClassVar[int]
+    REVIEW_BELOW_CONFIDENCE_FIELD_NUMBER: _ClassVar[int]
+    question_key: str
+    name: str
+    metric_name: str
+    success_dimension: str
+    answer_kind: JudgeAnswerKindV1
+    instructions: str
+    labels: _containers.RepeatedCompositeFieldContainer[EvaluationJudgeLabelV1]
+    scale_levels: _containers.RepeatedScalarFieldContainer[str]
+    pass_threshold: float
+    weight: float
+    is_blocking_gate: bool
+    review_below_confidence: float
+    def __init__(self, question_key: _Optional[str] = ..., name: _Optional[str] = ..., metric_name: _Optional[str] = ..., success_dimension: _Optional[str] = ..., answer_kind: _Optional[_Union[JudgeAnswerKindV1, str]] = ..., instructions: _Optional[str] = ..., labels: _Optional[_Iterable[_Union[EvaluationJudgeLabelV1, _Mapping]]] = ..., scale_levels: _Optional[_Iterable[str]] = ..., pass_threshold: _Optional[float] = ..., weight: _Optional[float] = ..., is_blocking_gate: _Optional[bool] = ..., review_below_confidence: _Optional[float] = ...) -> None: ...
+
+class EvaluationJudgeSpecV1(_message.Message):
+    __slots__ = ("judge_mode", "model", "credential_ref", "provider_endpoint_ref", "request_settings", "reasoning_effort", "system_one", "rubric", "instructions", "subject_path", "questions")
+    JUDGE_MODE_FIELD_NUMBER: _ClassVar[int]
+    MODEL_FIELD_NUMBER: _ClassVar[int]
+    CREDENTIAL_REF_FIELD_NUMBER: _ClassVar[int]
+    PROVIDER_ENDPOINT_REF_FIELD_NUMBER: _ClassVar[int]
+    REQUEST_SETTINGS_FIELD_NUMBER: _ClassVar[int]
+    REASONING_EFFORT_FIELD_NUMBER: _ClassVar[int]
+    SYSTEM_ONE_FIELD_NUMBER: _ClassVar[int]
+    RUBRIC_FIELD_NUMBER: _ClassVar[int]
+    INSTRUCTIONS_FIELD_NUMBER: _ClassVar[int]
+    SUBJECT_PATH_FIELD_NUMBER: _ClassVar[int]
+    QUESTIONS_FIELD_NUMBER: _ClassVar[int]
+    judge_mode: JudgeModeV1
+    model: ProviderModelRefV1
+    credential_ref: str
+    provider_endpoint_ref: str
+    request_settings: ProviderRequestSettingsV1
+    reasoning_effort: ProviderReasoningEffortV1
+    system_one: SystemOneStepV1
+    rubric: str
+    instructions: str
+    subject_path: str
+    questions: _containers.RepeatedCompositeFieldContainer[EvaluationJudgeQuestionSpecV1]
+    def __init__(self, judge_mode: _Optional[_Union[JudgeModeV1, str]] = ..., model: _Optional[_Union[ProviderModelRefV1, _Mapping]] = ..., credential_ref: _Optional[str] = ..., provider_endpoint_ref: _Optional[str] = ..., request_settings: _Optional[_Union[ProviderRequestSettingsV1, _Mapping]] = ..., reasoning_effort: _Optional[_Union[ProviderReasoningEffortV1, str]] = ..., system_one: _Optional[_Union[SystemOneStepV1, _Mapping]] = ..., rubric: _Optional[str] = ..., instructions: _Optional[str] = ..., subject_path: _Optional[str] = ..., questions: _Optional[_Iterable[_Union[EvaluationJudgeQuestionSpecV1, _Mapping]]] = ...) -> None: ...
+
+class EvaluationJudgeMemberV1(_message.Message):
+    __slots__ = ("question", "score_config_id", "config_key", "ordinal", "version_discriminator")
+    QUESTION_FIELD_NUMBER: _ClassVar[int]
+    SCORE_CONFIG_ID_FIELD_NUMBER: _ClassVar[int]
+    CONFIG_KEY_FIELD_NUMBER: _ClassVar[int]
+    ORDINAL_FIELD_NUMBER: _ClassVar[int]
+    VERSION_DISCRIMINATOR_FIELD_NUMBER: _ClassVar[int]
+    question: EvaluationJudgeQuestionSpecV1
+    score_config_id: str
+    config_key: str
+    ordinal: int
+    version_discriminator: str
+    def __init__(self, question: _Optional[_Union[EvaluationJudgeQuestionSpecV1, _Mapping]] = ..., score_config_id: _Optional[str] = ..., config_key: _Optional[str] = ..., ordinal: _Optional[int] = ..., version_discriminator: _Optional[str] = ...) -> None: ...
+
+class EvaluationJudgeV1(_message.Message):
+    __slots__ = ("judge_id", "judge_key", "name", "description", "version_discriminator", "judge_mode", "execution", "rubric", "instructions", "subject_path", "members", "is_archived", "archived_at", "created_at", "updated_at", "created_by")
+    JUDGE_ID_FIELD_NUMBER: _ClassVar[int]
+    JUDGE_KEY_FIELD_NUMBER: _ClassVar[int]
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    DESCRIPTION_FIELD_NUMBER: _ClassVar[int]
+    VERSION_DISCRIMINATOR_FIELD_NUMBER: _ClassVar[int]
+    JUDGE_MODE_FIELD_NUMBER: _ClassVar[int]
+    EXECUTION_FIELD_NUMBER: _ClassVar[int]
+    RUBRIC_FIELD_NUMBER: _ClassVar[int]
+    INSTRUCTIONS_FIELD_NUMBER: _ClassVar[int]
+    SUBJECT_PATH_FIELD_NUMBER: _ClassVar[int]
+    MEMBERS_FIELD_NUMBER: _ClassVar[int]
+    IS_ARCHIVED_FIELD_NUMBER: _ClassVar[int]
+    ARCHIVED_AT_FIELD_NUMBER: _ClassVar[int]
+    CREATED_AT_FIELD_NUMBER: _ClassVar[int]
+    UPDATED_AT_FIELD_NUMBER: _ClassVar[int]
+    CREATED_BY_FIELD_NUMBER: _ClassVar[int]
+    judge_id: str
+    judge_key: str
+    name: str
+    description: str
+    version_discriminator: str
+    judge_mode: JudgeModeV1
+    execution: EvaluationScorerJudgeResolvedExecutionV1
+    rubric: str
+    instructions: str
+    subject_path: str
+    members: _containers.RepeatedCompositeFieldContainer[EvaluationJudgeMemberV1]
+    is_archived: bool
+    archived_at: _timestamp_pb2.Timestamp
+    created_at: _timestamp_pb2.Timestamp
+    updated_at: _timestamp_pb2.Timestamp
+    created_by: PrincipalRefV1
+    def __init__(self, judge_id: _Optional[str] = ..., judge_key: _Optional[str] = ..., name: _Optional[str] = ..., description: _Optional[str] = ..., version_discriminator: _Optional[str] = ..., judge_mode: _Optional[_Union[JudgeModeV1, str]] = ..., execution: _Optional[_Union[EvaluationScorerJudgeResolvedExecutionV1, _Mapping]] = ..., rubric: _Optional[str] = ..., instructions: _Optional[str] = ..., subject_path: _Optional[str] = ..., members: _Optional[_Iterable[_Union[EvaluationJudgeMemberV1, _Mapping]]] = ..., is_archived: _Optional[bool] = ..., archived_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., updated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., created_by: _Optional[_Union[PrincipalRefV1, _Mapping]] = ...) -> None: ...
+
+class EvaluationJudgeQuestionRefV1(_message.Message):
+    __slots__ = ("judge_id", "question_key", "ordinal", "answer_kind")
+    JUDGE_ID_FIELD_NUMBER: _ClassVar[int]
+    QUESTION_KEY_FIELD_NUMBER: _ClassVar[int]
+    ORDINAL_FIELD_NUMBER: _ClassVar[int]
+    ANSWER_KIND_FIELD_NUMBER: _ClassVar[int]
+    judge_id: str
+    question_key: str
+    ordinal: int
+    answer_kind: JudgeAnswerKindV1
+    def __init__(self, judge_id: _Optional[str] = ..., question_key: _Optional[str] = ..., ordinal: _Optional[int] = ..., answer_kind: _Optional[_Union[JudgeAnswerKindV1, str]] = ...) -> None: ...
+
+class EvaluationJudgeQuestionV1(_message.Message):
+    __slots__ = ("question_key", "ordinal", "answer_kind", "instructions", "labels", "scale_levels", "review_below_confidence")
+    QUESTION_KEY_FIELD_NUMBER: _ClassVar[int]
+    ORDINAL_FIELD_NUMBER: _ClassVar[int]
+    ANSWER_KIND_FIELD_NUMBER: _ClassVar[int]
+    INSTRUCTIONS_FIELD_NUMBER: _ClassVar[int]
+    LABELS_FIELD_NUMBER: _ClassVar[int]
+    SCALE_LEVELS_FIELD_NUMBER: _ClassVar[int]
+    REVIEW_BELOW_CONFIDENCE_FIELD_NUMBER: _ClassVar[int]
+    question_key: str
+    ordinal: int
+    answer_kind: JudgeAnswerKindV1
+    instructions: str
+    labels: _containers.RepeatedCompositeFieldContainer[EvaluationJudgeLabelV1]
+    scale_levels: _containers.RepeatedScalarFieldContainer[str]
+    review_below_confidence: float
+    def __init__(self, question_key: _Optional[str] = ..., ordinal: _Optional[int] = ..., answer_kind: _Optional[_Union[JudgeAnswerKindV1, str]] = ..., instructions: _Optional[str] = ..., labels: _Optional[_Iterable[_Union[EvaluationJudgeLabelV1, _Mapping]]] = ..., scale_levels: _Optional[_Iterable[str]] = ..., review_below_confidence: _Optional[float] = ...) -> None: ...
+
+class CreateEvaluationJudgeRequest(_message.Message):
+    __slots__ = ("judge_key", "name", "description", "spec", "idempotency_key", "expected_version_discriminator")
+    JUDGE_KEY_FIELD_NUMBER: _ClassVar[int]
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    DESCRIPTION_FIELD_NUMBER: _ClassVar[int]
+    SPEC_FIELD_NUMBER: _ClassVar[int]
+    IDEMPOTENCY_KEY_FIELD_NUMBER: _ClassVar[int]
+    EXPECTED_VERSION_DISCRIMINATOR_FIELD_NUMBER: _ClassVar[int]
+    judge_key: str
+    name: str
+    description: str
+    spec: EvaluationJudgeSpecV1
+    idempotency_key: str
+    expected_version_discriminator: str
+    def __init__(self, judge_key: _Optional[str] = ..., name: _Optional[str] = ..., description: _Optional[str] = ..., spec: _Optional[_Union[EvaluationJudgeSpecV1, _Mapping]] = ..., idempotency_key: _Optional[str] = ..., expected_version_discriminator: _Optional[str] = ...) -> None: ...
+
+class CreateEvaluationJudgeResponse(_message.Message):
+    __slots__ = ("judge", "idempotent_replay", "capabilities")
+    JUDGE_FIELD_NUMBER: _ClassVar[int]
+    IDEMPOTENT_REPLAY_FIELD_NUMBER: _ClassVar[int]
+    CAPABILITIES_FIELD_NUMBER: _ClassVar[int]
+    judge: EvaluationJudgeV1
+    idempotent_replay: bool
+    capabilities: AgenticEvaluationCapabilitiesV1
+    def __init__(self, judge: _Optional[_Union[EvaluationJudgeV1, _Mapping]] = ..., idempotent_replay: _Optional[bool] = ..., capabilities: _Optional[_Union[AgenticEvaluationCapabilitiesV1, _Mapping]] = ...) -> None: ...
+
+class GetEvaluationJudgeRequest(_message.Message):
+    __slots__ = ("judge_id", "judge_key")
+    JUDGE_ID_FIELD_NUMBER: _ClassVar[int]
+    JUDGE_KEY_FIELD_NUMBER: _ClassVar[int]
+    judge_id: str
+    judge_key: str
+    def __init__(self, judge_id: _Optional[str] = ..., judge_key: _Optional[str] = ...) -> None: ...
+
+class GetEvaluationJudgeResponse(_message.Message):
+    __slots__ = ("judge", "freshness", "capabilities")
+    JUDGE_FIELD_NUMBER: _ClassVar[int]
+    FRESHNESS_FIELD_NUMBER: _ClassVar[int]
+    CAPABILITIES_FIELD_NUMBER: _ClassVar[int]
+    judge: EvaluationJudgeV1
+    freshness: EvaluationFreshnessV1
+    capabilities: AgenticEvaluationCapabilitiesV1
+    def __init__(self, judge: _Optional[_Union[EvaluationJudgeV1, _Mapping]] = ..., freshness: _Optional[_Union[EvaluationFreshnessV1, _Mapping]] = ..., capabilities: _Optional[_Union[AgenticEvaluationCapabilitiesV1, _Mapping]] = ...) -> None: ...
+
+class ArchiveEvaluationJudgeRequest(_message.Message):
+    __slots__ = ("judge_id", "judge_key")
+    JUDGE_ID_FIELD_NUMBER: _ClassVar[int]
+    JUDGE_KEY_FIELD_NUMBER: _ClassVar[int]
+    judge_id: str
+    judge_key: str
+    def __init__(self, judge_id: _Optional[str] = ..., judge_key: _Optional[str] = ...) -> None: ...
+
+class ArchiveEvaluationJudgeResponse(_message.Message):
+    __slots__ = ("judge", "already_archived", "capabilities")
+    JUDGE_FIELD_NUMBER: _ClassVar[int]
+    ALREADY_ARCHIVED_FIELD_NUMBER: _ClassVar[int]
+    CAPABILITIES_FIELD_NUMBER: _ClassVar[int]
+    judge: EvaluationJudgeV1
+    already_archived: bool
+    capabilities: AgenticEvaluationCapabilitiesV1
+    def __init__(self, judge: _Optional[_Union[EvaluationJudgeV1, _Mapping]] = ..., already_archived: _Optional[bool] = ..., capabilities: _Optional[_Union[AgenticEvaluationCapabilitiesV1, _Mapping]] = ...) -> None: ...
 
 class PreviewEvaluationScorerRequest(_message.Message):
     __slots__ = ("spec", "sample_output_json", "sample_case_json")
@@ -13708,7 +14043,7 @@ class ListPlatformAnnotationsResponse(_message.Message):
     def __init__(self, annotations: _Optional[_Iterable[_Union[PlatformAnnotationV1, _Mapping]]] = ..., page: _Optional[_Union[_common_pb2.PageResponseV1, _Mapping]] = ..., capabilities: _Optional[_Union[AgenticEvaluationCapabilitiesV1, _Mapping]] = ..., resync: _Optional[_Union[EvaluationCursorResyncV1, _Mapping]] = ...) -> None: ...
 
 class EvaluationScorerConfigSummaryV1(_message.Message):
-    __slots__ = ("score_config_id", "config_key", "name", "description", "metric_name", "success_dimension", "kind", "version_discriminator", "version_count", "version_count_availability", "weight", "is_blocking_gate", "is_archived", "archived_at", "authored_on_this_surface", "created_at", "updated_at", "created_by", "code")
+    __slots__ = ("score_config_id", "config_key", "name", "description", "metric_name", "success_dimension", "kind", "version_discriminator", "version_count", "version_count_availability", "weight", "is_blocking_gate", "is_archived", "archived_at", "authored_on_this_surface", "created_at", "updated_at", "created_by", "code", "judge_mode", "judge_question")
     SCORE_CONFIG_ID_FIELD_NUMBER: _ClassVar[int]
     CONFIG_KEY_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
@@ -13728,6 +14063,8 @@ class EvaluationScorerConfigSummaryV1(_message.Message):
     UPDATED_AT_FIELD_NUMBER: _ClassVar[int]
     CREATED_BY_FIELD_NUMBER: _ClassVar[int]
     CODE_FIELD_NUMBER: _ClassVar[int]
+    JUDGE_MODE_FIELD_NUMBER: _ClassVar[int]
+    JUDGE_QUESTION_FIELD_NUMBER: _ClassVar[int]
     score_config_id: str
     config_key: str
     name: str
@@ -13747,7 +14084,9 @@ class EvaluationScorerConfigSummaryV1(_message.Message):
     updated_at: _timestamp_pb2.Timestamp
     created_by: PrincipalRefV1
     code: EvaluationScorerCodeSummaryV1
-    def __init__(self, score_config_id: _Optional[str] = ..., config_key: _Optional[str] = ..., name: _Optional[str] = ..., description: _Optional[str] = ..., metric_name: _Optional[str] = ..., success_dimension: _Optional[str] = ..., kind: _Optional[_Union[EvaluationScorerKindV1, str]] = ..., version_discriminator: _Optional[str] = ..., version_count: _Optional[int] = ..., version_count_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., weight: _Optional[float] = ..., is_blocking_gate: _Optional[bool] = ..., is_archived: _Optional[bool] = ..., archived_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., authored_on_this_surface: _Optional[bool] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., updated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., created_by: _Optional[_Union[PrincipalRefV1, _Mapping]] = ..., code: _Optional[_Union[EvaluationScorerCodeSummaryV1, _Mapping]] = ...) -> None: ...
+    judge_mode: JudgeModeV1
+    judge_question: EvaluationJudgeQuestionRefV1
+    def __init__(self, score_config_id: _Optional[str] = ..., config_key: _Optional[str] = ..., name: _Optional[str] = ..., description: _Optional[str] = ..., metric_name: _Optional[str] = ..., success_dimension: _Optional[str] = ..., kind: _Optional[_Union[EvaluationScorerKindV1, str]] = ..., version_discriminator: _Optional[str] = ..., version_count: _Optional[int] = ..., version_count_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., weight: _Optional[float] = ..., is_blocking_gate: _Optional[bool] = ..., is_archived: _Optional[bool] = ..., archived_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., authored_on_this_surface: _Optional[bool] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., updated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., created_by: _Optional[_Union[PrincipalRefV1, _Mapping]] = ..., code: _Optional[_Union[EvaluationScorerCodeSummaryV1, _Mapping]] = ..., judge_mode: _Optional[_Union[JudgeModeV1, str]] = ..., judge_question: _Optional[_Union[EvaluationJudgeQuestionRefV1, _Mapping]] = ...) -> None: ...
 
 class ListEvaluationScorerConfigsRequest(_message.Message):
     __slots__ = ("page", "kind_filter", "archived_filter")
@@ -13774,45 +14113,65 @@ class ListEvaluationScorerConfigsResponse(_message.Message):
     def __init__(self, scorer_configs: _Optional[_Iterable[_Union[EvaluationScorerConfigSummaryV1, _Mapping]]] = ..., page: _Optional[_Union[_common_pb2.PageResponseV1, _Mapping]] = ..., freshness: _Optional[_Union[EvaluationFreshnessV1, _Mapping]] = ..., capabilities: _Optional[_Union[AgenticEvaluationCapabilitiesV1, _Mapping]] = ..., resync: _Optional[_Union[EvaluationCursorResyncV1, _Mapping]] = ...) -> None: ...
 
 class EvaluationScorerJudgeEffectiveSettingsV1(_message.Message):
-    __slots__ = ("max_output_tokens", "temperature", "top_p", "anthropic_version")
+    __slots__ = ("max_output_tokens", "temperature", "top_p", "anthropic_version", "seed")
     MAX_OUTPUT_TOKENS_FIELD_NUMBER: _ClassVar[int]
     TEMPERATURE_FIELD_NUMBER: _ClassVar[int]
     TOP_P_FIELD_NUMBER: _ClassVar[int]
     ANTHROPIC_VERSION_FIELD_NUMBER: _ClassVar[int]
+    SEED_FIELD_NUMBER: _ClassVar[int]
     max_output_tokens: int
     temperature: float
     top_p: float
     anthropic_version: str
-    def __init__(self, max_output_tokens: _Optional[int] = ..., temperature: _Optional[float] = ..., top_p: _Optional[float] = ..., anthropic_version: _Optional[str] = ...) -> None: ...
+    seed: int
+    def __init__(self, max_output_tokens: _Optional[int] = ..., temperature: _Optional[float] = ..., top_p: _Optional[float] = ..., anthropic_version: _Optional[str] = ..., seed: _Optional[int] = ...) -> None: ...
 
 class EvaluationScorerJudgeResolvedExecutionV1(_message.Message):
-    __slots__ = ("provider", "model_id", "credential_ref", "provider_endpoint_ref", "reasoning_enabled", "effective_request_settings")
+    __slots__ = ("provider", "model_id", "credential_ref", "provider_endpoint_ref", "reasoning_enabled", "effective_request_settings", "judge_mode", "system_one")
     PROVIDER_FIELD_NUMBER: _ClassVar[int]
     MODEL_ID_FIELD_NUMBER: _ClassVar[int]
     CREDENTIAL_REF_FIELD_NUMBER: _ClassVar[int]
     PROVIDER_ENDPOINT_REF_FIELD_NUMBER: _ClassVar[int]
     REASONING_ENABLED_FIELD_NUMBER: _ClassVar[int]
     EFFECTIVE_REQUEST_SETTINGS_FIELD_NUMBER: _ClassVar[int]
+    JUDGE_MODE_FIELD_NUMBER: _ClassVar[int]
+    SYSTEM_ONE_FIELD_NUMBER: _ClassVar[int]
     provider: ProviderNameV1
     model_id: str
     credential_ref: str
     provider_endpoint_ref: str
     reasoning_enabled: bool
     effective_request_settings: EvaluationScorerJudgeEffectiveSettingsV1
-    def __init__(self, provider: _Optional[_Union[ProviderNameV1, str]] = ..., model_id: _Optional[str] = ..., credential_ref: _Optional[str] = ..., provider_endpoint_ref: _Optional[str] = ..., reasoning_enabled: _Optional[bool] = ..., effective_request_settings: _Optional[_Union[EvaluationScorerJudgeEffectiveSettingsV1, _Mapping]] = ...) -> None: ...
+    judge_mode: JudgeModeV1
+    system_one: EvaluationScorerJudgeResolvedStepV1
+    def __init__(self, provider: _Optional[_Union[ProviderNameV1, str]] = ..., model_id: _Optional[str] = ..., credential_ref: _Optional[str] = ..., provider_endpoint_ref: _Optional[str] = ..., reasoning_enabled: _Optional[bool] = ..., effective_request_settings: _Optional[_Union[EvaluationScorerJudgeEffectiveSettingsV1, _Mapping]] = ..., judge_mode: _Optional[_Union[JudgeModeV1, str]] = ..., system_one: _Optional[_Union[EvaluationScorerJudgeResolvedStepV1, _Mapping]] = ...) -> None: ...
+
+class EvaluationScorerJudgeResolvedStepV1(_message.Message):
+    __slots__ = ("provider", "model_id", "credential_ref", "provider_endpoint_ref")
+    PROVIDER_FIELD_NUMBER: _ClassVar[int]
+    MODEL_ID_FIELD_NUMBER: _ClassVar[int]
+    CREDENTIAL_REF_FIELD_NUMBER: _ClassVar[int]
+    PROVIDER_ENDPOINT_REF_FIELD_NUMBER: _ClassVar[int]
+    provider: ProviderNameV1
+    model_id: str
+    credential_ref: str
+    provider_endpoint_ref: str
+    def __init__(self, provider: _Optional[_Union[ProviderNameV1, str]] = ..., model_id: _Optional[str] = ..., credential_ref: _Optional[str] = ..., provider_endpoint_ref: _Optional[str] = ...) -> None: ...
 
 class EvaluationScorerJudgeDetailV1(_message.Message):
-    __slots__ = ("rubric_content", "provider_execution", "pass_threshold")
+    __slots__ = ("rubric_content", "provider_execution", "pass_threshold", "question")
     RUBRIC_CONTENT_FIELD_NUMBER: _ClassVar[int]
     PROVIDER_EXECUTION_FIELD_NUMBER: _ClassVar[int]
     PASS_THRESHOLD_FIELD_NUMBER: _ClassVar[int]
+    QUESTION_FIELD_NUMBER: _ClassVar[int]
     rubric_content: EvaluationScorerJudgeRubricV1
     provider_execution: EvaluationScorerJudgeResolvedExecutionV1
     pass_threshold: float
-    def __init__(self, rubric_content: _Optional[_Union[EvaluationScorerJudgeRubricV1, _Mapping]] = ..., provider_execution: _Optional[_Union[EvaluationScorerJudgeResolvedExecutionV1, _Mapping]] = ..., pass_threshold: _Optional[float] = ...) -> None: ...
+    question: EvaluationJudgeQuestionV1
+    def __init__(self, rubric_content: _Optional[_Union[EvaluationScorerJudgeRubricV1, _Mapping]] = ..., provider_execution: _Optional[_Union[EvaluationScorerJudgeResolvedExecutionV1, _Mapping]] = ..., pass_threshold: _Optional[float] = ..., question: _Optional[_Union[EvaluationJudgeQuestionV1, _Mapping]] = ...) -> None: ...
 
 class EvaluationScorerConfigDetailV1(_message.Message):
-    __slots__ = ("score_config_id", "config_key", "name", "description", "metric_name", "success_dimension", "kind", "version_discriminator", "weight", "is_blocking_gate", "is_archived", "archived_at", "deterministic", "review_policy", "judge", "pass_threshold", "authored_on_this_surface", "version_count", "version_count_availability", "evaluator_template_id", "created_at", "updated_at", "created_by", "pinned_run_count", "pinned_run_id", "code")
+    __slots__ = ("score_config_id", "config_key", "name", "description", "metric_name", "success_dimension", "kind", "version_discriminator", "weight", "is_blocking_gate", "is_archived", "archived_at", "deterministic", "review_policy", "judge", "pass_threshold", "authored_on_this_surface", "version_count", "version_count_availability", "evaluator_template_id", "created_at", "updated_at", "created_by", "pinned_run_count", "pinned_run_id", "code", "judge_mode", "judge_question")
     SCORE_CONFIG_ID_FIELD_NUMBER: _ClassVar[int]
     CONFIG_KEY_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
@@ -13839,6 +14198,8 @@ class EvaluationScorerConfigDetailV1(_message.Message):
     PINNED_RUN_COUNT_FIELD_NUMBER: _ClassVar[int]
     PINNED_RUN_ID_FIELD_NUMBER: _ClassVar[int]
     CODE_FIELD_NUMBER: _ClassVar[int]
+    JUDGE_MODE_FIELD_NUMBER: _ClassVar[int]
+    JUDGE_QUESTION_FIELD_NUMBER: _ClassVar[int]
     score_config_id: str
     config_key: str
     name: str
@@ -13865,7 +14226,9 @@ class EvaluationScorerConfigDetailV1(_message.Message):
     pinned_run_count: int
     pinned_run_id: _containers.RepeatedScalarFieldContainer[str]
     code: EvaluationScorerCodeConfigV1
-    def __init__(self, score_config_id: _Optional[str] = ..., config_key: _Optional[str] = ..., name: _Optional[str] = ..., description: _Optional[str] = ..., metric_name: _Optional[str] = ..., success_dimension: _Optional[str] = ..., kind: _Optional[_Union[EvaluationScorerKindV1, str]] = ..., version_discriminator: _Optional[str] = ..., weight: _Optional[float] = ..., is_blocking_gate: _Optional[bool] = ..., is_archived: _Optional[bool] = ..., archived_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., deterministic: _Optional[_Union[EvaluationScorerDeterministicSpecV1, _Mapping]] = ..., review_policy: _Optional[_Union[EvaluationScorerReviewPolicySpecV1, _Mapping]] = ..., judge: _Optional[_Union[EvaluationScorerJudgeDetailV1, _Mapping]] = ..., pass_threshold: _Optional[float] = ..., authored_on_this_surface: _Optional[bool] = ..., version_count: _Optional[int] = ..., version_count_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., evaluator_template_id: _Optional[str] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., updated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., created_by: _Optional[_Union[PrincipalRefV1, _Mapping]] = ..., pinned_run_count: _Optional[int] = ..., pinned_run_id: _Optional[_Iterable[str]] = ..., code: _Optional[_Union[EvaluationScorerCodeConfigV1, _Mapping]] = ...) -> None: ...
+    judge_mode: JudgeModeV1
+    judge_question: EvaluationJudgeQuestionRefV1
+    def __init__(self, score_config_id: _Optional[str] = ..., config_key: _Optional[str] = ..., name: _Optional[str] = ..., description: _Optional[str] = ..., metric_name: _Optional[str] = ..., success_dimension: _Optional[str] = ..., kind: _Optional[_Union[EvaluationScorerKindV1, str]] = ..., version_discriminator: _Optional[str] = ..., weight: _Optional[float] = ..., is_blocking_gate: _Optional[bool] = ..., is_archived: _Optional[bool] = ..., archived_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., deterministic: _Optional[_Union[EvaluationScorerDeterministicSpecV1, _Mapping]] = ..., review_policy: _Optional[_Union[EvaluationScorerReviewPolicySpecV1, _Mapping]] = ..., judge: _Optional[_Union[EvaluationScorerJudgeDetailV1, _Mapping]] = ..., pass_threshold: _Optional[float] = ..., authored_on_this_surface: _Optional[bool] = ..., version_count: _Optional[int] = ..., version_count_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., evaluator_template_id: _Optional[str] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., updated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., created_by: _Optional[_Union[PrincipalRefV1, _Mapping]] = ..., pinned_run_count: _Optional[int] = ..., pinned_run_id: _Optional[_Iterable[str]] = ..., code: _Optional[_Union[EvaluationScorerCodeConfigV1, _Mapping]] = ..., judge_mode: _Optional[_Union[JudgeModeV1, str]] = ..., judge_question: _Optional[_Union[EvaluationJudgeQuestionRefV1, _Mapping]] = ...) -> None: ...
 
 class EvaluationScorerConfigUsageV1(_message.Message):
     __slots__ = ("suite", "suite_count", "suite_availability", "pinned_run_count", "pinned_run_id", "pinned_run_availability", "definition_count", "definition_availability", "production_rule_count", "production_rule_availability")
