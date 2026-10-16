@@ -108,3 +108,27 @@ def test_render_never_raises_on_bytes_that_are_not_utf8() -> None:
     assert _core.render(LoopToolResultV1(exit_code=0, stdout=b"\xff\xfe ok")) == (
         "exit code 0\nstdout:\n�� ok"
     )
+
+
+def test_a_trajectory_rows_calls_get_their_arguments_parsed_and_its_nulls_dropped() -> None:
+    # As a trajectory export writes a row: every call's arguments JSON text, and in a Parquet
+    # column every message field present, null where the message lacks it.
+    call = {"id": "000000001", "type": "function", "function": {"name": "shell"}}
+    written = [
+        {"role": "user", "content": "Fix it.", "tool_calls": None, "tool_call_id": None},
+        {
+            "role": "assistant",
+            "content": "",
+            "tool_calls": [
+                {**call, "function": {"name": "shell", "arguments": '{"command": "pytest -q"}'}},
+                {**call, "function": {"name": "shell", "arguments": "not json"}},
+            ],
+        },
+        {"role": "tool", "content": "exit code 0", "tool_call_id": "000000001", "name": "shell"},
+    ]
+    messages = _core.sft_messages(written)
+    assert messages[0] == {"role": "user", "content": "Fix it."}
+    arguments = [each["function"]["arguments"] for each in messages[1]["tool_calls"]]
+    assert arguments == [{"command": "pytest -q"}, "not json"]  # text that is not JSON stays
+    assert messages[2] == written[2]
+    assert written[1]["tool_calls"][0]["function"]["arguments"] == '{"command": "pytest -q"}'

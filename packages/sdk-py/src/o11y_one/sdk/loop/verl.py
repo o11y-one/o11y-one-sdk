@@ -8,8 +8,13 @@ package's agent-loop config::
 Each trajectory is one rollout of the run ``O11Y_RUN``: verl's ``uid`` is its
 group, its tool calls run in Loop's VM, and its ``reward_score`` is the Loop
 verifier's primary reward. A task's or verifier's failure keeps its value; our
-failure (``INFRASTRUCTURE``) re-runs the trajectory once. Needs the ``verl``
-extra: ``pip install 'o11y-one[verl]'``.
+failure (``INFRASTRUCTURE``) re-runs the trajectory once.
+
+verl's SFT trainer reads Loop's verl trajectory export with :class:`LoopSFTDataset`::
+
+    data.custom_cls.path=pkg://o11y_one.sdk.loop.verl data.custom_cls.name=LoopSFTDataset
+
+Needs the ``verl`` extra: ``pip install 'o11y-one[verl]'``.
 """
 
 from __future__ import annotations
@@ -22,11 +27,13 @@ from pathlib import Path
 from typing import Any
 
 try:
+    import pandas as pd
     import verl
     from verl.experimental.agent_loop.agent_loop import AgentLoopOutput, ToolListWrap
     from verl.experimental.agent_loop.tool_agent_loop import ToolAgentLoop
     from verl.tools.base_tool import BaseTool
     from verl.tools.schemas import OpenAIFunctionToolSchema, ToolResponse
+    from verl.utils.dataset.multiturn_sft_dataset import MultiTurnSFTDataset
 except ModuleNotFoundError as error:
     raise ImportError(
         "o11y_one.sdk.loop.verl needs the verl extra: pip install 'o11y-one[verl]'"
@@ -35,7 +42,7 @@ except ModuleNotFoundError as error:
 from . import _SDK_VERSION, AsyncLoopClient, _core
 from ._core import LoopInfrastructureFailure
 
-__all__ = ["CONFIG", "LoopAgentLoop", "LoopInfrastructureFailure"]
+__all__ = ["CONFIG", "LoopAgentLoop", "LoopInfrastructureFailure", "LoopSFTDataset"]
 
 #: verl's ``agent_loop_config_path`` for :class:`LoopAgentLoop`.
 CONFIG = Path(__file__).with_name("verl.yaml")
@@ -109,6 +116,20 @@ class LoopAgentLoop(ToolAgentLoop):
             if output.reward_score is not None:
                 return output
         raise LoopInfrastructureFailure(f"rollout {rollout_id} failed on Loop's side, twice")
+
+
+class LoopSFTDataset(MultiTurnSFTDataset):
+    """verl's ``MultiTurnSFTDataset`` for Loop's verl trajectory export, whose ``tools`` and
+    each call's ``arguments`` are JSON text: they are parsed once, as the files load."""
+
+    def _read_files_and_process(self) -> None:
+        super()._read_files_and_process()
+        self.messages = [_core.sft_messages(messages) for messages in self.messages]
+        # Each item's messages are read from its frame row, not from self.messages.
+        column = pd.Series(self.messages, dtype=object).to_numpy()
+        self.dataframe[self.messages_key] = column
+        if self.tools is not None:
+            self.tools = [json.loads(t) if isinstance(t, str) else None for t in self.tools]
 
 
 if __name__ == "__main__":

@@ -75,6 +75,23 @@ This relies on verl 0.9's defaults: `data.return_raw_chat=True`, `rollout.mode=a
 - **Not sent:** `trainer_step`. verl doesn't hand its step to an agent loop, so the run's
   boards show its series by time, not by step.
 
+## Fine-tuning on trajectories
+
+Loop's verl trajectory export is a Parquet file of `messages` and `tools`, one row per
+rollout. It writes `tools` and each call's `arguments` as JSON text, which stock
+`MultiTurnSFTDataset` passes to the chat template as is. `LoopSFTDataset` parses them once,
+as the files load:
+
+```sh
+torchrun -m verl.trainer.sft_trainer \
+  data.train_files=trajectories.parquet \
+  data.custom_cls.path=pkg://o11y_one.sdk.loop.verl data.custom_cls.name=LoopSFTDataset \
+  ...
+```
+
+- Qwen3's chat template adds an empty think block to the last assistant turn only, so verl's
+  per-turn check fails on it. Set `data.ignore_input_ids_mismatch=True` for Qwen3.
+
 ## Region
 
 - Run the trainer in the region of the run's Loop environments.
