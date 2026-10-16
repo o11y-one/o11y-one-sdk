@@ -28,6 +28,7 @@ from transformers import AutoTokenizer  # noqa: E402
 TOKENIZER = tiny_qwen3()
 SHELL = '<tool_call>\n{"name": "shell", "arguments": {"command": "pytest -q"}}\n</tool_call>'
 READ = '<tool_call>\n{"name": "read_file", "arguments": {"path": "/work/mod.py"}}\n</tool_call>'
+PYTEST, MOD = '{"command": "pytest -q"}', '{"path": "/work/mod.py"}'
 LABEL = json.dumps({"case_revision_id": "case-a", "environment_version_id": "v-1"})
 
 
@@ -109,7 +110,14 @@ def test_a_turns_tool_calls_are_one_step_and_its_feedback_is_the_templates_tool_
     (step,) = loop.sent("step")
     assert len(engine.prompts) == 2  # the turn without a tool call ends the sample
     assert [call.WhichOneof("call") for call in step.calls] == ["shell", "read_file"]
-    assert json.loads(step.model_message_json) == {"role": "assistant", "content": engine.action}
+    assert json.loads(step.model_message_json) == {
+        "role": "assistant",
+        "content": "Checking.",
+        "tool_calls": [
+            {"type": "function", "function": {"name": "shell", "arguments": PYTEST}},
+            {"type": "function", "function": {"name": "read_file", "arguments": MOD}},
+        ],
+    }
     turn = (
         f"{READ}<|im_end|>\n<|im_start|>user\n<tool_response>\nexit code 0\nstdout:\nran shell\n"
         "</tool_response>\n<tool_response>\nexit code 0\nstdout:\nran read_file\n</tool_response>"
@@ -123,6 +131,19 @@ def test_a_tool_call_that_does_not_parse_is_answered_without_a_step(loop, tokeni
     execute(loop, tokenizer, engine)
     assert loop.sent("step") == []
     assert "error: tool_call_invalid" in engine.prompts[-1]
+
+
+def test_a_call_that_is_not_stepped_stays_in_the_message_text_as_the_model_wrote_it(
+    loop, tokenizer
+) -> None:
+    unknown = '<tool_call>\n{"name": "exec", "arguments": {"argv": ["true"]}}\n</tool_call>'
+    engine = Engine(tokenizer, action=f"{unknown}\n{SHELL}")
+    execute(loop, tokenizer, engine)
+    (step,) = loop.sent("step")
+    message = json.loads(step.model_message_json)
+    assert message["content"] == unknown
+    assert [call["function"]["name"] for call in message["tool_calls"]] == ["shell"]
+    assert len(message["tool_calls"]) == len(step.calls)
 
 
 def test_a_sample_whose_engine_fails_still_closes_its_rollout(loop, tokenizer) -> None:
