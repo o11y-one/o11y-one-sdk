@@ -8,6 +8,9 @@ each trajectory's whole reward is that rollout's verifier reward, added by
 A task's or verifier's failure keeps its value; our failure (``INFRASTRUCTURE``) raises
 :class:`~o11y_one.sdk.loop._core.LoopInfrastructureFailure`, so the group is never scored.
 
+:class:`LoopConversationFileBuilder` reads Loop's Tinker trajectory export for the cookbook's
+supervised training.
+
 Sampling and training stay Tinker's: this module never imports ``tinker`` nor reads
 ``TINKER_API_KEY``. Needs the ``tinker`` extra: ``pip install 'o11y-one[tinker]'``.
 """
@@ -25,8 +28,16 @@ from dataclasses import dataclass, field
 from typing import Any
 
 try:
-    from tinker_cookbook.renderers import get_renderer
+    import blobfile
+    import chz
+    import datasets
+    from tinker_cookbook.renderers import ToolCall, TrainOnWhat, get_renderer
     from tinker_cookbook.rl.types import Env, EnvGroupBuilder, RLDataset, Trajectory
+    from tinker_cookbook.supervised.data import (
+        SupervisedDatasetFromHFDataset,
+        conversation_to_datum,
+    )
+    from tinker_cookbook.supervised.types import ChatDatasetBuilder
     from tinker_cookbook.tokenizer_utils import get_tokenizer
     from tinker_cookbook.tool_use.agent_tool_message_env import build_agent_tool_env
     from tinker_cookbook.tool_use.tools import error_tool_result
@@ -38,7 +49,7 @@ except ModuleNotFoundError as error:
 
 from . import _SDK_VERSION, AsyncLoopClient, _core
 
-__all__ = ["LoopEnvGroupBuilder", "LoopRLDataset"]
+__all__ = ["LoopConversationFileBuilder", "LoopEnvGroupBuilder", "LoopRLDataset"]
 
 _COOKBOOK = importlib.metadata.version("tinker-cookbook")
 
@@ -232,3 +243,31 @@ class LoopRLDataset(RLDataset):
             )
             for row in rows
         ]
+
+
+@chz.chz
+class LoopConversationFileBuilder(ChatDatasetBuilder):
+    """The cookbook's ``FromConversationFileBuilder`` for Loop's Tinker trajectory export (JSONL,
+    a row of ``messages`` per rollout). Each call becomes the renderer's own ``ToolCall``: the
+    cookbook's loader hands a renderer the calls as dicts, and the fields a message lacks as
+    nulls, and its renderers take neither. ``file_path`` is local or ``blobfile``'s."""
+
+    file_path: str
+
+    def __call__(self) -> tuple[SupervisedDatasetFromHFDataset, None]:
+        with blobfile.BlobFile(self.file_path, "r", streaming=False) as lines:
+            rows = datasets.Dataset.from_dict({"row": [line for line in lines if line.strip()]})
+        renderer, config = self.renderer, self.common_config
+        train_on = TrainOnWhat(config.train_on_what or TrainOnWhat.ALL_ASSISTANT_MESSAGES)
+
+        def datum(row: dict) -> Any:
+            messages = [_message(message) for message in json.loads(row["row"])["messages"]]
+            return conversation_to_datum(messages, renderer, config.max_length, train_on)
+
+        return SupervisedDatasetFromHFDataset(rows, config.batch_size, map_fn=datum), None
+
+
+def _message(message: dict[str, Any]) -> dict[str, Any]:
+    if "tool_calls" not in message:
+        return message
+    return {**message, "tool_calls": [ToolCall.model_validate(c) for c in message["tool_calls"]]}

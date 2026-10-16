@@ -62,6 +62,36 @@ config = train.Config(
 
 Then run it with `asyncio.run(train.main(config))`.
 
+## Fine-tuning on trajectories
+
+Loop's Tinker trajectory export is JSONL, one row of `messages` per rollout. The cookbook's
+`FromConversationFileBuilder` hands its renderer each call as a dict, which the renderers
+can't take. `LoopConversationFileBuilder` makes each call the renderer's own `ToolCall`:
+
+```python
+from tinker_cookbook.supervised import train
+from tinker_cookbook.supervised.types import ChatDatasetBuilderCommonConfig
+
+from o11y_one.sdk.loop.tinker import LoopConversationFileBuilder
+
+config = train.Config(
+    model_name="Qwen/Qwen3-4B-Instruct-2507",
+    recipe_name="loop_pyfix_sft",
+    log_path="~/runs/pyfix-tinker-sft",
+    dataset_builder=LoopConversationFileBuilder(
+        file_path="trajectories.tinker.jsonl",
+        common_config=ChatDatasetBuilderCommonConfig(
+            model_name_for_tokenizer="Qwen/Qwen3-4B-Instruct-2507",
+            renderer_name="qwen3_instruct",
+            max_length=8192,
+            batch_size=32,
+        ),
+    ),
+)
+```
+
+Then run it with `asyncio.run(train.main(config))`.
+
 ## Dataset
 
 - Rows are `{"messages": [...], "loop": {"case_revision_id": ...}}`.
