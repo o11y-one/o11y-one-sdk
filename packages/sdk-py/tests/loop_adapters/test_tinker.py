@@ -191,3 +191,22 @@ def test_a_task_sets_rows_make_a_batch_whose_groups_reset_on_their_cases(loop, t
     (first, _) = dataset.get_batch(0)
     rollout(first)
     assert [reset.case_revision_id for reset in loop.sent("reset")] == loop_exports.CASES[:1]
+
+
+def test_the_cookbooks_supervised_loader_takes_a_trajectory_set(tmp_path) -> None:
+    from tinker_cookbook.supervised.types import ChatDatasetBuilderCommonConfig
+
+    path = loop_exports.trajectory_set("tinker", tmp_path / "trajectories.jsonl")
+    common = ChatDatasetBuilderCommonConfig(
+        model_name_for_tokenizer=MODEL,
+        renderer_name="qwen3_instruct",
+        max_length=2048,
+        batch_size=2,
+    )
+    train, _ = adapter.LoopConversationFileBuilder(file_path=str(path), common_config=common)()
+    batch = train.get_batch(0)
+    assert len(batch) == 2
+    weights = [datum.loss_fn_inputs["weights"].to_numpy() for datum in batch]
+    assert all(weight.sum() > 0 for weight in weights)  # each row trains on its assistant turns
+    text = AutoTokenizer.from_pretrained(MODEL).decode(batch[1].model_input.to_ints())
+    assert '{"name": "write_file", "arguments": {"path": "/work/mod.py"' in text
