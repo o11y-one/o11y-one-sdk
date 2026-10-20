@@ -10,8 +10,6 @@
  */
 export * from "@o11y-one/api-agentic/o11y_one/agentic/v1/agent_run_pb";
 export * from "@o11y-one/api-agentic/o11y_one/agentic/v1/artifact_pb";
-export * from "@o11y-one/api-agentic/o11y_one/agentic/v1/environment_pb";
 export * from "@o11y-one/api-agentic/o11y_one/agentic/v1/evaluation_pb";
-export * from "@o11y-one/api-agentic/o11y_one/agentic/v1/rollout_pb";
 export * from "@o11y-one/api-agentic/o11y_one/agentic/v1/trace_view_pb";
 export * from "@o11y-one/api-agentic/o11y_one/common/v1/common_pb";

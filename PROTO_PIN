@@ -6,10 +6,7 @@
 # source_repo:   o11y-api  (private; local checkouts are commonly ../o11y-api)
 # source_path:   proto/o11y_one/
 # source_branch: main. The snapshot carries the agentic evaluation surface
-#                (AgenticEvaluationService), Loop environments
-#                (LoopEnvironmentService), and Loop runs and rollouts
-#                (LoopRolloutService: the trainer verbs Reset, Step, Close and
-#                Fork, and the run and rollout reads).
+#                (AgenticEvaluationService).
 #
 # Regenerate with:
 #   ./tools/sync-proto.sh ../o11y-api

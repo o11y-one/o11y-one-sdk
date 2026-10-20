@@ -139,9 +139,9 @@ up if something is looping.
 | package | published as | contents |
 |---|---|---|
 | `packages/gen-ts-agentic` | `@o11y-one/api-agentic` (npm) | generated types + service descriptors, agentic closure |
-| `packages/sdk-ts` | `@o11y-one/sdk` (npm) | transport, credentials, error taxonomy, the Loop rollout client (`@o11y-one/sdk/loop`) |
+| `packages/sdk-ts` | `@o11y-one/sdk` (npm) | transport, credentials, error taxonomy |
 | `packages/gen-py-agentic` | `o11y-one-api-agentic` (PyPI) | generated messages + Connect clients, agentic closure |
-| `packages/sdk-py` | `o11y-one` (PyPI) | transport, credentials, error taxonomy, the Loop rollout client (`o11y_one.sdk.loop`; OpenEnv's client with the `openenv` extra) |
+| `packages/sdk-py` | `o11y-one` (PyPI) | transport, credentials, error taxonomy |
 | `gen/go` | `github.com/o11y-one/o11y-one-sdk/gen/go` | generated messages + connect-go clients, agentic closure |
 | `tools/ci-runner` | GitHub release binaries | `o11y-eval`, static, signed |
 

@@ -179,46 +179,6 @@ const { judge } = await ci
   .getEvaluationJudge({ identity: { case: "judgeKey", value: "support-reply" } });
 ```
 
-## Loop rollouts
-
-A person mints a Loop run in the web and hands the trainer two values: the run's
-id, `O11Y_RUN` (`trn_…`, not a secret), and an organization machine key with the
-`rollout:drive` scope, `O11Y_API_KEY`. `LoopClient`, from `@o11y-one/sdk/loop`,
-reads both from the environment when they aren't passed, and never holds or
-shows the key.
-
-```ts
-import { LoopClient, RolloutRefused } from "@o11y-one/sdk/loop";
-
-const loop = new LoopClient(); // run: O11Y_RUN, credential: O11Y_API_KEY
-try {
-  await loop.reset({ trainerStep: 1, trainerTotalSteps: 300 });
-} catch (err) {
-  if (err instanceof RolloutRefused) throw new Error(`Loop refused the reset: ${err.code}`);
-  throw err;
-}
-const step = await loop.step(
-  [{ timeoutMillis: 60_000, call: { case: "exec", value: { argv: ["pytest", "-q"] } } }],
-  JSON.stringify({ role: "assistant", content: "run the tests" }),
-);
-const [result] = step.results;
-console.log(result?.outcome.case, new TextDecoder().decode(result?.stdout));
-const closed = await loop.close(); // waits for the verifier's rewards
-const rewards = Object.fromEntries((closed?.rewards ?? []).map((r) => [r.name, r.value]));
-```
-
-The client behaves as sdk-py's does: one open rollout per client, so `reset()`
-closes the open one first; `fork(n)` answers a client per copy, this one first;
-`run_paused` is retried after each `retryAfterMs` for up to 30 minutes and every
-other refusal throws `RolloutRefused` at once; a revoked or unknown key is the
-server's own `ConnectError`, which `classify()` reads as `reauthenticate`.
-
-**Keep error rows with their value.** A rollout that failed on its task or its
-verifier still has `rewards`: each reward's declared minimum, or the
-environment's failure reward. Train on those rows as they are; dropping them
-makes a crash score better than an honest wrong answer. Only our failures
-(`INFRASTRUCTURE`) carry no reward and are never billed.
-
 ## The distinction this package exists to preserve
 
 `UNAUTHENTICATED` and `PERMISSION_DENIED` are different problems:
