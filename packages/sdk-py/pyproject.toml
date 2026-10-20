@@ -19,23 +19,6 @@ dependencies = [
   "httpx>=0.28",
 ]
 
-[project.optional-dependencies]
-# OpenEnv v0.8.0 (625f5e72), exactly: LoopEnvClient overrides its client's
-# WebSocket connect, and Loop's /loop/v1/openenv/ws matches that release's wire.
-openenv = ["openenv==0.8.0"]
-# TRL 1.15 (v1.15.0, dae7b6a): o11y_one.sdk.loop.trl is GRPOTrainer's environment_factory,
-# which needs transformers 5.2 or later. torch is TRL's own dependency, named here only so
-# the lock takes it from PyTorch's CPU index on Linux (tool.uv.sources), as CI runs it.
-# datasets 5 reads the Json() columns of Loop's TRL trajectory export back as objects.
-trl = ["trl>=1.15,<1.16", "transformers>=5.2", "datasets>=5", "torch"]
-# verl 0.9 (v0.9.1, 1876b06): o11y_one.sdk.loop.verl is a ToolAgentLoop
-# that verl's agent_loop_config_path loads. verl's agent loop imports cachetools, fastapi and
-# uvicorn, which its own requirements leave to its verl-core extra. torch as for trl.
-verl = ["verl>=0.9.1,<0.10", "cachetools", "fastapi", "uvicorn", "torch"]
-# tinker-cookbook 0.5.7 (b739bed), with the tinker SDK it brings: o11y_one.sdk.loop.tinker is
-# an EnvGroupBuilder of the cookbook's tool envs. It never imports tinker itself. torch as for trl.
-tinker = ["tinker-cookbook>=0.5.7,<0.6", "torch"]
-
 [project.urls]
 Homepage = "https://o11y.one"
 Source = "https://github.com/o11y-one/o11y-one-sdk"
@@ -62,14 +45,6 @@ include = ["src", "README.md", "pyproject.toml"]
 # (agentic + common only), not the whole o11y-one-api — see
 # docs/proto-subsetting.md.
 o11y-one-api-agentic = { workspace = true }
-# The adapters CI runs on CPU: Linux takes PyTorch's CPU wheels, never its CUDA ones. A
-# user's own install resolves torch as it always would; sources never reach the wheel.
-torch = { index = "pytorch-cpu", marker = "sys_platform == 'linux'" }
-
-[[tool.uv.index]]
-name = "pytorch-cpu"
-url = "https://download.pytorch.org/whl/cpu"
-explicit = true
 
 [dependency-groups]
 dev = ["pytest>=8.4"]

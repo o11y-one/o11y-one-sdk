@@ -1,2 +1,0 @@
-- name: loop
-  _target_: o11y_one.sdk.loop.verl.LoopAgentLoop

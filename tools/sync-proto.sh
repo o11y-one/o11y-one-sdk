@@ -104,8 +104,13 @@ fi
 rm -rf proto/o11y_one
 mkdir -p proto
 # Only the agentic closure is vendored. The rest of the o11y-api contract never
-# enters this repository, so going public cannot expose it.
-git -C "$src" archive --format=tar "$pin" proto/o11y_one/agentic proto/o11y_one/common | tar -xf - -C proto --strip-components=1
+# enters this repository, so going public cannot expose it. Loop's rollout and
+# environment protos are outside this SDK's scope; nothing vendored imports
+# them, and the import audit below fails if that changes.
+git -C "$src" archive --format=tar "$pin" proto/o11y_one/agentic proto/o11y_one/common \
+  ':(exclude)proto/o11y_one/agentic/v1/rollout.proto' \
+  ':(exclude)proto/o11y_one/agentic/v1/environment.proto' \
+  | tar -xf - -C proto --strip-components=1
 find proto/o11y_one -type f ! -name '*.proto' -delete
 find proto/o11y_one -type d -empty -delete
 

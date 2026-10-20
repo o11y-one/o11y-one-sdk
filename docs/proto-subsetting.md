@@ -14,13 +14,15 @@ Go module is published by the repository being public.
 
 **Vendor the agentic import closure and nothing else.** `proto/o11y_one`
 holds `agentic/` and `common/` from o11y-api at `PROTO_PIN`, byte for byte bar
-the import re-rooting, and that is the whole snapshot. Generation and packaging
-follow from it:
+the import re-rooting, less Loop's `agentic/v1/rollout.proto` and
+`agentic/v1/environment.proto`, which nothing vendored imports, and that is the
+whole snapshot. Generation and packaging follow from it:
 
-- `tools/sync-proto.sh` archives only `proto/o11y_one/agentic` and
-  `proto/o11y_one/common` from the o11y-api checkout. Its import audit then
-  fails if an agentic proto imports a domain that was not vendored, which is
-  how a growth of the closure is noticed rather than silently copied in.
+- `tools/sync-proto.sh` archives only `proto/o11y_one/agentic` (less those two
+  files) and `proto/o11y_one/common` from the o11y-api checkout. Its import
+  audit then fails if an agentic proto imports a domain or a file that was not
+  vendored, which is how a growth of the closure is noticed rather than
+  silently copied in.
 - `tools/generate.sh` runs one `buf generate` pass with
   `buf.gen.agentic.yaml` and the `--path` allowlist `AGENTIC_CLOSURE_PATHS`,
   into the three published artifacts:
