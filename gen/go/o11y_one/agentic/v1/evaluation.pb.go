@@ -6343,13 +6343,6 @@ const (
 	EvaluationExportFormatV1_EVALUATION_EXPORT_FORMAT_V1_CSV         EvaluationExportFormatV1 = 1
 	EvaluationExportFormatV1_EVALUATION_EXPORT_FORMAT_V1_JSONL       EvaluationExportFormatV1 = 2
 	EvaluationExportFormatV1_EVALUATION_EXPORT_FORMAT_V1_PARQUET     EvaluationExportFormatV1 = 3
-	// (#726) A dataset version's tasks, one row each in the shape its
-	// trainer's Loop adapter reads. Only a dataset version exports in these, and
-	// it exports in nothing else.
-	EvaluationExportFormatV1_EVALUATION_EXPORT_FORMAT_V1_VERL_PARQUET   EvaluationExportFormatV1 = 4
-	EvaluationExportFormatV1_EVALUATION_EXPORT_FORMAT_V1_TRL_PARQUET    EvaluationExportFormatV1 = 5
-	EvaluationExportFormatV1_EVALUATION_EXPORT_FORMAT_V1_OPENRLHF_JSONL EvaluationExportFormatV1 = 6
-	EvaluationExportFormatV1_EVALUATION_EXPORT_FORMAT_V1_TINKER_JSONL   EvaluationExportFormatV1 = 7
 )
 
 // Enum value maps for EvaluationExportFormatV1.
@@ -6359,20 +6352,12 @@ var (
 		1: "EVALUATION_EXPORT_FORMAT_V1_CSV",
 		2: "EVALUATION_EXPORT_FORMAT_V1_JSONL",
 		3: "EVALUATION_EXPORT_FORMAT_V1_PARQUET",
-		4: "EVALUATION_EXPORT_FORMAT_V1_VERL_PARQUET",
-		5: "EVALUATION_EXPORT_FORMAT_V1_TRL_PARQUET",
-		6: "EVALUATION_EXPORT_FORMAT_V1_OPENRLHF_JSONL",
-		7: "EVALUATION_EXPORT_FORMAT_V1_TINKER_JSONL",
 	}
 	EvaluationExportFormatV1_value = map[string]int32{
-		"EVALUATION_EXPORT_FORMAT_V1_UNSPECIFIED":    0,
-		"EVALUATION_EXPORT_FORMAT_V1_CSV":            1,
-		"EVALUATION_EXPORT_FORMAT_V1_JSONL":          2,
-		"EVALUATION_EXPORT_FORMAT_V1_PARQUET":        3,
-		"EVALUATION_EXPORT_FORMAT_V1_VERL_PARQUET":   4,
-		"EVALUATION_EXPORT_FORMAT_V1_TRL_PARQUET":    5,
-		"EVALUATION_EXPORT_FORMAT_V1_OPENRLHF_JSONL": 6,
-		"EVALUATION_EXPORT_FORMAT_V1_TINKER_JSONL":   7,
+		"EVALUATION_EXPORT_FORMAT_V1_UNSPECIFIED": 0,
+		"EVALUATION_EXPORT_FORMAT_V1_CSV":         1,
+		"EVALUATION_EXPORT_FORMAT_V1_JSONL":       2,
+		"EVALUATION_EXPORT_FORMAT_V1_PARQUET":     3,
 	}
 )
 
@@ -37728,9 +37713,11 @@ type EvaluationExportV1 struct {
 	DatasetVersionId string `protobuf:"bytes,17,opt,name=dataset_version_id,json=datasetVersionId,proto3" json:"dataset_version_id,omitempty"`
 	// (#726) The tasks a completed dataset version's export skipped, having no
 	// prompt a trainer can read, and the first of them by id; for a trajectory
-	// version, the rollouts it skipped, their steps not whole, cut or gone, or
-	// their task without a prompt, and the first of them by its ordinal. 0 and
-	// empty on a run's export, which skips nothing.
+	// version, the rollouts it skipped, their steps not whole, cut or gone,
+	// their task without a prompt, their close's messages past their bounds or
+	// not lining up with their steps, or a call's arguments no JSON object, and
+	// the first of them by its ordinal. 0 and empty on a run's export, which
+	// skips nothing.
 	SkippedRows        uint64 `protobuf:"varint,18,opt,name=skipped_rows,json=skippedRows,proto3" json:"skipped_rows,omitempty"`
 	FirstSkippedTaskId string `protobuf:"bytes,19,opt,name=first_skipped_task_id,json=firstSkippedTaskId,proto3" json:"first_skipped_task_id,omitempty"`
 	unknownFields      protoimpl.UnknownFields
@@ -45063,7 +45050,8 @@ type EvaluationJudgeQuestionSpecV1 struct {
 	// 1 to `max_judge_label_bytes`. A scale scores its expected level over its
 	// top level.
 	ScaleLevels []string `protobuf:"bytes,8,rep,name=scale_levels,json=scaleLevels,proto3" json:"scale_levels,omitempty"`
-	// Absent keeps this build's default of 1.0.
+	// Absent is 0.5 for YES_NO and SCALE, whose p(yes) or expected level is
+	// rarely exactly 1.0, and 1.0 for CHOICE, which scores its own labels.
 	PassThreshold  *float64 `protobuf:"fixed64,9,opt,name=pass_threshold,json=passThreshold,proto3,oneof" json:"pass_threshold,omitempty"`
 	Weight         *float64 `protobuf:"fixed64,10,opt,name=weight,proto3,oneof" json:"weight,omitempty"`
 	IsBlockingGate bool     `protobuf:"varint,11,opt,name=is_blocking_gate,json=isBlockingGate,proto3" json:"is_blocking_gate,omitempty"`
@@ -65505,8 +65493,15 @@ type DatasetCaseSummaryV1 struct {
 	RecentPerformance  *DatasetCaseRecentPerformanceV1    `protobuf:"bytes,14,opt,name=recent_performance,json=recentPerformance,proto3" json:"recent_performance,omitempty"`
 	AnchorAvailability DatasetLineageAnchorAvailabilityV1 `protobuf:"varint,15,opt,name=anchor_availability,json=anchorAvailability,proto3,enum=o11y_one.agentic.v1.DatasetLineageAnchorAvailabilityV1" json:"anchor_availability,omitempty"`
 	CreatedAt          *timestamppb.Timestamp             `protobuf:"bytes,16,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	// (#1236) The id a run of this version reports the case under, as
+	// `EvaluationMatrixRowV1.case_revision_id`: the version's own row for it.
+	// `GetDatasetCase` reads it as this revision. It equals `case_revision_id`
+	// only for a case stored before case identities existed, so a client joining
+	// a version's cases to a run's rows joins on this. Set on `ListDatasetCases`
+	// rows only.
+	DatasetItemId *string `protobuf:"bytes,17,opt,name=dataset_item_id,json=datasetItemId,proto3,oneof" json:"dataset_item_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *DatasetCaseSummaryV1) Reset() {
@@ -65649,6 +65644,13 @@ func (x *DatasetCaseSummaryV1) GetCreatedAt() *timestamppb.Timestamp {
 		return x.CreatedAt
 	}
 	return nil
+}
+
+func (x *DatasetCaseSummaryV1) GetDatasetItemId() string {
+	if x != nil && x.DatasetItemId != nil {
+		return *x.DatasetItemId
+	}
+	return ""
 }
 
 // Which version contains a case revision, and where.
@@ -86310,7 +86312,7 @@ const file_o11y_one_agentic_v1_evaluation_proto_rawDesc = "" +
 	"\x0fsource_coverage\x18\x01 \x03(\v28.o11y_one.agentic.v1.DatasetCaseArtifactSourceCoverageV1R\x0esourceCoverage\x12O\n" +
 	"\tartifacts\x18\x02 \x03(\v21.o11y_one.agentic.v1.DatasetCaseArtifactSummaryV1R\tartifacts\x12)\n" +
 	"\x10resolver_posture\x18\x03 \x01(\tR\x0fresolverPosture\x128\n" +
-	"\x18truncated_artifact_count\x18\x04 \x01(\rR\x16truncatedArtifactCount\"\xfc\a\n" +
+	"\x18truncated_artifact_count\x18\x04 \x01(\rR\x16truncatedArtifactCount\"\xbd\b\n" +
 	"\x14DatasetCaseSummaryV1\x12\x17\n" +
 	"\acase_id\x18\x01 \x01(\tR\x06caseId\x12(\n" +
 	"\x10case_revision_id\x18\x02 \x01(\tR\x0ecaseRevisionId\x12'\n" +
@@ -86330,9 +86332,11 @@ const file_o11y_one_agentic_v1_evaluation_proto_rawDesc = "" +
 	"\x12recent_performance\x18\x0e \x01(\v23.o11y_one.agentic.v1.DatasetCaseRecentPerformanceV1R\x11recentPerformance\x12h\n" +
 	"\x13anchor_availability\x18\x0f \x01(\x0e27.o11y_one.agentic.v1.DatasetLineageAnchorAvailabilityV1R\x12anchorAvailability\x129\n" +
 	"\n" +
-	"created_at\x18\x10 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAtB\x15\n" +
+	"created_at\x18\x10 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12+\n" +
+	"\x0fdataset_item_id\x18\x11 \x01(\tH\x02R\rdatasetItemId\x88\x01\x01B\x15\n" +
 	"\x13_schema_revision_idB\x14\n" +
-	"\x12_review_state_code\"\x9c\x01\n" +
+	"\x12_review_state_codeB\x12\n" +
+	"\x10_dataset_item_id\"\x9c\x01\n" +
 	"\x17DatasetCaseMembershipV1\x12,\n" +
 	"\x12dataset_version_id\x18\x01 \x01(\tR\x10datasetVersionId\x12\x18\n" +
 	"\aordinal\x18\x02 \x01(\rR\aordinal\x129\n" +
@@ -88677,16 +88681,12 @@ const file_o11y_one_agentic_v1_evaluation_proto_rawDesc = "" +
 	"\x1eEvaluationReviewConflictKindV1\x122\n" +
 	".EVALUATION_REVIEW_CONFLICT_KIND_V1_UNSPECIFIED\x10\x00\x124\n" +
 	"0EVALUATION_REVIEW_CONFLICT_KIND_V1_GRADES_DIFFER\x10\x01\x124\n" +
-	"0EVALUATION_REVIEW_CONFLICT_KIND_V1_SPLIT_ON_PICK\x10\x02*\xf5\x02\n" +
+	"0EVALUATION_REVIEW_CONFLICT_KIND_V1_SPLIT_ON_PICK\x10\x02*\xeb\x02\n" +
 	"\x18EvaluationExportFormatV1\x12+\n" +
 	"'EVALUATION_EXPORT_FORMAT_V1_UNSPECIFIED\x10\x00\x12#\n" +
 	"\x1fEVALUATION_EXPORT_FORMAT_V1_CSV\x10\x01\x12%\n" +
 	"!EVALUATION_EXPORT_FORMAT_V1_JSONL\x10\x02\x12'\n" +
-	"#EVALUATION_EXPORT_FORMAT_V1_PARQUET\x10\x03\x12,\n" +
-	"(EVALUATION_EXPORT_FORMAT_V1_VERL_PARQUET\x10\x04\x12+\n" +
-	"'EVALUATION_EXPORT_FORMAT_V1_TRL_PARQUET\x10\x05\x12.\n" +
-	"*EVALUATION_EXPORT_FORMAT_V1_OPENRLHF_JSONL\x10\x06\x12,\n" +
-	"(EVALUATION_EXPORT_FORMAT_V1_TINKER_JSONL\x10\a*\x90\x01\n" +
+	"#EVALUATION_EXPORT_FORMAT_V1_PARQUET\x10\x03\"\x04\b\x04\x10\a*(EVALUATION_EXPORT_FORMAT_V1_VERL_PARQUET*'EVALUATION_EXPORT_FORMAT_V1_TRL_PARQUET**EVALUATION_EXPORT_FORMAT_V1_OPENRLHF_JSONL*(EVALUATION_EXPORT_FORMAT_V1_TINKER_JSONL*\x90\x01\n" +
 	"\x16EvaluationShareStateV1\x12)\n" +
 	"%EVALUATION_SHARE_STATE_V1_UNSPECIFIED\x10\x00\x12$\n" +
 	" EVALUATION_SHARE_STATE_V1_ACTIVE\x10\x01\x12%\n" +

@@ -935,10 +935,6 @@ class EvaluationExportFormatV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper
     EVALUATION_EXPORT_FORMAT_V1_CSV: _ClassVar[EvaluationExportFormatV1]
     EVALUATION_EXPORT_FORMAT_V1_JSONL: _ClassVar[EvaluationExportFormatV1]
     EVALUATION_EXPORT_FORMAT_V1_PARQUET: _ClassVar[EvaluationExportFormatV1]
-    EVALUATION_EXPORT_FORMAT_V1_VERL_PARQUET: _ClassVar[EvaluationExportFormatV1]
-    EVALUATION_EXPORT_FORMAT_V1_TRL_PARQUET: _ClassVar[EvaluationExportFormatV1]
-    EVALUATION_EXPORT_FORMAT_V1_OPENRLHF_JSONL: _ClassVar[EvaluationExportFormatV1]
-    EVALUATION_EXPORT_FORMAT_V1_TINKER_JSONL: _ClassVar[EvaluationExportFormatV1]
 
 class EvaluationShareStateV1(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -2553,10 +2549,6 @@ EVALUATION_EXPORT_FORMAT_V1_UNSPECIFIED: EvaluationExportFormatV1
 EVALUATION_EXPORT_FORMAT_V1_CSV: EvaluationExportFormatV1
 EVALUATION_EXPORT_FORMAT_V1_JSONL: EvaluationExportFormatV1
 EVALUATION_EXPORT_FORMAT_V1_PARQUET: EvaluationExportFormatV1
-EVALUATION_EXPORT_FORMAT_V1_VERL_PARQUET: EvaluationExportFormatV1
-EVALUATION_EXPORT_FORMAT_V1_TRL_PARQUET: EvaluationExportFormatV1
-EVALUATION_EXPORT_FORMAT_V1_OPENRLHF_JSONL: EvaluationExportFormatV1
-EVALUATION_EXPORT_FORMAT_V1_TINKER_JSONL: EvaluationExportFormatV1
 EVALUATION_SHARE_STATE_V1_UNSPECIFIED: EvaluationShareStateV1
 EVALUATION_SHARE_STATE_V1_ACTIVE: EvaluationShareStateV1
 EVALUATION_SHARE_STATE_V1_REVOKED: EvaluationShareStateV1
@@ -12217,7 +12209,7 @@ class DatasetCaseArtifactPostureV1(_message.Message):
     def __init__(self, source_coverage: _Optional[_Iterable[_Union[DatasetCaseArtifactSourceCoverageV1, _Mapping]]] = ..., artifacts: _Optional[_Iterable[_Union[DatasetCaseArtifactSummaryV1, _Mapping]]] = ..., resolver_posture: _Optional[str] = ..., truncated_artifact_count: _Optional[int] = ...) -> None: ...
 
 class DatasetCaseSummaryV1(_message.Message):
-    __slots__ = ("case_id", "case_revision_id", "revision_number", "ordinal", "source_kind", "completeness", "content_digest", "schema_revision_id", "slice_metadata_json", "tags", "absences", "review_state_code", "review_availability", "recent_performance", "anchor_availability", "created_at")
+    __slots__ = ("case_id", "case_revision_id", "revision_number", "ordinal", "source_kind", "completeness", "content_digest", "schema_revision_id", "slice_metadata_json", "tags", "absences", "review_state_code", "review_availability", "recent_performance", "anchor_availability", "created_at", "dataset_item_id")
     CASE_ID_FIELD_NUMBER: _ClassVar[int]
     CASE_REVISION_ID_FIELD_NUMBER: _ClassVar[int]
     REVISION_NUMBER_FIELD_NUMBER: _ClassVar[int]
@@ -12234,6 +12226,7 @@ class DatasetCaseSummaryV1(_message.Message):
     RECENT_PERFORMANCE_FIELD_NUMBER: _ClassVar[int]
     ANCHOR_AVAILABILITY_FIELD_NUMBER: _ClassVar[int]
     CREATED_AT_FIELD_NUMBER: _ClassVar[int]
+    DATASET_ITEM_ID_FIELD_NUMBER: _ClassVar[int]
     case_id: str
     case_revision_id: str
     revision_number: int
@@ -12250,7 +12243,8 @@ class DatasetCaseSummaryV1(_message.Message):
     recent_performance: DatasetCaseRecentPerformanceV1
     anchor_availability: DatasetLineageAnchorAvailabilityV1
     created_at: _timestamp_pb2.Timestamp
-    def __init__(self, case_id: _Optional[str] = ..., case_revision_id: _Optional[str] = ..., revision_number: _Optional[int] = ..., ordinal: _Optional[int] = ..., source_kind: _Optional[_Union[EvaluationCaptureSourceKindV1, str]] = ..., completeness: _Optional[_Union[DatasetCaseCompletenessStateV1, str]] = ..., content_digest: _Optional[str] = ..., schema_revision_id: _Optional[str] = ..., slice_metadata_json: _Optional[str] = ..., tags: _Optional[_Iterable[str]] = ..., absences: _Optional[_Iterable[_Union[EvaluationDatasetCaseAbsenceV1, _Mapping]]] = ..., review_state_code: _Optional[str] = ..., review_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., recent_performance: _Optional[_Union[DatasetCaseRecentPerformanceV1, _Mapping]] = ..., anchor_availability: _Optional[_Union[DatasetLineageAnchorAvailabilityV1, str]] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+    dataset_item_id: str
+    def __init__(self, case_id: _Optional[str] = ..., case_revision_id: _Optional[str] = ..., revision_number: _Optional[int] = ..., ordinal: _Optional[int] = ..., source_kind: _Optional[_Union[EvaluationCaptureSourceKindV1, str]] = ..., completeness: _Optional[_Union[DatasetCaseCompletenessStateV1, str]] = ..., content_digest: _Optional[str] = ..., schema_revision_id: _Optional[str] = ..., slice_metadata_json: _Optional[str] = ..., tags: _Optional[_Iterable[str]] = ..., absences: _Optional[_Iterable[_Union[EvaluationDatasetCaseAbsenceV1, _Mapping]]] = ..., review_state_code: _Optional[str] = ..., review_availability: _Optional[_Union[MetricAvailabilityV1, _Mapping]] = ..., recent_performance: _Optional[_Union[DatasetCaseRecentPerformanceV1, _Mapping]] = ..., anchor_availability: _Optional[_Union[DatasetLineageAnchorAvailabilityV1, str]] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., dataset_item_id: _Optional[str] = ...) -> None: ...
 
 class DatasetCaseMembershipV1(_message.Message):
     __slots__ = ("dataset_version_id", "ordinal", "created_at")

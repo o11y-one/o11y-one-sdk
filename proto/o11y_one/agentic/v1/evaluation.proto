@@ -5504,13 +5504,9 @@ enum EvaluationExportFormatV1 {
   EVALUATION_EXPORT_FORMAT_V1_CSV = 1;
   EVALUATION_EXPORT_FORMAT_V1_JSONL = 2;
   EVALUATION_EXPORT_FORMAT_V1_PARQUET = 3;
-  // (#726) A dataset version's tasks, one row each in the shape its
-  // trainer's Loop adapter reads. Only a dataset version exports in these, and
-  // it exports in nothing else.
-  EVALUATION_EXPORT_FORMAT_V1_VERL_PARQUET = 4;
-  EVALUATION_EXPORT_FORMAT_V1_TRL_PARQUET = 5;
-  EVALUATION_EXPORT_FORMAT_V1_OPENRLHF_JSONL = 6;
-  EVALUATION_EXPORT_FORMAT_V1_TINKER_JSONL = 7;
+  reserved 4 to 7;
+  reserved "EVALUATION_EXPORT_FORMAT_V1_VERL_PARQUET", "EVALUATION_EXPORT_FORMAT_V1_TRL_PARQUET",
+    "EVALUATION_EXPORT_FORMAT_V1_OPENRLHF_JSONL", "EVALUATION_EXPORT_FORMAT_V1_TINKER_JSONL";
 }
 
 message EvaluationExportV1 {
@@ -5541,9 +5537,11 @@ message EvaluationExportV1 {
   string dataset_version_id = 17;
   // (#726) The tasks a completed dataset version's export skipped, having no
   // prompt a trainer can read, and the first of them by id; for a trajectory
-  // version, the rollouts it skipped, their steps not whole, cut or gone, or
-  // their task without a prompt, and the first of them by its ordinal. 0 and
-  // empty on a run's export, which skips nothing.
+  // version, the rollouts it skipped, their steps not whole, cut or gone,
+  // their task without a prompt, their close's messages past their bounds or
+  // not lining up with their steps, or a call's arguments no JSON object, and
+  // the first of them by its ordinal. 0 and empty on a run's export, which
+  // skips nothing.
   uint64 skipped_rows = 18;
   string first_skipped_task_id = 19;
 }
@@ -7314,7 +7312,8 @@ message EvaluationJudgeQuestionSpecV1 {
   // 1 to `max_judge_label_bytes`. A scale scores its expected level over its
   // top level.
   repeated string scale_levels = 8;
-  // Absent keeps this build's default of 1.0.
+  // Absent is 0.5 for YES_NO and SCALE, whose p(yes) or expected level is
+  // rarely exactly 1.0, and 1.0 for CHOICE, which scores its own labels.
   optional double pass_threshold = 9;
   optional double weight = 10;
   bool is_blocking_gate = 11;
@@ -12380,6 +12379,13 @@ message DatasetCaseSummaryV1 {
   DatasetCaseRecentPerformanceV1 recent_performance = 14;
   DatasetLineageAnchorAvailabilityV1 anchor_availability = 15;
   google.protobuf.Timestamp created_at = 16;
+  // (#1236) The id a run of this version reports the case under, as
+  // `EvaluationMatrixRowV1.case_revision_id`: the version's own row for it.
+  // `GetDatasetCase` reads it as this revision. It equals `case_revision_id`
+  // only for a case stored before case identities existed, so a client joining
+  // a version's cases to a run's rows joins on this. Set on `ListDatasetCases`
+  // rows only.
+  optional string dataset_item_id = 17;
 }
 
 // Which version contains a case revision, and where.
