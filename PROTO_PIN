@@ -12,4 +12,4 @@
 #   ./tools/sync-proto.sh ../o11y-api
 # which verifies the checkout is at the commit below, re-vendors proto/o11y_one/,
 # and re-runs `buf generate`. Generated code is committed.
-987c8c964e6342cc869ad90137227c1c798c0a70
+1c23f450b5dc5126d199817f0987500a30136793
