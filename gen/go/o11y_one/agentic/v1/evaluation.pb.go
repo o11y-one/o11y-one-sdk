@@ -37707,21 +37707,9 @@ type EvaluationExportV1 struct {
 	ExpiresAt *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=expires_at,json=expiresAt,proto3,oneof" json:"expires_at,omitempty"`
 	// #636. True once the object was deleted or `expires_at` has passed: the
 	// download is refused as expired.
-	Expired bool `protobuf:"varint,16,opt,name=expired,proto3" json:"expired,omitempty"`
-	// (#726) The dataset version a trainer export writes the tasks of. Empty on a
-	// run's export, whose `evaluation_run_id` is set instead.
-	DatasetVersionId string `protobuf:"bytes,17,opt,name=dataset_version_id,json=datasetVersionId,proto3" json:"dataset_version_id,omitempty"`
-	// (#726) The tasks a completed dataset version's export skipped, having no
-	// prompt a trainer can read, and the first of them by id; for a trajectory
-	// version, the rollouts it skipped, their steps not whole, cut or gone,
-	// their task without a prompt, their close's messages past their bounds or
-	// not lining up with their steps, or a call's arguments no JSON object, and
-	// the first of them by its ordinal. 0 and empty on a run's export, which
-	// skips nothing.
-	SkippedRows        uint64 `protobuf:"varint,18,opt,name=skipped_rows,json=skippedRows,proto3" json:"skipped_rows,omitempty"`
-	FirstSkippedTaskId string `protobuf:"bytes,19,opt,name=first_skipped_task_id,json=firstSkippedTaskId,proto3" json:"first_skipped_task_id,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	Expired       bool `protobuf:"varint,16,opt,name=expired,proto3" json:"expired,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *EvaluationExportV1) Reset() {
@@ -37866,27 +37854,6 @@ func (x *EvaluationExportV1) GetExpired() bool {
 	return false
 }
 
-func (x *EvaluationExportV1) GetDatasetVersionId() string {
-	if x != nil {
-		return x.DatasetVersionId
-	}
-	return ""
-}
-
-func (x *EvaluationExportV1) GetSkippedRows() uint64 {
-	if x != nil {
-		return x.SkippedRows
-	}
-	return 0
-}
-
-func (x *EvaluationExportV1) GetFirstSkippedTaskId() string {
-	if x != nil {
-		return x.FirstSkippedTaskId
-	}
-	return ""
-}
-
 type CreateEvaluationExportRequest struct {
 	state           protoimpl.MessageState   `protogen:"open.v1"`
 	EvaluationRunId string                   `protobuf:"bytes,1,opt,name=evaluation_run_id,json=evaluationRunId,proto3" json:"evaluation_run_id,omitempty"`
@@ -37895,17 +37862,8 @@ type CreateEvaluationExportRequest struct {
 	// O11Y-596. How long the export's object is kept once written, 1 to 720
 	// hours. Absent keeps it 48 hours.
 	RetentionHours *uint32 `protobuf:"varint,4,opt,name=retention_hours,json=retentionHours,proto3,oneof" json:"retention_hours,omitempty"`
-	// (#726) A dataset version whose tasks to export, in a trainer's format.
-	// Exactly one of `evaluation_run_id` and this is set; otherwise the request
-	// is refused as `export_source_invalid`.
-	DatasetVersionId string `protobuf:"bytes,5,opt,name=dataset_version_id,json=datasetVersionId,proto3" json:"dataset_version_id,omitempty"`
-	// (#726) The dataset version's splits to export: `train`, `eval`, `golden`,
-	// `regression` or `canary`. Empty exports train, eval and regression;
-	// golden and canary are exported only when named. Only with
-	// `dataset_version_id`; any other value is refused as `export_split_invalid`.
-	Splits        []string `protobuf:"bytes,6,rep,name=splits,proto3" json:"splits,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *CreateEvaluationExportRequest) Reset() {
@@ -37964,20 +37922,6 @@ func (x *CreateEvaluationExportRequest) GetRetentionHours() uint32 {
 		return *x.RetentionHours
 	}
 	return 0
-}
-
-func (x *CreateEvaluationExportRequest) GetDatasetVersionId() string {
-	if x != nil {
-		return x.DatasetVersionId
-	}
-	return ""
-}
-
-func (x *CreateEvaluationExportRequest) GetSplits() []string {
-	if x != nil {
-		return x.Splits
-	}
-	return nil
 }
 
 type CreateEvaluationExportResponse struct {
@@ -38157,8 +38101,7 @@ func (x *GetEvaluationExportResponse) GetCapabilities() *AgenticEvaluationCapabi
 type EvaluationExportListRowV1 struct {
 	state  protoimpl.MessageState `protogen:"open.v1"`
 	Export *EvaluationExportV1    `protobuf:"bytes,1,opt,name=export,proto3" json:"export,omitempty"`
-	// The run's evaluation, by its display name; for a dataset version's export
-	// (#726), its dataset collection's name.
+	// The run's evaluation, by its display name.
 	DefinitionDisplayName string `protobuf:"bytes,2,opt,name=definition_display_name,json=definitionDisplayName,proto3" json:"definition_display_name,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
@@ -38213,12 +38156,9 @@ type ListEvaluationExportsRequest struct {
 	Page            *v1.PageRequestV1      `protobuf:"bytes,1,opt,name=page,proto3" json:"page,omitempty"`
 	EvaluationRunId *string                `protobuf:"bytes,2,opt,name=evaluation_run_id,json=evaluationRunId,proto3,oneof" json:"evaluation_run_id,omitempty"`
 	// Empty means every state. UNSPECIFIED is refused, never a wildcard.
-	States []EvaluationOperationStateV1 `protobuf:"varint,3,rep,packed,name=states,proto3,enum=o11y_one.agentic.v1.EvaluationOperationStateV1" json:"states,omitempty"`
-	// (#726) This dataset version's trainer exports alone. Without it,
-	// evaluation runs' exports alone are listed. Never with `evaluation_run_id`.
-	DatasetVersionId *string `protobuf:"bytes,4,opt,name=dataset_version_id,json=datasetVersionId,proto3,oneof" json:"dataset_version_id,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	States        []EvaluationOperationStateV1 `protobuf:"varint,3,rep,packed,name=states,proto3,enum=o11y_one.agentic.v1.EvaluationOperationStateV1" json:"states,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ListEvaluationExportsRequest) Reset() {
@@ -38270,13 +38210,6 @@ func (x *ListEvaluationExportsRequest) GetStates() []EvaluationOperationStateV1 
 		return x.States
 	}
 	return nil
-}
-
-func (x *ListEvaluationExportsRequest) GetDatasetVersionId() string {
-	if x != nil && x.DatasetVersionId != nil {
-		return *x.DatasetVersionId
-	}
-	return ""
 }
 
 type ListEvaluationExportsResponse struct {
@@ -83346,7 +83279,7 @@ const file_o11y_one_agentic_v1_evaluation_proto_rawDesc = "" +
 	"\x14run_review_completed\x18\x06 \x01(\bR\x12runReviewCompleted\x12H\n" +
 	"\tfreshness\x18\a \x01(\v2*.o11y_one.agentic.v1.EvaluationFreshnessV1R\tfreshness\x12X\n" +
 	"\fcapabilities\x18\b \x01(\v24.o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1R\fcapabilitiesB\r\n" +
-	"\v_submission\"\xe3\b\n" +
+	"\v_submission\"\x9e\b\n" +
 	"\x12EvaluationExportV1\x12\x1b\n" +
 	"\texport_id\x18\x01 \x01(\tR\bexportId\x12*\n" +
 	"\x11evaluation_run_id\x18\x02 \x01(\tR\x0fevaluationRunId\x12E\n" +
@@ -83368,10 +83301,7 @@ const file_o11y_one_agentic_v1_evaluation_proto_rawDesc = "" +
 	"finishedAt\x88\x01\x01\x12>\n" +
 	"\n" +
 	"expires_at\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampH\x05R\texpiresAt\x88\x01\x01\x12\x18\n" +
-	"\aexpired\x18\x10 \x01(\bR\aexpired\x12,\n" +
-	"\x12dataset_version_id\x18\x11 \x01(\tR\x10datasetVersionId\x12!\n" +
-	"\fskipped_rows\x18\x12 \x01(\x04R\vskippedRows\x121\n" +
-	"\x15first_skipped_task_id\x18\x13 \x01(\tR\x12firstSkippedTaskIdB\x19\n" +
+	"\aexpired\x18\x10 \x01(\bR\aexpiredB\x19\n" +
 	"\x17_pinned_facts_watermarkB\f\n" +
 	"\n" +
 	"_byte_sizeB\x11\n" +
@@ -83379,15 +83309,13 @@ const file_o11y_one_agentic_v1_evaluation_proto_rawDesc = "" +
 	"\n" +
 	"\b_failureB\x0e\n" +
 	"\f_finished_atB\r\n" +
-	"\v_expires_at\"\xc3\x02\n" +
+	"\v_expires_atJ\x04\b\x11\x10\x14R\x12dataset_version_idR\fskipped_rowsR\x15first_skipped_task_id\"\xa5\x02\n" +
 	"\x1dCreateEvaluationExportRequest\x12*\n" +
 	"\x11evaluation_run_id\x18\x01 \x01(\tR\x0fevaluationRunId\x12E\n" +
 	"\x06format\x18\x02 \x01(\x0e2-.o11y_one.agentic.v1.EvaluationExportFormatV1R\x06format\x12'\n" +
 	"\x0fidempotency_key\x18\x03 \x01(\tR\x0eidempotencyKey\x12,\n" +
-	"\x0fretention_hours\x18\x04 \x01(\rH\x00R\x0eretentionHours\x88\x01\x01\x12,\n" +
-	"\x12dataset_version_id\x18\x05 \x01(\tR\x10datasetVersionId\x12\x16\n" +
-	"\x06splits\x18\x06 \x03(\tR\x06splitsB\x12\n" +
-	"\x10_retention_hours\"\xe8\x01\n" +
+	"\x0fretention_hours\x18\x04 \x01(\rH\x00R\x0eretentionHours\x88\x01\x01B\x12\n" +
+	"\x10_retention_hoursJ\x04\b\x05\x10\x06J\x04\b\x06\x10\aR\x12dataset_version_idR\x06splits\"\xe8\x01\n" +
 	"\x1eCreateEvaluationExportResponse\x12?\n" +
 	"\x06export\x18\x01 \x01(\v2'.o11y_one.agentic.v1.EvaluationExportV1R\x06export\x12+\n" +
 	"\x11idempotent_replay\x18\x02 \x01(\bR\x10idempotentReplay\x12X\n" +
@@ -83401,14 +83329,12 @@ const file_o11y_one_agentic_v1_evaluation_proto_rawDesc = "" +
 	"\fcapabilities\x18\x04 \x01(\v24.o11y_one.agentic.v1.AgenticEvaluationCapabilitiesV1R\fcapabilities\"\x94\x01\n" +
 	"\x19EvaluationExportListRowV1\x12?\n" +
 	"\x06export\x18\x01 \x01(\v2'.o11y_one.agentic.v1.EvaluationExportV1R\x06export\x126\n" +
-	"\x17definition_display_name\x18\x02 \x01(\tR\x15definitionDisplayName\"\xaf\x02\n" +
+	"\x17definition_display_name\x18\x02 \x01(\tR\x15definitionDisplayName\"\xff\x01\n" +
 	"\x1cListEvaluationExportsRequest\x125\n" +
 	"\x04page\x18\x01 \x01(\v2!.o11y_one.common.v1.PageRequestV1R\x04page\x12/\n" +
 	"\x11evaluation_run_id\x18\x02 \x01(\tH\x00R\x0fevaluationRunId\x88\x01\x01\x12G\n" +
-	"\x06states\x18\x03 \x03(\x0e2/.o11y_one.agentic.v1.EvaluationOperationStateV1R\x06states\x121\n" +
-	"\x12dataset_version_id\x18\x04 \x01(\tH\x01R\x10datasetVersionId\x88\x01\x01B\x14\n" +
-	"\x12_evaluation_run_idB\x15\n" +
-	"\x13_dataset_version_id\"\xd2\x02\n" +
+	"\x06states\x18\x03 \x03(\x0e2/.o11y_one.agentic.v1.EvaluationOperationStateV1R\x06statesB\x14\n" +
+	"\x12_evaluation_run_idJ\x04\b\x04\x10\x05R\x12dataset_version_id\"\xd2\x02\n" +
 	"\x1dListEvaluationExportsResponse\x12H\n" +
 	"\aexports\x18\x01 \x03(\v2..o11y_one.agentic.v1.EvaluationExportListRowV1R\aexports\x126\n" +
 	"\x04page\x18\x02 \x01(\v2\".o11y_one.common.v1.PageResponseV1R\x04page\x12X\n" +

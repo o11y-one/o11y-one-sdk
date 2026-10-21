@@ -5532,18 +5532,8 @@ message EvaluationExportV1 {
   // #636. True once the object was deleted or `expires_at` has passed: the
   // download is refused as expired.
   bool expired = 16;
-  // (#726) The dataset version a trainer export writes the tasks of. Empty on a
-  // run's export, whose `evaluation_run_id` is set instead.
-  string dataset_version_id = 17;
-  // (#726) The tasks a completed dataset version's export skipped, having no
-  // prompt a trainer can read, and the first of them by id; for a trajectory
-  // version, the rollouts it skipped, their steps not whole, cut or gone,
-  // their task without a prompt, their close's messages past their bounds or
-  // not lining up with their steps, or a call's arguments no JSON object, and
-  // the first of them by its ordinal. 0 and empty on a run's export, which
-  // skips nothing.
-  uint64 skipped_rows = 18;
-  string first_skipped_task_id = 19;
+  reserved 17 to 19;
+  reserved "dataset_version_id", "skipped_rows", "first_skipped_task_id";
 }
 
 message CreateEvaluationExportRequest {
@@ -5553,15 +5543,8 @@ message CreateEvaluationExportRequest {
   // O11Y-596. How long the export's object is kept once written, 1 to 720
   // hours. Absent keeps it 48 hours.
   optional uint32 retention_hours = 4;
-  // (#726) A dataset version whose tasks to export, in a trainer's format.
-  // Exactly one of `evaluation_run_id` and this is set; otherwise the request
-  // is refused as `export_source_invalid`.
-  string dataset_version_id = 5;
-  // (#726) The dataset version's splits to export: `train`, `eval`, `golden`,
-  // `regression` or `canary`. Empty exports train, eval and regression;
-  // golden and canary are exported only when named. Only with
-  // `dataset_version_id`; any other value is refused as `export_split_invalid`.
-  repeated string splits = 6;
+  reserved 5, 6;
+  reserved "dataset_version_id", "splits";
 }
 
 message CreateEvaluationExportResponse {
@@ -5585,8 +5568,7 @@ message GetEvaluationExportResponse {
 // download is `CreateEvaluationExportDownload`, audited per call.
 message EvaluationExportListRowV1 {
   EvaluationExportV1 export = 1;
-  // The run's evaluation, by its display name; for a dataset version's export
-  // (#726), its dataset collection's name.
+  // The run's evaluation, by its display name.
   string definition_display_name = 2;
 }
 
@@ -5595,9 +5577,8 @@ message ListEvaluationExportsRequest {
   optional string evaluation_run_id = 2;
   // Empty means every state. UNSPECIFIED is refused, never a wildcard.
   repeated EvaluationOperationStateV1 states = 3;
-  // (#726) This dataset version's trainer exports alone. Without it,
-  // evaluation runs' exports alone are listed. Never with `evaluation_run_id`.
-  optional string dataset_version_id = 4;
+  reserved 4;
+  reserved "dataset_version_id";
 }
 
 message ListEvaluationExportsResponse {
