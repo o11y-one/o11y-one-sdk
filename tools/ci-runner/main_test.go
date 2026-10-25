@@ -351,6 +351,7 @@ func TestSubcommandFlagValidation(t *testing.T) {
 		{"wait with unknown flag", []string{"wait", "--bogus"}, 64},
 		{"diff with unknown flag", []string{"diff", "--run", "run_1", "--candidate", "cand_b", "--bogus"}, 64},
 		{"annotate with unknown flag", []string{"annotate", "--bogus"}, 64},
+		{"annotate with a commit that is not one", []string{"annotate", "--title", "t", "--commit", "main"}, 64},
 		{"run with malformed duration", []string{"run", "--definition", "d1", "--poll-interval", "soon"}, 64},
 		{"help flag", []string{"diff", "-h"}, 0},
 		{"unknown command", []string{"frobnicate"}, 64},
@@ -434,6 +435,36 @@ func TestRunDefinitionPreviewsThenLaunchesWithTheMintedToken(t *testing.T) {
 	}
 	if want := []string{"pv:d1:1"}; !slices.Equal(f.creates, want) {
 		t.Errorf("CreateEvaluationRun tokens = %q, want %q", f.creates, want)
+	}
+}
+
+// A deployment marker names the service and commit it shipped, under the
+// attribute names O11y One reads from a service's telemetry, so the deploy is
+// scored at that commit.
+func TestAnnotateDeploymentCarriesItsServiceAndCommit(t *testing.T) {
+	f := &fakeEval{keys: map[string]bool{}}
+	flags := []string{"--title", "deploy checkout", "--service", "checkout", "--commit", "3f2a9c1e", "--body", "canary"}
+	code, _, stderr := runCaptured(t, "annotate", append(serveFake(t, f), flags...)...)
+
+	if code != 0 {
+		t.Fatalf("exit = %d, want 0; stderr: %s", code, stderr)
+	}
+	want := []*agenticv1.PlatformAnnotationAttributeV1{
+		{Key: "body", Value: "canary"},
+		{Key: "service.name", Value: "checkout"},
+		{Key: "vcs.ref.head.revision", Value: "3f2a9c1e"},
+	}
+	if len(f.markers) != 1 {
+		t.Fatalf("RecordPlatformAnnotation was called %d times, want once", len(f.markers))
+	}
+	got := f.markers[0]
+	if got.GetKind() != agenticv1.PlatformAnnotationKindV1_PLATFORM_ANNOTATION_KIND_V1_DEPLOYMENT {
+		t.Errorf("kind = %v, want deployment", got.GetKind())
+	}
+	if !slices.EqualFunc(got.GetAttributes(), want, func(a, b *agenticv1.PlatformAnnotationAttributeV1) bool {
+		return proto.Equal(a, b)
+	}) {
+		t.Errorf("attributes = %v, want %v", got.GetAttributes(), want)
 	}
 }
 
@@ -671,6 +702,7 @@ type fakeEval struct {
 	keys     map[string]bool                             // idempotency keys that launched
 	polls    []*agenticv1.GetEvaluationOperationResponse // served in order, the last repeated
 	served   int
+	markers  []*agenticv1.RecordPlatformAnnotationRequest // each annotation recorded
 }
 
 func (f *fakeEval) GetEvaluationOperation(context.Context, *connect.Request[agenticv1.GetEvaluationOperationRequest]) (*connect.Response[agenticv1.GetEvaluationOperationResponse], error) {
@@ -715,6 +747,13 @@ func (f *fakeEval) CreateEvaluationRun(_ context.Context, req *connect.Request[a
 			State:       agenticv1.EvaluationOperationStateV1_EVALUATION_OPERATION_STATE_V1_PENDING,
 		},
 		IdempotentReplay: replay,
+	}), nil
+}
+
+func (f *fakeEval) RecordPlatformAnnotation(_ context.Context, req *connect.Request[agenticv1.RecordPlatformAnnotationRequest]) (*connect.Response[agenticv1.RecordPlatformAnnotationResponse], error) {
+	f.markers = append(f.markers, req.Msg)
+	return connect.NewResponse(&agenticv1.RecordPlatformAnnotationResponse{
+		Annotation: &agenticv1.PlatformAnnotationV1{AnnotationId: "ann_1"},
 	}), nil
 }
 

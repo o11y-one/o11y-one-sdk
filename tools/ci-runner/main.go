@@ -548,6 +548,8 @@ func cmdAnnotate(args []string) error {
 		"annotation kind: deployment | event | range")
 	title := fs.String("title", "", "annotation title (required)")
 	body := fs.String("body", "", "annotation body, recorded as a 'body' attribute")
+	service := fs.String("service", "", "the deployed service, recorded as its service.name")
+	commit := fs.String("commit", "", "the deployed commit SHA, recorded as vcs.ref.head.revision; with --service a deployment is scored at it")
 	at := fs.String("at", "", "RFC3339 instant; defaults to now")
 	until := fs.String("until", "", "RFC3339 end instant, for --kind=range")
 	idempotencyKey := fs.String("idempotency-key", "", "idempotency key; a retry with the same key is deduped")
@@ -564,6 +566,9 @@ func cmdAnnotate(args []string) error {
 	}
 	if *kind == "range" && *until == "" {
 		return &usageError{msg: "--until is required with --kind=range"}
+	}
+	if *commit != "" && !isCommitSHA(*commit) {
+		return &usageError{msg: fmt.Sprintf("--commit %q is not a commit SHA (7 to 64 hex digits)", *commit)}
 	}
 
 	startAt := nowUTC()
@@ -597,8 +602,13 @@ func cmdAnnotate(args []string) error {
 		EndAt:          endAt,
 		IdempotencyKey: *idempotencyKey,
 	}
-	if *body != "" {
-		req.Attributes = []*agenticv1.PlatformAnnotationAttributeV1{{Key: "body", Value: *body}}
+	// The commit and service attributes are the OTel semantic-convention names O11y One also reads from telemetry.
+	for _, attr := range []struct{ key, value string }{
+		{"body", *body}, {"service.name", *service}, {"vcs.ref.head.revision", *commit},
+	} {
+		if attr.value != "" {
+			req.Attributes = append(req.Attributes, &agenticv1.PlatformAnnotationAttributeV1{Key: attr.key, Value: attr.value})
+		}
 	}
 
 	ctx, cancel := common.commandContext()
@@ -639,6 +649,19 @@ func annotationKind(kind string) (agenticv1.PlatformAnnotationKindV1, bool) {
 	default:
 		return agenticv1.PlatformAnnotationKindV1_PLATFORM_ANNOTATION_KIND_V1_UNSPECIFIED, false
 	}
+}
+
+// isCommitSHA reports whether s is a git commit SHA, short or full.
+func isCommitSHA(s string) bool {
+	if len(s) < 7 || len(s) > 64 {
+		return false
+	}
+	for _, c := range s {
+		if !strings.ContainsRune("0123456789abcdefABCDEF", c) {
+			return false
+		}
+	}
+	return true
 }
 
 func emitJSON(v any) error {
