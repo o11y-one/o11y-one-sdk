@@ -550,6 +550,7 @@ func cmdAnnotate(args []string) error {
 	body := fs.String("body", "", "annotation body, recorded as a 'body' attribute")
 	service := fs.String("service", "", "the deployed service, recorded as its service.name")
 	commit := fs.String("commit", "", "the deployed commit SHA, recorded as vcs.ref.head.revision; with --service a deployment is scored at it")
+	environment := fs.String("environment", "", "the environment deployed to, recorded as deployment.environment.name; without it the marker reaches every environment of --service")
 	at := fs.String("at", "", "RFC3339 instant; defaults to now")
 	until := fs.String("until", "", "RFC3339 end instant, for --kind=range")
 	idempotencyKey := fs.String("idempotency-key", "", "idempotency key; a retry with the same key is deduped")
@@ -602,9 +603,11 @@ func cmdAnnotate(args []string) error {
 		EndAt:          endAt,
 		IdempotencyKey: *idempotencyKey,
 	}
-	// The commit and service attributes are the OTel semantic-convention names O11y One also reads from telemetry.
+	// The service, commit and environment attributes are the OTel semantic-convention names O11y One also reads from
+	// telemetry.
 	for _, attr := range []struct{ key, value string }{
 		{"body", *body}, {"service.name", *service}, {"vcs.ref.head.revision", *commit},
+		{"deployment.environment.name", *environment},
 	} {
 		if attr.value != "" {
 			req.Attributes = append(req.Attributes, &agenticv1.PlatformAnnotationAttributeV1{Key: attr.key, Value: attr.value})

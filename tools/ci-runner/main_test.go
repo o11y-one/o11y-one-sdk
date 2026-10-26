@@ -438,12 +438,12 @@ func TestRunDefinitionPreviewsThenLaunchesWithTheMintedToken(t *testing.T) {
 	}
 }
 
-// A deployment marker names the service and commit it shipped, under the
-// attribute names O11y One reads from a service's telemetry, so the deploy is
-// scored at that commit.
+// A deployment marker names the service, commit and environment it shipped,
+// under the attribute names O11y One reads from a service's telemetry, so the
+// deploy is scored at that commit in that environment alone.
 func TestAnnotateDeploymentCarriesItsServiceAndCommit(t *testing.T) {
 	f := &fakeEval{keys: map[string]bool{}}
-	flags := []string{"--title", "deploy checkout", "--service", "checkout", "--commit", "3f2a9c1e", "--body", "canary"}
+	flags := []string{"--title", "deploy checkout", "--service", "checkout", "--commit", "3f2a9c1e", "--environment", "staging", "--body", "canary"}
 	code, _, stderr := runCaptured(t, "annotate", append(serveFake(t, f), flags...)...)
 
 	if code != 0 {
@@ -453,6 +453,7 @@ func TestAnnotateDeploymentCarriesItsServiceAndCommit(t *testing.T) {
 		{Key: "body", Value: "canary"},
 		{Key: "service.name", Value: "checkout"},
 		{Key: "vcs.ref.head.revision", Value: "3f2a9c1e"},
+		{Key: "deployment.environment.name", Value: "staging"},
 	}
 	if len(f.markers) != 1 {
 		t.Fatalf("RecordPlatformAnnotation was called %d times, want once", len(f.markers))
